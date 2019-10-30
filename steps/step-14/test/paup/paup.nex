@@ -1,0 +1,34 @@
+#nexus
+
+begin paup;
+    log start replace file=pauplog-fixed.txt;
+    [!****** STARTING LOG-LIKELIHOOD (SHAPE 1.0, NOT MLE) ******]
+    set crit=like forcepolyt storebrlen;
+    exe ../rbcl10.nex;
+    gettrees file=../rbcl10.tre;
+    lset nst=6 rmatrix=(0.06082 0.27887 0.06461 0.06244 0.48492 0.04834) basefreq=(0.294667 0.189172 0.206055 0.310106) rates=gamma shape=1 pinvar=0;
+    lscores 1 / userbrlen;
+    describetree 1 / plot=none brlens=sumonly;
+    [!****** SHAPE MLE ******]
+    lset shape=estimate;
+    lscores 1 / userbrlen;
+    log stop;
+    quit;
+end;
+
+begin _paup;
+    log start replace file=pauplog-free.txt;
+    [!****** ESTIMATE EVERYTHING IN GTR+G MODEL ******]
+    set crit=like forcepolyt;
+    exe ../rbcl10.nex;
+    gettrees file=../rbcl10.tre;
+    lset nst=6 rmatrix=estimate basefreq=estimate rates=gamma shape=estimate pinvar=0;
+    lscores 1;
+    describetree 1 / plot=none brlens=sumonly;
+    [!****** SAVE TREE ******]
+    savetree file=../rbcl10.tre brlens replace;
+    log stop;
+    quit;
+end;
+
+

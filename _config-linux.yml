@@ -1,0 +1,8 @@
+baseurl: '/people/plewis/cpp/linux'
+
+operatingsystem: linux
+doindex: false
+
+emoji:
+  src: '/linux/assets/img'
+

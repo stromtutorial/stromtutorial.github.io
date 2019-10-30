@@ -1,0 +1,235 @@
+
+*** Not using stored data (posterior = prior) ***
+
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-18/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+*** Reading and storing tree number 1 in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+Number of taxa: 10
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     1314
+    patterns:  424
+    ambiguity: treated as missing data (faster)
+
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites        1314
+       num. patterns         424
+         num. states           4
+     rate categories           4
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           1
+               omega           -
+       rate variance           1
+              pinvar           1
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.25,0.25,0.25,0.25)
+
+  exchangeabilities:
+             1: (0.166667,0.166667,0.166667,0.166667,0.166667,0.166667)
+
+  omega:
+             1: -
+
+  rate variance:
+             1: 1
+
+  pinvar:
+             1: 0.1
+
+Created BeagleLib instance 0 (4 states, 4 rates, 1 subset, is invar. sites model)
+Created BeagleLib instance 1 (4 states, 4 rates, 1 subset, is invar. sites model)
+Created BeagleLib instance 2 (4 states, 4 rates, 1 subset, is invar. sites model)
+Created BeagleLib instance 3 (4 states, 4 rates, 1 subset, is invar. sites model)
+
+*** BeagleLib 3.1.2 resources:
+Preferred resource: GPU
+Available resources:
+  resource 0: CPU
+Resources used:
+  instance 0: CPU (resource 0)
+
+
+*** MCMC analysis beginning...
+Exploring prior
+Number of chains is 4
+Burning in for 10000 iterations.
+Running after burn-in for 100000 iterations.
+Sampling every 10 iterations.
+Sample size is 10000
+
+   iteration      logLike     logPrior           TL
+           0      0.00000     47.44569      1.75014
+        1000      0.00000     47.44074      6.44811
+        2000      0.00000     48.50362      0.53131
+        3000      0.00000     45.11692     16.48840
+        4000      0.00000     47.39289      4.02615
+        5000      0.00000     47.59583      1.08308
+        6000      0.00000     42.54221      4.83355
+        7000      0.00000     47.01022      0.96881
+        8000      0.00000     48.01464      0.54961
+        9000      0.00000     47.06094      3.82272
+       10000      0.00000     46.68778      9.15280
+       11000      0.00000     40.40358     41.91635
+       12000      0.00000     45.89140     13.67194
+       13000      0.00000     48.21264      0.59257
+       14000      0.00000     39.39161     24.55820
+       15000      0.00000     47.20125      6.43276
+       16000      0.00000     46.25998      3.21174
+       17000      0.00000     46.60038      1.51455
+       18000      0.00000     48.42099      0.08107
+       19000      0.00000     47.91681      1.43721
+       20000      0.00000     48.00559      3.60703
+       21000      0.00000     47.67120      0.57628
+       22000      0.00000     47.91501      0.62137
+       23000      0.00000     46.40726      3.04704
+       24000      0.00000     47.55124      1.35409
+       25000      0.00000     48.19585      2.44001
+       26000      0.00000     44.00947     17.80493
+       27000      0.00000     45.05931      5.20219
+       28000      0.00000     43.18858     22.58576
+       29000      0.00000     46.34675      8.80744
+       30000      0.00000     47.46239      4.61067
+       31000      0.00000     47.94423      3.92728
+       32000      0.00000     45.59421      9.69602
+       33000      0.00000     48.36949      0.29851
+       34000      0.00000     40.29793     11.65367
+       35000      0.00000     47.82350      4.15602
+       36000      0.00000     47.48640      0.49174
+       37000      0.00000     46.91596      6.19853
+       38000      0.00000     47.81732      2.83550
+       39000      0.00000     45.65174      5.51334
+       40000      0.00000     42.86024     26.27030
+       41000      0.00000     46.11116     11.88669
+       42000      0.00000     44.77009     14.54264
+       43000      0.00000     47.69841      2.68114
+       44000      0.00000     46.43136      6.30911
+       45000      0.00000     47.66416      3.16371
+       46000      0.00000     45.84572     10.16702
+       47000      0.00000     47.14286      0.15890
+       48000      0.00000     47.52233      5.90402
+       49000      0.00000     44.41203     17.52838
+       50000      0.00000     46.63079      8.55128
+       51000      0.00000     45.97757      6.19723
+       52000      0.00000     46.80304      4.03904
+       53000      0.00000     48.36402      1.14586
+       54000      0.00000     47.51463      4.45567
+       55000      0.00000     48.13959      3.14037
+       56000      0.00000     47.56811      1.24132
+       57000      0.00000     48.26823      0.83059
+       58000      0.00000     45.97174     13.47181
+       59000      0.00000     48.29290      0.45402
+       60000      0.00000     44.61678     14.03264
+       61000      0.00000     48.27524      1.79646
+       62000      0.00000     39.97688     10.09328
+       63000      0.00000     45.70295      2.92420
+       64000      0.00000     47.08478      4.62706
+       65000      0.00000     47.47317      3.49963
+       66000      0.00000     47.00109      5.95253
+       67000      0.00000     38.53165     39.92617
+       68000      0.00000     45.78761      4.77047
+       69000      0.00000     46.36754     11.30197
+       70000      0.00000     46.65125      6.81537
+       71000      0.00000     45.22274     15.03510
+       72000      0.00000     46.61632      8.19987
+       73000      0.00000     47.53985      0.18294
+       74000      0.00000     45.99258     10.56217
+       75000      0.00000     45.50153      2.27395
+       76000      0.00000     45.44753     16.32593
+       77000      0.00000     45.82371      4.28803
+       78000      0.00000     45.89334      6.75264
+       79000      0.00000     46.91052      9.08615
+       80000      0.00000     47.64837      4.35370
+       81000      0.00000     47.45365      5.96694
+       82000      0.00000     46.62482      5.27351
+       83000      0.00000     46.21423     12.14281
+       84000      0.00000     47.73523      0.77624
+       85000      0.00000     47.18930      3.00710
+       86000      0.00000     47.33489      4.60131
+       87000      0.00000     44.68877     16.17941
+       88000      0.00000     48.40167      1.34937
+       89000      0.00000     44.07785     19.59138
+       90000      0.00000     47.93800      0.79224
+       91000      0.00000     46.39086     11.80875
+       92000      0.00000     47.97176      1.86711
+       93000      0.00000     40.98228     39.03847
+       94000      0.00000     47.12951      7.81017
+       95000      0.00000     46.79376      9.72822
+       96000      0.00000     47.21199      7.17049
+       97000      0.00000     47.99756      3.86896
+       98000      0.00000     46.86511      2.68364
+       99000      0.00000     46.75935      7.31386
+      100000      0.00000     47.01948      6.50916
+
+Chain 0 (power 1.00000)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4091
+             Exchangeabilities        1000.000           100.0            4077
+           Gamma Rate Variance          14.496            26.2            4152
+Proportion of Invariable Sites           1.000           100.0            4154
+         Tree and Edge Lengths           7.189            29.9           79353
+                   Tree Length          14.111            31.9            4173
+
+Chain 1 (power 0.66667)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4110
+             Exchangeabilities        1000.000           100.0            4250
+           Gamma Rate Variance          12.001            26.0            4318
+Proportion of Invariable Sites           1.000           100.0            4171
+         Tree and Edge Lengths           6.932            29.8           79013
+                   Tree Length           9.822            31.6            4138
+
+Chain 2 (power 0.50000)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4234
+             Exchangeabilities        1000.000           100.0            4152
+           Gamma Rate Variance          15.390            26.6            4203
+Proportion of Invariable Sites           1.000           100.0            4127
+         Tree and Edge Lengths           6.902            29.9           79094
+                   Tree Length          10.265            32.8            4190
+
+Chain 3 (power 0.40000)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4179
+             Exchangeabilities        1000.000           100.0            4149
+           Gamma Rate Variance          15.177            25.9            4195
+Proportion of Invariable Sites           1.000           100.0            4126
+         Tree and Edge Lengths           7.104            29.9           79189
+                   Tree Length          10.590            34.4            4162
+
+Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
+                        0            1            2            3
+----------------------------------------------------------------
+           0          ---        16554        16622        16679
+           1        10584          ---        16789        16699
+           2         6945        12130          ---        16657
+           3         4603         8786        12936          ---
+----------------------------------------------------------------
+
+Finished!

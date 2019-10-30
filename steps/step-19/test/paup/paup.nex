@@ -1,0 +1,14 @@
+#nexus
+
+begin paup;
+  log start replace file=pauplog.txt;
+  exe ../protea9gene.nex;
+  outgroup cynaroides scolopendr pruinosa cryophila;
+  gettrees file=../protea9gene.tre;
+  set crit=like forcepolyt;
+  lset nst=6 basefreq=estimate rmatrix=estimate rates=gamma shape=estimate pinvar=0;
+  lscores 1;
+  savetrees file=protea-gtr.tre brlens replace;
+  log stop;
+  quit;
+end;

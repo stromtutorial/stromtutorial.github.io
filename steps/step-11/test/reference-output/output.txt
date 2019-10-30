@@ -1,0 +1,102 @@
+Partition subset first comprises sites 1-60\3 and has type nucleotide
+Partition subset second comprises sites 2-60\3 and has type nucleotide
+Partition subset third comprises sites 3-60\3 and has type nucleotide
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-11/test"
+
+*** Reading and storing the data in the file rbcL.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 14
+Number of partition subsets: 3
+  Subset 1 (first)
+    data type: nucleotide
+    sites:     20
+    patterns:  7
+    ambiguity: treated as missing data (faster)
+  Subset 2 (second)
+    data type: nucleotide
+    sites:     20
+    patterns:  5
+    ambiguity: treated as missing data (faster)
+  Subset 3 (third)
+    data type: nucleotide
+    sites:     20
+    patterns:  17
+    ambiguity: treated as missing data (faster)
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+
+*** Model description
+Partition information:
+
+         data subset           1           2           3
+   -----------------------------------------------------
+          num. sites          20          20          20
+       num. patterns           7           5          17
+         num. states           4           4           4
+     rate categories           4           1           4
+
+Parameter linkage:
+
+         data subset           1           2           3
+   -----------------------------------------------------
+         state freqs           1           1           1
+   exchangeabilities           1           1           2
+               omega           -           -           -
+       rate variance           1           2           3
+              pinvar           1           2           -
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 3
+             2: 1
+             3: 6
+
+  state freqs:
+             1: (0.1,0.2,0.3,0.4)
+             2: (0.1,0.2,0.3,0.4)
+             3: (0.1,0.2,0.3,0.4)
+
+  exchangeabilities:
+             1: (0.166667,0.166667,0.166667,0.166667,0.166667,0.166667)
+             2: (0.166667,0.166667,0.166667,0.166667,0.166667,0.166667)
+             3: (0.125,0.25,0.125,0.125,0.25,0.125)
+
+  omega:
+             1: -
+             2: -
+             3: -
+
+  rate variance:
+             1: 1
+             2: -
+             3: 0.5
+
+  pinvar:
+             1: 0.2
+             2: 0.5
+             3: -
+
+Created BeagleLib instance 0 (4 states, 4 rates, 1 subset, is invar. sites model)
+Created BeagleLib instance 1 (4 states, 1 rate, 1 subset, is invar. sites model)
+Created BeagleLib instance 2 (4 states, 4 rates, 1 subset, not invar. sites model)
+
+*** Reading and storing the first tree in the file rbcLjc.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 5, column (approximately) 1 (file position 33)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -274.72913
+      (expecting -274.729)
+
+Finished!

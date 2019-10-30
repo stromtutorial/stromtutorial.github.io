@@ -1,0 +1,26 @@
+Starting...
+Constructing a TreeManip
+Input: (1:0.3,2:0.3,(3:0.2,(4:0.1,5:0.1):0.1):0.1)
+Constructing a Tree
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Output: (1:0.300,2:0.300,(3:0.200,(4:0.100,5:0.100):0.100):0.100)
+Output: (5:0.100,4:0.100,(3:0.200,(2:0.300,1:0.300):0.100):0.100)
+
+Finished!
+Destroying a TreeManip
+Destroying a Tree
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object

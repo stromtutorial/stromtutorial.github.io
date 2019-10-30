@@ -1,0 +1,8 @@
+baseurl: '/people/plewis/cpp/mac'
+
+operatingsystem: mac
+doindex: false
+
+emoji:
+  src: '/mac/assets/img'
+

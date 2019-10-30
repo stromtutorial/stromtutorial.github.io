@@ -1,0 +1,75 @@
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-12/test"
+
+*** Reading and storing the data in the file rbcL738.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 738
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     1314
+    patterns:  1235
+    ambiguity: treated as missing data (faster)
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+
+*** Model description
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites        1314
+       num. patterns        1235
+         num. states           4
+     rate categories           4
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           1
+               omega           -
+       rate variance           1
+              pinvar           -
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.309769,0.16338,0.121023,0.405828)
+
+  exchangeabilities:
+             1: (0.0839422,0.341167,0.0360332,0.157379,0.302971,0.0785072)
+
+  omega:
+             1: -
+
+  rate variance:
+             1: 1.93319
+
+  pinvar:
+             1: -
+
+Created BeagleLib instance 0 (4 states, 4 rates, 1 subset, not invar. sites model)
+
+*** Reading and storing the first tree in the file rbcL738nj.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 12, column (approximately) 1 (file position 258)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -144730.76551
+      (expecting -144730.750)
+
+Finished!

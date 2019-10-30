@@ -1,0 +1,25 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="{{ site.baseurl }}{% link index.md %}">
+        <img class="navbar-logo" src="{{ site.baseurl }}{% link assets/img/strom-logo.png %}" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="{{ site.baseurl }}/">Home</a>
+          </li>
+          <li class="nav-item">
+            {% page_ref steps %}
+          </li>
+          {% if site.doindex %}
+          <li class="nav-item">
+            {% page_ref mainindex %}
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+  </div>
+</nav>

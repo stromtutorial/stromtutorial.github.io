@@ -1,0 +1,92 @@
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-15/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+Number of taxa: 10
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     1314
+    patterns:  424
+    ambiguity: treated as missing data (faster)
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+
+*** Model description
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites        1314
+       num. patterns         424
+         num. states           4
+     rate categories           4
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           1
+               omega           -
+       rate variance           1
+              pinvar           -
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.294701,0.189205,0.205994,0.3101)
+
+  exchangeabilities:
+             1: (0.06082,0.27887,0.06461,0.06244,0.48492,0.04834)
+
+  omega:
+             1: -
+
+  rate variance:
+             1: 1
+
+  pinvar:
+             1: -
+
+Created BeagleLib instance 0 (4 states, 4 rates, 1 subset, not invar. sites model)
+
+*** Reading and storing the first tree in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -6897.50119
+      (expecting -6897.492)
+
+   iteration      logLike     logPrior           TL
+           0  -6897.50119     -1.00000      1.75014
+         100  -6723.24797     -3.82676      1.75014
+         200  -6723.36455     -3.77476      1.75014
+         300  -6723.57824     -4.19035      1.75014
+         400  -6725.66292     -3.39929      1.75014
+         500  -6724.14492     -4.32369      1.75014
+         600  -6724.08629     -3.60218      1.75014
+         700  -6723.51995     -3.72464      1.75014
+         800  -6723.80059     -3.65665      1.75014
+         900  -6723.29172     -4.08572      1.75014
+        1000  -6723.76580     -3.66414      1.75014
+
+Chain summary:
+                       Updater   Tuning Param.        Accept %     No. Updates
+           Gamma Rate Variance           0.689            30.5            1000
+
+Finished!

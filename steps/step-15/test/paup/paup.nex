@@ -1,0 +1,13 @@
+#nexus
+
+begin paup;
+    log start replace file=pauplog.txt;
+    set crit=like forcepolyt storebrlen;
+    exe ../rbcl10.nex;
+    gettrees file=../rbcl10.tre;
+    lset nst=6 rmatrix=(0.06084 0.27901 0.06471 0.06242 0.48461 0.04841) basefreq=(0.294701 0.189205 0.205994 0.310100) rates=gamma shape=1.0 pinvar=0;
+    lscores 1 / userbrlen;
+    describetree 1 / plot=none brlens=sumonly;
+    log stop;
+    quit;
+end;

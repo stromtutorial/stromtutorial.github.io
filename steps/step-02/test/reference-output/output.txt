@@ -1,0 +1,5 @@
+Starting...
+Constructing a Tree
+
+Finished!
+Destroying a Tree

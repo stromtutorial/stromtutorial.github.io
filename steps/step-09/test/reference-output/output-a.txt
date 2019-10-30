@@ -1,0 +1,26 @@
+Partition subset first comprises sites 1-60\3 and has type nucleotide
+Partition subset second comprises sites 2-60\3 and has type nucleotide
+Partition subset third comprises sites 3-60\3 and has type nucleotide
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+
+*** Reading and storing the data in the file rbcL.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 14
+Number of partition subsets: 3
+  Subset 1 (first)
+    data type: nucleotide
+    sites:     20
+    patterns:  7
+  Subset 2 (second)
+    data type: nucleotide
+    sites:     20
+    patterns:  5
+  Subset 3 (third)
+    data type: nucleotide
+    sites:     20
+    patterns:  17
+
+Finished!

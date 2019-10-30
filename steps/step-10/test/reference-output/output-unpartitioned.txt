@@ -1,0 +1,33 @@
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-10/test"
+
+*** Reading and storing the data in the file rbcL.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 14
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     60
+    patterns:  21
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+Created BeagleLib instance 0 (4 states, 1 rate, 1 subset)
+
+*** Reading and storing the first tree in the file rbcLjc.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 5, column (approximately) 1 (file position 33)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -278.83767
+      (expecting -278.83767)
+
+Finished!

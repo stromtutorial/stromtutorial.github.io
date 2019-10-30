@@ -1,0 +1,19 @@
+Starting...
+storing read block: TAXA
+storing read block: TREES
+
+Read 14 trees from file
+Topology 1 seen in these 4 trees:
+  10 11 12 13 
+Topology 2 seen in these 2 trees:
+  8 9 
+Topology 3 seen in these 8 trees:
+  0 1 2 3 4 5 6 7 
+
+Topologies sorted by sample frequency:
+            topology            frequency
+                   3                    8
+                   1                    4
+                   2                    2
+
+Finished!

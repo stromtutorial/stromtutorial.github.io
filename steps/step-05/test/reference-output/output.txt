@@ -1,0 +1,20 @@
+Starting...
+Constructing a TreeManip
+Constructing a Tree
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+((1:0.100,2:0.100):0.100,3:0.200)
+
+Finished!
+Destroying a TreeManip
+Destroying a Tree
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object

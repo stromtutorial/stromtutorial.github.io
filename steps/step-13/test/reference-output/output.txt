@@ -1,0 +1,16 @@
+Seed set to 12345
+  Uniform(0,1) random deviate:             0.929616
+  Uniform(0,1) random deviate (log scale): -0.11636
+  Discrete Uniform(1,4) random deviate:    2
+  Normal(0,1) random deviate:              0.722622
+  Gamma(2,1) random deviate:               1.21748
+
+Seed set to 12345
+  Uniform(0,1) random deviate:             0.929616
+  Uniform(0,1) random deviate (log scale): -0.11636
+  Discrete Uniform(1,4) random deviate:    2
+  Normal(0,1) random deviate:              0.722622
+  Gamma(2,1) random deviate:               1.21748
+
+Mean of 10000 Gamma(2,3) deviates is expected to be 6.0:
+  sample mean = 6.02202

@@ -1,0 +1,127 @@
+
+P A U P *
+Version 4.0a (build 166) for macOS (built on Sep  1 2019 at 23:02:50)
+Sun Sep 15 18:16:40 2019
+
+
+****** STARTING LOG-LIKELIHOOD (SHAPE 1.0, NOT MLE) ******
+
+Optimality criterion set to likelihood.
+
+Processing of file "~/Documents/websites/cpptutorial/steps/step-14/test/rbcl10.nex" begins...
+
+Data read in DNA format
+
+Data matrix has 10 taxa, 1314 characters
+Valid character-state symbols: ACGT
+Missing data identified by '?'
+Gaps identified by '-'
+"Equate" macros in effect:
+   R,r ==> {AG}
+   Y,y ==> {CT}
+   M,m ==> {AC}
+   K,k ==> {GT}
+   S,s ==> {CG}
+   W,w ==> {AT}
+   H,h ==> {ACT}
+   B,b ==> {CGT}
+   V,v ==> {ACG}
+   D,d ==> {AGT}
+   N,n ==> {ACGT}
+
+Processing of input file "rbcl10.nex" completed.
+
+Processing TREES block from file: ~/Documents/websites/cpptutorial/steps/step-14/test/rbcl10.tre
+  Keeping: trees from file (replacing any trees already in memory)
+  1 tree read from file
+
+  Time used = 0.00 sec (CPU time = 0.00 sec)
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1314 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = nucleotide
+                    Substitution types = 6
+                     Exchangeabilities = AC=1.25817 AG=5.76893 AT=1.33657 CG=1.29168 CT=10.0314 GT=1
+                     State frequencies = user-specified: A=0.294667 C=0.189172 G=0.206055 T=0.310106
+        Proportion of invariable sites = none
+               Rates at variable sites = gamma, shape=1 (4 categories [mean])
+                  Model correspondence = GTR+G
+
+    Number of distinct data patterns under this model = 425
+    Molecular clock not enforced
+    Branch lengths constrained to user-input values
+    Likelihood calculations performed in single precision
+    Vector processing enabled
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 4 physical (8 logical) processors
+
+Tree             1
+------------------
+-ln L     6897.492
+
+Time used to compute likelihoods = 0.00 sec (CPU time = 0.00 sec)
+
+Tree description:
+
+  Unrooted tree(s) rooted using outgroup method
+
+  Note: No outgroup has been defined; tree is (arbitrarily) rooted at first taxon.
+  Optimality criterion = likelihood
+    1314 characters are included
+    All characters have equal weight
+    Likelihood settings:
+      Current model:
+                               Data type = nucleotide
+                      Substitution types = 6
+                       Exchangeabilities = AC=1.25817 AG=5.76893 AT=1.33657 CG=1.29168 CT=10.0314 GT=1
+                       State frequencies = user-specified: A=0.294667 C=0.189172 G=0.206055 T=0.310106
+          Proportion of invariable sites = none
+                 Rates at variable sites = gamma, shape=1 (4 categories [mean])
+                    Model correspondence = GTR+G
+
+      Number of distinct data patterns under this model = 425
+      Molecular clock not enforced
+      Branch lengths constrained to user-input values
+      Likelihood calculations performed in single precision
+      Vector processing enabled
+      Conditional-likelihood rescaling threshold = 1e-20
+      Using 1 thread on 4 physical (8 logical) processors
+
+Tree 1 ("PAUP_1") (rooted using default outgroup)
+  Sum of branch lengths = 1.75014
+
+-Ln likelihood = 6897.492
+****** SHAPE MLE ******
+
+Likelihood scores of tree(s) in memory:
+---------------------------------------
+  1314 characters are included
+  All characters have equal weight
+  Likelihood settings:
+    Current model:
+                             Data type = nucleotide
+                    Substitution types = 6
+                     Exchangeabilities = AC=1.25817 AG=5.76893 AT=1.33657 CG=1.29168 CT=10.0314 GT=1
+                     State frequencies = user-specified: A=0.294667 C=0.189172 G=0.206055 T=0.310106
+        Proportion of invariable sites = none
+               Rates at variable sites = gamma, shape=estimated (4 categories [mean])
+                  Model correspondence = GTR+G
+
+    Number of distinct data patterns under this model = 425
+    Molecular clock not enforced
+    Branch lengths constrained to user-input values
+    Likelihood calculations performed in single precision
+    Vector processing enabled
+    Conditional-likelihood rescaling threshold = 1e-20
+    Using 1 thread on 4 physical (8 logical) processors
+
+Tree             1
+------------------
+-ln L     6723.144
+Shape     0.253729
+
+Time used to compute likelihoods = 0.00 sec (CPU time = 0.00 sec)

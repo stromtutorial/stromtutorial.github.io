@@ -1,0 +1,24 @@
+{% assign sections = site.pages | where:"layout","steps" | where:"partnum",page.partnum | where_exp:"item","item.subpart != 0" | sort: "subpart" %}
+
+{% for section in sections %}
+	{% capture part %}
+		<tr class="part" id="{{ section.partnum }}-{{ section.subpart }}">
+		<td>Step {{ section.partnum }}.{{ section.subpart }}</td>
+		<td><a href="{{ site.baseurl }}{{ section.url }}">{{ section.title }}</a></td>
+		<td>{{ section.description | markdownify }}</td>
+		</tr>
+	{% endcapture %}
+
+	{% assign parts = parts | append: part %}
+{% endfor %}
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+{{ parts }}
+</table>
+</div>

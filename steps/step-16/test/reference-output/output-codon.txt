@@ -1,0 +1,94 @@
+Partition subset default comprises sites 1-438 and has type codon,standard
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-16/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+Number of taxa: 10
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: codon,standard
+    sites:     438
+    patterns:  402
+    ambiguity: treated as missing data (faster)
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+
+*** Model description
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites         438
+       num. patterns         402
+         num. states          61
+     rate categories           1
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           -
+               omega           1
+       rate variance           1
+              pinvar           -
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934,0.0163934)
+
+  exchangeabilities:
+             1: -
+
+  omega:
+             1: 0.05
+
+  rate variance:
+             1: -
+
+  pinvar:
+             1: -
+
+Created BeagleLib instance 0 (61 states, 1 rate, 1 subset, not invar. sites model)
+
+*** Reading and storing the first tree in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -6301.77516
+      (expecting -6301.688)
+
+   iteration      logLike     logPrior           TL
+           0  -6301.77516    188.57817      1.75014
+        1000  -5991.01727    188.60612      1.75014
+        2000  -5983.47752    188.60488      1.75014
+        3000  -5984.33057    188.60503      1.75014
+        4000  -5984.07528    188.60503      1.75014
+        5000  -5984.83178    188.60620      1.75014
+        6000  -5982.97888    188.60553      1.75014
+        7000  -5983.39886    188.60613      1.75014
+        8000  -5981.74734    188.60561      1.75014
+        9000  -5981.80211    188.60410      1.75014
+       10000  -5997.61842    188.60279      1.75014
+
+Chain summary:
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies           0.000            28.8            4971
+                         Omega           0.832            30.2            5029
+
+Finished!

@@ -1,0 +1,28 @@
+Partition subset rbcL comprises sites 1-20 and has type codon,plantplastid
+Partition subset rbcL comprises sites 21-40 and has type protein
+Partition subset morph comprises sites 41-45 and has type standard
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+
+*** Reading and storing the data in the file datatest.nex
+storing implied block: TAXA
+storing read block: DATA
+storing read block: CHARACTERS
+storing read block: CHARACTERS
+
+Number of taxa: 14
+Number of partition subsets: 3
+  Subset 1 (rbcL)
+    data type: codon,plantplastid
+    sites:     20
+    patterns:  20
+  Subset 2 (rbcL)
+    data type: protein
+    sites:     20
+    patterns:  17
+  Subset 3 (morph)
+    data type: standard
+    sites:     5
+    patterns:  5
+
+Finished!

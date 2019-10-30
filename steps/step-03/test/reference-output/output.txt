@@ -1,0 +1,17 @@
+Starting...
+Constructing a Tree
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+
+Finished!
+Destroying a Tree
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object

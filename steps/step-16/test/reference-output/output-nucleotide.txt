@@ -1,0 +1,123 @@
+Partition subset first comprises sites 1-1314\3 and has type nucleotide
+Partition subset second comprises sites 2-1314\3 and has type nucleotide
+Partition subset third comprises sites 3-1314\3 and has type nucleotide
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-16/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+Number of taxa: 10
+Number of partition subsets: 3
+  Subset 1 (first)
+    data type: nucleotide
+    sites:     438
+    patterns:  82
+    ambiguity: treated as missing data (faster)
+  Subset 2 (second)
+    data type: nucleotide
+    sites:     438
+    patterns:  55
+    ambiguity: treated as missing data (faster)
+  Subset 3 (third)
+    data type: nucleotide
+    sites:     438
+    patterns:  326
+    ambiguity: treated as missing data (faster)
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+
+*** Model description
+Partition information:
+
+         data subset           1           2           3
+   -----------------------------------------------------
+          num. sites         438         438         438
+       num. patterns          82          55         326
+         num. states           4           4           4
+     rate categories           4           4           4
+
+Parameter linkage:
+
+         data subset           1           2           3
+   -----------------------------------------------------
+         state freqs           1           1           1
+   exchangeabilities           1           1           1
+               omega           -           -           -
+       rate variance           1           1           2
+              pinvar           1           1           2
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+             2: 2
+             3: 3
+
+  state freqs:
+             1: (0.294667,0.189172,0.206055,0.310106)
+             2: (0.294667,0.189172,0.206055,0.310106)
+             3: (0.294667,0.189172,0.206055,0.310106)
+
+  exchangeabilities:
+             1: (0.06082,0.27887,0.06461,0.06244,0.48492,0.04834)
+             2: (0.06082,0.27887,0.06461,0.06244,0.48492,0.04834)
+             3: (0.06082,0.27887,0.06461,0.06244,0.48492,0.04834)
+
+  omega:
+             1: -
+             2: -
+             3: -
+
+  rate variance:
+             1: 1
+             2: 1
+             3: 1
+
+  pinvar:
+             1: 0.1
+             2: 0.1
+             3: 0.1
+
+Created BeagleLib instance 0 (4 states, 4 rates, 3 subsets, is invar. sites model)
+
+*** Reading and storing the first tree in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -6676.39480
+      (expecting -6676.396)
+
+   iteration      logLike     logPrior           TL
+           0  -6676.39480      3.07517      1.75014
+        1000  -6278.36162      3.99787      1.75014
+        2000  -6279.25387      3.47157      1.75014
+        3000  -6279.09698      4.03908      1.75014
+        4000  -6280.17940      3.94292      1.75014
+        5000  -6280.42398      4.03649      1.75014
+        6000  -6277.89285      4.08077      1.75014
+        7000  -6284.93907      3.66552      1.75014
+        8000  -6279.85300      3.89801      1.75014
+        9000  -6279.81697      3.57316      1.75014
+       10000  -6276.47625      3.78034      1.75014
+
+Chain summary:
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies           0.002            31.1            1409
+             Exchangeabilities           0.009            25.7            1417
+           Gamma Rate Variance           3.141            29.4            1392
+           Gamma Rate Variance           2.214            31.3            1430
+Proportion of Invariable Sites           0.296            29.6            1488
+Proportion of Invariable Sites           0.199            30.1            1390
+         Subset Relative Rates           0.006            24.9            1474
+
+Finished!

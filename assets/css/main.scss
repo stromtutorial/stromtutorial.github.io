@@ -1,0 +1,71 @@
+---
+---
+.poltodo {
+  background-color:yellow;
+  color:red;
+}
+
+.center-image {
+  width: 100%;
+  padding: 20px 0px 20px 0px;
+  margin: 0 auto;
+  display: block;
+}
+
+.center-math-image {
+  padding: 20px 0px 20px 0px;
+  margin: 0 auto;
+  display: block;
+}
+
+.center-image-caption {
+  width: 100%;
+  text-align: center;
+  font-size: large;
+  color: light-grey;
+}
+
+.right-image {
+  float: right !important;
+  display: inline-block;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 10px;
+  margin-left: 30px;
+}
+
+html {
+  overflow: scroll;
+}
+
+@media print {
+  .no-print, .no-print * {
+    display: none !important;
+  }
+}
+
+// https://stackoverflow.com/questions/38792005/how-to-change-the-bootstrap-primary-color
+$primary: #210EA6;
+$font-size-base: 1rem;
+$h1-font-size: $font-size-base * 1.8;
+$h3-font-size: $font-size-base * 1.5;
+@import "../_scss/bootstrap";
+
+li.nav-item {
+    padding-right:1rem;
+}
+
+img.navbar-logo {
+  height: 50px;
+}
+
+pre.highlight {
+    font-size: 14px;
+    background-color: #eff0f1;
+    color: #000000;
+    padding: 1em;
+}
+
+h3.subtitle {
+    font-style: italic;
+}

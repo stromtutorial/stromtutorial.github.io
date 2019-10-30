@@ -1,0 +1,76 @@
+#NEXUS 
+
+Begin trees;  [Treefile saved Sun Sep 15 20:05:57 2019]
+[!
+>Data file = protea9gene.nex
+>
+>Processing TREES block from file: ~/Documents/websites/cpptutorial/steps/step-19/test/protea9gene.tre
+>  Keeping: trees from file (replacing any trees already in memory)
+>  1 tree read from file
+>
+>  Time used = 0.00 sec (CPU time = 0.00 sec)
+]
+	Translate
+		1 acaulos,
+		2 acuminata,
+		3 amplexicau,
+		4 aureaaurea,
+		5 aureapotbe,
+		6 burchelli,
+		7 caffra,
+		8 canalicula,
+		9 compacta,
+		10 comptonii,
+		11 cordata,
+		12 coronata,
+		13 cryophila,
+		14 curvata,
+		15 cynaroides,
+		16 decurrens,
+		17 denticulat,
+		18 dracomonta,
+		19 eximia,
+		20 gaguedi,
+		21 glabra,
+		22 intonsa,
+		23 lacticolor,
+		24 laetans,
+		25 lanceolata,
+		26 laurifolia,
+		27 lepidocarp,
+		28 longifolia,
+		29 lorifolia,
+		30 magnifica,
+		31 montana,
+		32 mundii,
+		33 mundiieast,
+		34 nana,
+		35 neriifolia,
+		36 nitida,
+		37 odorata,
+		38 parvula,
+		39 piscina,
+		40 pruinosa,
+		41 punctata,
+		42 recondita,
+		43 repens,
+		44 roupelliae,
+		45 rubropilos,
+		46 rupicola,
+		47 scabra,
+		48 scolopendr,
+		49 speciosa,
+		50 subulifoli,
+		51 subvestita,
+		52 sulphurea,
+		53 susannae,
+		54 tenax,
+		55 venusta,
+		56 welwitschi,
+		57 witzenberg,
+		58 saligna,
+		59 rochetiana,
+		60 phylicoide
+		;
+tree tree1 = [&U] (((((((1:0.001818,34:0.010299):0.002072,(((((7:0.000227,(((14:0.001326,18:0.000466):0.000887,24:0):0,38:0):0):0,(10:0,45:0.001019):0.001512):0.001395,20:0):0,56:0.000448):0.000679,25:0.007465):0.001952):0.000779,((2:0.003310,(((8:0.005778,42:0.001166):0.000816,57:0.002954):0.001204,37:0.012589):9.07771e-06,52:0.003606):0.001013,21:0.004390):0.000758):0.003541,(3:0.003404,(11:0.002495,(16:0.000211,50:0.006543):0.001373):0.003065):0.003609,4:0.000177,(5:0,23:0):0.002406,((((((((6:0,((19:0.000226,44:0.000298):0,53:0.000450):0.000619):0.002201,30:0.000677):2.10063e-06,35:0.003648):0,26:0):0.000736,(27:0,29:0.000802):0.001164):0.000748,28:0.000268):0.000749,(9:0.003860,36:0.001711):0.000271):0.001120,49:0.003359):0.002905,((12:0.004023,31:0.002945):0.000438,(22:0.001612,54:0.002599):0.001432):0.001559,(17:0.001323,(39:0,47:0.000886):0.000487):0.003110,32:0.001080,33:0,41:0.000871,51:0.002187,55:0.000469):0.003905,(43:0.003464,46:0.005329):0.000808):0.005953,((58:0,59:0.001188):0.021642,60:0.109234):0.010097):0,((13:0.001373,40:0.002380):0.005928,15:0.008532):0.001380,48:0.000121);
+End;
