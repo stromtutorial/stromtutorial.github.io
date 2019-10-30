@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Building trees and handling exceptions</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">6.0 Building trees and handling exceptions</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 6.0 | <a href="/people/plewis/cpp//mac//steps/step-06/01-create-buildfromnewick.html">6.1&nbsp;&gt;</a></h3>
+</div>
+
+<p>In this step you will learn how to build a tree in memory from a Newick tree description and will create an exception class (<code class="highlighter-rouge">XStrom</code>) to handle unexpected run-time circumstances.</p>
+
+<p>The previous section added the function <code class="highlighter-rouge">makeNewick</code> that saves a tree in memory to a string in newick format. This part will focus on the opposite: building a tree in memory given a newick string. After finishing this part, you will be in position to read trees from a tree file and build each one in computer memory.</p>
+
+<p>Sometimes programs encounter situations that were unexpected. For example, the user supplies a data file name, but that file does not contain data, or contains data in a format that the program is not prepared to handle. In these circumstances, our program should exit with an informative message for the user so that they know what to correct before running it again. This is accomplished by throwing an <strong>exception</strong>, which is an object (an instance of the <code class="highlighter-rouge">XStrom</code> class). The <code class="highlighter-rouge">main</code> function will catch any exception thrown at any point and display the message carried by the <code class="highlighter-rouge">XStrom</code> object to the user before exiting.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="6-1">
+		<td>Step 6.1</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-06/01-create-buildfromnewick.html">Build a tree from a newick description</a></td>
+		<td><p>This section will focus on creating the function <code class="highlighter-rouge">buildFromNewick</code></p>
+</td>
+		</tr>
+	
+		<tr class="part" id="6-2">
+		<td>Step 6.2</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-06/02-xstrom-exception-class.html">The XStrom exception class</a></td>
+		<td><p>In this section you will create a class to handle exceptions</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="6-3">
+		<td>Step 6.3</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-06/03-test-building-trees.html">Test building trees</a></td>
+		<td><p>In this section you test buildFromNewick function and will see how to handle run-time exceptions</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 6.0 | <a href="/people/plewis/cpp//mac//steps/step-06/01-create-buildfromnewick.html">6.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

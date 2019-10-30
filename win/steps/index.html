@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Step-by-step instructions</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">Step-by-step instructions</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+
+<p>The steps below are designed to be visited in order.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="1">
+		<td>Step 1</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-01/setup-IDE.html">Setting Up A Build System</a></td>
+		<td><p>The first step is to set up the build system for your platform.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="2">
+		<td>Step 2</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-02/00-node-and-tree-classes.html">Node and Tree Classes</a></td>
+		<td><p>The next step is to create C++ classes representing a node (<code class="highlighter-rouge">Node</code> class) in a phylogenetic tree (<code class="highlighter-rouge">Tree</code> class).</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="3">
+		<td>Step 3</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-03/00-saving-trees.html">Creating Trees</a></td>
+		<td><p>Input, output, and manipulation of phylogenetic trees is an essential part of our toolkit. We first start by creating a tree in memory the hard way, by creating each node and connecting nodes by specifying each node’s neighboring nodes. If this seems way too labor-intensive, you’re right! In the next several steps, we will gradually work toward inputting and outputting trees as Newick tree descriptions.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="4">
+		<td>Step 4</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-04/00-tree-manipulator.html">Creating a Tree Manipulator</a></td>
+		<td><p>In this section, we create a class (<code class="highlighter-rouge">TreeManip</code>) that manipulates a tree object.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="5">
+		<td>Step 5</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-05/00-saving-trees.html">Saving trees</a></td>
+		<td><p>In this step you will learn how to save a tree in memory in the form of a string known as a Newick tree description. You will also begin using some functionality from the Boost C++ library.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="6">
+		<td>Step 6</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-06/00-building-trees.html">Building trees and handling exceptions</a></td>
+		<td><p>In this step you will learn how to build a tree in memory from a Newick tree description and will create an exception class (<code class="highlighter-rouge">XStrom</code>) to handle unexpected run-time circumstances.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="7">
+		<td>Step 7</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-07/00-summarizing-trees.html">Summarizing tree topologies</a></td>
+		<td><p>In this part, you will learn how to summarize trees in terms of their component splits. By the end of this section, your program will read a tree file and report all unique tree topologies and the number of trees having each topology. You will also install the Nexus Class Library in order to read NEXUS-formatted tree files.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="8">
+		<td>Step 8</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-08/00-adding-program-options.html">Adding program options</a></td>
+		<td><p>In this part, you will use the Boost Program Options library to add the ability to specify options on the command line so that information such as tree and data file names need not be hard coded.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="9">
+		<td>Step 9</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-09/00-reading-and-storing-data.html">Reading and Storing Data</a></td>
+		<td><p>Now that the program can build trees, the next step is to read sequence data from a Nexus-formatted file and store the data patterns compactly.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="10">
+		<td>Step 10</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-10/00-calculating-the-likelihood.html">Calculating the likelihood</a></td>
+		<td><p>Now that we can load sequence data and a tree into memory, it is time to calculate the likelihood of the tree, which is the probability of the observed data given that tree and a model of evolution.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="11">
+		<td>Step 11</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-11/00-adding-the-model-class.html">Adding the Model class</a></td>
+		<td><p>In this part we add a Model class to handle the tedium associated with informing BeagleLib of the details of the substitution model. The Eigen library is used to manage calculation of transition probability matrices.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="12">
+		<td>Step 12</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-12/00-the-large-tree-problem.html">The Large Tree Problem</a></td>
+		<td><p>Here we explore the problem of underflow when computing likelihoods of large trees, and how to deal with this in BeagleLib.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="13">
+		<td>Step 13</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-13/00-adding-pseudorandom-number-generator.html">Adding a pseudorandom number generator</a></td>
+		<td><p>The next step is to create a class that can generate pseudorandom numbers.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="14">
+		<td>Step 14</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-14/00-markov-chain-monte-carlo-mcmc.html">Markov Chain Monte Carlo (MCMC)</a></td>
+		<td><p>Create a class whose objects carry out Markov chain Monte Carlo (MCMC) simulation.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="15">
+		<td>Step 15</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-15/00-managing-output.html">Managing Output</a></td>
+		<td><p>Create a class whose objects simplify managing the output of an MCMC analysis.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="16">
+		<td>Step 16</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-16/00-updating-other-parameters.html">Updating Other Parameters</a></td>
+		<td><p>Create updater classes for state frequencies, exchangeabilities, omega, pinvar, and subset relative rates.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="17">
+		<td>Step 17</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-17/00-updating-the-tree.html">Updating the Tree</a></td>
+		<td><p>Create an updater that modifies the tree topology and edge lengths.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="18">
+		<td>Step 18</td>
+		<td><a href="/people/plewis/cpp
+/win
+/steps/step-18/00-heated-chains.html">Heated Chains</a></td>
+		<td><p>Implement Metropolis-coupled MCMC in order to improve mixing.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

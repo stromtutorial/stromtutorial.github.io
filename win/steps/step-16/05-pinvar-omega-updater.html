@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The PinvarUpdater and OmegaUpdater Classes</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">16.5 The PinvarUpdater and OmegaUpdater Classes</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-16/04-subsetrelrateupdater-class.html">&lt;&nbsp;16.4</a> | 16.5 | <a href="/people/plewis/cpp//win//steps/step-16/06-test-updaters.html">16.6&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>These classes are so similar to <code class="highlighter-rouge">GammaRateVarUpdater</code> that I will simply provide the entire source code for each of these classes and make a few comments about the few differences that do exist.</p>
+
+<h2 id="the-pinvarupdater-class">The PinvarUpdater class</h2>
+
+<p>Other than trivial differences (e.g. the name of the class is necessarily different), this class differs from <code class="highlighter-rouge">GammaRateVarUpdater</code> primarily in the fact that a Beta prior is used for this parameter (because its support is limited to the unit interval) and the proposal is symmetric. The <code class="highlighter-rouge">calcLogPrior</code> function computes a Beta(a,b) prior density for the current point, where <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are the two values supplied to it via <code class="highlighter-rouge">Updater::setPriorParameters</code>. A new value is proposed by drawing a value from a <code class="highlighter-rouge">Uniform(curr_point - lambda/2, curr_point + lambda/2)</code>. If the proposed point is less than 0.0 or greater than 1.0, it is reflected back into the support interval. An assert at the beginning of <code class="highlighter-rouge">proposeNewState</code> ensures that <code class="highlighter-rouge">_lambda</code> is not large enough that multiple reflections are ever needed. Unlike the multiplicative factor proposal used in the <code class="highlighter-rouge">GammaRateVarUpdater</code>, this proposal is symmetric and thus the Hastings ratio is 1 (0 on log scale).</p>
+
+<p>Enter the following text into a new header file named <em>pinvar_updater.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "model.hpp"
+#include "updater.hpp"
+#include "asrv.hpp"
+
+namespace strom {
+    
+    class PinvarUpdater : public Updater {
+    
+        public:
+            typedef std::shared_ptr&amp;lt;PinvarUpdater&amp;gt; SharedPtr;
+
+                                        PinvarUpdater(ASRV::SharedPtr asrv);
+                                        ~PinvarUpdater();
+        
+            virtual void                clear();
+            double                      getCurrentPoint() const;
+
+            // mandatory overrides of pure virtual functions
+            virtual double              calcLogPrior();
+            virtual void                revert();
+            virtual void                proposeNewState();
+        
+        private:
+        
+            double                      _prev_point;
+            ASRV::SharedPtr             _asrv;
+    };
+
+    // member function bodies go here
+        
+    inline PinvarUpdater::PinvarUpdater(ASRV::SharedPtr asrv) { 
+        //std::cout &amp;lt;&amp;lt; "PinvarUpdater being created" &amp;lt;&amp;lt; std::endl;
+        clear();
+        _name = "Proportion of Invariable Sites";
+        assert(asrv);
+        _asrv = asrv;
+    } 
+
+    inline PinvarUpdater::~PinvarUpdater() { 
+        //std::cout &amp;lt;&amp;lt; "PinvarUpdater being destroyed" &amp;lt;&amp;lt; std::endl;
+        _asrv.reset();
+    } 
+
+    inline void PinvarUpdater::clear() { 
+        Updater::clear();
+        _prev_point = 0.0;
+        _asrv = nullptr;
+        reset();
+    } 
+
+    inline double PinvarUpdater::getCurrentPoint() const { 
+        return *(_asrv-&amp;gt;getPinvarSharedPtr());
+    } 
+    
+    inline double PinvarUpdater::calcLogPrior() { 
+        // Assumes Beta(a,b) prior with mean a/(a+b) and variance a*b/((a + b + 1)*(a + b)^2)
+        assert(_prior_parameters.size() == 2);
+        double prior_a = _prior_parameters[0];
+        double prior_b = _prior_parameters[1];
+        
+        double log_prior = 0.0;
+        double curr_point = getCurrentPoint();
+        if (curr_point &amp;gt; 0.0 &amp;&amp; curr_point &amp;lt; 1.0) {
+            log_prior += (prior_a - 1.0)*std::log(curr_point);
+            log_prior += (prior_b - 1.0)*std::log(1.0 - curr_point);
+            log_prior += std::lgamma(prior_a + prior_b);
+            log_prior -= std::lgamma(prior_a);
+            log_prior -= std::lgamma(prior_b);
+        }
+        else
+            log_prior = Updater::_log_zero;
+        return log_prior;
+    } 
+
+    inline void PinvarUpdater::revert() { 
+        _asrv-&amp;gt;setPinvar(_prev_point);
+    } 
+
+    inline void PinvarUpdater::proposeNewState() { 
+        if (_lambda &amp;gt; 1.0)
+            _lambda = 1.0;
+        
+        // Save copy of _curr_point in case revert is necessary.
+        _prev_point = getCurrentPoint();
+        
+        // Propose new value using uniform window of width _lambda centered over _prev_point
+        double p = (_prev_point - _lambda/2.0) + _lambda*_lot-&amp;gt;uniform();
+        if (p &amp;lt; 0.0)
+            p = -p;
+        else if (p &amp;gt; 1.0)
+            p = 1.0 - (p - 1.0);
+        _asrv-&amp;gt;setPinvar(p);
+        
+        _log_hastings_ratio = 0.0;  //symmetric proposal
+        
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+    } 
+
+}   
+
+</code></pre></div></div>
+
+<h2 id="the-omegaupdater-class">The OmegaUpdater class</h2>
+
+<p>This class is essentially identical to <code class="highlighter-rouge">GammaRateVarUpdater</code> except for the fact that a shared pointer to a <code class="highlighter-rouge">QMatrix</code> object is passed into the constructor and stored instead of a shared ponter to an <code class="highlighter-rouge">ASRV</code> object.</p>
+
+<p>Enter the following text into a new header file named <em>omega_updater.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "model.hpp"
+#include "updater.hpp"
+#include "qmatrix.hpp"
+
+namespace strom {
+    
+    class OmegaUpdater : public Updater {
+    
+        public:
+            typedef std::shared_ptr&amp;lt;OmegaUpdater&amp;gt; SharedPtr;
+
+                                        OmegaUpdater(QMatrix::SharedPtr q);
+                                        ~OmegaUpdater();
+        
+            virtual void                clear();
+            double                      getCurrentPoint() const;
+
+            // mandatory overrides of pure virtual functions
+            virtual double              calcLogPrior();
+            virtual void                revert();
+            virtual void                proposeNewState();
+        
+        private:
+        
+            double                      _prev_point;
+            QMatrix::SharedPtr          _q;
+    };
+
+    // member function bodies go here
+        
+    inline OmegaUpdater::OmegaUpdater(QMatrix::SharedPtr q) { 
+        //std::cout &amp;lt;&amp;lt; "OmegaUpdater being created" &amp;lt;&amp;lt; std::endl;
+        clear();
+        _name = "Omega";
+        assert(q);
+        _q = q;
+    } 
+
+    inline OmegaUpdater::~OmegaUpdater() { 
+        //std::cout &amp;lt;&amp;lt; "OmegaUpdater being destroyed" &amp;lt;&amp;lt; std::endl;
+        _q.reset();
+    } 
+
+    inline void OmegaUpdater::clear() { 
+        Updater::clear();
+        _prev_point = 0.0;
+        _q = nullptr;
+        reset();
+    } 
+
+    inline double OmegaUpdater::getCurrentPoint() const { 
+        return *(_q-&amp;gt;getOmegaSharedPtr());
+    } 
+    
+    inline double OmegaUpdater::calcLogPrior() { 
+        // Assumes Gamma(a,b) prior with mean a*b and variance a*b^2
+        assert(_prior_parameters.size() == 2);
+        double prior_a = _prior_parameters[0];
+        double prior_b = _prior_parameters[1];
+        
+        double log_prior = 0.0;
+        double curr_point = getCurrentPoint();
+        if (curr_point &amp;gt; 0.0) {
+            log_prior += (prior_a - 1.0)*std::log(curr_point);
+            log_prior -= curr_point/prior_b;
+            log_prior -= prior_a*std::log(prior_b);
+            log_prior -= std::lgamma(prior_a);
+        }
+        else
+            log_prior = Updater::_log_zero;
+        return log_prior;
+    } 
+
+    inline void OmegaUpdater::revert() { 
+        _q-&amp;gt;setOmega(_prev_point);
+    } 
+
+    inline void OmegaUpdater::proposeNewState() { 
+        // Save copy of _curr_point in case revert is necessary.
+        _prev_point = getCurrentPoint();
+        
+        // Propose new value using multiplier with boldness _lambda
+        double m = exp(_lambda*(_lot-&amp;gt;uniform() - 0.5));
+        _q-&amp;gt;setOmega(m*_prev_point);
+        
+        // Calculate log of Hastings ratio
+        _log_hastings_ratio = log(m);
+        
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+    } 
+
+}   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-16/04-subsetrelrateupdater-class.html">&lt;&nbsp;16.4</a> | 16.5 | <a href="/people/plewis/cpp//win//steps/step-16/06-test-updaters.html">16.6&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the Partition class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">9.2 Create the Partition class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-09/01-create-the-datatype-and-geneticcode-classes.html">&lt;&nbsp;9.1</a> | 9.2 | <a href="/people/plewis/cpp//win//steps/step-09/03-create-the-data-class.html">9.3&nbsp;&gt;</a></h3>
+</div>
+
+<h2 id="partition-class">Partition class</h2>
+
+<p>A <code class="highlighter-rouge">Partition</code> object will serve as the manager for data subsets defined by the user. It will store the name of each data subset, the range(s) of sites included in each subset, and information about the type of data in each subset.</p>
+
+<p>Create a new C++ class named <code class="highlighter-rouge">Partition</code> and add it to your project as the header file <em>partition.hpp</em>. Below is the class declaration. The body of each member function will be described separately (you should add each of these member function bodies just above the right curly bracket that terminates the namespace block).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;tuple&amp;gt;
+#include &amp;lt;limits&amp;gt;
+#include &amp;lt;cmath&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;             
+#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;    
+#include "genetic_code.hpp"
+#include "datatype.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class Partition {
+        public:
+            typedef std::match_results&amp;lt;std::string::const_iterator&amp;gt;::const_reference    regex_match_t;
+            typedef std::tuple&amp;lt;unsigned, unsigned, unsigned, unsigned&amp;gt;                  subset_range_t;
+            typedef std::vector&amp;lt;subset_range_t&amp;gt;                                         partition_t;
+            typedef std::vector&amp;lt;DataType&amp;gt;                                               datatype_vect_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;                                               subset_sizes_vect_t;
+            typedef std::vector&amp;lt;std::string&amp;gt;                                            subset_names_vect_t;
+            typedef std::shared_ptr&amp;lt;Partition&amp;gt;                                          SharedPtr;
+
+                                                        Partition();
+                                                        ~Partition();
+        
+            unsigned                                    getNumSites() const;
+            unsigned                                    getNumSubsets() const;
+            std::string                                 getSubsetName(unsigned subset) const;
+        
+            const partition_t &amp;                         getSubsetRangeVect() const;
+        
+            unsigned                                    findSubsetByName(const std::string &amp; subset_name) const;
+            unsigned                                    findSubsetForSite(unsigned site_index) const;
+            bool                                        siteInSubset(unsigned site_index, unsigned subset_index) const;
+            DataType                                    getDataTypeForSubset(unsigned subset_index) const;
+            const datatype_vect_t &amp;                     getSubsetDataTypes() const;
+        
+            unsigned                                    numSitesInSubset(unsigned subset_index) const;
+            subset_sizes_vect_t                         calcSubsetSizes() const;
+
+            void                                        defaultPartition(unsigned nsites = std::numeric_limits&amp;lt;unsigned&amp;gt;::max());
+            void                                        parseSubsetDefinition(std::string &amp; s);
+            void                                        finalize(unsigned nsites);
+
+            void                                        clear();
+
+        private:
+
+            int                                         extractIntFromRegexMatch(regex_match_t s, unsigned min_value);
+            void                                        addSubsetRange(unsigned subset_index, std::string range_definition);
+            void                                        addSubset(unsigned subset_index, std::string subset_definition);
+
+            unsigned                                    _num_sites;
+            unsigned                                    _num_subsets;
+            subset_names_vect_t                         _subset_names;
+            partition_t                                 _subset_ranges;
+            datatype_vect_t                             _subset_data_types;
+
+            const unsigned                              _infinity;
+    };
+    
+    // member function bodies here
+    
+}   
+
+</code></pre></div></div>
+
+<p>The class declaration above defines several types that are introduced to simplify member function prototypes and data member definitions that follow:</p>
+<ul>
+  <li><code class="highlighter-rouge">regex_match_t</code> is used for regular expression match object variables</li>
+  <li><code class="highlighter-rouge">subset_range_t</code> is a <code class="highlighter-rouge">std::tuple</code> comprising four <code class="highlighter-rouge">unsigned int</code>s storing the beginning site, ending site, step size, and partition subset index for a chunk of sites</li>
+  <li><code class="highlighter-rouge">partition_t</code> is used for the vector of <code class="highlighter-rouge">subset_range_t</code> objects that place every site into one and only one partition subset</li>
+  <li><code class="highlighter-rouge">datatype_vect_t</code> is used for the vector of <code class="highlighter-rouge">DataType</code> objects that store information about the type of data stored in each subset</li>
+  <li><code class="highlighter-rouge">subset_sizes_vect_t</code> is a vector of unsigned integers that stores the number of sites assigned to each partition subset</li>
+  <li><code class="highlighter-rouge">subset_names_vect_t</code> is a vector of strings that stores the label that the user assigned to each partition subset</li>
+  <li><code class="highlighter-rouge">SharedPtr</code> is the shared pointer used for passing around Partition objects</li>
+</ul>
+
+<p>These type definitions make it simpler to define variables of these types and to pass such variables into functions.</p>
+
+<h3 id="constructor-and-destructor">Constructor and destructor</h3>
+<p>Here are the bodies of the constructor and destructor. As usual, the only thing that we have these functions do is to report when an object of the <code class="highlighter-rouge">Partition</code> class is created or destroyed, and these lines have been commented out (you can uncomment them at any time for debugging purposes). In addition, the constructor calls the <code class="highlighter-rouge">clear</code> member function to perform initializations.</p>
+
+<p>The data member <code class="highlighter-rouge">_infinity</code> needs some explanation. This data member has type <code class="highlighter-rouge">const unsigned</code> and as a <code class="highlighter-rouge">const</code> data member must be initialized before the <code class="highlighter-rouge">Partition</code> object has been created. Thus, we cannot initialize it in the body of the constructor, because, by that time, the object already exists. Hence, <code class="highlighter-rouge">_infinity</code> is initialized via the initializer list (before the left curly bracket that opens the constructor body). The data member <code class="highlighter-rouge">_infinity</code> is set equal to the largest possible <code class="highlighter-rouge">unsigned</code> value, which is used as a stand-in for the total number of sites until we actually know the total number of sites. The value itself is obtained using the (static) <code class="highlighter-rouge">max</code> function of the class <code class="highlighter-rouge">std::numeric_limits&lt;unsigned&gt;</code>. The <code class="highlighter-rouge">#include &lt;limits&gt;</code> line at the top of the file provides access to the <code class="highlighter-rouge">numeric_limits</code> class.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Partition::Partition() : _infinity(std::numeric_limits&amp;lt;unsigned&amp;gt;::max()) {   
+        //std::cout &amp;lt;&amp;lt; "Constructing a Partition" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+    inline Partition::~Partition() {    
+        //std::cout &amp;lt;&amp;lt; "Destroying a Partition" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h3 id="accessor-functions">Accessor functions</h3>
+<p>The functions <code class="highlighter-rouge">getNumSites</code>, <code class="highlighter-rouge">getNumSubsets</code>, <code class="highlighter-rouge">getSubsetName</code>, <code class="highlighter-rouge">getSubsetRangeVect</code>, <code class="highlighter-rouge">getDataTypeForSubset</code>, and <code class="highlighter-rouge">getSubsetDataTypes</code> provide access to the values stored in the private data members <code class="highlighter-rouge">_num_sites</code>, <code class="highlighter-rouge">_num_subsets</code>, <code class="highlighter-rouge">_subset_names</code>, <code class="highlighter-rouge">_subset_ranges</code>, and <code class="highlighter-rouge">_subset_data_types</code>, respectively, but do not allow you to change those variables.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Partition::getNumSites() const {    
+        return _num_sites;
+    }    
+    
+    inline unsigned Partition::getNumSubsets() const {    
+        return _num_subsets;
+    }    
+    
+    inline std::string Partition::getSubsetName(unsigned subset) const {    
+        assert(subset &amp;lt; _num_subsets);
+        return _subset_names[subset];
+    }    
+    
+    inline const Partition::partition_t &amp; Partition::getSubsetRangeVect() const {    
+        return _subset_ranges;
+    }    
+    
+    inline DataType Partition::getDataTypeForSubset(unsigned subset_index) const {    
+        assert(subset_index &amp;lt; _subset_data_types.size());
+        return _subset_data_types[subset_index];
+    }    
+
+    inline const std::vector&amp;lt;DataType&amp;gt; &amp; Partition::getSubsetDataTypes() const {    
+        return _subset_data_types;
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-findsubsetbyname-member-function">The findSubsetByName member function</h3>
+<p>This function returns the (0-based) index of the subset in <code class="highlighter-rouge">_subset_names</code> corresponding to the <code class="highlighter-rouge">subset_name</code> provided. If no subset by that name can be found, an exception is thrown. Here the <code class="highlighter-rouge">std::find</code> function is used to search for <code class="highlighter-rouge">subset_name</code> in <code class="highlighter-rouge">_subset_names</code>. If found, the returned iterator will <em>not</em> equal <code class="highlighter-rouge">_subset_names.end()</code>, which represents the position just beyond the last element of the vector. Once the iterator is positioned at the correct element of <code class="highlighter-rouge">_subset_names</code>, the index is found using the <code class="highlighter-rouge">std::distance</code> algorithm, which computes the distance between the returned iterator and the first element of the vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Partition::findSubsetByName(const std::string &amp; subset_name) const {    
+        auto iter = std::find(_subset_names.begin(), _subset_names.end(), subset_name);
+        if (iter == _subset_names.end())
+            throw XStrom(boost::format("Specified subset name \"%s\" not found in partition") % subset_name);
+        return (unsigned)std::distance(_subset_names.begin(),iter);
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-findsubsetforsite-member-function">The findSubsetForSite member function</h3>
+<p>This function returns the subset index corresponding to a given site. Subset indices start at 0 and are indexed according to the order in which they are specified. Sites are numbered starting from 1, which is the convention used in, for example, NEXUS formatted data files.</p>
+
+<p>The information for each chunk of sites is stored in a 4-tuple. A <code class="highlighter-rouge">std::tuple</code> is a structure that contains a fixed number of values (in our case 4) and is a generalization of <code class="highlighter-rouge">std::pair</code>, which represents a 2-tuple. The <code class="highlighter-rouge">std::get</code> template returns a reference to the kth element of the tuple t, where k is specified in the angle brackets and t in parentheses. Each value in the 4-tuple is copied to a local variable for purposes of clarity.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Partition::findSubsetForSite(unsigned site_index) const {    
+        for (auto &amp; t : _subset_ranges) {
+            unsigned begin_site = std::get&amp;lt;0&amp;gt;(t);
+            unsigned end_site = std::get&amp;lt;1&amp;gt;(t);
+            unsigned stride = std::get&amp;lt;2&amp;gt;(t);
+            unsigned site_subset = std::get&amp;lt;3&amp;gt;(t);
+            bool inside_range = site_index &amp;gt;= begin_site &amp;&amp; site_index &amp;lt;= end_site;
+            if (inside_range &amp;&amp; (site_index - begin_site) % stride == 0)
+                return site_subset;
+        }
+        throw XStrom(boost::format("Site %d not found in any subset of partition") % (site_index + 1));
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-siteinsubset-member-function">The siteInSubset member function</h3>
+<p>This function simply returns <code class="highlighter-rouge">true</code> if the specified site (1,2,…,<code class="highlighter-rouge">_num_sites</code>) is in the specified subset (0, 1, …, <code class="highlighter-rouge">_num_subsets</code>-1), and returns <code class="highlighter-rouge">false</code> otherwise. It uses <code class="highlighter-rouge">findSubsetForSite</code> to do the heavy lifting. Note that sites are numbered starting with 1 in NEXUS data files but a 0-based indexing system is used for everything else in our program.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Partition::siteInSubset(unsigned site_index, unsigned subset_index) const {    
+        unsigned which_subset = findSubsetForSite(site_index);
+        return (which_subset == subset_index ? true : false);
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-numsitesinsubset-member-function">The numSitesInSubset member function</h3>
+<p>This function calculates the number of sites assigned to the subset having index <code class="highlighter-rouge">subset_index</code>. This involves looping through all the subset ranges in <code class="highlighter-rouge">_subset_ranges</code> and, for all ranges assigned to <code class="highlighter-rouge">_subset_index</code>, determining how many sites are included.</p>
+
+<p>This process would be uncomplicated were it not for the third element of each range (the step size or stride), which can be greater than 1 and which necessitates the use of the modulus operator to determine whether the range includes one more site than is suggested by <code class="highlighter-rouge">floor(n/stride)</code>. For example, suppose <code class="highlighter-rouge">begin_site</code> is 1, <code class="highlighter-rouge">end_site</code> is 10, and <code class="highlighter-rouge">stride</code> is 3. A total of 4 sites are included (sites 1, 4, 7, 10), yet 10/3 is only 3.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Partition::numSitesInSubset(unsigned subset_index) const {    
+        unsigned nsites = 0;
+        for (auto &amp; t : _subset_ranges) {
+            unsigned begin_site = std::get&amp;lt;0&amp;gt;(t);
+            unsigned end_site = std::get&amp;lt;1&amp;gt;(t);
+            unsigned stride = std::get&amp;lt;2&amp;gt;(t);
+            unsigned site_subset = std::get&amp;lt;3&amp;gt;(t);
+            if (site_subset == subset_index) {
+                unsigned n = end_site - begin_site + 1;
+                nsites += (unsigned)(floor(n/stride)) + (n % stride == 0 ? 0 : 1);
+            }
+        }
+        return nsites;
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-calcsubsetsizes-member-function">The calcSubsetSizes member function</h3>
+<p>This function returns a vector of subset sizes using the same approach used by <code class="highlighter-rouge">numSitesInSubset</code> to count the numnber of sites falling in each subset. This function is useful for reporting information about the partition to the user, and these subset sizes are needed (as we shall later see) when normalizing the subset relative rates of substitution.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::vector&amp;lt;unsigned&amp;gt; Partition::calcSubsetSizes() const {    
+        assert(_num_sites &amp;gt; 0); // only makes sense to call this function after subsets are defined
+        std::vector&amp;lt;unsigned&amp;gt; nsites_vect(_num_subsets, 0);
+        for (auto &amp; t : _subset_ranges) {
+            unsigned begin_site = std::get&amp;lt;0&amp;gt;(t);
+            unsigned end_site = std::get&amp;lt;1&amp;gt;(t);
+            unsigned stride = std::get&amp;lt;2&amp;gt;(t);
+            unsigned site_subset = std::get&amp;lt;3&amp;gt;(t);
+            unsigned hull = end_site - begin_site + 1;
+            unsigned n = (unsigned)(floor(hull/stride)) + (hull % stride == 0 ? 0 : 1);
+            nsites_vect[site_subset] += n;
+        }
+        return nsites_vect;
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-clear-member-function">The clear member function</h3>
+<p>Like other <code class="highlighter-rouge">clear</code> functions in this tutorial, this function is called by the constructor (but could be called at other times) and returns the <code class="highlighter-rouge">Partition</code> object to the just-constructed state. Note that the <code class="highlighter-rouge">clear</code> function creates a <code class="highlighter-rouge">default</code> partition consisting of a single subset range with begin site <code class="highlighter-rouge">1</code>, end site <code class="highlighter-rouge">_infinity</code>, step size <code class="highlighter-rouge">1</code>, and subset index <code class="highlighter-rouge">0</code>. As soon as the user adds the first subset definition, this default partition will be deleted. Assuming that the user does not define a partition, then as soon as data are read (i.e. when the <code class="highlighter-rouge">Partition::finalize</code> member function is called), the <code class="highlighter-rouge">_infinity</code> will be replaced by the actual total number of sites.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Partition::clear() {    
+        _num_sites = 0;
+        _num_subsets = 1;
+        _subset_data_types.clear();
+        _subset_data_types.push_back(DataType());
+        _subset_names.clear();
+        _subset_names.push_back("default");
+        _subset_ranges.clear();
+        _subset_ranges.push_back(std::make_tuple(1, _infinity, 1, 0));
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-parsesubsetdefinition-member-function">The parseSubsetDefinition member function</h3>
+<p>This function provides the primary route by which partition subsets are added. It takes a string <code class="highlighter-rouge">s</code> representing everything after the keyword “subset” in a configuration file and splits <code class="highlighter-rouge">s</code> at the colon to yield two strings, <code class="highlighter-rouge">before_colon</code> (e.g. “rbcL[codon,plantplastid]”) and <code class="highlighter-rouge">subset_definition</code> (e.g. “1-20”).</p>
+
+<p>The use of <code class="highlighter-rouge">boost::split</code> to split <code class="highlighter-rouge">s</code> at the colon character requires including the header file <em>boost/algorithm/string/split.hpp</em> and the use of the <code class="highlighter-rouge">boost::is_any_of</code> predicate requires including the header file <em>boost/algorithm/string/classification.hpp</em>. You will find that we indeed did include these headers at the beginning of the <em>partition.hpp</em> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;tuple&amp;gt;
+#include &amp;lt;limits&amp;gt;
+#include &amp;lt;cmath&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string.hpp&amp;gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+#include "genetic_code.hpp"
+#include "datatype.hpp"
+#include "xstrom.hpp"
+
+
+</code></pre></div></div>
+
+<p>The main complication faced by <code class="highlighter-rouge">parseSubsetDefinition</code> is that the string <code class="highlighter-rouge">before_colon</code> may be either just the subset label chosen by the user (e.g. “rbcL”), or it may be a subset name followed by a subset data type specification embedded in square brackets (e.g. “rbcL[codon,plantplastid]”). The subset name and the subset data type (if it is there) are extracted through the use of regular expressions using the <code class="highlighter-rouge">std::regex_match</code> function. The regular expression pattern used is explained below.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>R"((.+?)\s*(\[(\S+?)\])*)"
+   ^^^^^ non-greedy sequence of 1 or more characters
+R"((.+?)\s*(\[(\S+?)\])*)"
+        ^^^ 0 or more whitespace characters
+R"((.+?)\s*(\[(\S+?)\])*)"
+           ^^^^^^^^^^^^^ captures subset data type specification if it is there
+R"((.+?)\s*(\[(\S+?)\])*)"
+            ^^      ^^ literal left/right square brackets (preceded by backslash
+                       because brackets have special meaning in regular expressions)
+R"((.+?)\s*(\[(\S+?)\])*)"
+              ^^^^^^ 1 or more darkspace characters (this should be "nucleotide",
+                     "protein", "standard", or "codon" but we will check this later                      
+                     because we don't want the entire regular expression to fail if
+                     the user has specified an invalid data type here
+</code></pre></div></div>
+<p>First of all, this is an example of a <strong>raw literal string</strong>. The beginning <code class="highlighter-rouge">R"(</code> and the ending <code class="highlighter-rouge">)"</code> form a wrapper that identifies this as a raw string and thus these 5 characters are not actually part of the pattern string. The reason we use a raw string here is that regular expression patterns are full of backslash characters, which, in regular expressions, signal that the following character has special significance. For example, if <code class="highlighter-rouge">\d</code> appears in a regular expression pattern, it means that <code class="highlighter-rouge">d</code> means “digit character” rather than just the letter <code class="highlighter-rouge">d</code>. If a raw string is not used, then each backslash character must be “escaped” by preceding it with a second backslash. This leads to lots of double backslash character combinations, which make regular expression patterns, already difficult to comprehend, even more difficult to construct correctly.</p>
+
+<p>The resulting <code class="highlighter-rouge">match_obj</code> is a vector of length either 2 or 4. It has length 2 if the user did not specify a data type at all (“nucleotide” is assumed), or 4 if the user did specify a data type in square brackets. The reason there are two extra elements is that we captured not only the data type itself, but also the entire expression in square brackets (in order to test whether it was there). Thus, the specification <code class="highlighter-rouge">rbcL[codon,plantplastid]</code> would result in the following <code class="highlighter-rouge">match_obj</code> vector:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>match_obj[0] = "rbcL[codon,plantplastid]"
+match_obj[1] = "rbcL"
+match_obj[2] = "[codon,plantplastid]"
+match_obj[3] = "codon,plantplastid"
+</code></pre></div></div>
+<p>whereas the specification <code class="highlighter-rouge">rbcL</code> (which is effectively the same as <code class="highlighter-rouge">rbcL[nucleotide]</code>) would result in:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>match_obj[0] = "rbcL"
+match_obj[1] = "rbcL"
+</code></pre></div></div>
+
+<p>If the data type is “codon”, then the user may have either specified a particular genetic code name (e.g. “plantplastid”) or not, in which case the “standard” (i.e. universal) genetic code is assumed. A further regular expression is used to detect whether the data type is “codon” <em>and</em> a genetic code was specified. Several <code class="highlighter-rouge">else</code> clauses handle all other possible data types, including the codon data type where the default genetic code is assumed.</p>
+
+<p>The function then adds <code class="highlighter-rouge">subset_name</code> to the <code class="highlighter-rouge">_subset_names</code> vector, adds the data type <code class="highlighter-rouge">dt</code> to <code class="highlighter-rouge">_subset_data_types</code>, updates <code class="highlighter-rouge">_num_subsets</code>, then calls <code class="highlighter-rouge">addSubset</code> to do all of the work involved in interpreting the <code class="highlighter-rouge">subset_definition</code> string. Note that this function deletes the default partition (created in the constructor): if this function is ever called, it is because the user has defined a partition and thus the default partition is not needed.</p>
+
+<p>Here’s the entire function body:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Partition::parseSubsetDefinition(std::string &amp; s) {    
+        std::vector&amp;lt;std::string&amp;gt; v;
+        
+        // first separate part before colon (stored in v[0]) from part after colon (stored in v[1])
+        boost::split(v, s, boost::is_any_of(":"));
+        if (v.size() != 2)
+            throw XStrom("Expecting exactly one colon in partition subset definition");
+
+        std::string before_colon = v[0];
+        std::string subset_definition = v[1];
+
+        // now see if before_colon contains a data type specification in square brackets
+        const char * pattern_string = R"((.+?)\s*(\[(\S+?)\])*)";
+        std::regex re(pattern_string);
+        std::smatch match_obj;
+        bool matched = std::regex_match(before_colon, match_obj, re);
+        if (!matched) {
+            throw XStrom(boost::format("Could not interpret \"%s\" as a subset label with optional data type in square brackets") % before_colon);
+        }
+        
+        // match_obj always yields 2 strings that can be indexed using the operator[] function
+        // match_obj[0] equals entire subset label/type string (e.g. "rbcL[codon:standard]")
+        // match_obj[1] equals the subset label (e.g. "rbcL")
+        
+        // Two more elements will exist if the user has specified a data type for this partition subset
+        // match_obj[2] equals data type inside square brackets (e.g. "[codon:standard]")
+        // match_obj[3] equals data type only (e.g. "codon:standard")
+        
+        std::string subset_name = match_obj[1].str();
+        DataType dt;    // nucleotide by default
+        std::string datatype = "nucleotide";
+        if (match_obj.size() == 4 &amp;&amp; match_obj[3].length() &amp;gt; 0) {
+            datatype = match_obj[3].str();
+            boost::to_lower(datatype);
+
+            // check for comma plus genetic code in case of codon
+            std::regex re(R"(codon\s*,\s*(\S+))");
+            std::smatch m;
+            if (std::regex_match(datatype, m, re)) {
+                dt.setCodon();
+                std::string genetic_code_name = m[1].str();
+                dt.setGeneticCodeFromName(genetic_code_name);
+            }
+            else if (datatype == "codon") {
+                dt.setCodon();  // assumes standard genetic code
+            }
+            else if (datatype == "protein") {
+                dt.setProtein();
+                }
+            else if (datatype == "nucleotide") {
+                dt.setNucleotide();
+                }
+            else if (datatype == "standard") {
+                dt.setStandard();
+                }
+            else {
+                throw XStrom(boost::format("Datatype \"%s\" specified for subset(s) \"%s\" is invalid: must be either nucleotide, codon, protein, or standard") % datatype % subset_name);
+                }
+            }
+
+        // Remove default subset if there is one
+        unsigned end_site = std::get&amp;lt;1&amp;gt;(_subset_ranges[0]);
+        if (_num_subsets == 1 &amp;&amp; end_site == _infinity) {
+            _subset_names.clear();
+            _subset_data_types.clear();
+            _subset_ranges.clear();
+        }
+        else if (subset_name == "default") {
+            throw XStrom("Cannot specify \"default\" partition subset after already defining other subsets");
+        }
+        _subset_names.push_back(subset_name);
+        _subset_data_types.push_back(dt);
+        _num_subsets = (unsigned)_subset_names.size();
+        addSubset(_num_subsets - 1, subset_definition);
+
+        std::cout &amp;lt;&amp;lt; boost::str(boost::format("Partition subset %s comprises sites %s and has type %s") % subset_name % subset_definition % datatype) &amp;lt;&amp;lt; std::endl;
+    }    
+
+</code></pre></div></div>
+
+<h3 id="the-addsubset-member-function">The addSubset member function</h3>
+<p>This is a private member function that does the work of breaking up a subset definition into a vector of component ranges (these component ranges are separated by commas in <code class="highlighter-rouge">subset_definition</code>). This is accomplished by the <code class="highlighter-rouge">boost::split</code> function, and the resulting components are each submitted to the member function <code class="highlighter-rouge">addSubsetRange</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Partition::addSubset(unsigned subset_index, std::string subset_definition) {    
+        std::vector&amp;lt;std::string&amp;gt; parts;
+        boost::split(parts, subset_definition, boost::is_any_of(","));
+        for (auto subset_component : parts) {
+            addSubsetRange(subset_index, subset_component);
+        }
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-addsubsetrange-member-function">The addSubsetRange member function</h2>
+
+<p>This is a private member function, called by the <code class="highlighter-rouge">addSubset</code> member function, that receives a subset index (an integer greater than or equal to 0) and a range definition, which may be trivial (just a single integer corresponding to one site), a range (e.g. 1-1000) consisting of a beginning and ending site separated by a hyphen, or a more complex range comprising a beginning and ending site as well as a step size, or stride. <a href="https://en.wikipedia.org/wiki/Regular_expression">Regular expression</a> matching is used to parse the range definition. The regular expression pattern string is</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        const char * pattern_string = R"((\d+)\s*(-\s*([0-9.]+)(\\\s*(\d+))*)*)";   
+
+</code></pre></div></div>
+<p>Note that the <code class="highlighter-rouge">R"(...)"</code> wrapper just tells C++ that this is a raw string (it tells C++ not to escape characters preceded by a backslash). After removing the raw literal bracketing characters, the regular expression pattern is shown below with the 5 potential capture groups indicated below:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(\d+)\s*(-\s*([0-9.]+)(\\\s*(\d+))*)*
+|-1-|   |--------------2-----------|
+             |---3---||-----4----| 
+                            |-5-|
+</code></pre></div></div>
+<p>The first construct, <code class="highlighter-rouge">(\d+)</code>, looks for one or more digits, and the parentheses serve to capture this number as regex group 1. Group 2 occupies most of the remainder of the pattern and the terminating <code class="highlighter-rouge">*</code> means that group 2 may not even be present in a match. This would be the case for trivial ranges consisting of only a single number representing the site position.</p>
+
+<p>Assuming group 2 is present in a match, group 3 is required and captures the ending site position, which follows the required hyphen character (<code class="highlighter-rouge">-</code>) and zero or more whitespace characters (<code class="highlighter-rouge">\s*</code>). Group 4 is not required, but, if present, matches a backslash character (<code class="highlighter-rouge">\\</code>), which must be doubled (“escaped”) in order to keep it from acting to make the following character special, followed by a potential space (<code class="highlighter-rouge">\s*</code>) and then a series of digit characters (<code class="highlighter-rouge">\d+</code>) captured as group 5. (The fact that backslashes are escaped in this regular expression itself explains why I decided to go with the raw literal string approach; otherwise, backslashes would need to be escaped for <em>both</em> C++ <em>and</em> the regular expression interpreter!)</p>
+
+<p>The function <code class="highlighter-rouge">std::regex_match</code> searches the supplied <code class="highlighter-rouge">range_definition</code> for the pattern defined by <code class="highlighter-rouge">re</code> and stores any captured groups in <code class="highlighter-rouge">match_obj</code>.</p>
+
+<p>Note that groups 2 and 4 are both optional. These groups are only defined so that we can make them optional. It is groups 1, 3, and 5 that capture the information we need. The three lines that call <code class="highlighter-rouge">extractIntFromRegexMatch</code> do the work of assigning these pieces of information to the variables <code class="highlighter-rouge">ibegin</code>, <code class="highlighter-rouge">iend</code>, <code class="highlighter-rouge">istep</code>. The second argument to <code class="highlighter-rouge">extractIntFromRegexMatch</code> is the default value that is used if the capture group specified as the first argument is the empty string.</p>
+
+<p>All that remains is to append the tuple containing the four values <code class="highlighter-rouge">ibegin</code>, <code class="highlighter-rouge">iend</code>, <code class="highlighter-rouge">isteo</code>, and <code class="highlighter-rouge">subset_index</code> to the vector <code class="highlighter-rouge">_subset_ranges</code>, as well as update <code class="highlighter-rouge">_num_sites</code> if the last site included in the range is larger than the current value of <code class="highlighter-rouge">_num_sites</code>. This last task is complicated by the possibility that the last site included in the range may not equal <code class="highlighter-rouge">iend</code>! Consider the range <code class="highlighter-rouge">2-10\3</code>, which translates to the set <code class="highlighter-rouge">{2, 5, 8}</code>. The last site included is 8, not 10.</p>
+
+<p>Here is the source for the <code class="highlighter-rouge">addSubsetRange</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Partition::addSubsetRange(unsigned subset_index, std::string range_definition) {    
+        // match patterns like these: "1-.\3" "1-1000" "1001-."
+        const char * pattern_string = R"((\d+)\s*(-\s*([0-9.]+)(\\\s*(\d+))*)*)";   
+        std::regex re(pattern_string);
+        std::smatch match_obj;
+        bool matched = std::regex_match(range_definition, match_obj, re);
+        if (!matched) {
+            throw XStrom(boost::format("Could not interpret \"%s\" as a range of site indices") % range_definition);
+        }
+        
+        // match_obj always yields 6 strings that can be indexed using the operator[] function
+        // match_obj[0] equals entire site_range (e.g. "1-.\3")
+        // match_obj[1] equals beginning site index (e.g. "1")
+        // match_obj[2] equals everything after beginning site index (e.g. "-.\3")
+        // match_obj[3] equals "" or ending site index (e.g. ".")
+        // match_obj[4] equals "" or everything after ending site index (e.g. "\3")
+        // match_obj[5] equals "" or step value (e.g. "3")
+        int ibegin = extractIntFromRegexMatch(match_obj[1], 1);
+        int iend   = extractIntFromRegexMatch(match_obj[3], ibegin);
+        int istep  = extractIntFromRegexMatch(match_obj[5], 1);
+        
+        // record the triplet
+        _subset_ranges.push_back(std::make_tuple(ibegin, iend, istep, subset_index));
+        
+        // determine last site in subset
+        unsigned last_site_in_subset = iend - ((iend - ibegin) % istep);
+        if (last_site_in_subset &amp;gt; _num_sites) {
+            _num_sites = last_site_in_subset;
+        }
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-extractintfromregexmatch-member-function">The extractIntFromRegexMatch member function</h2>
+<p>This function takes a <code class="highlighter-rouge">regex_match_t</code> argument and attempts to interpret it as an integer. A <code class="highlighter-rouge">regex_match_t</code> is an object that captured part of a regular expression match; the match object can be converted to a <code class="highlighter-rouge">std::string</code> using the object’s <code class="highlighter-rouge">str</code> member function.</p>
+
+<p>If the attempt to convert the match to an integer succeeds, then the function returns the integer value extracted, assuming that the integer is at least as large as the minimum value specified. If the supplied string is empty, then no attempt is made to interpret it and the supplied minimum value is returned by default.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int Partition::extractIntFromRegexMatch(regex_match_t s, unsigned min_value) {    
+        int int_value = min_value;
+        if (s.length() &amp;gt; 0) {
+            std::string str_value = s.str();
+            try {
+                int_value = std::stoi(str_value);
+            }
+            catch(std::invalid_argument) {
+                throw XStrom(boost::format("Could not interpret \"%s\" as a number in partition subset definition") % s.str());
+            }
+            
+            // sanity check
+            if (int_value &amp;lt; (int)min_value) {
+                throw XStrom(boost::format("Value specified in partition subset definition (%d) is lower than minimum value (%d)") % int_value % min_value);
+            }
+        }
+        return int_value;
+    }    
+
+</code></pre></div></div>
+<p>The function uses <code class="highlighter-rouge">std::stoi</code> to extract an integer value from a string. If std::stoi fails to interpret the supplied string as an integer, it throws a <code class="highlighter-rouge">std::invalid_argument</code> exception, which we catch and follow up with our own <code class="highlighter-rouge">XStrom</code> exception to explain to the user what went wrong.</p>
+
+<h2 id="the-finalize-member-function">The finalize member function</h2>
+<p>The finalize function is called once the actual number of sites is known (after the data have been stored). This function performs three important sanity checks. First, it checks whether the number of sites specified is equal to the number of sites determined by the subset definitions. Second, it checks whether any sites have slipped through the cracks and were not assigned to any subset in the partition. Third, it checks whether any sites have been assigned to more than one subset. If any of these sanity checks fail, an <code class="highlighter-rouge">XStrom</code> exception is thrown, forcing the user to fix their partition definition.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Partition::finalize(unsigned nsites) {    
+        if (_num_sites == 0) {
+            defaultPartition(nsites);
+            return;
+        }
+
+        // First sanity check:
+        //   nsites is the number of sites read in from a data file;
+        //   _num_sites is the maximum site index specified in any partition subset.
+        //   These two numbers should be the same.
+        if (_num_sites != nsites) {
+            throw XStrom(boost::format("Number of sites specified by the partition (%d) does not match actual number of sites (%d)") % _num_sites % nsites);
+        }
+        
+        // Second sanity check: ensure that no sites were left out of all partition subsets
+        // Third sanity check: ensure that no sites were included in more than one partition subset
+        std::vector&amp;lt;int&amp;gt; tmp(nsites, -1);   // begin with -1 for all sites
+        for (auto &amp; t : _subset_ranges) {
+            unsigned begin_site  = std::get&amp;lt;0&amp;gt;(t);
+            unsigned end_site    = std::get&amp;lt;1&amp;gt;(t);
+            unsigned stride  = std::get&amp;lt;2&amp;gt;(t);
+            unsigned site_subset = std::get&amp;lt;3&amp;gt;(t);
+            for (unsigned s = begin_site; s &amp;lt;= end_site; s += stride) {
+                if (tmp[s-1] != -1)
+                    throw XStrom("Some sites were included in more than one partition subset");
+                else
+                    tmp[s-1] = site_subset;
+            }
+        }
+        if (std::find(tmp.begin(), tmp.end(), -1) != tmp.end()) {
+            throw XStrom("Some sites were not included in any partition subset");
+        }
+        tmp.clear();
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-defaultpartition-member-function">The defaultPartition member function</h2>
+<p>If data will not be partitioned, it makes sense to relieve the user of the responsibility of creating a subset definition. This function may be called if no subset definitions were provided on the command line (or <em>strom.conf</em> file). It simply creates a <code class="highlighter-rouge">_subset_ranges</code> vector containing a single range tuple specifying a range that extends from the first to the last site. It also adds the name <code class="highlighter-rouge">default</code> to the <code class="highlighter-rouge">_subset_names</code> vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Partition::defaultPartition(unsigned nsites) {    
+        clear();
+        _num_sites = nsites;
+        _num_subsets = 1;
+        _subset_ranges[0] = std::make_tuple(1, nsites, 1, 0);
+    }    
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-09/01-create-the-datatype-and-geneticcode-classes.html">&lt;&nbsp;9.1</a> | 9.2 | <a href="/people/plewis/cpp//win//steps/step-09/03-create-the-data-class.html">9.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

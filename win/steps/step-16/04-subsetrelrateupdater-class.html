@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The SubsetRelRateUpdater Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">16.4 The SubsetRelRateUpdater Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-16/03-exchangeabilitiesupdater-class.html">&lt;&nbsp;16.3</a> | 16.4 | <a href="/people/plewis/cpp//win//steps/step-16/05-pinvar-omega-updater.html">16.5&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Creating a <code class="highlighter-rouge">SubsetRelRateUpdater</code> is slightly more complicated than creating the <code class="highlighter-rouge">StateFreqUpdater</code> and <code class="highlighter-rouge">ExchangeabilityUpdater</code> classes. That’s because subset relative rates do not themselves have a Dirichlet prior distribution. Dirichlet distributions are defined on a simplex, which means that a Dirichlet random variable is a vector whose elements sum to 1.0. Subset relative rates do not sum to 1; instead, their <em>mean</em> is 1. What does sum to 1.0 are the components of the mean. To see this, consider how the mean relative substitution rate across subsets is computed (in pseudocode):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mean relative rate = r_1 p_1 + r_2 p_2 + ... + r_k p_k
+</code></pre></div></div>
+<p>Here, <code class="highlighter-rouge">r_i</code> is the relative rate at which subset <code class="highlighter-rouge">i</code> is evolving and <code class="highlighter-rouge">p_i</code> is the probability that a site is in subset <code class="highlighter-rouge">i</code> (and thus has relative rate <code class="highlighter-rouge">r_i</code>). The probability <code class="highlighter-rouge">p_i</code> is simply the proportion of sites in subset <code class="highlighter-rouge">i</code>. The mean relative rate equals 1.0, by design, because subset relative rates affect the <em>heterogeneity</em> in substitution rate across subsets, not the absolute rate. Writing the same equation in this way:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mean relative rate = y_1 + y_2 + ... + y_k = 1.0
+</code></pre></div></div>
+<p>Shows that the values <code class="highlighter-rouge">y_i = r_i p_i</code> form a simplex and can thus have a Dirichlet prior distribution. Because of the involvement of the <code class="highlighter-rouge">p_i</code>, this means that the <code class="highlighter-rouge">r_i</code> do not themselves have a Dirichlet prior. The distribution of the subset relative rates can be easily obtained, however, and the prior density for a vector of <code class="highlighter-rouge">K</code> subset relative rates is identical to a Dirichlet density multiplied by a constant factor equal to the product of the first <code class="highlighter-rouge">K-1</code> proportions (i.e. <code class="highlighter-rouge">p_1 p_2 ... p_(K-1)</code>).</p>
+
+<p>In order to use the <code class="highlighter-rouge">DirichletUpdater</code> base class, we must provide it with <code class="highlighter-rouge">y_i</code> values rather than <code class="highlighter-rouge">r_i</code> values, and then multiply the prior computed by <code class="highlighter-rouge">DirichletUpdater</code> by the constant factor described above. We override the virtual function <code class="highlighter-rouge">DirichletUpdater::calcLogPrior</code> in order to make the needed modification.</p>
+
+<p>Create a new header file named <em>subset_relrate_updater.hpp</em> and fill it with the following.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "dirichlet_updater.hpp"
+
+namespace strom {
+    
+    class SubsetRelRateUpdater : public DirichletUpdater {
+        public:
+            typedef std::shared_ptr&amp;lt; SubsetRelRateUpdater &amp;gt; SharedPtr;
+
+                                            SubsetRelRateUpdater(Model::SharedPtr model);
+                                            ~SubsetRelRateUpdater();
+        
+            double                          calcLogPrior();
+
+        private:
+        
+            void                            pullFromModel();
+            void                            pushToModel();
+
+            Model::SharedPtr                _model;
+        };
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+
+<p>The constructor first calls the <code class="highlighter-rouge">clear</code> function defined by the <code class="highlighter-rouge">DirichletUpdater</code> base class. It then sets its <code class="highlighter-rouge">_name</code> to “Subset Relative Rates” and the data member <code class="highlighter-rouge">_model</code> to the argument supplied as the <code class="highlighter-rouge">model</code> parameter. The destructor is merely a placeholder, as usual.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline SubsetRelRateUpdater::SubsetRelRateUpdater(Model::SharedPtr model) {   
+        //std::cout &amp;lt;&amp;lt; "Creating a SubsetRelRateUpdater" &amp;lt;&amp;lt; std::endl;
+        DirichletUpdater::clear();
+        _name = "Subset Relative Rates";
+        _model = model;
+    }   
+
+    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {  
+        //std::cout &amp;lt;&amp;lt; "Destroying a SubsetRelRateUpdater" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-calclogprior-member-function">The calcLogPrior member function</h2>
+
+<p>As explained above, this function first calls the <code class="highlighter-rouge">calcLogPrior</code> member function of the base class <code class="highlighter-rouge">DirichletUpdater</code> in order to do the majority of the work. The only remaining work is to add the log of the first <code class="highlighter-rouge">K-1</code> subset proportions (where <code class="highlighter-rouge">K</code> is the number of subsets) to the log prior value returned by <code class="highlighter-rouge">DirichletUpdater::calcLogPrior</code>. Each of these subset proportions equals the number of sites in the subset divided by the total number of sites. On log scale, this turns into the log of the number of sites in the subset minus the log of the total number of sites.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double SubsetRelRateUpdater::calcLogPrior() {  
+        Model::subset_sizes_t &amp; subset_sizes = _model-&amp;gt;getSubsetSizes();
+        double log_num_sites = std::log(_model-&amp;gt;getNumSites());
+        unsigned num_subsets = _model-&amp;gt;getNumSubsets();
+        double log_prior = DirichletUpdater::calcLogPrior();
+        for (unsigned i = 0; i &amp;lt; num_subsets-1; i++) {
+            log_prior += std::log(subset_sizes[i]) - log_num_sites;
+        }
+        return log_prior;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-pullfrommodel-and-pushtomodel-member-functions">The pullFromModel and pushToModel member functions</h2>
+
+<p>The <code class="highlighter-rouge">pullFromModel</code> function cannot simply copy the subset relative rates from the <code class="highlighter-rouge">_subset_relrates</code> data member of model into <code class="highlighter-rouge">_curr_point</code>. Instead, each element of <code class="highlighter-rouge">_curr_point</code> is the product of a subset relative rate and the proportion of sites in that subset.</p>
+
+<p>Similarly, the reverse process is used in <code class="highlighter-rouge">pushToModel</code>. Each element of <code class="highlighter-rouge">_curr_point</code> is divided by the proportion of sites in the subset in order to extract just the subset relative rate. These relative rates are stored in a temporary vector <code class="highlighter-rouge">tmp</code> and then uploaded to the model via the <code class="highlighter-rouge">setSubsetRelRates</code> function. Note that we can assume that the second parameter (<code class="highlighter-rouge">fixed</code>) of the <code class="highlighter-rouge">setSubsetRelRates</code> function is <code class="highlighter-rouge">false</code> because, if this updater is in use, then subset relative rates cannot have been fixed by the user.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void SubsetRelRateUpdater::pullFromModel() {  
+        Model::subset_relrate_vect_t &amp; relative_rates = _model-&amp;gt;getSubsetRelRates();
+        Model::subset_sizes_t &amp;        subset_sizes   = _model-&amp;gt;getSubsetSizes();
+        unsigned num_sites   = _model-&amp;gt;getNumSites();
+        unsigned num_subsets = _model-&amp;gt;getNumSubsets();
+        assert(subset_sizes.size() == num_subsets);
+        assert(relative_rates.size() == num_subsets);
+        _curr_point.resize(num_subsets);
+        for (unsigned i = 0; i &amp;lt; num_subsets; i++) {
+            _curr_point[i] = relative_rates[i]*subset_sizes[i]/num_sites;
+        }
+    }   
+    
+    inline void SubsetRelRateUpdater::pushToModel() {  
+        Model::subset_sizes_t &amp; subset_sizes = _model-&amp;gt;getSubsetSizes();
+        unsigned num_sites   = _model-&amp;gt;getNumSites();
+        unsigned num_subsets = _model-&amp;gt;getNumSubsets();
+        point_t tmp(num_subsets);
+        for (unsigned i = 0; i &amp;lt; num_subsets; i++) {
+            tmp[i] = _curr_point[i]*num_sites/subset_sizes[i];
+        }
+        _model-&amp;gt;setSubsetRelRates(tmp, false);
+    }   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-16/03-exchangeabilitiesupdater-class.html">&lt;&nbsp;16.3</a> | 16.4 | <a href="/people/plewis/cpp//win//steps/step-16/05-pinvar-omega-updater.html">16.5&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

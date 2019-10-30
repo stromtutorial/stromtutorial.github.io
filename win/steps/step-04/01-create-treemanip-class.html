@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the `TreeManip` class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">4.1 Create the `TreeManip` class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 4.1 | <a href="/people/plewis/cpp//win//steps/step-04/02-test-treemanip.html">4.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>There are benefits to keeping the <code class="highlighter-rouge">Tree</code> and <code class="highlighter-rouge">Node</code> classes simple, so in this step we will create a <code class="highlighter-rouge">TreeManip</code> class that will own, manage and manipulate a <code class="highlighter-rouge">Tree</code> object.</p>
+
+<p>Rather than call the <code class="highlighter-rouge">createTestTree()</code> function of <code class="highlighter-rouge">Tree</code>, we will move that
+function to <code class="highlighter-rouge">TreeManip</code>. <code class="highlighter-rouge">TreeManip</code> will also eventually have functions to create a
+standard Newick description string, build a <code class="highlighter-rouge">Tree</code> from a Newick description, and
+perform modifications to a <code class="highlighter-rouge">Tree</code> needed during Metropolis (MCMC) proposals.</p>
+
+<p>First, create the <code class="highlighter-rouge">TreeManip</code> class  by creating a new header file named
+<em>tree_manip.hpp</em> and populating it with the following code:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;cassert&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include "tree.hpp"
+
+namespace strom {
+
+    class TreeManip {
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+            double                      calcTreeLength() const;
+            void                        scaleAllEdgeLengths(double scaler);
+            void                        createTestTree();
+            void                        clear();
+
+        private:
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };
+
+    // This is where function bodies go
+
+
+} 
+
+</code></pre></div></div>
+<p>Class declarations like this should look familiar because there are many similarities of this class declaration to those we created for <code class="highlighter-rouge">Tree</code> and <code class="highlighter-rouge">Node</code>. Inside the <code class="highlighter-rouge">strom</code> namespace, we have created a class named <code class="highlighter-rouge">TreeManip</code> that has two constructors, a destructor, four public member functions, a private data member named <code class="highlighter-rouge">_tree</code>, and a type definition that will allow us to create shared pointers to <code class="highlighter-rouge">TreeManip</code> objects.</p>
+
+<h2 id="two-constructors-and-a-destructor">Two constructors and a destructor</h2>
+<p>We still need to define bodies for each of the functions in the class declaration above. Here are the bodies for the two constructors and the destructor. These functions currently do little more than announce that a <code class="highlighter-rouge">TreeManip</code> object is being created or destroyed, except that the constructor that takes a tree shared pointer argument calls the member function <code class="highlighter-rouge">setTree</code>, which is defined below. These three member function definitions should go after the semicolon (<code class="highlighter-rouge">;</code>) ending the class declaration but before the curly bracket (<code class="highlighter-rouge">}</code>) that closes the namespace.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline TreeManip::TreeManip() {  
+        std::cerr &amp;lt;&amp;lt; "Constructing a TreeManip" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }  
+
+    inline TreeManip::TreeManip(Tree::SharedPtr t) {  
+        std::cerr &amp;lt;&amp;lt; "Constructing a TreeManip with a supplied tree" &amp;lt;&amp;lt; std::endl;
+        clear();
+        setTree(t);
+    }  
+
+    inline TreeManip::~TreeManip() {  
+        std::cerr &amp;lt;&amp;lt; "Destroying a TreeManip" &amp;lt;&amp;lt; std::endl;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-clear-function">The clear function</h2>
+<p>This function resets the <code class="highlighter-rouge">_tree</code> data member. Resetting a shared pointer causes it to no longer point to any object. If this shared pointer was still pointing to a <code class="highlighter-rouge">Tree</code> object, and if this was the last shared pointer holding onto that <code class="highlighter-rouge">Tree</code> object, the <code class="highlighter-rouge">Tree</code> object would be deleted (and the destructor function will report that it has been called).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::clear() {  
+        _tree.reset();
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-settree-function">The setTree function</h2>
+<p>This function sets the data member <code class="highlighter-rouge">_tree</code> to point to the supplied tree <code class="highlighter-rouge">t</code>, and is used by the second contructor function. This second, extra constructor is not essential: we could use the default constructor (the one that takes no arguments) and then call <code class="highlighter-rouge">setTree</code> immediately afterwards and accomplish the same thing. The extra constructor just makes it possible to accomplish both actions (creating the <code class="highlighter-rouge">TreeManip</code> object and assigning a tree to it) in the same line of code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::setTree(Tree::SharedPtr t) {  
+        assert(t);
+        _tree = t;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-gettree-function">The getTree function</h2>
+<p>This function simply returns a shared pointer to the <code class="highlighter-rouge">Tree</code> object being managed by this <code class="highlighter-rouge">TreeManip</code> object.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Tree::SharedPtr TreeManip::getTree() {  
+        return _tree;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-calctreelength-function">The calcTreeLength function</h2>
+<p>We will not need this function for a while, but given that it is a small, easily understood function, we might as well go ahead and add it to the class now. This function simply adds up the lengths of all edges in its tree and returns the sum (tree length). The function first sets the value of the local variable <code class="highlighter-rouge">TL</code> to zero. It then iterates through all nodes in the tree by setting the local variable <code class="highlighter-rouge">nd</code> to each element of the <code class="highlighter-rouge">_tree-&gt;_preorder</code> vector in turn and adding its <code class="highlighter-rouge">_edge_length</code> to the current value of <code class="highlighter-rouge">TL</code>. The <strong>auto</strong> keyword forces the compiler to figure out the type of the local variable <code class="highlighter-rouge">nd</code>. This makes the code easier to write and read. In this case, the type of <code class="highlighter-rouge">nd</code> is <code class="highlighter-rouge">Node *</code> (pointer to <code class="highlighter-rouge">Node</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double TreeManip::calcTreeLength() const {  
+        double TL = 0.0;
+        for (auto nd : _tree-&amp;gt;_preorder) {
+            TL += nd-&amp;gt;_edge_length;
+        } 
+        return TL;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-scalealledgelengths-function">The scaleAllEdgeLengths function</h2>
+<p>This function, like <code class="highlighter-rouge">calcTreeLength</code>, will not be needed for some time, but it is easy to add now so it will be in place later when we need to scale all edge lengths in the tree up or down. This function simply scales all edge lengths in the tree by multiplying each by the supplied value <code class="highlighter-rouge">scaler</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::scaleAllEdgeLengths(double scaler) {  
+        for (auto nd : _tree-&amp;gt;_preorder) {
+            nd-&amp;gt;setEdgeLength(scaler*nd-&amp;gt;_edge_length);
+        }
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-createtesttree-function">The createTestTree function</h2>
+<p>This function is nearly identical to the function of the same name in the <code class="highlighter-rouge">Tree</code> class. One difference is that we must create a <code class="highlighter-rouge">Tree</code> first, and data members of the <code class="highlighter-rouge">Tree</code> class (such as <code class="highlighter-rouge">_nodes</code>, <code class="highlighter-rouge">_preorder</code>, and <code class="highlighter-rouge">_is_rooted</code>) must be accessed through the <code class="highlighter-rouge">TreeManip</code> object’s <code class="highlighter-rouge">_tree</code> pointer.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::createTestTree() {  
+        clear();
+        _tree = Tree::SharedPtr(new Tree());
+        _tree-&amp;gt;_nodes.resize(6);
+
+        Node * root_node       = &amp;_tree-&amp;gt;_nodes[0];
+        Node * first_internal  = &amp;_tree-&amp;gt;_nodes[1];
+        Node * second_internal = &amp;_tree-&amp;gt;_nodes[2];
+        Node * first_leaf      = &amp;_tree-&amp;gt;_nodes[3];
+        Node * second_leaf     = &amp;_tree-&amp;gt;_nodes[4];
+        Node * third_leaf      = &amp;_tree-&amp;gt;_nodes[5];
+
+        // Here is the structure of the tree (numbers in
+        // parentheses are node numbers, other numbers
+        // are edge lengths):
+        //
+        // first_leaf (0)   second_leaf (1)   third_leaf (2)
+        //      \              /                  /
+        //       \ 0.1        / 0.1              /
+        //        \          /                  /
+        //     second_internal (3)             / 0.2
+        //             \                      /
+        //              \ 0.1                /
+        //               \                  /
+        //                first_internal (4)
+        //                        |
+        //                        | 0.1
+        //                        |
+        //                    root_node (5)
+        //
+        root_node-&amp;gt;_parent = 0;
+        root_node-&amp;gt;_left_child = first_internal;
+        root_node-&amp;gt;_right_sib = 0;
+        root_node-&amp;gt;_number = 5;
+        root_node-&amp;gt;_name = "root node";
+        root_node-&amp;gt;_edge_length = 0.0;
+
+        first_internal-&amp;gt;_parent = root_node;
+        first_internal-&amp;gt;_left_child = second_internal;
+        first_internal-&amp;gt;_right_sib = 0;
+        first_internal-&amp;gt;_number = 4;
+        first_internal-&amp;gt;_name = "first internal node";
+        first_internal-&amp;gt;_edge_length = 0.1;
+
+        second_internal-&amp;gt;_parent = first_internal;
+        second_internal-&amp;gt;_left_child = first_leaf;
+        second_internal-&amp;gt;_right_sib = third_leaf;
+        second_internal-&amp;gt;_number = 3;
+        second_internal-&amp;gt;_name = "second internal node";
+        second_internal-&amp;gt;_edge_length = 0.1;
+
+        first_leaf-&amp;gt;_parent = second_internal;
+        first_leaf-&amp;gt;_left_child = 0;
+        first_leaf-&amp;gt;_right_sib = second_leaf;
+        first_leaf-&amp;gt;_number = 0;
+        first_leaf-&amp;gt;_name = "first leaf";
+        first_leaf-&amp;gt;_edge_length = 0.1;
+
+        second_leaf-&amp;gt;_parent = second_internal;
+        second_leaf-&amp;gt;_left_child = 0;
+        second_leaf-&amp;gt;_right_sib = 0;
+        second_leaf-&amp;gt;_number = 1;
+        second_leaf-&amp;gt;_name = "second leaf";
+        second_leaf-&amp;gt;_edge_length = 0.1;
+
+        third_leaf-&amp;gt;_parent = first_internal;
+        third_leaf-&amp;gt;_left_child = 0;
+        third_leaf-&amp;gt;_right_sib = 0;
+        third_leaf-&amp;gt;_number = 2;
+        third_leaf-&amp;gt;_name = "third leaf";
+        third_leaf-&amp;gt;_edge_length = 0.2;
+
+        _tree-&amp;gt;_is_rooted = true;
+        _tree-&amp;gt;_root = root_node;
+        _tree-&amp;gt;_nleaves = 3;
+
+        // Note that root node is not included in _preorder
+        _tree-&amp;gt;_preorder.push_back(first_internal);
+        _tree-&amp;gt;_preorder.push_back(second_internal);
+        _tree-&amp;gt;_preorder.push_back(first_leaf);
+        _tree-&amp;gt;_preorder.push_back(second_leaf);
+        _tree-&amp;gt;_preorder.push_back(third_leaf);
+
+        _tree-&amp;gt;_levelorder.push_back(first_internal);
+        _tree-&amp;gt;_levelorder.push_back(second_internal);
+        _tree-&amp;gt;_levelorder.push_back(third_leaf);
+        _tree-&amp;gt;_levelorder.push_back(first_leaf);
+        _tree-&amp;gt;_levelorder.push_back(second_leaf);
+    }  
+
+</code></pre></div></div>
+
+<h2 id="before-moving-on">Before moving on…</h2>
+<p>Edit your <code class="highlighter-rouge">Node</code> class (file <em>node.hpp</em>) and uncomment the lines making <code class="highlighter-rouge">TreeManip</code> a friend class of <code class="highlighter-rouge">Node</code>. This will just involve removing the initial <code class="highlighter-rouge">//</code> from the two bold, blue lines shown below in <em>node.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+//#include "split.hpp"
+
+namespace strom {
+
+    class Tree;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class TreeManip;&lt;/strong&gt;&lt;/span&gt;
+    //class Likelihood;
+    //class Updater;
+
+    class Node {
+            friend class Tree;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class TreeManip;&lt;/strong&gt;&lt;/span&gt;
+            //friend class Likelihood;
+            //friend class Updater;
+
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()     {return _parent;}
+                    Node *              getLeftChild()  {return _left_child;}
+                    Node *              getRightSib()   {return _right_sib;}
+                    int                 getNumber()     {return _number;}
+                    std::string         getName()       {return _name;}
+                    //Split               getSplit()      {return _split;}
+
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+
+        private:
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            //Split               _split;
+    };
+
+    inline Node::Node() {
+        std::cout &amp;lt;&amp;lt; "Creating Node object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }
+
+    inline Node::~Node() {
+        std::cout &amp;lt;&amp;lt; "Destroying Node object" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Node::clear() {
+        _left_child = 0;
+        _right_sib = 0;
+        _parent = 0;
+        _number = -1;
+        _name = "";
+        _edge_length = _smallest_edge_length;
+    }
+
+    inline void Node::setEdgeLength(double v) {
+        _edge_length = (v &amp;lt; _smallest_edge_length ? _smallest_edge_length : v);
+    }
+
+} 
+
+</code></pre></div></div>
+
+<p>Edit your <code class="highlighter-rouge">Tree</code> class (file <em>tree.hpp</em>) and delete all traces of <code class="highlighter-rouge">createTestTree()</code>. We no longer need <code class="highlighter-rouge">Tree</code> to have this capability because we can now ask <code class="highlighter-rouge">TreeManip</code> to create a test tree. The <code class="highlighter-rouge">Tree</code> class will also need to be modified so that <code class="highlighter-rouge">TreeManip</code> is a friend of <code class="highlighter-rouge">Tree</code>. I’ve indicated all lines in <em>tree.hpp</em> that need to be modified below in bold, blue text. I have commented out lines relating to <code class="highlighter-rouge">createTestTree</code> function so that I could show them to you, but you should feel free to just delete these lines entirely (they will be gone when I show you the contents of this file in future steps).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;iostream&amp;gt;
+#include "node.hpp"
+
+namespace strom {
+
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class TreeManip;&lt;/strong&gt;&lt;/span&gt;
+    //class Likelihood;
+    //class Updater;
+
+    class Tree {
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class TreeManip;&lt;/strong&gt;&lt;/span&gt;
+            //friend class Likelihood;
+            //friend class Updater;
+
+        public:
+
+                                        Tree();
+                                        ~Tree();
+
+            bool                        isRooted() const;
+            unsigned                    numLeaves() const;
+            unsigned                    numInternals() const;
+            unsigned                    numNodes() const;
+
+        private:
+
+            void                        clear();
+
+            bool                        _is_rooted;
+            Node *                      _root;
+            unsigned                    _nleaves;
+            unsigned                    _ninternals;
+            Node::PtrVector             _preorder;
+            Node::PtrVector             _levelorder;
+            Node::Vector                _nodes;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt;Tree&amp;gt; SharedPtr;
+    };
+
+    inline Tree::Tree() {
+        std::cout &amp;lt;&amp;lt; "Constructing a Tree" &amp;lt;&amp;lt; std::endl;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//createTestTree();&lt;/strong&gt;&lt;/span&gt;
+    }
+
+    inline Tree::~Tree() {
+        std::cout &amp;lt;&amp;lt; "Destroying a Tree" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Tree::clear() {
+        _is_rooted = false;
+        _root = 0;
+        _nodes.clear();
+        _preorder.clear();
+        _levelorder.clear();
+    }
+
+    inline bool Tree::isRooted() const {
+        return _is_rooted;
+    }
+
+    inline unsigned Tree::numLeaves() const {
+        return _nleaves;
+    }
+
+    inline unsigned Tree::numInternals() const {
+        return _ninternals;
+    }
+
+    inline unsigned Tree::numNodes() const {
+        return (unsigned)_nodes.size();
+    }
+
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// inline void Tree::createTestTree() {&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	clear();&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_nodes.resize(6);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	Node * root_node       = &amp;_nodes[0];&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	Node * first_internal  = &amp;_nodes[1];&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	Node * second_internal = &amp;_nodes[2];&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	Node * first_leaf      = &amp;_nodes[3];&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	Node * second_leaf     = &amp;_nodes[4];&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	Node * third_leaf      = &amp;_nodes[5];&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	// Here is the structure of the tree (numbers in&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	// parentheses are node numbers, other numbers&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	// are edge lengths):&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	// first_leaf (0)   second_leaf (1)   third_leaf (2)&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//      \              /                  /&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//       \ 0.1        / 0.1              /&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//        \          /                  /&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//     second_internal (3)             / 0.2&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//             \                      /&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//              \ 0.1                /&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//               \                  /&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//                first_internal (4)&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//                        |&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//                        | 0.1&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//                        |&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//                    root_node (5)&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	root_node-&amp;gt;_parent            = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	root_node-&amp;gt;_left_child        = first_internal;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	root_node-&amp;gt;_right_sib         = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	root_node-&amp;gt;_number            = 5;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	root_node-&amp;gt;_name              = "root node";&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	root_node-&amp;gt;_edge_length       = 0.0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_internal-&amp;gt;_parent       = root_node;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_internal-&amp;gt;_left_child   = second_internal;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_internal-&amp;gt;_right_sib    = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_internal-&amp;gt;_number       = 4;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_internal-&amp;gt;_name         = "first internal node";&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_internal-&amp;gt;_edge_length  = 0.1;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_internal-&amp;gt;_parent      = first_internal;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_internal-&amp;gt;_left_child  = first_leaf;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_internal-&amp;gt;_right_sib   = third_leaf;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_internal-&amp;gt;_number      = 3;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_internal-&amp;gt;_name        = "second internal node";&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_internal-&amp;gt;_edge_length = 0.1;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_leaf-&amp;gt;_parent           = second_internal;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_leaf-&amp;gt;_left_child       = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_leaf-&amp;gt;_right_sib        = second_leaf;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_leaf-&amp;gt;_number           = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_leaf-&amp;gt;_name             = "first leaf";&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	first_leaf-&amp;gt;_edge_length      = 0.1;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_leaf-&amp;gt;_parent          = second_internal;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_leaf-&amp;gt;_left_child      = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_leaf-&amp;gt;_right_sib       = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_leaf-&amp;gt;_number          = 1;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_leaf-&amp;gt;_name            = "second leaf";&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	second_leaf-&amp;gt;_edge_length     = 0.1;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	third_leaf-&amp;gt;_parent           = first_internal;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	third_leaf-&amp;gt;_left_child       = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	third_leaf-&amp;gt;_right_sib        = 0;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	third_leaf-&amp;gt;_number           = 2;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	third_leaf-&amp;gt;_name             = "third leaf";&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	third_leaf-&amp;gt;_edge_length      = 0.2;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_is_rooted             = true;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_root                  = root_node;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_nleaves               = 3;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	// Note that root node is not included in _preorder&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_preorder.push_back(first_internal);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_preorder.push_back(second_internal);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_preorder.push_back(first_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_preorder.push_back(second_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_preorder.push_back(third_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_levelorder.push_back(first_internal);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_levelorder.push_back(second_internal);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_levelorder.push_back(third_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_levelorder.push_back(first_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// 	_levelorder.push_back(second_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// }&lt;/strong&gt;&lt;/span&gt;
+
+} 
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 4.1 | <a href="/people/plewis/cpp//win//steps/step-04/02-test-treemanip.html">4.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

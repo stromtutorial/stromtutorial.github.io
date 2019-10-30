@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the Tree Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">2.2 Create the Tree Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/01-create-node-class.html">&lt;&nbsp;2.1</a> | 2.2 | <a href="/people/plewis/cpp//win//steps/step-02/03-create-main-function.html">2.3&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The next step is to create a C++ class encapsulating the notion of a phylogenetic tree.</p>
+
+<p>Follow the procedure you used to create <em>node.hpp</em> to create the header file <em>tree.hpp</em> and fill it with the following text:</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;iostream&amp;gt;
+#include "node.hpp"
+
+namespace strom {
+
+    //class TreeManip;
+    //class Likelihood;
+    //class Updater;
+
+    class Tree {
+
+        //friend class TreeManip;
+        //friend class Likelihood;
+        //friend class Updater;
+
+        public:
+
+                                        Tree();
+                                        ~Tree();
+
+            bool                        isRooted() const;
+            unsigned                    numLeaves() const;
+            unsigned                    numInternals() const;
+            unsigned                    numNodes() const;
+
+        private:
+
+            void                        clear();
+
+            bool                        _is_rooted;
+            Node *                      _root;
+            unsigned                    _nleaves;
+            unsigned                    _ninternals;
+            Node::PtrVector             _preorder;
+            Node::PtrVector             _levelorder;
+            Node::Vector                _nodes;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; Tree &amp;gt; SharedPtr;
+    };
+
+    inline Tree::Tree() {
+        std::cout &amp;lt;&amp;lt; "Constructing a Tree" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }
+
+    inline Tree::~Tree() {
+        std::cout &amp;lt;&amp;lt; "Destroying a Tree" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Tree::clear() {
+        _is_rooted = false;
+        _root = 0;
+        _nodes.clear();
+        _preorder.clear();
+        _levelorder.clear();
+    }
+
+    inline bool Tree::isRooted() const {
+        return _is_rooted;
+    }
+
+    inline unsigned Tree::numLeaves() const {
+        return _nleaves;
+    }
+
+    inline unsigned Tree::numInternals() const {
+        return _ninternals;
+    }
+
+    inline unsigned Tree::numNodes() const {
+        return (unsigned)_nodes.size();
+    }
+
+} 
+
+</code></pre></div></div>
+
+<h2 id="explanation-of-treehpp">Explanation of <em>tree.hpp</em></h2>
+<h3 id="headers">Headers</h3>
+<p>Just after the <code class="highlighter-rouge">pragma</code> directive (explained earlier) are three lines that include header files. The contents of each of these header files (headers, for short) are effectively dumped into this file at the point where they are invoked. The <code class="highlighter-rouge">memory</code> header file provides the definition of <code class="highlighter-rouge">std::shared_ptr</code> (explained below). The <code class="highlighter-rouge">iostream</code> header file provides the definition of <code class="highlighter-rouge">std::cout</code>, which is used in the constructor and destructor function bodies. Finally, The <code class="highlighter-rouge">node.hpp</code> header file provides our definition of the <code class="highlighter-rouge">Node</code> class. The headers that are surrounded by <code class="highlighter-rouge">&lt;angled brackets&gt;</code> are system headers, while those surrounded by <code class="highlighter-rouge">"quotes"</code> are provided by you. This convention helps the compiler, which will generally look for system header files in a different place than user-provided headers.</p>
+
+<h3 id="inline-keyword">Inline keyword</h3>
+<p>You may note that the member functions are all labeled with the <code class="highlighter-rouge">inline</code> keyword. The <code class="highlighter-rouge">inline</code> keyword is a friendly request made to the compiler that you would like the function body to be simply copied into the place where it is called, which is often more efficient than a function call. The compiler gets to decide, however, whether the body of a particular function will actually be inlined at a particular place in the code.</p>
+
+<h3 id="constructor-and-destructor">Constructor and destructor</h3>
+<p>The class declares a public constructor and a public destructor. As we saw for the <code class="highlighter-rouge">Node</code> class, the constructor is responsible for initializing the memory set aside to store a new <code class="highlighter-rouge">Tree</code> object, and the destructor is in charge of cleaning up the object before the memory for the object is released. Our <code class="highlighter-rouge">Tree</code> constructor calls the member function <code class="highlighter-rouge">clear()</code> to initialize the data members of the <code class="highlighter-rouge">Tree</code> class. I have (temporarily) placed code in both constructor and destructor to write output. This output will allow us to easily see when a <code class="highlighter-rouge">Tree</code> object is being constructed or destructed. We will comment out these output lines after we test the class.</p>
+
+<h3 id="member-functions">Member functions</h3>
+<p>The member function <code class="highlighter-rouge">clear()</code> is provided to restore a <code class="highlighter-rouge">Tree</code> object to its just-constructed state.</p>
+
+<p>The functions <code class="highlighter-rouge">isRooted()</code> and <code class="highlighter-rouge">numLeaves()</code> are called accessors or accessor functions because they simply make the value of private data members available. You might ask why make <code class="highlighter-rouge">_is_rooted</code> and <code class="highlighter-rouge">_nleaves private</code> if you are going to allow public access to their values via these accessor functions. The answer is that this allows us to make the values of these data members available publicly without allowing their values to be changed. The only objects that can change <code class="highlighter-rouge">_nleaves</code> and <code class="highlighter-rouge">_is_rooted</code> are objects of class <code class="highlighter-rouge">Tree</code> or objects of classes that have been declared friends of <code class="highlighter-rouge">Tree</code>.</p>
+
+<p>Finally, the member function <code class="highlighter-rouge">numNodes()</code> might be called a utility function because it calculates something, namely the length of the <code class="highlighter-rouge">_nodes</code> vector. It is a <strong>utility function</strong> rather than an accessor function because it does more work than simply returning the value of a data member.</p>
+
+<h3 id="data-members">Data members</h3>
+<p>A boolean data member <code class="highlighter-rouge">_is_rooted</code> indicates whether the <code class="highlighter-rouge">Tree</code> object should be considered rooted or unrooted. A <code class="highlighter-rouge">Node</code> pointer <code class="highlighter-rouge">_root</code> will point to the <code class="highlighter-rouge">Node</code> object serving as the root node of the <code class="highlighter-rouge">Tree</code> object (note that every tree has a root node, even if <code class="highlighter-rouge">_is_rooted</code> is <code class="highlighter-rouge">false</code>: the distinction between rooted and unrooted lies in how the likelihood is computed, not in how the tree is stored in memory). An unsigned integer <code class="highlighter-rouge">_nleaves</code> stores the number of tip nodes (leaves) in the tree. Finally, two standard vector data members store nodes. The vector <code class="highlighter-rouge">_nodes</code> stores the <code class="highlighter-rouge">Node</code> objects themselves, while the vector <code class="highlighter-rouge">_preorder</code> stores pointers to the <code class="highlighter-rouge">Node</code> objects in <code class="highlighter-rouge">_nodes</code>.</p>
+
+<h3 id="shared-pointers">Shared pointers</h3>
+<p>A <code class="highlighter-rouge">SharedPtr</code> type is defined that represents a <strong>shared pointer</strong> (also known as a <strong>smart pointer</strong>) to our <code class="highlighter-rouge">Tree</code> class. Smart pointers keep track of how many references there are to a particular object. Once no other object is holding on to a reference (i.e. is pointing to) an object, the smart pointer takes care of deleting the object automatically. This makes memory management much easier because you, as the programmer, do not have to remember to delete objects that are no longer being used so long as you always manage them via smart pointers.</p>
+
+<p>Note that the type name we’ve defined is just <code class="highlighter-rouge">SharedPtr</code>, which is not specific to <code class="highlighter-rouge">Tree</code>. The fact that this type is defined within the <code class="highlighter-rouge">Tree</code> class declaration, however, means that we will always know the object referred to by this <code class="highlighter-rouge">SharedPtr</code> because to use it we will have to qualify it by the class name: <code class="highlighter-rouge">Tree::SharedPtr tree</code>.</p>
+
+<h3 id="friends">Friends</h3>
+<p>As for the <code class="highlighter-rouge">Node</code> class, the <code class="highlighter-rouge">TreeManip</code> and <code class="highlighter-rouge">Likelihood</code> classes will need to have access to the private member functions and data members of the <code class="highlighter-rouge">Tree</code> class. Because <code class="highlighter-rouge">TreeManip</code> and <code class="highlighter-rouge">Likelihood</code> have not yet been created, these friend  declarations are currently commented out.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/01-create-node-class.html">&lt;&nbsp;2.1</a> | 2.2 | <a href="/people/plewis/cpp//win//steps/step-02/03-create-main-function.html">2.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

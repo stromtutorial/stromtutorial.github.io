@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test building trees</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">6.3 Test building trees</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-06/02-xstrom-exception-class.html">&lt;&nbsp;6.2</a> | 6.3 | <a href="/people/plewis/cpp//linux//steps/step-07/00-summarizing-trees.html">7.0&nbsp;&gt;</a></h3>
+</div>
+
+<p>To test both the <code class="highlighter-rouge">buildFromNewick</code> and the <code class="highlighter-rouge">makeNewick</code> function, change <em>main.cpp</em> to look like this:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+#include &amp;lt;string&amp;gt;
+#include "node.hpp"
+#include "tree.hpp"
+#include "tree_manip.hpp"
+#include "xstrom.hpp"
+
+using namespace strom;
+
+const double Node::_smallest_edge_length = 1.0e-12;
+
+int main(int argc, const char * argv[]) {
+    std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+    TreeManip tm;
+    std::string newick = std::string("(1:0.3,2:0.3,(3:0.2,(4:0.1,5:0.1):0.1):0.1)");
+    std::cout &amp;lt;&amp;lt; "Input: " &amp;lt;&amp;lt; newick &amp;lt;&amp;lt; std::endl;
+    try {
+        tm.buildFromNewick(newick, false, false);
+        std::cout &amp;lt;&amp;lt; "Output: " &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;
+        tm.rerootAtNodeNumber(4);                                   
+        std::cout &amp;lt;&amp;lt; "Output: " &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;   
+    }
+    catch (XStrom x) {
+        std::cout &amp;lt;&amp;lt; "Error: " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+    }
+    std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+
+    return 0;
+}   
+
+</code></pre></div></div>
+
+<p>The main function now creates a tree from the newick string</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(1:0.3,2:0.3,(3:0.2,(4:0.1,5:0.1):0.1):0.1)
+</code></pre></div></div>
+<p>and then uses the <code class="highlighter-rouge">makeNewick</code> function to turn the tree in memory into a newick string, which is output. The program is working correctly if the output string represents the same tree as the input string (note that the number of decimal places used to depict edge lengths will differ, but the tree descriptions should depict exactly the same tree topology and edge lengths).</p>
+
+<h2 id="test-of-rerootatnodenumber-function">Test of rerootAtNodeNumber function</h2>
+<p>These two lines in <em>main.cpp</em> test whether the rerootAtNodeNumber function works correctly.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        tm.rerootAtNodeNumber(4);                                   
+        std::cout &amp;lt;&amp;lt; "Output: " &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;   
+
+</code></pre></div></div>
+<p>These lines ask the program to reroot using the node having <code class="highlighter-rouge">_number</code> equal to 4, which is actually the number labeled 5 in the newick string.</p>
+
+<h2 id="expected-output">Expected output</h2>
+<p>Here is the output that your program should produce. See the next section if you have problems running the program.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Starting...
+Constructing a TreeManip
+Input: (1:0.3,2:0.3,(3:0.2,(4:0.1,5:0.1):0.1):0.1)
+Constructing a Tree
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Output: (1:0.300,2:0.300,(3:0.200,(4:0.100,5:0.100):0.100):0.100)
+Output: (5:0.100,4:0.100,(3:0.200,(2:0.300,1:0.300):0.100):0.100)
+
+Finished!
+Destroying a TreeManip
+Destroying a Tree
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+
+</code></pre></div></div>
+
+<h2 id="if-your-program-halts-at-assertnd-_left_child">If your program halts at <code class="highlighter-rouge">assert(!nd-&gt;_left_child)</code>…</h2>
+
+<p>Assert statements test assumptions that you are making as you write source code. Any time you find yourself thinking “I’m pretty sure that will never happen”, then it is probably time to use an <code class="highlighter-rouge">assert</code> statement to ensure that, if it does happen, you know about it and can find where it happened and under what circumstances it happened. Assert statements disappear in optimized code, so you will only see these trip if you are running the debug (non-optimized) version of your program (usually inside the IDE).</p>
+
+<p>The fact that <code class="highlighter-rouge">assert</code> statements do not end up in the optimized (non-debug) version of your program means that you should use exceptions rather than asserts for assumptions you are making about the behavior of <em>users</em> of your program. Asserts help protect your program from yourself; exceptions help protect your program from your users.</p>
+
+<p>If your program trips the <code class="highlighter-rouge">assert(!nd-&gt;_left_child);</code> inside the <code class="highlighter-rouge">TreeManip::buildFromNewick</code> function, then almost certainly what has happened is that you’ve not removed all traces of <code class="highlighter-rouge">Tree::createTestTree()</code>, which you were instructed to do in the very last (“Before moving on…”) section of the page <a href="/people/plewis/cpp/steps/step-04/01-create-treemanip-class.html">Create the TreeManip class</a>. The problem is that your <code class="highlighter-rouge">Tree</code> constructor is building a default tree every time it is called, so you are never starting from a clean slate with respect to the tree that you are building. Thus, you must remove the call to <code class="highlighter-rouge">createTestTree()</code> in the <code class="highlighter-rouge">Tree::Tree</code> constructor and reinstate the <code class="highlighter-rouge">clear()</code> function there.</p>
+
+<h2 id="handling-exceptions">Handling exceptions</h2>
+
+<p>If you would like to test the exception mechanism, try introducing an error in the newick tree description. For example, changing taxon “3” to “Z”. This will create an exception because only newick descriptions with taxon names that can be converted to positive integers are allowed:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>std::string newick = std::string("(1:0.3,2:0.3,(Z:0.2,(4:0.1,5:0.1):0.1):0.1)");
+</code></pre></div></div>
+<p>Running the program now should produce the following error message:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Error: node name (Z) not interpretable as a positive integer
+</code></pre></div></div>
+<p>(Be sure to change the “Z” back to a “3” before continuing.)</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-06/02-xstrom-exception-class.html">&lt;&nbsp;6.2</a> | 6.3 | <a href="/people/plewis/cpp//linux//steps/step-07/00-summarizing-trees.html">7.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

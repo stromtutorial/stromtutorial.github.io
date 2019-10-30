@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding Helper Functions to Data and Model</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">15.2 Adding Helper Functions to Data and Model</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-15/01-the-output-manager-class.html">&lt;&nbsp;15.1</a> | 15.2 | <a href="/people/plewis/cpp//linux//steps/step-15/03-modify-strom-and-chain.html">15.3&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The <code class="highlighter-rouge">OutputManager</code> class depends on (1) the <code class="highlighter-rouge">Data::createTaxaBlock</code> and <code class="highlighter-rouge">Data::createTranslateStatement</code> functions to create a taxa block and a translate statement, respectively, in its <code class="highlighter-rouge">openTreeFile</code> function; the <code class="highlighter-rouge">Model::paramNamesAsString</code> and <code class="highlighter-rouge">Model::paramValuesAsString</code> functions to obtain current model parameter names in its <code class="highlighter-rouge">openParamFile</code> function and values in its <code class="highlighter-rouge">outputParameters</code> function; and the <code class="highlighter-rouge">TreeManip::makeNewick</code> function to provide the newick tree description that it saves to the tree file in its <code class="highlighter-rouge">outputTree</code> function.</p>
+
+<p>The last of these (<code class="highlighter-rouge">TreeManip::makeNewick</code>) already exists, and the following two sections add the other helper functions to the <code class="highlighter-rouge">Data</code> and <code class="highlighter-rouge">Model</code> classes.</p>
+
+<h2 id="adding-createtaxablock-and-createtranslatestatement-to-the-data-class">Adding createTaxaBlock and createTranslateStatement to the Data class</h2>
+
+<p>Add the bold, blue lines to the <code class="highlighter-rouge">Data</code> class declaration in the file <code class="highlighter-rouge">data.hpp</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Data {    
+        public:
+            typedef std::vector&amp;lt;std::string&amp;gt;            taxon_names_t;
+            typedef unsigned long long                  state_t;
+            typedef std::vector&amp;lt;state_t&amp;gt;                pattern_vect_t;
+            typedef std::vector&amp;lt;state_t&amp;gt;                monomorphic_vect_t;
+            typedef std::vector&amp;lt;int&amp;gt;                    partition_key_t;
+            typedef std::map&amp;lt;pattern_vect_t,unsigned&amp;gt;   pattern_map_t;
+            typedef std::vector&amp;lt;pattern_vect_t&amp;gt;         data_matrix_t;
+            typedef std::vector&amp;lt;pattern_map_t&amp;gt;          pattern_map_vect_t;
+            typedef std::vector&amp;lt;double&amp;gt;                 pattern_counts_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;               subset_end_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;               npatterns_vect_t;
+            typedef std::pair&amp;lt;unsigned, unsigned&amp;gt;       begin_end_pair_t;
+            typedef std::shared_ptr&amp;lt;Data&amp;gt;               SharedPtr;
+
+                                                        Data();
+                                                        ~Data();
+        
+            Partition::SharedPtr                        getPartition();
+            void                                        setPartition(Partition::SharedPtr partition);
+
+            void                                        getDataFromFile(const std::string filename);
+
+            unsigned                                    getNumSubsets() const;
+            std::string                                 getSubsetName(unsigned subset) const;
+
+            unsigned                                    getNumTaxa() const;
+            const taxon_names_t &amp;                       getTaxonNames() const;
+
+            unsigned                                    getNumPatterns() const;
+            npatterns_vect_t                            calcNumPatternsVect() const;
+            unsigned                                    getNumPatternsInSubset(unsigned subset) const;
+            unsigned                                    getNumStatesForSubset(unsigned subset) const;
+            unsigned                                    calcSeqLen() const;
+            unsigned                                    calcSeqLenInSubset(unsigned subset) const;
+            const data_matrix_t &amp;                       getDataMatrix() const;
+            begin_end_pair_t                            getSubsetBeginEnd(unsigned subset) const;
+            const pattern_counts_t &amp;                    getPatternCounts() const;
+            const monomorphic_vect_t &amp;                  getMonomorphic() const;
+            const partition_key_t &amp;                     getPartitionKey() const;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                                 createTaxaBlock() const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                                 createTranslateStatement() const;&lt;/strong&gt;&lt;/span&gt;
+
+            void                                        clear();
+
+        private:
+
+            unsigned                                    storeTaxonNames(NxsTaxaBlock * taxaBlock, unsigned taxa_block_index);
+            unsigned                                    storeData(unsigned ntax, unsigned nchar, NxsCharactersBlock * charBlock, NxsCharactersBlock::DataTypesEnum datatype);
+            unsigned                                    buildSubsetSpecificMaps(unsigned ntaxa, unsigned seqlen, unsigned nsubsets);
+            void                                        updatePatternMap(Data::pattern_vect_t &amp; pattern, unsigned subset);
+            void                                        compressPatterns();
+
+            Partition::SharedPtr                        _partition;
+            pattern_counts_t                            _pattern_counts;
+            monomorphic_vect_t                          _monomorphic;
+            partition_key_t                             _partition_key;
+            pattern_map_vect_t                          _pattern_map_vect;
+            taxon_names_t                               _taxon_names;
+            data_matrix_t                               _data_matrix;
+            subset_end_t                                _subset_end;
+    };  
+
+</code></pre></div></div>
+
+<p>Now add the 2 function bodies below the class declaration but before the namespace-closing right curly bracket.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Data::createTaxaBlock() const {    
+        std::string s = "";
+        s += "begin taxa;\n";
+        s += boost::str(boost::format("  dimensions ntax=%d;\n") % _taxon_names.size());
+        s += "  taxlabels\n";
+        for (auto nm : _taxon_names) {
+            std::string taxon_name = std::regex_replace(nm, std::regex(" "), "_");
+            s += "    " + taxon_name + "\n";
+            }
+        s += "    ;\n";
+        s += "end;\n";
+        return s;
+    }    
+    
+    inline std::string Data::createTranslateStatement() const {    
+        std::string s = "";
+        s += "  translate\n";
+        unsigned t = 1;
+        for (auto nm : _taxon_names) {
+            std::string taxon_name = std::regex_replace(nm, std::regex(" "), "_");
+            s += boost::str(boost::format("    %d %s%s\n") % t % taxon_name % (t &amp;lt; _taxon_names.size() ? "," : ""));
+            t++;
+            }
+        s += "  ;\n";
+        return s;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="adding-paramnamesasstring-and-paramvaluesasstring-to-the-model-class">Adding paramNamesAsString and paramValuesAsString to the model class</h2>
+
+<p>Add the bold, blue lines to the <code class="highlighter-rouge">Model</code> class declaration in the file <em>model.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Model {   
+        
+        friend class Likelihood;
+
+        public:
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      asrv_vect_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   qmat_vect_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;             subset_sizes_t;
+            typedef std::vector&amp;lt;DataType&amp;gt;             subset_datatype_t;
+            typedef std::vector&amp;lt;double&amp;gt;               subset_relrate_vect_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   state_freq_params_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   exchangeability_params_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   omega_params_t;
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      ratevar_params_t;
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      pinvar_params_t;
+            typedef boost::shared_ptr&amp;lt;Model&amp;gt;          SharedPtr;
+        
+                                        Model();
+                                        ~Model();
+
+            void                        activate();
+            void                        inactivate();
+            
+            std::string                 describeModel();
+
+            void                        setSubsetDataTypes(const subset_datatype_t &amp; datatype_vect);
+
+            void                        setSubsetRateVar(ASRV::ratevar_ptr_t ratevar, unsigned subset, bool fixed);
+            void                        setSubsetPinvar(ASRV::pinvar_ptr_t pinvar, unsigned subset, bool fixed);
+            void                        setSubsetExchangeabilities(QMatrix::freq_xchg_ptr_t exchangeabilities, unsigned subset, bool fixed);
+            void                        setSubsetStateFreqs(QMatrix::freq_xchg_ptr_t state_frequencies, unsigned subset, bool fixed);
+            void                        setSubsetOmega(QMatrix::omega_ptr_t omega, unsigned subset, bool fixed);
+
+            void                        setSubsetRelRates(subset_relrate_vect_t &amp; relrates, bool fixed);
+            subset_relrate_vect_t &amp;     getSubsetRelRates();
+            bool                        isFixedSubsetRelRates() const;
+            double                      calcNormalizingConstantForSubsetRelRates() const;
+
+            void                        setTreeIndex(unsigned i, bool fixed);
+            unsigned                    getTreeIndex() const;
+            bool                        isFixedTree() const;
+
+            unsigned                    getNumSubsets() const;
+            unsigned                    getNumSites() const;
+            unsigned                    getSubsetNumSites(unsigned subset) const;
+            const QMatrix &amp;             getQMatrix(unsigned subset) const;
+            const ASRV &amp;                getASRV(unsigned subset) const;
+
+            void                        setSubsetIsInvarModel(bool is_invar, unsigned subset);
+            bool                        getSubsetIsInvarModel(unsigned subset) const;
+
+            void                        setSubsetSizes(const subset_sizes_t nsites_vect);
+            subset_sizes_t &amp;            getSubsetSizes();
+
+            void                        setSubsetNumPatterns(const subset_sizes_t npatterns_vect);
+            unsigned                    getSubsetNumPatterns(unsigned subset) const;
+
+            void                        setSubsetNumCateg(unsigned ncateg, unsigned subset);
+            unsigned                    getSubsetNumCateg(unsigned subset) const;
+
+            state_freq_params_t &amp;       getStateFreqParams();
+            exchangeability_params_t &amp;  getExchangeabilityParams();
+            omega_params_t &amp;            getOmegaParams();
+            ratevar_params_t &amp;          getRateVarParams();
+            pinvar_params_t &amp;           getPinvarParams();
+        
+            int                         setBeagleEigenDecomposition(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleStateFrequencies(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationRates(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationProbs(int beagle_instance, unsigned subset, unsigned instance_subset);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                 paramNamesAsString(std::string sep) const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                 paramValuesAsString(std::string sep) const;&lt;/strong&gt;&lt;/span&gt;
+
+        private:
+        
+            void                        clear();
+        
+            unsigned                    _num_subsets;
+            unsigned                    _num_sites;
+            subset_sizes_t              _subset_sizes;
+            subset_sizes_t              _subset_npatterns;
+            subset_datatype_t           _subset_datatypes;
+            qmat_vect_t                 _qmatrix;
+            asrv_vect_t                 _asrv;
+        
+            bool                        _tree_index;
+            bool                        _tree_fixed;
+
+            bool                        _subset_relrates_fixed;
+            subset_relrate_vect_t       _subset_relrates;
+        
+            state_freq_params_t         _state_freq_params;
+            exchangeability_params_t    _exchangeability_params;
+            omega_params_t              _omega_params;
+            ratevar_params_t            _ratevar_params;
+            pinvar_params_t             _pinvar_params;
+        };  
+
+</code></pre></div></div>
+
+<p>Add the function body for <code class="highlighter-rouge">paramNamesAsString</code> below the class declaration but before the namespace-closing right curly bracket. This creates a row of parameter names (headers) that serve as a key to the values in the columns below. The index of the subset to which each parameter belongs is incorporated into the name, with subset 0 being the first subset (even if there is only one subset).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Model::paramNamesAsString(std::string sep) const {   
+        unsigned k;
+        std::string s = "";
+        if (_num_subsets &amp;gt; 1) {
+            for (k = 0; k &amp;lt; _num_subsets; k++) {
+                s += boost::str(boost::format("m-%d%s") % k % sep);
+            }
+        }
+        for (k = 0; k &amp;lt; _num_subsets; k++) {
+            if (_subset_datatypes[k].isNucleotide()) {
+                s += boost::str(boost::format("rAC-%d%srAG-%d%srAT-%d%srCG-%d%srCT-%d%srGT-%d%s") % k % sep % k % sep % k % sep % k % sep % k % sep % k % sep);
+                s += boost::str(boost::format("piA-%d%spiC-%d%spiG-%d%spiT-%d%s") % k % sep % k % sep % k % sep % k % sep);
+            }
+            else if (_subset_datatypes[k].isCodon()) {
+                s += boost::str(boost::format("omega-%d%s") % k % sep);
+                for (std::string codon : _subset_datatypes[0].getGeneticCode()-&amp;gt;_codons)
+                    s += boost::str(boost::format("pi%s-%d%s") % codon % k % sep);
+            }
+            if (_asrv[k]-&amp;gt;getIsInvarModel()) {
+                s += boost::str(boost::format("pinvar-%d%s") % k % sep);
+            }
+            if (_asrv[k]-&amp;gt;getNumCateg() &amp;gt; 1) {
+                s += boost::str(boost::format("ratevar-%d%s") % k % sep);
+            }
+        }
+        return s;
+    }   
+
+</code></pre></div></div>
+
+<p>Add the function body for <code class="highlighter-rouge">paramValuesAsString</code> below the class declaration but before the namespace-closing right curly bracket. This function is nearly identical to <code class="highlighter-rouge">paramNamesAsString</code> except that it outputs current parameter values rather than parameter names.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Model::paramValuesAsString(std::string sep) const {  
+        unsigned k;
+        std::string s = "";
+        if (_num_subsets &amp;gt; 1) {
+            for (k = 0; k &amp;lt; _num_subsets; k++) {
+                s += boost::str(boost::format("%.5f%s") % _subset_relrates[k] % sep);
+            }
+        }
+        for (k = 0; k &amp;lt; _num_subsets; k++) {
+            if (_subset_datatypes[k].isNucleotide()) {
+                QMatrix::freq_xchg_t x = *_qmatrix[k]-&amp;gt;getExchangeabilitiesSharedPtr();
+                s += boost::str(boost::format("%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s%.5f%s") % x[0] % sep % x[1] % sep % x[2] % sep % x[3] % sep % x[4] % sep % x[5] % sep);
+                QMatrix::freq_xchg_t f = *_qmatrix[k]-&amp;gt;getStateFreqsSharedPtr();
+                s += boost::str(boost::format("%.5f%s%.5f%s%.5f%s%.5f%s") % f[0] % sep % f[1] % sep % f[2] % sep % f[3] % sep);
+            }
+            else if (_subset_datatypes[k].isCodon()) {
+                s += boost::str(boost::format("%.5f%s") % _qmatrix[k]-&amp;gt;getOmega() % sep);
+                QMatrix::freq_xchg_t f = *_qmatrix[k]-&amp;gt;getStateFreqsSharedPtr();
+                for (unsigned m = 0; m &amp;lt; _subset_datatypes[0].getNumStates(); m++)
+                    s += boost::str(boost::format("%.5f%s") % f[m] % sep);
+            }
+            if (_asrv[k]-&amp;gt;getIsInvarModel()) {
+                s += boost::str(boost::format("%.5f%s") % _asrv[k]-&amp;gt;getPinvar() % sep);
+            }
+            if (_asrv[k]-&amp;gt;getNumCateg() &amp;gt; 1) {
+                s += boost::str(boost::format("%.5f%s") % _asrv[k]-&amp;gt;getRateVar() % sep);
+            }
+        }
+        return s;
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-15/01-the-output-manager-class.html">&lt;&nbsp;15.1</a> | 15.2 | <a href="/people/plewis/cpp//linux//steps/step-15/03-modify-strom-and-chain.html">15.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create a Newick tree description</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">5.1 Create a Newick tree description</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="/people/plewis/cpp//linux//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>Our next goal is to create a newick string for the tree currently stored in a <code class="highlighter-rouge">TreeManip</code> object. Add the <code class="highlighter-rouge">makeNewick</code> function declaration in the public area of the <code class="highlighter-rouge">TreeManip</code> class declaration, and add the <code class="highlighter-rouge">makeNewick</code> function body just above the terminating curly bracket of the namespace (i.e. just before the end of the file):</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;cassert&amp;gt;
+#include &amp;lt;memory&amp;gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;stack&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;boost/format.hpp&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+#include "tree.hpp"
+
+namespace strom {
+
+    class TreeManip {
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                 makeNewick(unsigned precision) const;&lt;/strong&gt;&lt;/span&gt;
+
+            void                        clear();
+
+        private:
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };
+    
+    //...   
+    
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline std::string TreeManip::makeNewick(unsigned precision) const {&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string newick;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const boost::format tip_node_format( boost::str(boost::format("%%d:%%.%df") % precision) );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const boost::format internal_node_format( boost::str(boost::format("):%%.%df") % precision) );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::stack&amp;lt;Node *&amp;gt; node_stack;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * root_tip = (_tree-&amp;gt;_is_rooted ? 0 : _tree-&amp;gt;_root);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto nd : _tree-&amp;gt;_preorder) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//...&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;_left_child) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += "(";&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;node_stack.push(nd);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (root_tip) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_format) % (root_tip-&amp;gt;_number + 1) % nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += ",";&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_tip = 0;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_format) % (nd-&amp;gt;_number + 1) % nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;_right_sib)&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += ",";&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * popped = (node_stack.empty() ? 0 : node_stack.top());&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;while (popped &amp;&amp; !popped-&amp;gt;_right_sib) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;node_stack.pop();&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (node_stack.empty()) {&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += ")";&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;popped = 0;&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(internal_node_format) % popped-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;popped = node_stack.top();&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (popped &amp;&amp; popped-&amp;gt;_right_sib) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;node_stack.pop();&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(internal_node_format) % popped-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += ",";&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;return newick;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+}   
+
+</code></pre></div></div>
+<p>Note the convention that <code class="highlighter-rouge">//...</code> indicates that possibly many lines have been omitted from the code snippet.</p>
+
+<h2 id="include-the-necessary-header-files">Include the necessary header files</h2>
+<p>In the code shown above, you may have noticed that I’ve also indicated in blue, bold text two new headers that have been included near the top of the file. The <code class="highlighter-rouge">&lt;stack&gt;</code> header allows us to use the standard <code class="highlighter-rouge">stack</code>  and the <code class="highlighter-rouge">&lt;boost/format.hpp&gt;</code> header allows us to use the Boost <code class="highlighter-rouge">format</code> function , which simplifies producing formatted strings.</p>
+
+<h2 id="explanation-of-the-makenewick-function">Explanation of the <code class="highlighter-rouge">makeNewick</code> function</h2>
+<p><img src="/people/plewis/cpp/assets/img/newick-rooted.png" alt="Four-taxon rooted tree showing corresponding newick string" class="right-image" />
+The goal of this function is to turn a tree in memory into a newick
+ string representation using nested parentheses to indicate clades and subclades. Each left parenthesis encountered in the newick description signifies the start of a new clade (we are moving to the left child of the current node), each comma means we’re moving laterally to a sibling node, and a right parenthesis means we have reached the upper right node in a clade and are dropping back down to the parent of that node. The figure at right shows a newick description for 4-taxon rooted tree. The numbers at the nodes are the index of the node in the <code class="highlighter-rouge">_preorder</code> vector. Note that the root node is not included in <code class="highlighter-rouge">_preorder</code>, so there is no number shown in the figure for the root node.</p>
+
+<p>The main loop in this function visits all nodes in the tree in preorder sequence:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        for (auto nd : _tree-&amp;gt;_preorder) {   
+            //...   
+        }   
+
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">auto nd : _tree-&gt;_preorder</code> code sets <code class="highlighter-rouge">nd</code> to each element of <code class="highlighter-rouge">_tree-&gt;_preorder</code>, in turn. The C++11 keyword <code class="highlighter-rouge">auto</code> makes our life easy by determining the type of <code class="highlighter-rouge">nd</code> automatically.</p>
+
+<p>Internal nodes, when visited, result in the addition of a left parenthesis to the growing newick string. We will not add information about the internal node until we are finished with the clade defined by the node and have added the matching right parenthesis. Internal nodes are stored in the <code class="highlighter-rouge">node_stack</code>. A <strong>stack</strong> is a container in which items can only be removed in the reverse order in which they were added to the stack, like a stack of documents (the last one added to the top is also the first one removed). It is necessary to store each internal node in the stack so that we can determine how many right parentheses to add to the newick string.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            if (nd-&amp;gt;_left_child) {  
+                newick += "(";
+                node_stack.push(nd);    
+
+</code></pre></div></div>
+<p>When a tip node is visited, the <code class="highlighter-rouge">tip_node_format</code> string is used to add a number (one greater than the node’s <code class="highlighter-rouge">_number</code>) followed by a colon and then the edge length for that tip node.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                    newick += boost::str(boost::format(tip_node_format) % (root_tip-&amp;gt;_number + 1) % nd-&amp;gt;_edge_length);  
+
+</code></pre></div></div>
+<p>The Boost library’s format class is used to format the string. Here we are creating an object of type <code class="highlighter-rouge">boost::format</code> (the <code class="highlighter-rouge">boost</code> part is the Boost namespace, while <code class="highlighter-rouge">format</code> is the class). The variable’s name is <code class="highlighter-rouge">tip_node_format</code>. This works much like Python or sprintf in C: placeholders (single percent symbols followed by a letter such as d, f, or s) are substituted for the supplied integer, floating point value, or string, respectively. Each doubled percent (<code class="highlighter-rouge">%%</code>) ends up being a single literal <code class="highlighter-rouge">%</code> in the string after replacements, so the above statement will be equal to the following after replacement of the <code class="highlighter-rouge">%d</code> by the supplied precision (assume that precision = 5 for this example):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>const boost::format tip_node_format("%d:%.5f");
+</code></pre></div></div>
+<p>You might wonder why the <code class="highlighter-rouge">boost::str(...)</code> is necessary. The <code class="highlighter-rouge">boost::format</code> constructor takes a string as its sole argument, not a <code class="highlighter-rouge">boost::format</code> object, and the Boost format library does not provide an implicit conversion of format objects to string objects, so the <code class="highlighter-rouge">boost::str</code> function provides an explicit way to do this conversion. This is done intentionally in order to make it easier to report errors accurately when compiling formats. You could also call <code class="highlighter-rouge">boost::format</code>’s <code class="highlighter-rouge">str</code> function to accomplish the conversion:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>const boost::format tip_node_format( (boost::format("%%d:%%.%df") % precision).str() );
+</code></pre></div></div>
+<p>The <a href="https://www.boost.org/doc/libs/1_64_0/libs/format/doc/format.html#examples">Boost format documentation</a> provides some examples of using <code class="highlighter-rouge">boost::format</code>.</p>
+
+<p>If the tip node has a sibling to its right, a comma is output to the growing newick string. If the tip node does not have a right sibling, then things get interesting! Take a look at the figure above of a rooted tree and its associated newick description. Note that after the tip node C is output, two right parentheses (each followed by edge lengths) are output before the next node in the preorder sequence (tip node D) is handled. Why is this? It is because we must close up the definitions of two clades before moving on to tip node D. The first clade is the “cherry” comprising tip nodes B and C along with the internal node labeled 3. The second clade that must be finished comprises nodes labeled 1, 2, 3, 4 and 5. How do we know which edge lengths to spit out? The answer lies in our <code class="highlighter-rouge">node_stack</code>. The last two nodes added to <code class="highlighter-rouge">node_stack</code> are the internal nodes labeled 1 and 3 in the figure. When we reach the far corner of a clade (we know we are at the far corner when a node has no children and no siblings), we must pop nodes off the <code class="highlighter-rouge">node_stack</code> (outputting a right parenthesis and edge length for each) until we reach an internal node with a right sibling: this sibling is necessarily the next node in the preorder sequence (in this case, tip node D, labeled 6 in the figure). That is what is happening in the large <code class="highlighter-rouge">else</code> clause paired with <code class="highlighter-rouge">if (nd-&gt;_right_sib)</code> in the code for the <code class="highlighter-rouge">makeNewick</code> function. This <code class="highlighter-rouge">else</code> clause is further complicated by the need to check whether we are done, which happens when we pop the last node off the <code class="highlighter-rouge">node_stack</code>.</p>
+
+<p>The stack function <code class="highlighter-rouge">top()</code> returns the next object on the stack without actually removing it. The function <code class="highlighter-rouge">pop()</code> deletes the object that is at the top of the stack. Note that we must always call <code class="highlighter-rouge">top()</code> to save the node at the top of the stack before we call <code class="highlighter-rouge">pop()</code> to delete it: it would not do to lose track of a node by <code class="highlighter-rouge">pop()</code>ing it with out first saving a pointer to the node <code class="highlighter-rouge">pop()</code>ed!</p>
+
+<p>Finally, note that we add a comma to the newick string if the last internal node popped off the stack has a right sibling. The comma always indicates a sibling relationship for a node whether the node is a tip node or an internal node.</p>
+
+<h2 id="the-special-case-of-the-root-node-in-unrooted-trees">The special case of the root node in unrooted trees</h2>
+<p><img src="/people/plewis/cpp/assets/img/newick-unrooted.png" alt="five-taxon unrooted tree showing corresponding newick string" class="right-image" /></p>
+
+<p>The figure of a 5-taxon unrooted tree on the right is subtly different from the figure above of a 4-taxon rooted tree. The root node in this case represents a tip (A), and this particular tip along with its edge length (which is really the <code class="highlighter-rouge">_edge_length</code> belonging to its only child (the node labeled 0 in the figure) is saved to the newick string as if it were the leftmost child of the first node in the <code class="highlighter-rouge">_preorder</code> vector. The part of the <code class="highlighter-rouge">makeNewick</code> function that accomplishes this is contained in the <code class="highlighter-rouge">if (root_tip) {...}</code> block of code. The variable <code class="highlighter-rouge">root_tip</code> is 0 if the tree is rooted, but points to the root node if the tree is unrooted, so the code inside the <code class="highlighter-rouge">if (root_node) {...}</code> conditional is only executed if <code class="highlighter-rouge">root_tip</code> actually points to the root node. This code adds the number of the root node and a comma immediately after the opening left parenthesis. It also sets root_tip to 0 so that this block of code is not executed again.</p>
+
+<p>While it is not essential to store unrooted trees by “rooting” them at a tip node, that is the convention that is followed throughout this tutorial. This points out a basic ambiguity inherent in newick tree descriptions. If you saw the newick string</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(A:0.13,(B:0.2,(C:0.1,D:0.1):0.11):0.15,E:0.3)
+</code></pre></div></div>
+<p>how would you know this represents an unrooted binary tree and not a rooted tree with a polytomy (multifurcation) at the base? The answer is you could not know this unless the user who supplied you with the newick string told you.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="/people/plewis/cpp//linux//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Testing program options</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home">
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">8.2 Testing program options</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection">
+<a href="/people/plewis/cpp//mac//steps/step-08/01-the-strom-class.html">&lt; 8.1</a> | 8.2 | <a href="/people/plewis/cpp//mac//steps/step-09/00-reading-and-storing-data.html">9.0 &gt;</a>
+</h3>
+</div>
+
+
+<p>Modify <em>main.cpp</em> to contain the following code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+#include "strom.hpp"
+
+using namespace strom;
+
+// static data member initializations
+std::string  Strom::_program_name        = "strom";
+unsigned     Strom::_major_version       = 1;
+unsigned     Strom::_minor_version       = 0;
+const double Node::_smallest_edge_length = 1.0e-12;
+
+int main(int argc, const char * argv[]) {
+    Strom strom;
+    try {
+        strom.processCommandLineOptions(argc, argv);
+        strom.run();
+    }
+    catch(std::exception &amp; x) {
+        std::cerr &amp;lt;&amp;lt; "Exception: " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        std::cerr &amp;lt;&amp;lt; "Aborted." &amp;lt;&amp;lt; std::endl;
+    }
+    catch(...) {
+        std::cerr &amp;lt;&amp;lt; "Exception of unknown type!\n";
+    }
+
+    return 0;
+}   
+
+</code></pre></div></div>
+
+<p>The main function now creates a <code class="highlighter-rouge">Strom</code> object, then passes <code class="highlighter-rouge">argc</code> and <code class="highlighter-rouge">argv</code> off to the <code class="highlighter-rouge">Strom</code> object’s <code class="highlighter-rouge">processCommandLineOptions</code> function, and finally calls the <code class="highlighter-rouge">Strom</code> object’s <code class="highlighter-rouge">run</code> method. Any exceptions thrown are caught and their error messsages displayed to the user.</p>
+
+<p>The <em>main.cpp</em> file will not change very much from now on. Any new options will be added to the <code class="highlighter-rouge">Strom</code> class instead.</p>
+
+<h2 id="static-data-members">Static data members</h2>
+
+<p>Some data members (<code class="highlighter-rouge">_program_name</code>, <code class="highlighter-rouge">_major_version</code>, and <code class="highlighter-rouge">_minor_version</code>) of the <code class="highlighter-rouge">Strom</code> class were declared static. We must therefore initialize these in <em>main.cpp</em>, as it is our only source code file, just like we have been doing for <code class="highlighter-rouge">Node::_smallest_edge_length</code>.</p>
+
+<h2 id="compiling-the-boost-program_options-library">Compiling the Boost <code class="highlighter-rouge">program_options</code> library</h2>
+<p>The extra capability we’ve added to our program requires us to:</p>
+<ul>
+  <li>compile the Boost <code class="highlighter-rouge">program_options</code> library,</li>
+  <li>tell our development environment where to find it for linking purposes
+Let’s take these one at a time</li>
+</ul>
+
+<h3 id="compile-the-boost-program_options-library">Compile the Boost <code class="highlighter-rouge">program_options</code> library</h3>
+
+<p>Open the Terminal or iTerm2 app and navigate to where you previously installed the Boost headers (<em>~/Documents/libraries/boost_1_71_0</em>), then enter the following command:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bootstrap.sh --with-toolset=clang --with-libraries=program_options,filesystem,system
+</code></pre></div></div>
+
+<p>Note that I’ve added <code class="highlighter-rouge">filesystem</code> and <code class="highlighter-rouge">system</code> to the list of Boost libraries to compile. We will make use of these later, so we might as well compile them now so that we do not need to rerun the <em>bootstrap.sh</em> script again.</p>
+
+<p>The <em>bootstrap.sh</em> script will fairly quickly return, instructing you to type <code class="highlighter-rouge">./b2</code> to perform the actual compilation.</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./b2 cxxflags="-std=c++11" -d 2
+</code></pre></div></div>
+<p>Note that I’ve added <code class="highlighter-rouge">cxxflags="-std=c++11"</code> to ensure that the Boost libraries are compiled under the same C++ <em>dialect</em> used to compile the main strom program. This will ensure that the libraries can be linked to the strom executable. I’ve also specified <code class="highlighter-rouge">-d 2</code> to specify debugging level 2, which causes the Boost build system to display the compile and link commands it is using (this helps when trying to diagnose what happened if the compiling or linking fails).</p>
+
+<p>Assuming the compilation was successful, you should now see something similar to the following output:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>The Boost C++ Libraries were successfully built!
+
+The following directory should be added to compiler include paths:
+
+    /home/plewis/Documents/libraries/boost_1_71_0
+
+The following directory should be added to linker library paths:
+
+    /home/plewis/Documents/libraries/boost_1_71_0/stage/lib
+</code></pre></div></div>
+<p>Copy the files <em>libboost_program_options.a</em>, <em>libboost_filesystem.a</em>, and <em>libboost_system.a</em> to the ~/lib/static folder.</p>
+
+<h3 id="tell-xcode-about-program-options">Tell Xcode about program options</h3>
+
+<p>In the Xcode main menu, choose <em>View</em> &gt; <em>Navigators</em> &gt; <em>Show Project Navigator</em>, then click on the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20"> labeled <em>strom</em> at the top of the Project Navigator. Click on the <em>Build Phases</em> tab. Click the <code class="highlighter-rouge">+</code> sign in <em>Link Binary With Libraries</em> and (after clicking the <em>Add Other…</em> button) navigate to the directory <em>~/lib/static</em> and select the <em>libboost_program_options.a</em>, <em>libboost_filesystem.a</em>, and <em>libboost_system.a</em> files. This informs Xcode where to find the compiled library code for purposes of linking the library into your program’s executable file.</p>
+
+<p>You have already specified the <code class="highlighter-rouge">$(BOOST_ROOT)</code> custom path in the “Header Search Paths” section of Build Settings, and you’ve specified <em>~/lib/static</em> in the Library Search Paths section of Build Settings, so there is nothing more that needs to be done.</p>
+
+<h2 id="running-strom">Running strom</h2>
+
+<h3 id="specifying-command-line-arguments">Specifying command line arguments</h3>
+<p>To specify command line arguments when your program is run inside the debugger, follow these steps:</p>
+
+<p>At the top of the Xcode window, to the right of the <img class="emoji" title=":arrow_forward:" alt=":arrow_forward:" src="/people/plewis/cpp/assets/img/emoji/unicode/25b6.png" height="20" width="20"> (run program in debugger) and <img class="emoji" title=":stop_button:" alt=":stop_button:" src="/people/plewis/cpp/assets/img/emoji/unicode/23f9.png" height="20" width="20"> (stop program running in debugger) buttons, click on the button labeled “strom” (attached to the button labeled “My Mac”).</p>
+
+<p>Choose “Edit Scheme…” from the popup menu, then choose the “Arguments” tab and click the <code class="highlighter-rouge">+</code> button under “Arguments Passed On Launch”.</p>
+
+<p>Click the <code class="highlighter-rouge">+</code> button 1 more time so that there are places for a total of 2 arguments</p>
+<ul>
+  <li>Type <code class="highlighter-rouge">--treefile</code> into the first slot</li>
+  <li>Type <code class="highlighter-rouge">test.tre</code> into the second slot</li>
+</ul>
+
+<p>You can now close the dialog box using the <em>Close</em> button at the bottom right and run the program.</p>
+
+<h2 id="expected-output">Expected output</h2>
+<p>Here is the output you should see if everything is working correctly:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Note: configuration file (strom.conf) not found
+Starting...
+storing read block: TAXA
+storing read block: TREES
+
+Read 14 trees from file
+Topology 1 seen in these 4 trees:
+  10 11 12 13 
+Topology 2 seen in these 2 trees:
+  8 9 
+Topology 3 seen in these 8 trees:
+  0 1 2 3 4 5 6 7 
+
+Topologies sorted by sample frequency:
+            topology            frequency
+                   3                    8
+                   1                    4
+                   2                    2
+
+Finished!
+
+</code></pre></div></div>
+
+<p>If the lines in your output are flooded with lines such as “Creating Node object” and “Destroying Node object”, then you failed to heed the advise in the section “Lost at sea” at the very bottom of the <a href="../step-07/04-test-tree-summary">Test the TreeSummary class</a> page.</p>
+
+<p>You may have wondered about this line:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Note: configuration file (strom.conf) not found
+</code></pre></div></div>
+<p>The Boost <code class="highlighter-rouge">program_options</code> library makes it possible to store command line options inside a configuration file rather than entering them from the command line. If you create a file named <em>strom.conf</em> inside the install directory (<em>~/Documents/strom/distr</em>) containing these two lines…</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code># this is a comment
+treefile = test.tre
+
+</code></pre></div></div>
+
+<p>you should be able to run the program <em>without</em> specifying any command line options (try unchecking or deleting both <code class="highlighter-rouge">--treefile</code> and <code class="highlighter-rouge">test.tre</code> rows under “Arguments Passed On Launch”).</p>
+
+<p>Note that in the config file the convention is to use key/value pairs, whereas on the command line, <code class="highlighter-rouge">--</code> is the convention. Be sure to use one key/value pair per line, and note that lines starting with <code class="highlighter-rouge">#</code> are ignored (this feature can be used to insert comments into your configuration files).</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection">
+<a href="/people/plewis/cpp//mac//steps/step-08/01-the-strom-class.html">&lt; 8.1</a> | 8.2 | <a href="/people/plewis/cpp//mac//steps/step-09/00-reading-and-storing-data.html">9.0 &gt;</a>
+</h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

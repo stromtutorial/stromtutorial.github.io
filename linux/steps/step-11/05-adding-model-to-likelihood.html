@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding the Model to the Likelihood class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">11.5 Adding the Model to the Likelihood class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-11/04-the-asrv-class.html">&lt;&nbsp;11.4</a> | 11.5 | <a href="/people/plewis/cpp//linux//steps/step-11/06-testing-model.html">11.6&nbsp;&gt;</a></h3>
+</div>
+
+<p>Before we can test the new <code class="highlighter-rouge">Model</code> class, we must integrate it into the <code class="highlighter-rouge">Likelihood</code> class.</p>
+
+<p>Start by adding this include at the top of the <em>likelihood.hpp</em> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;map&amp;gt;
+#include &amp;lt;boost/algorithm/string.hpp&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include &amp;lt;boost/shared_ptr.hpp&amp;gt;
+#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
+#include "libhmsbeagle/beagle.h"
+#include "tree.hpp"
+#include "data.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "model.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include "xstrom.hpp"
+
+
+</code></pre></div></div>
+
+<h2 id="add-getmodel-and-setmodel-member-functions">Add getModel and setModel member functions</h2>
+
+<p>Add these two declarations to the public section of the <code class="highlighter-rouge">Likelihood</code> class declaration:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            Model::SharedPtr                        getModel();                     
+            void                                    setModel(Model::SharedPtr m);   
+
+</code></pre></div></div>
+
+<p>Here are the bodies of these two functions. It is assumed that the <code class="highlighter-rouge">setModel</code> function will only be called before BeagleLib is instantiated, hence the assertion that the length of the <code class="highlighter-rouge">_instances</code> vector is zero.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::SharedPtr Likelihood::getModel() {  
+        return _model;
+    }   
+    
+    inline void Likelihood::setModel(Model::SharedPtr m) {  
+        assert(_instances.size() == 0); // can't change model after initBeagleLib called
+        _model = m;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-an-invarmodel-data-member-to-the-instanceinfo-class">Add an invarmodel data member to the InstanceInfo class</h2>
+
+<p>A data member <code class="highlighter-rouge">invarmodel</code> should be added to the declaration of the <code class="highlighter-rouge">InstanceInfo</code> struct in the private section of the <code class="highlighter-rouge">Likelihood</code> class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            struct InstanceInfo {   
+                int handle;
+                int resourcenumber;
+                std::string resourcename;
+                unsigned nstates;
+                unsigned nratecateg;
+                unsigned npatterns;
+                unsigned partial_offset;
+                unsigned tmatrix_offset;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool invarmodel;&lt;/strong&gt;&lt;/span&gt;
+                std::vector&amp;lt;unsigned&amp;gt; subsets;
+                
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;InstanceInfo() : handle(-1), resourcenumber(-1), resourcename(""), nstates(0), nratecateg(0), npatterns(0), partial_offset(0), tmatrix_offset(0), invarmodel(false) {}&lt;/strong&gt;&lt;/span&gt;
+            };   
+
+</code></pre></div></div>
+
+<p>This <code class="highlighter-rouge">bool</code> will keep track of whether the model for a particular instance has an extra zero-rate category for invariable sites.</p>
+
+<p>Be sure to also initialize the new variable in the <code class="highlighter-rouge">InstanceInfo</code> constructor.</p>
+
+<h2 id="new-data-member-_model">New data member _model</h2>
+
+<p>Add a new data member <code class="highlighter-rouge">_model</code> to the private part of the <code class="highlighter-rouge">Likelihood</code> class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            Model::SharedPtr                        _model; 
+
+</code></pre></div></div>
+
+<p>Initialize <code class="highlighter-rouge">_model</code> in the <code class="highlighter-rouge">clear</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        _model = Model::SharedPtr(new Model());          
+
+</code></pre></div></div>
+
+<h2 id="modify-the-initbeaglelib-function">Modify the initBeagleLib function</h2>
+
+<p>Add the <code class="highlighter-rouge">assert</code> highlighted in blue to ensure that <code class="highlighter-rouge">_model</code> has been assigned prior to  <code class="highlighter-rouge">initBeagleLib</code> being called.</p>
+
+<p>Instead of assuming 1 rate category (i.e. equal rates), make the changes and additions shown in blue. Note that invariable sites models add an additional rate category, so different instances of BeagleLib would be needed to handle a 4-category GTR+G model versus a 4-category GTR+I+G model. We need some way to distinguish an I+G model from a G model having the same number of rate categories. The way this is done here is to make the number of rate categories negative for I+G models and positive for G models.</p>
+
+<p>The last change in blue simply adds information about invariable sites status when reporting on newly-created instances.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::initBeagleLib() {   
+        assert(_data);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(_model);&lt;/strong&gt;&lt;/span&gt;
+
+        // Close down any existing BeagleLib instances
+        finalizeBeagleLib(true);
+
+        _ntaxa = _data-&amp;gt;getNumTaxa();
+        
+        unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+        std::set&amp;lt;instance_pair_t&amp;gt; nstates_ncateg_combinations;
+        std::map&amp;lt;instance_pair_t, std::vector&amp;lt;unsigned&amp;gt; &amp;gt; subsets_for_pair;
+        for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+            // Create a pair comprising number of states and number of rate categories
+            unsigned nstates = _data-&amp;gt;getNumStatesForSubset(subset);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool invar_model = _model-&amp;gt;getSubsetIsInvarModel(subset);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int nrates = (invar_model ? -1 : 1)*_model-&amp;gt;getSubsetNumCateg(subset);&lt;/strong&gt;&lt;/span&gt;
+            instance_pair_t p = std::make_pair(nstates, nrates);
+            
+            // Add combo to set
+            nstates_ncateg_combinations.insert(p);
+            subsets_for_pair[p].push_back(subset);
+        }
+
+        // Create one instance for each distinct nstates-nrates combination
+        _instances.clear();
+        for (auto p : nstates_ncateg_combinations) {
+            newInstance(p.first, p.second, subsets_for_pair[p]);
+            
+            InstanceInfo &amp; info = *_instances.rbegin();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; boost::str(boost::format("Created BeagleLib instance %d (%d states, %d rate%s, %d subset%s, %s invar. sites model)") % info.handle % info.nstates % info.nratecateg % (info.nratecateg == 1 ? "" : "s") % info.subsets.size() % (info.subsets.size() == 1 ? "" : "s") % (info.invarmodel ? "is" : "not")) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+        }
+        
+        if (_ambiguity_equals_missing)
+            setTipStates();
+        else
+            setTipPartials();
+        setPatternWeights();
+        setPatternPartitionAssignments();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifications-to-the-newinstance-member-function">Modifications to the newInstance member function</h2>
+
+<p>If the incoming <code class="highlighter-rouge">nrates</code> is a negative number, it means that this is an invariable sites model, and the actual number of rate categories handled by BeagleLib should be the positive version of this, i.e. <code class="highlighter-rouge">-nrates</code>. The changes in blue below set the new <code class="highlighter-rouge">invarmodel</code> data member of the <code class="highlighter-rouge">InstanceInfo</code> struct accordingly and make the number of categories positive if the incoming <code class="highlighter-rouge">nrates</code> was negative.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices) { 
+        unsigned num_subsets = (unsigned)subset_indices.size();
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool is_invar_model = (nrates &amp;lt; 0 ? true : false);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);&lt;/strong&gt;&lt;/span&gt;
+        
+        unsigned num_patterns = 0;
+        for (auto s : subset_indices) {
+            num_patterns += _data-&amp;gt;getNumPatternsInSubset(s);
+        }
+        
+        unsigned num_internals = calcNumInternalsInFullyResolvedTree();
+
+        // add 1 to num_edges so that subroot node will have a tmatrix, root tip's tmatrix is never used
+        unsigned num_edges = 1 + calcNumEdgesInFullyResolvedTree();
+        unsigned num_transition_probs = num_edges*num_subsets;
+        
+        long requirementFlags = 0;
+
+        long preferenceFlags = BEAGLE_FLAG_PRECISION_SINGLE | BEAGLE_FLAG_THREADING_CPP;
+        if (_prefer_gpu)
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
+        else
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_CPU;
+        
+        BeagleInstanceDetails instance_details;
+        unsigned npartials = num_internals + _ntaxa;
+        unsigned nsequences = 0;
+        if (_ambiguity_equals_missing) {
+            npartials -= _ntaxa;
+            nsequences += _ntaxa;
+        }
+        
+        int inst = beagleCreateInstance(
+             _ntaxa,                        // tips
+             2*npartials,                   // partials
+             nsequences,                    // sequences
+             nstates,                       // states
+             num_patterns,                  // patterns (total across all subsets that use this instance)
+             num_subsets,                   // models (one for each distinct eigen decomposition)
+             2*num_subsets*num_transition_probs, // transition matrices (one for each edge in each subset)
+             ngammacat,                     // rate categories
+             0,                             // scale buffers 
+             NULL,                          // resource restrictions
+             0,                             // length of resource list
+             preferenceFlags,               // preferred flags
+             requirementFlags,              // required flags
+             &amp;instance_details);            // pointer for details
+        
+        if (inst &amp;lt; 0) {
+            // beagleCreateInstance returns one of the following:
+            //   valid instance (0, 1, 2, ...)
+            //   error code (negative integer)
+            throw XStrom(boost::str(boost::format("Likelihood init function failed to create BeagleLib instance (BeagleLib error code was %d)") % _beagle_error[inst]));
+        }
+        
+        InstanceInfo info;
+        info.handle         = inst;
+        info.resourcenumber = instance_details.resourceNumber;
+        info.resourcename   = instance_details.resourceName;
+        info.nstates        = nstates;
+        info.nratecateg     = ngammacat;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;info.invarmodel     = is_invar_model;&lt;/strong&gt;&lt;/span&gt;
+        info.subsets        = subset_indices;
+        info.npatterns      = num_patterns;
+        info.partial_offset = num_internals;
+        info.tmatrix_offset = num_edges;
+        _instances.push_back(info);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="unconstrain-the-settippartials-function">Unconstrain the setTipPartials function</h2>
+<p>Remove the 2 lines below from <code class="highlighter-rouge">setTipPartials</code> because we now allow models to have different numbers of states.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            if (info.nstates != 4)  
+                throw XStrom(boost::format("This program can handle only 4-state DNA/RNA data. You specified data having %d states for at least one data subset.") % info.nstates);  
+
+</code></pre></div></div>
+
+<h2 id="simplify-the-setamongsiterateheterogenetity-function">Simplify the setAmongSiteRateHeterogenetity function</h2>
+
+<p>The <code class="highlighter-rouge">setAmongSiteRateHeterogenetity</code> member function can be simplified now because most of the work can be done by member functions of the <code class="highlighter-rouge">Model</code> class. Replace the current version of <code class="highlighter-rouge">setAmongSiteRateHeterogenetity</code> with this version.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setAmongSiteRateHeterogenetity() {  
+        assert(_instances.size() &amp;gt; 0);
+        int code = 0;
+        
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                code = _model-&amp;gt;setBeagleAmongSiteRateVariationRates(info.handle, s, instance_specific_subset_index);
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set category rates for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+            
+                code = _model-&amp;gt;setBeagleAmongSiteRateVariationProbs(info.handle, s, instance_specific_subset_index);
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set category probabilities for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+                    
+                ++instance_specific_subset_index;
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="simplify-setmodelratematrix-function">Simplify setModelRateMatrix function</h2>
+
+<p>We can also rewrite <code class="highlighter-rouge">setModelRateMatrix</code> now using member functions of <code class="highlighter-rouge">Model</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setModelRateMatrix() { 
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                int code = _model-&amp;gt;setBeagleStateFrequencies(info.handle, s, instance_specific_subset_index);
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set state frequencies for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+
+                code = _model-&amp;gt;setBeagleEigenDecomposition(info.handle, s, instance_specific_subset_index);
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set eigen decomposition for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+                
+                ++instance_specific_subset_index;
+            }
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="modify-the-defineoperations-function-to-accommodate-subset-relative-rates">Modify the defineOperations function to accommodate subset relative rates</h2>
+
+<p>It is possible to specify different relative rates for each partition subset. This allows the model to, for example, allow 3rd codon position sites to evolve at a faster rate than 1st or 2nd position sites. Subset-specific rates modify edge lengths. If a subset has a subset relative rate of 2, it is as if, for purposes of calculating the likelihood, the tree was twice as large as the tree read in from the file (i.e. every edge in the tree is twice as long as the corresponding edge in the tree file version). The <code class="highlighter-rouge">defineOperations</code> function is where edge lengths are used, and the following code snippet highlights the lines that need to change in order to use the subset relative rates stored by the model.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   
+        assert(_instances.size() &amp;gt; 0);
+        assert(t);
+        assert(t-&amp;gt;isRooted() == _rooted);
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double relrate_normalizing_constant = _model-&amp;gt;calcNormalizingConstantForSubsetRelRates();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::subset_relrate_vect_t &amp; subset_relrates = _model-&amp;gt;getSubsetRelRates();&lt;/strong&gt;&lt;/span&gt;
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            _operations[info.handle].clear();
+            _pmatrix_index[info.handle].clear();
+            _edge_lengths[info.handle].clear();
+            
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double subset_relative_rate = subset_relrates[s]/relrate_normalizing_constant;&lt;/strong&gt;&lt;/span&gt;
+
+                // Loop through all nodes in reverse level order
+                for (auto nd : boost::adaptors::reverse(t-&amp;gt;_levelorder)) {
+                    assert(nd-&amp;gt;_number &amp;gt;= 0);
+                    if (!nd-&amp;gt;_left_child) {
+                        // This is a leaf
+                        if (nd-&amp;gt;isSelTMatrix()) {
+                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                            _pmatrix_index[info.handle].push_back(tindex);
+                            _edge_lengths[info.handle].push_back(nd-&amp;gt;_edge_length*subset_relative_rate);; 
+                        }
+                    }
+                    //...   
+
+</code></pre></div></div>
+
+<h2 id="modify-calcinstanceloglikelihood-to-accommodate-invariable-sites-models">Modify calcInstanceLogLikelihood to accommodate invariable sites models</h2>
+
+<p>Adding the capability to accommodate invariable sites in models adds some complexity to the calculation of the log likelihood. We cannot simply rely on BeagleLib to do all the work if an invariable sites model is in effect. (That’s not exactly true, we could use BeagleLib for this, but doing so would be very inefficient as it would require full site likelihood calculations for the zero-rate case, which is a trivial calculation if done outside of BeagleLib). In the case of an I or I+G model, BeagleLib will handle everything except the zero-rate category. The code highlighted in blue below takes site log likelihoods calculated by BeagleLib and modifies them according to the proportion of invariable sites if an invariable sites model is being used.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo &amp; info, Tree::SharedPtr t) {   
+        int code = 0;
+        unsigned nsubsets = (unsigned)info.subsets.size();
+        assert(nsubsets &amp;gt; 0);
+        
+        // Assuming there are as many transition matrices as there are edge lengths
+        assert(_pmatrix_index[info.handle].size() == _edge_lengths[info.handle].size());
+
+        int stateFrequencyIndex    = 0;
+        int categoryWeightsIndex   = 0;
+        int cumulativeScalingIndex = BEAGLE_OP_NONE;
+        int child_partials_index   = getPartialIndex(t-&amp;gt;_root, info);
+        int parent_partials_index  = getPartialIndex(t-&amp;gt;_preorder[0], info);
+        int parent_tmatrix_index   = getTMatrixIndex(t-&amp;gt;_preorder[0], info, 0);
+
+        // storage for results of the likelihood calculation
+        std::vector&amp;lt;double&amp;gt; subset_log_likelihoods(nsubsets, 0.0);
+        double log_likelihood = 0.0;
+
+        if (nsubsets &amp;gt; 1) {
+            _parent_indices.assign(nsubsets, parent_partials_index);
+            _child_indices.assign(nsubsets, child_partials_index);
+            _weights_indices.assign(nsubsets, categoryWeightsIndex);
+            _scaling_indices.resize(nsubsets);  
+            _subset_indices.resize(nsubsets);
+            _freqs_indices.resize(nsubsets);
+            _tmatrix_indices.resize(nsubsets);
+            for (unsigned s = 0; s &amp;lt; nsubsets; s++) {
+                _scaling_indices[s]  = BEAGLE_OP_NONE; 
+                _subset_indices[s]  = s;
+                _freqs_indices[s]   = s;
+                _tmatrix_indices[s] = getTMatrixIndex(t-&amp;gt;_preorder[0], info, s); //index_focal_child + s*tmatrix_skip;
+            }
+            code = beagleCalculateEdgeLogLikelihoodsByPartition(
+                info.handle,                 // instance number
+                &amp;_parent_indices[0],         // indices of parent partialsBuffers
+                &amp;_child_indices[0],          // indices of child partialsBuffers
+                &amp;_tmatrix_indices[0],        // transition probability matrices for this edge
+                NULL,                        // first derivative matrices
+                NULL,                        // second derivative matrices
+                &amp;_weights_indices[0],        // weights to apply to each partialsBuffer
+                &amp;_freqs_indices[0],          // state frequencies for each partialsBuffer
+                &amp;_scaling_indices[0],        // scaleBuffers containing accumulated factors
+                &amp;_subset_indices[0],         // indices of subsets
+                nsubsets,                    // partition subset count
+                1,                           // number of distinct eigen decompositions
+                &amp;subset_log_likelihoods[0],  // address of vector of log likelihoods (one for each subset)
+                &amp;log_likelihood,             // destination for resulting log likelihood
+                NULL,                        // destination for vector of first derivatives (one for each subset)
+                NULL,                        // destination for first derivative
+                NULL,                        // destination for vector of second derivatives (one for each subset)
+                NULL);                       // destination for second derivative
+        }
+        else {
+            code = beagleCalculateEdgeLogLikelihoods(
+                info.handle,                 // instance number
+                &amp;parent_partials_index,      // indices of parent partialsBuffers
+                &amp;child_partials_index,       // indices of child partialsBuffers
+                &amp;parent_tmatrix_index,       // transition probability matrices for this edge
+                NULL,                        // first derivative matrices
+                NULL,                        // second derivative matrices
+                &amp;categoryWeightsIndex,       // weights to apply to each partialsBuffer
+                &amp;stateFrequencyIndex,        // state frequencies for each partialsBuffer
+                &amp;cumulativeScalingIndex,     // scaleBuffers containing accumulated factors
+                1,                           // Number of partialsBuffer
+                &amp;log_likelihood,             // destination for log likelihood
+                NULL,                        // destination for first derivative
+                NULL);                       // destination for second derivative
+        }
+
+        if (code != 0)
+            throw XStrom(boost::str(boost::format("failed to calculate edge logLikelihoods in CalcLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (info.invarmodel) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;auto monomorphic = _data-&amp;gt;getMonomorphic();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;auto counts = _data-&amp;gt;getPatternCounts();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;double&amp;gt; site_log_likelihoods(info.npatterns, 0.0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double * siteLogLs = &amp;site_log_likelihoods[0];&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;beagleGetSiteLogLikelihoods(info.handle, siteLogLs);&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Loop through all subsets assigned to this instance&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double lnL = 0.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned i = 0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned s : info.subsets) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const ASRV &amp; asrv = _model-&amp;gt;getASRV(s);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const QMatrix &amp; qmatrix = _model-&amp;gt;getQMatrix(s);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const double * freq = qmatrix.getStateFreqs();&lt;/strong&gt;&lt;/span&gt;
+                
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double pinvar = *(asrv.getPinvarSharedPtr());&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(pinvar &amp;gt;= 0.0 &amp;&amp; pinvar &amp;lt;= 1.0);&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (pinvar == 0.0) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// log likelihood for this subset is equal to the sum of site log-likelihoods&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;auto interval = _data-&amp;gt;getSubsetBeginEnd(s);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned p = interval.first; p &amp;lt; interval.second; p++) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;lnL += counts[p]*site_log_likelihoods[i++];&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Loop through all patterns in this subset&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_pinvar = log(pinvar);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_one_minus_pinvar = log(1.0 - pinvar);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;auto interval = _data-&amp;gt;getSubsetBeginEnd(s);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned p = interval.first; p &amp;lt; interval.second; p++) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Loop through all states for this pattern&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double invar_like = 0.0;&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (monomorphic[p] &amp;gt; 0) {&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned k = 0; k &amp;lt; info.nstates; ++k) {&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Data::state_t x = (Data::state_t)1 &amp;lt;&amp;lt; k;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double condlike = (x &amp; monomorphic[p] ? 1.0 : 0.0);&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double basefreq = freq[k];&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;invar_like += condlike*basefreq;&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double site_lnL = site_log_likelihoods[i++];&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_like_term = log_one_minus_pinvar + site_lnL;&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (invar_like &amp;gt; 0.0) {&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_invar_term = log_pinvar + log(invar_like);&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double site_log_like = (log_like_term + log(1.0 + exp(log_invar_term - log_like_term)));&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;lnL += counts[p]*site_log_like;&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;lnL += counts[p]*log_like_term;&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_likelihood = lnL;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+        return log_likelihood;
+    }   
+
+</code></pre></div></div>
+
+<p>If the substitution rate is assumed to equal zero, then the likelihood is non-zero only if a site is constant because a variable site implies that at least one substitution occurred, which would be impossible if the rate were 0.0. Furthermore, we  can assume that the likelihood of the entire tree given the root state is simply 1.0 because all leaves will have the root state with probability 1.0 if the rate is 0.0. The likelihood of the tree under this zero-rate category is thus just the probability of the root state, which is just the equilibrium frequency of the root state. Remember that the <code class="highlighter-rouge">Data</code> class has a vector data member <code class="highlighter-rouge">_monomorphic</code> that stores the state present at every monomorphic pattern (and stores 0 for sites that are not even potentially constant). This allows us to calculate the invariable site component of the likelihood,<code class="highlighter-rouge"> invar_like</code>, using this simple loop over states:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                        // Loop through all states for this pattern             
+                        double invar_like = 0.0;
+                        if (monomorphic[p] &amp;gt; 0) {
+                            for (unsigned k = 0; k &amp;lt; info.nstates; ++k) {
+                                Data::state_t x = (Data::state_t)1 &amp;lt;&amp;lt; k;
+                                double condlike = (x &amp; monomorphic[p] ? 1.0 : 0.0);
+                                double basefreq = freq[k];
+                                invar_like += condlike*basefreq;
+                            }
+                        }                                                       
+
+</code></pre></div></div>
+
+<p>The overall site likelihood is calculated (using pseudocode) as follows:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>L = pinvar*invar_like + (1 - pinvar)*site_like
+</code></pre></div></div>
+
+<p>The site log likelihood is then:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>log(L) = log{pinvar*invar_like + (1 - pinvar)*site_like}
+</code></pre></div></div>
+
+<p>This creates a small predicament because BeagleLib provides log(<code class="highlighter-rouge">site_like</code>) for us, yet the formula above involves <code class="highlighter-rouge">site_like</code>, not log(<code class="highlighter-rouge">site_like</code>). If we remove the log by exponentiating log(<code class="highlighter-rouge">site_like</code>), we run afoul of the underflow problem. The trick is to factor out <code class="highlighter-rouge">(1 - pinvar)*site_like</code> before changing to log scale:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>L = pinvar*invar_like + (1 - pinvar)*site_like
+  = (1 - pinvar)*site_like*(pinvar*invar_like/((1 - pinvar)*site_like) + 1)
+</code></pre></div></div>
+
+<p>Taking the log of both sides leads to the formula used in the code:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                        double site_lnL = site_log_likelihoods[i++];            
+                        double log_like_term = log_one_minus_pinvar + site_lnL;
+                        if (invar_like &amp;gt; 0.0) {
+                            double log_invar_term = log_pinvar + log(invar_like);
+                            double site_log_like = (log_like_term + log(1.0 + exp(log_invar_term - log_like_term)));
+                            lnL += counts[p]*site_log_like;
+                        }
+                        else {
+                            lnL += counts[p]*log_like_term;
+                        }                                                       
+
+</code></pre></div></div>
+
+<h2 id="asserting-that-the-model-has-been-specified-in-calcloglikelihood">Asserting that the model has been specified in calcLogLikelihood</h2>
+
+<p>In addition to asserting that <code class="highlighter-rouge">_data</code> exists, we should now also assert that <code class="highlighter-rouge">_model</code> exists before attempting to calculate the likelihood.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {    
+        assert(_instances.size() &amp;gt; 0);
+        
+        if (!_using_data)
+            return 0.0;
+
+        // Must call setData and setModel before calcLogLikelihood
+        assert(_data);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(_model);&lt;/strong&gt;&lt;/span&gt;
+        
+        if (t-&amp;gt;_is_rooted)
+            throw XStrom("This version of the program can only compute likelihoods for unrooted trees");
+
+        // Assuming "root" is leaf 0
+        assert(t-&amp;gt;_root-&amp;gt;_number == 0 &amp;&amp; t-&amp;gt;_root-&amp;gt;_left_child == t-&amp;gt;_preorder[0] &amp;&amp; !t-&amp;gt;_preorder[0]-&amp;gt;_right_sib);
+
+        setModelRateMatrix();
+        setAmongSiteRateHeterogenetity();
+        defineOperations(t);
+        updateTransitionMatrices();
+        calculatePartials();
+
+        double log_likelihood = 0.0;
+        for (auto &amp; info : _instances) {
+            log_likelihood += calcInstanceLogLikelihood(info, t);
+        }
+        
+        return log_likelihood;
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-11/04-the-asrv-class.html">&lt;&nbsp;11.4</a> | 11.5 | <a href="/people/plewis/cpp//linux//steps/step-11/06-testing-model.html">11.6&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

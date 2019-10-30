@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The QMatrix class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">11.3 The QMatrix class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-11/02-the-model-class.html">&lt;&nbsp;11.2</a> | 11.3 | <a href="/people/plewis/cpp//mac//steps/step-11/04-the-asrv-class.html">11.4&nbsp;&gt;</a></h3>
+</div>
+
+<p>Classes that inherit from the <code class="highlighter-rouge">QMatrix</code> class handle everything associated with the instantaneous rate matrix. The <code class="highlighter-rouge">Model</code> simply has to send the exchangeabilities and state frequencies to its data member <code class="highlighter-rouge">_qmatrix</code>, and the <code class="highlighter-rouge">QMatrix</code> objects stored there handle computing the eigenvalues, eigenvectors, and inverse eigenvectors that BeagleLib needs.</p>
+
+<p>This tutorial emplements two different kinds of models: (1) the GTR+I+G model for nucleotide data and (2) a codon model. These two models have rate matrices that are different size (4x4 for GTR and 61x61 for a codon model using the standard code) and, rather than create one generic class to handle both, we will create an abstract base class <code class="highlighter-rouge">QMatrix</code> and two derived classes, <code class="highlighter-rouge">QMatrixNucleotide</code> (for the GTR case) and <code class="highlighter-rouge">QMatrixCodon</code> (for the codon case).</p>
+
+<p>Begin by creating a new header file named <em>qmatrix.hpp</em> and add the <code class="highlighter-rouge">QMatrix</code> class declaration and member function bodies:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;algorithm&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include &amp;lt;Eigen/Dense&amp;gt;
+#include "genetic_code.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class QMatrix {
+
+        public:
+            typedef std::vector&amp;lt;double&amp;gt;             freq_xchg_t;
+            typedef std::shared_ptr&amp;lt;freq_xchg_t&amp;gt;    freq_xchg_ptr_t;
+            typedef double                          omega_t;
+            typedef std::shared_ptr&amp;lt;omega_t&amp;gt;        omega_ptr_t;
+            typedef boost::shared_ptr&amp;lt;QMatrix&amp;gt;      SharedPtr;
+
+                                                    QMatrix();
+            virtual                                 ~QMatrix();
+        
+            virtual void                            clear() = 0;
+
+            virtual void                            setEqualStateFreqs(freq_xchg_ptr_t freq_ptr) = 0;
+            virtual void                            setStateFreqsSharedPtr(freq_xchg_ptr_t freq_ptr) = 0;
+            virtual void                            setStateFreqs(freq_xchg_t &amp; freq) = 0;
+            virtual freq_xchg_ptr_t                 getStateFreqsSharedPtr() = 0;
+            virtual const double *                  getStateFreqs() const = 0;
+            void                                    fixStateFreqs(bool is_fixed);
+            bool                                    isFixedStateFreqs() const;
+
+            virtual void                            setEqualExchangeabilities(freq_xchg_ptr_t xchg_ptr) = 0;
+            virtual void                            setExchangeabilitiesSharedPtr(freq_xchg_ptr_t xchg) = 0;
+            virtual void                            setExchangeabilities(freq_xchg_t &amp; xchg) = 0;
+            virtual freq_xchg_ptr_t                 getExchangeabilitiesSharedPtr() = 0;
+            virtual const double *                  getExchangeabilities() const = 0;
+            void                                    fixExchangeabilities(bool is_fixed);
+            bool                                    isFixedExchangeabilities() const;
+
+            virtual void                            setOmegaSharedPtr(omega_ptr_t omega) = 0;
+            virtual void                            setOmega(omega_t omega) = 0;
+            virtual omega_ptr_t                     getOmegaSharedPtr() = 0;
+            virtual double                          getOmega() const = 0;
+            void                                    fixOmega(bool is_fixed);
+            bool                                    isFixedOmega() const;
+
+            virtual const double *                  getEigenvectors() const = 0;
+            virtual const double *                  getInverseEigenvectors() const = 0;
+            virtual const double *                  getEigenvalues() const = 0;
+
+            void                                    setActive(bool activate);
+        
+        protected:
+        
+            virtual void                            recalcRateMatrix() = 0;
+            void                                    normalizeFreqsOrExchangeabilities(freq_xchg_ptr_t v);
+
+            bool                                    _is_active;
+            bool                                    _state_freqs_fixed;
+            bool                                    _exchangeabilities_fixed;
+            bool                                    _omega_fixed;
+    };
+    
+    // member function bodies go here
+    
+    // QMatrixNucleotide class goes here      
+    // QMatrixCodon class goes here
+
+}   
+
+</code></pre></div></div>
+
+<p>That <code class="highlighter-rouge">QMatrix</code> is an abstract class is clear from the fact that most member functions are set equal to 0 in the class declaration and no body is provided for them. Being abstract, this class cannot be used to create objects; we must derive other classes from it that provide bodies for the member functions.</p>
+
+<p>The <code class="highlighter-rouge">setActive</code>, <code class="highlighter-rouge">clear</code>, <code class="highlighter-rouge">fixStateFreqs</code>, <code class="highlighter-rouge">fixExchangeabilities</code>, <code class="highlighter-rouge">fixOmega</code>, and <code class="highlighter-rouge">normalizeFreqsOrExchangeabilities</code> member functions are defined (i.e. have a body), which means that inherited classes will have their functionality also.</p>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline QMatrix::QMatrix() { 
+        //std::cout &amp;lt;&amp;lt; "Creating a QMatrix object" &amp;lt;&amp;lt; std::endl;
+    } 
+    
+    inline QMatrix::~QMatrix() { 
+        //std::cout &amp;lt;&amp;lt; "Destroying a QMatrix object" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setactive-member-function">The setActive member function</h2>
+
+<p>If <code class="highlighter-rouge">setActive</code> is passed <code class="highlighter-rouge">false</code>, then this <code class="highlighter-rouge">QMatrix</code> (or <code class="highlighter-rouge">QMatrix</code>-derived) object becomes inactive, meaning it will accept new state frequencies, exchangeabilities, or omega values but will not calculate anything with those values. This will be useful later when we run an MCMC analysis without data, as it allows us to avoid expensive eigensystem computations when the likelihood is not even being calculated. The boolean value passed into this function is assigned to the <code class="highlighter-rouge">_is_active</code> data member, and, if <code class="highlighter-rouge">_is_active</code> has just become true, it calls <code class="highlighter-rouge">recalcRateMatrix</code> just in case the eigenvalues and eigenvectors are not up-to-date. Because <code class="highlighter-rouge">recalcRateMatrix</code> is a virtual function, the appropriate implementation of <code class="highlighter-rouge">recalcRateMatrix</code> will be used (<code class="highlighter-rouge">QMatrixNucleotide::recalcRateMatrix</code> vs. <code class="highlighter-rouge">QMatrixCodon::recalcRateMatrix</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrix::setActive(bool activate) { 
+        _is_active = activate;
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+
+<p>This function provides initial values for the four data members (<code class="highlighter-rouge">_is_active</code>, <code class="highlighter-rouge">_state_freqs_fixed</code>, <code class="highlighter-rouge">_exchangeabilities_fixed</code>, and <code class="highlighter-rouge">_omega_fixed</code>) that are defined in this base class.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrix::clear() { 
+        _is_active = false;
+        _state_freqs_fixed = false;
+        _exchangeabilities_fixed = false;
+        _omega_fixed = false;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-fixstatefreqs-fixexchangeabilities-and-fixomega-member-functions">The fixStateFreqs, fixExchangeabilities, and fixOmega member functions</h2>
+
+<p>These three functions provide a way to change the values of the <code class="highlighter-rouge">_state_freqs_fixed</code>, <code class="highlighter-rouge">_exchangeabilities_fixed</code>, and <code class="highlighter-rouge">_omega_fixed</code> data members, respectively.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrix::fixStateFreqs(bool is_fixed) { 
+        _state_freqs_fixed = is_fixed;
+    }   
+    
+    inline void QMatrix::fixExchangeabilities(bool is_fixed) {  
+        _exchangeabilities_fixed = is_fixed;
+    }   
+    
+    inline void QMatrix::fixOmega(bool is_fixed) {  
+        _omega_fixed = is_fixed;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-isfixedstatefreqs-isfixedexchangeabilities-and-isfixedomega-member-functions">The isFixedStateFreqs, isFixedExchangeabilities, and isFixedOmega member functions</h2>
+
+<p>These three functions are accessors for the values of the <code class="highlighter-rouge">_state_freqs_fixed</code>, <code class="highlighter-rouge">_exchangeabilities_fixed</code>, and <code class="highlighter-rouge">_omega_fixed</code> data members, respectively.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool QMatrix::isFixedStateFreqs() const { 
+        return _state_freqs_fixed;
+    }   
+    
+    inline bool QMatrix::isFixedExchangeabilities() const { 
+        return _exchangeabilities_fixed;
+    }   
+    
+    inline bool QMatrix::isFixedOmega() const { 
+        return _omega_fixed;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-normalizefreqsorexchangeabilities-member-function">The normalizeFreqsOrExchangeabilities member function</h2>
+
+<p>This function takes a shared pointer to either a state frequencies vector or an exhangeabilities vector and normalizes the vector so that its elements sum to 1.0.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrix::normalizeFreqsOrExchangeabilities(QMatrix::freq_xchg_ptr_t v) {    
+        // Be sure elements of v sum to 1.0 and assert that they are all positive
+        double sum_v = std::accumulate(v-&amp;gt;begin(), v-&amp;gt;end(), 0.0);
+        for (auto &amp; x : *v) {
+            assert(x &amp;gt; 0.0);
+            x /= sum_v;
+        }
+    }   
+
+</code></pre></div></div>
+
+<h1 id="the-qmatrixnucleotide-class">The QMatrixNucleotide class</h1>
+
+<p>We will keep all three classes in this same <em>qmatrix.hpp</em> file, so go ahead and add the declaration for the <code class="highlighter-rouge">QMatrixNucleotide</code> class after the body of <code class="highlighter-rouge">QMatrix::setActive</code> but before the right curly bracket that closes the <code class="highlighter-rouge">strom</code> namespace.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class QMatrixNucleotide : public QMatrix {  
+
+        public:
+            typedef Eigen::Matrix&amp;lt;double, 4, 4, Eigen::RowMajor&amp;gt;    eigenMatrix4d_t;
+            typedef Eigen::Vector4d                                 eigenVector4d_t;
+        
+                                        QMatrixNucleotide();
+                                        ~QMatrixNucleotide();
+        
+            void                        clear();
+
+            void                        setEqualStateFreqs(freq_xchg_ptr_t freq_ptr);
+            void                        setStateFreqsSharedPtr(freq_xchg_ptr_t freq_ptr);
+            void                        setStateFreqs(freq_xchg_t &amp; freqs);
+            freq_xchg_ptr_t             getStateFreqsSharedPtr();
+            const double *              getStateFreqs() const;
+
+            void                        setEqualExchangeabilities(freq_xchg_ptr_t xchg_ptr);
+            void                        setExchangeabilitiesSharedPtr(freq_xchg_ptr_t xchg_ptr);
+            void                        setExchangeabilities(freq_xchg_t &amp; xchg);
+            freq_xchg_ptr_t             getExchangeabilitiesSharedPtr();
+            const double *              getExchangeabilities() const;
+
+            void                        setOmegaSharedPtr(omega_ptr_t omega_ptr);
+            void                        setOmega(omega_t omega);
+            omega_ptr_t                 getOmegaSharedPtr();
+            double                      getOmega() const;
+
+            const double *              getEigenvectors() const;
+            const double *              getInverseEigenvectors() const;
+            const double *              getEigenvalues() const;
+        
+
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        
+        protected:
+        
+            virtual void                recalcRateMatrix();
+
+        private:
+        
+            // workspaces for computing eigenvectors/eigenvalues
+            eigenMatrix4d_t             _sqrtPi;
+            eigenMatrix4d_t             _sqrtPiInv;
+            eigenMatrix4d_t             _Q;
+            eigenMatrix4d_t             _eigenvectors;
+            eigenMatrix4d_t             _inverse_eigenvectors;
+            eigenVector4d_t             _eigenvalues;
+
+            freq_xchg_ptr_t             _state_freqs;
+            freq_xchg_ptr_t             _exchangeabilities;
+    };
+    
+    // QMatrixNucleotide member function bodies go here
+    
+
+</code></pre></div></div>
+<p>I will provide explanations for the member functions in <code class="highlighter-rouge">QMatrixNucleotide</code>, but then just provide the code without explanation for the <code class="highlighter-rouge">QMatrixCodon</code> class: the explanations are the same; it is only the actual implementations that differ.</p>
+
+<p>The <a href="eigen.tuxfamily.org">Eigen library</a> is used to do the work of computing eigenvalues and eigenvectors, which explains the <code class="highlighter-rouge">#include &lt;Eigen/Dense&gt;</code> at the top of the file. The typedefs <code class="highlighter-rouge">eigenMatrix4d_t</code> and <code class="highlighter-rouge">eigenVector4d_t</code> simplify specify matrices and vectors, respectively, that are used with the Eigen library. You’ll note that these types specify vectors of length 4 and 4 by 4 matrices, so we are clearly designing our <code class="highlighter-rouge">QMatrixNucleotide</code> class to handle only 4-state nucleotide data.</p>
+
+<h2 id="the-constructor-destructor-and-clear-functions">The constructor, destructor, and clear functions</h2>
+
+<p>The constructor and destructor are trivial, as usual. The <code class="highlighter-rouge">clear</code> function sets up the parameters <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code> according to the JC model. Model parameters are stored as shared pointers so that they can be easily linked across data subsets.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline QMatrixNucleotide::QMatrixNucleotide() { 
+        //std::cout &amp;lt;&amp;lt; "Constructing a QMatrixNucleotide object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    } 
+
+    inline QMatrixNucleotide::~QMatrixNucleotide() { 
+        //std::cout &amp;lt;&amp;lt; "Destroying a QMatrixNucleotide object" &amp;lt;&amp;lt; std::endl;
+    } 
+
+    inline void QMatrixNucleotide::clear() { 
+        QMatrix::clear();
+
+        QMatrix::freq_xchg_t xchg = {1,1,1,1,1,1};
+        _exchangeabilities = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(xchg);
+
+        QMatrix::freq_xchg_t freq_vect = {0.25, 0.25, 0.25, 0.25};
+        _state_freqs = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(freq_vect);
+        
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getexchangeabilitiessharedptr-and-getstatefreqssharedptr-member-functions">The getExchangeabilitiesSharedPtr and getStateFreqsSharedPtr member functions</h2>
+
+<p>These two functions are accessors for <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code>, respectively.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getExchangeabilitiesSharedPtr() { 
+        return _exchangeabilities;
+    } 
+    
+    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() { 
+        return _state_freqs;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getomegasharedptr-member-function">The getOmegaSharedPtr member function</h2>
+
+<p>You may be thinking that a member function named <code class="highlighter-rouge">getOmegaSharedPtr</code> makes no sense in the <code class="highlighter-rouge">QMatrixNucleotide</code> class. You are correct, but we must implement it anyway, otherwise <code class="highlighter-rouge">QMatrixNucleotide</code> would be an abstract class like <code class="highlighter-rouge">QMatrix</code> and we would not be able to create objects from it. Because it makes no sense to call this function, we use an <code class="highlighter-rouge">assert(false)</code> to let us know if this function is ever used and return <code class="highlighter-rouge">nullptr</code> to avoid a compiler error (we must return a pointer, even if it points to nothing!).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline QMatrix::omega_ptr_t QMatrixNucleotide::getOmegaSharedPtr() { 
+        assert(false);
+        return nullptr;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-geteigenvectors-getinverseeigenvectors-and-geteigenvalues-member-functions">The getEigenvectors, getInverseEigenvectors, and getEigenvalues member functions</h2>
+
+<p>These are accessors that return pointers to the C-style arrays beneath the hood of the <code class="highlighter-rouge">Eigen::Matrix</code> data members <code class="highlighter-rouge">_eigenvectors</code>, <code class="highlighter-rouge">_inverse_eigenvectors</code>, and <code class="highlighter-rouge">_eigenvalues</code>, respectively. The reason we do not return references to the <code class="highlighter-rouge">Eigen::Matrix</code> objects directly is that these functions are used to fill buffers in BeagleLib, which expects C-style arrays.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const double * QMatrixNucleotide::getEigenvectors() const { 
+        return _eigenvectors.data();
+    } 
+    
+    inline const double * QMatrixNucleotide::getInverseEigenvectors() const { 
+        return _inverse_eigenvectors.data();
+    } 
+    
+    inline const double * QMatrixNucleotide::getEigenvalues() const { 
+        return _eigenvalues.data();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getexchangeabilities-and-getstatefreqs-member-functions">The getExchangeabilities and getStateFreqs member functions</h2>
+
+<p>These two functions return pointers to the C-style arrays beneath the hood of the data members <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code>, respectively. The reason we do not return the shared pointers <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code> themselves is that these functions are used to fill buffers in BeagleLib, which expects C-style arrays. In order to obtain the C-style array from a <code class="highlighter-rouge">std::shared_ptr</code> pointing to a <code class="highlighter-rouge">std::vector</code>, first obtain a reference to the vector pointed to (<code class="highlighter-rouge">*</code>), then obtain the memory address (<code class="highlighter-rouge">&amp;</code>) of the first element of the vector (<code class="highlighter-rouge">[0]</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const double * QMatrixNucleotide::getExchangeabilities() const { 
+        return &amp;(*_exchangeabilities)[0];
+    } 
+
+    inline const double * QMatrixNucleotide::getStateFreqs() const { 
+        return &amp;(*_state_freqs)[0];
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getomega-member-function">The getOmega member function</h2>
+
+<p>This function should not be called, as the <code class="highlighter-rouge">QMatrixNucleotide</code> class does not use the omega parameter, so the function uses <code class="highlighter-rouge">assert(false)</code> to catch any usage in debug mode and returns 0.0.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double QMatrixNucleotide::getOmega() const { 
+        assert(false);
+        return 0.0;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setequalexchangeabilities-member-function">The setEqualExchangeabilities member function</h2>
+
+<p>This function sets all 6 exchangeabilities to 1/6 and calls the <code class="highlighter-rouge">recalcRateMatrix</code> function before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setEqualExchangeabilities(QMatrix::freq_xchg_ptr_t xchg_ptr) {   
+        _exchangeabilities = xchg_ptr;
+        _exchangeabilities-&amp;gt;assign(6, 1.0/6.0);
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setexchangeabilitiessharedptr-member-function">The setExchangeabilitiesSharedPtr member function</h2>
+
+<p>This function copies the supplied shared pointer to a vector of exchangeabilities (<code class="highlighter-rouge">xchg_ptr</code>) to the data member <code class="highlighter-rouge">_exchangeabilities</code> (after checking to make sure it is the correct length), then calls the <code class="highlighter-rouge">recalcRateMatrix</code> function before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setExchangeabilitiesSharedPtr(QMatrix::freq_xchg_ptr_t xchg_ptr) { 
+        if (xchg_ptr-&amp;gt;size() != 6)
+            throw XStrom(boost::format("Expecting 6 exchangeabilities and got %d: perhaps you meant to specify a subset data type other than nucleotide") % xchg_ptr-&amp;gt;size());
+        _exchangeabilities = xchg_ptr;
+        normalizeFreqsOrExchangeabilities(_exchangeabilities);
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setexchangeabilities-member-function">The setExchangeabilities member function</h2>
+
+<p>This function copies the supplied vector of exchangeabilities (<code class="highlighter-rouge">xchg</code>) to the vector pointed to by the data member <code class="highlighter-rouge">_exchangeabilities</code> (after checking to make sure it is the correct length), then calls the <code class="highlighter-rouge">recalcRateMatrix</code> function before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setExchangeabilities(QMatrix::freq_xchg_t &amp; xchg) { 
+        if (xchg.size() != 6)
+            throw XStrom(boost::format("Expecting 6 exchangeabilities and got %d: perhaps you meant to specify a subset data type other than nucleotide") % xchg.size());
+        std::copy(xchg.begin(), xchg.end(), _exchangeabilities-&amp;gt;begin());
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setequalstatefreqs-member-function">The setEqualStateFreqs member function</h2>
+
+<p>This function sets all 4 state frequencies to 0.25 and calls the <code class="highlighter-rouge">recalcRateMatrix</code> function before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setEqualStateFreqs(QMatrix::freq_xchg_ptr_t freq_ptr) { 
+        _state_freqs = freq_ptr;
+        _state_freqs-&amp;gt;assign(4, 0.25);
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setstatefreqssharedptr-member-function">The setStateFreqsSharedPtr member function</h2>
+
+<p>This function copies the supplied shared pointer to a vector of state frequencies (<code class="highlighter-rouge">freq_ptr</code>) to the data member <code class="highlighter-rouge">_state_freqs</code> (after checking to make sure it is the correct length). It then calls the <code class="highlighter-rouge">recalcRateMatrix</code> function before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setStateFreqsSharedPtr(QMatrix::freq_xchg_ptr_t freq_ptr) { 
+        if (freq_ptr-&amp;gt;size() != 4)
+            throw XStrom(boost::format("Expecting 4 state frequencies and got %d: perhaps you meant to specify a subset data type other than nucleotide") % freq_ptr-&amp;gt;size());
+        double sum_of_freqs = std::accumulate(freq_ptr-&amp;gt;begin(), freq_ptr-&amp;gt;end(), 0.0);
+        if (std::fabs(sum_of_freqs - 1.0) &amp;gt; 0.001)
+            throw XStrom(boost::format("Expecting sum of 4 state frequencies to be 1, but instead got %g") % sum_of_freqs);
+        _state_freqs = freq_ptr;
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setstatefreqs-member-function">The setStateFreqs member function</h2>
+
+<p>This function copies the supplied vector of state frequencies (<code class="highlighter-rouge">freqs</code>) to the vector pointed to by the data member <code class="highlighter-rouge">_state_freqs</code> (after checking to make sure it is the correct length). It then calls the <code class="highlighter-rouge">recalcRateMatrix</code> function before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setStateFreqs(QMatrix::freq_xchg_t &amp; freqs) { 
+        if (freqs.size() != 4)
+            throw XStrom(boost::format("Expecting 4 state frequencies and got %d: perhaps you meant to specify a subset data type other than nucleotide") % freqs.size());
+        std::copy(freqs.begin(), freqs.end(), _state_freqs-&amp;gt;begin());
+        recalcRateMatrix();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setomegasharedptr-amd-setomega-member-functions">The setOmegaSharedPtr amd setOmega member functions</h2>
+
+<p>Because the omega parameter is not used in the GTR model, these two functions should not be called at all, which explains why their only line is <code class="highlighter-rouge">assert(false)</code> to catch any usage of these functions in the debug version of the program.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) { 
+        assert(false);
+    } 
+
+    inline void QMatrixNucleotide::setOmega(QMatrix::omega_t omega) { 
+        assert(false);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-recalcratematrix-member-function">The recalcRateMatrix member function</h2>
+
+<p>This function requires more explanation than any other, and I’ve broken down the discussion into sections.</p>
+
+<h3 id="gtr-rate-matrix">GTR rate matrix</h3>
+
+<p>The instantaneous rate matrix <strong>Q</strong> for the GTR model has 6 exchangeability parameters (<em>a</em>, <em>b</em>, <em>c</em>, <em>d</em>, <em>e</em>, and <em>f</em>) and 4 nucleotide frequencies (π<sub>A</sub>, π<sub>C</sub>, π<sub>G</sub> and π<sub>T</sub>). It is stored in the data member <code class="highlighter-rouge">_qmatrix</code>.</p>
+
+<p><img src="../../assets/img/Qgtr.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<p>The rows represent the “from” state (in the order A, C, G, T, from top to bottom), while the columns represent the “to” state (also in the order A, C, G, T, from left to right). The diagonal elements of this matrix are negative and equal to the sum of the other elements in the same row because any change from state A, for example, to a different state must reduce the amount of A, hence the rate of change is negative. The row sums are zero because this model assumes that the sequence length neither shrinks nor grows, and thus any increase in C, G, or T must occur at the expense of A.</p>
+
+<h3 id="matrices-related-to-nucleotide-frequencies">Matrices related to nucleotide frequencies</h3>
+
+<p>Two important diagonal matrices are defined by the vector of nucleotide frequencies stored in <code class="highlighter-rouge">_state_freqs</code>. These are shown below and are stored in the data members <code class="highlighter-rouge">_sqrtPi</code> (top) and <code class="highlighter-rouge">_sqrtPiInv</code> (bottom).</p>
+
+<p><img src="../../assets/img/sqrtPi.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<h3 id="diagonalization-of-the-rate-matrix">Diagonalization of the rate matrix</h3>
+
+<p>The rate matrix <strong>Q</strong> can be represented as the matrix product of the (right) eigenvector matrix <strong>V</strong>, the diagonal matrix of eigenvalues <strong>L</strong>, and the inverse eigenvector matrix <strong>V</strong><sup>-1</sup>.</p>
+
+<p><img src="../../assets/img/Qdiagonalization.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<h3 id="computing-the-transition-probability-matrix">Computing the transition probability matrix</h3>
+
+<p>The transition probability matrix <strong>P</strong> is obtained by exponentiating the product of <strong>Q</strong> and time <em>t</em>. The matrix <strong>Q</strong> is scaled so that time <em>t</em> can be measured in units of expected substitutions per site, which is why the rates in the <strong>Q</strong> matrix omit the overall rate of substitution and only include relative rate terms (the overall rate is subsumed in <em>t</em>). The calculation of <strong>P</strong> involves exponentiating only the middle matrix (diagonal matrix of eigenvalues multiplied by <em>t</em>).</p>
+
+<p><img src="../../assets/img/Pdiagonalization.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<h3 id="scaling-the-rate-matrix">Scaling the rate matrix</h3>
+
+<p>The <strong>Q</strong> matrix must be scaled so that time <em>t</em> is measured in expected number of substitutions per site. If this scaling is not performed, the edge lengths lose their interpretation as expected number of substitutions per site. The scaling factor needed may be obtained by effectively performing the following matrix multiplication and afterwards summing the off-diagonal elements: dividing each element of <strong>Q</strong> by this sum yields the desired normalization.</p>
+
+<p><img src="../../assets/img/Qscaling.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<h3 id="symmetrizing-the-rate-matrix">Symmetrizing the rate matrix</h3>
+
+<p>Computing eigenvalues and eigenvectors of a symmetric matrix is simpler and more efficient than computing them for an asymmetric matrix. Hence, it is common to obtain eigenvalues and eigenvectors of a symmetrical matrix <strong>S</strong> derived from the <strong>Q</strong> matrix rather than for the <strong>Q</strong> matrix itself. The eigenvalues for <strong>S</strong> and <strong>Q</strong> are identical, and the eigenvector matrix <strong>W</strong> obtained from <strong>S</strong> may be easily converted into the desired matrix <strong>V</strong> containing the eigenvectors of <strong>Q</strong>. Note that <strong>V</strong> may be obtained by premultiplying <strong>W</strong> by the diagonal matrix of inverse square roots of nucleotide frequencies.</p>
+
+<p><img src="../../assets/img/Sdiagonalization.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<h2 id="the-recalcratematrix-function">The recalcRateMatrix function</h2>
+
+<p>With all that in mind, hopefully the <code class="highlighter-rouge">recalcRateMatrix</code> function will be easier to understand.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::recalcRateMatrix() { 
+        // Must have assigned both _state_freqs and _exchangeabilities to recalculate rate matrix
+        if (!_is_active || !(_state_freqs &amp;&amp; _exchangeabilities))
+            return;
+        
+        double piA = (*_state_freqs)[0];
+        double piC = (*_state_freqs)[1];
+        double piG = (*_state_freqs)[2];
+        double piT = (*_state_freqs)[3];
+        
+        Eigen::Map&amp;lt;const Eigen::Array4d&amp;gt; tmp(_state_freqs-&amp;gt;data());
+        _sqrtPi = tmp.sqrt().matrix().asDiagonal();
+        _sqrtPiInv = _sqrtPi.inverse();
+
+        assert(_exchangeabilities-&amp;gt;size() == 6);
+        double rAC = (*_exchangeabilities)[0];
+        double rAG = (*_exchangeabilities)[1];
+        double rAT = (*_exchangeabilities)[2];
+        double rCG = (*_exchangeabilities)[3];
+        double rCT = (*_exchangeabilities)[4];
+        double rGT = (*_exchangeabilities)[5];
+
+        double inverse_scaling_factor = piA*(rAC*piC + rAG*piG + rAT*piT) + piC*(rAC*piA + rCG*piG + rCT*piT) + piG*(rAG*piA + rCG*piC + rGT*piT) + piT*(rAT*piA + rCT*piC + rGT*piG);
+        double scaling_factor = 1.0/inverse_scaling_factor;
+
+        _Q(0,0) = -scaling_factor*(rAC*piC + rAG*piG + rAT*piT);
+        _Q(0,1) = scaling_factor*rAC*piC;
+        _Q(0,2) = scaling_factor*rAG*piG;
+        _Q(0,3) = scaling_factor*rAT*piT;
+
+        _Q(1,0) = scaling_factor*rAC*piA;
+        _Q(1,1) = -scaling_factor*(rAC*piA + rCG*piG + rCT*piT);
+        _Q(1,2) = scaling_factor*rCG*piG;
+        _Q(1,3) = scaling_factor*rCT*piT;
+
+        _Q(2,0) = scaling_factor*rAG*piA;
+        _Q(2,1) = scaling_factor*rCG*piC;
+        _Q(2,2) = -scaling_factor*(rAG*piA + rCG*piC + rGT*piT);
+        _Q(2,3) = scaling_factor*rGT*piT;
+
+        _Q(3,0) = scaling_factor*rAT*piA;
+        _Q(3,1) = scaling_factor*rCT*piC;
+        _Q(3,2) = scaling_factor*rGT*piG;
+        _Q(3,3) = -scaling_factor*(rAT*piA + rCT*piC + rGT*piG);
+
+        // S is a symmetric matrix
+        eigenMatrix4d_t S = eigenMatrix4d_t(_sqrtPi*_Q*_sqrtPiInv);
+
+        // Can use efficient eigensystem solver because S is symmetric
+        Eigen::SelfAdjointEigenSolver&amp;lt;Eigen::Matrix4d&amp;gt; solver(S);
+        if (solver.info() != Eigen::Success) {
+            throw XStrom("Error in the calculation of eigenvectors and eigenvalues of the GTR rate matrix");
+        }
+
+        _eigenvectors           = _sqrtPiInv*solver.eigenvectors();
+        _inverse_eigenvectors   = solver.eigenvectors().transpose()*_sqrtPi;
+        _eigenvalues            = solver.eigenvalues();
+    } 
+
+</code></pre></div></div>
+
+<h1 id="the-qmatrixcodon-class">The QMatrixCodon class</h1>
+<p>The codon model implemented in this tutorial is very simple. It allows rates to differ depending on whether a change is synonymous or nonsynonymous (the omega parameter governs the nonsynonymous/synonymous rate ratio) and it allows codon frequencies to be unequal, which allows for codon usage bias but is a bit costly computationally due to the fact that the state frequency vector has 61 elements (or 60 or 62, depending on the genetic code used). Our codon model does not take transition/transversion bias into account, but that could be fairly easily added.</p>
+
+<p>Here is the <code class="highlighter-rouge">QMatrixCodon</code> class in its entirety. Some explanation of how the rate matrix is constructed follows the code; explanations of the <code class="highlighter-rouge">QMatrixNucleotide</code> functions above apply equally well to most of the <code class="highlighter-rouge">QMatrixCodon</code> functions, with the exception of those member functions pertaining to the omega parameter, which of course are implemented in <code class="highlighter-rouge">QMatrixCodon</code>, while in this case it is the exchangeabilities that are not used (and <code class="highlighter-rouge">assert(false)</code> statements are used to detect any calls made to functions that get or set exchangeabilities).</p>
+
+<p>Note that we are using <code class="highlighter-rouge">Eigen::VectorXd</code> now as the type of <code class="highlighter-rouge">_eigenvalues</code> instead of the <code class="highlighter-rouge">Eigen::Vector4d</code> that we used in <code class="highlighter-rouge">QMatrixNucleotide</code>. The <code class="highlighter-rouge">Xd</code> means that the size of the vector is not hard coded, which is important because codon models vary in the number of states depending on which genetic code applies (due to variation in the number of stop codons). Also, the <code class="highlighter-rouge">Eigen::Matrix</code> type that is used for <code class="highlighter-rouge">_eigenvectors</code> and other matrix data members has <code class="highlighter-rouge">Eigen::Dynamic</code> instead of <code class="highlighter-rouge">4</code> as template arguments. This generality (with its added computational cost) is not required for the GTR model, so the polymorphism of the <code class="highlighter-rouge">QMatrix</code> family allows us to use fixed-size matrices and vectors in <code class="highlighter-rouge">QMatrixNucleotide</code> to make the eigensystem calculations more efficient for the very common case of nucleotide data and GTR-like models.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class QMatrixCodon : public QMatrix { 
+
+        public:
+            typedef Eigen::Matrix&amp;lt;double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor&amp;gt;      eigenMatrixXd_t;
+            typedef Eigen::VectorXd                                                             eigenVectorXd_t;
+        
+                                        QMatrixCodon(GeneticCode::SharedPtr gcode);
+                                        ~QMatrixCodon();
+        
+            void                        clear();
+
+            void                        setEqualStateFreqs(freq_xchg_ptr_t freq_ptr);
+            void                        setStateFreqsSharedPtr(freq_xchg_ptr_t freq_ptr);
+            void                        setStateFreqs(freq_xchg_t &amp; freqs);
+            freq_xchg_ptr_t             getStateFreqsSharedPtr();
+            const double *              getStateFreqs() const;
+
+            void                        setEqualExchangeabilities(freq_xchg_ptr_t xchg_ptr);
+            void                        setExchangeabilitiesSharedPtr(freq_xchg_ptr_t xchg_ptr);
+            void                        setExchangeabilities(freq_xchg_t &amp; xchg);
+            freq_xchg_ptr_t             getExchangeabilitiesSharedPtr();
+            const double *              getExchangeabilities() const;
+
+            void                        setOmegaSharedPtr(omega_ptr_t omega_ptr);
+            void                        setOmega(omega_t omega);
+            omega_ptr_t                 getOmegaSharedPtr();
+            double                      getOmega() const;
+
+            const double *              getEigenvectors() const;
+            const double *              getInverseEigenvectors() const;
+            const double *              getEigenvalues() const;
+        
+        protected:
+        
+            virtual void                recalcRateMatrix();
+
+        private:
+        
+            // workspaces for computing eigenvectors/eigenvalues
+            eigenMatrixXd_t             _sqrtPi;
+            eigenMatrixXd_t             _sqrtPiInv;
+            eigenMatrixXd_t             _Q;
+            eigenMatrixXd_t             _eigenvectors;
+            eigenMatrixXd_t             _inverse_eigenvectors;
+            eigenVectorXd_t             _eigenvalues;
+
+            freq_xchg_ptr_t             _state_freqs;
+            omega_ptr_t                 _omega;
+
+            std::vector&amp;lt;std::string&amp;gt;    _codons;
+            std::vector&amp;lt;unsigned&amp;gt;       _amino_acids;
+        
+            GeneticCode::SharedPtr      _genetic_code;
+    };
+    
+    inline QMatrixCodon::QMatrixCodon(GeneticCode::SharedPtr gcode) {
+        //std::cout &amp;lt;&amp;lt; "Constructing a QMatrixCodon object" &amp;lt;&amp;lt; std::endl;
+        assert(gcode);
+        _genetic_code = gcode;
+        clear();
+    }
+
+    inline QMatrixCodon::~QMatrixCodon() {
+        //std::cout &amp;lt;&amp;lt; "Destroying a QMatrixCodon object" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void QMatrixCodon::clear() {
+        QMatrix::clear();
+
+        unsigned nstates = _genetic_code-&amp;gt;getNumNonStopCodons();
+        _genetic_code-&amp;gt;copyCodons(_codons);
+        _genetic_code-&amp;gt;copyAminoAcids(_amino_acids);
+        
+        QMatrix::omega_t omega = 0.1;
+        _omega = std::make_shared&amp;lt;QMatrix::omega_t&amp;gt;(omega);
+        
+        QMatrix::freq_xchg_t freq_vect(nstates, 1./nstates);
+        _state_freqs = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(freq_vect);
+        
+        _sqrtPi.resize(nstates, nstates);
+        _sqrtPiInv.resize(nstates, nstates);
+        _Q.resize(nstates, nstates);
+        _eigenvectors.resize(nstates, nstates);
+        _inverse_eigenvectors.resize(nstates, nstates);
+        _eigenvalues.resize(nstates);
+        
+        recalcRateMatrix();
+    }
+
+    inline QMatrix::freq_xchg_ptr_t QMatrixCodon::getExchangeabilitiesSharedPtr() {
+        assert(false);
+        return nullptr;
+    }
+    
+    inline QMatrix::freq_xchg_ptr_t QMatrixCodon::getStateFreqsSharedPtr() {
+        return _state_freqs;
+    }
+
+    inline QMatrix::omega_ptr_t QMatrixCodon::getOmegaSharedPtr() {
+        return _omega;
+    }
+    
+    inline const double * QMatrixCodon::getEigenvectors() const {
+        return _eigenvectors.data();
+    }
+    
+    inline const double * QMatrixCodon::getInverseEigenvectors() const {
+        return _inverse_eigenvectors.data();
+    }
+    
+    inline const double * QMatrixCodon::getEigenvalues() const {
+        return _eigenvalues.data();
+    }
+    
+    inline const double * QMatrixCodon::getExchangeabilities() const {
+        assert(false);
+        return 0;
+    }
+
+    inline const double * QMatrixCodon::getStateFreqs() const {
+        return &amp;(*_state_freqs)[0];
+    }
+
+    inline double QMatrixCodon::getOmega() const {
+        return *_omega;
+    }
+
+    inline void QMatrixCodon::setEqualExchangeabilities(QMatrix::freq_xchg_ptr_t xchg_ptr) {
+        assert(false);
+    }
+    
+    inline void QMatrixCodon::setExchangeabilitiesSharedPtr(QMatrix::freq_xchg_ptr_t xchg_ptr) {
+        assert(false);
+    }
+    
+    inline void QMatrixCodon::setExchangeabilities(QMatrix::freq_xchg_t &amp; xchg) {
+        assert(false);
+    }
+    
+    inline void QMatrixCodon::setEqualStateFreqs(QMatrix::freq_xchg_ptr_t freq_ptr) {
+        _state_freqs = freq_ptr;
+        unsigned nstates = _genetic_code-&amp;gt;getNumNonStopCodons();
+        _state_freqs-&amp;gt;assign(nstates, 1./nstates);
+        recalcRateMatrix();
+    }
+    
+    inline void QMatrixCodon::setStateFreqsSharedPtr(QMatrix::freq_xchg_ptr_t freq_ptr) {
+        unsigned nstates = _genetic_code-&amp;gt;getNumNonStopCodons();
+        if (freq_ptr-&amp;gt;size() != nstates)
+            throw XStrom(boost::format("Expecting %d state frequencies and got %d: perhaps you meant to specify a subset data type other than codon") % nstates % freq_ptr-&amp;gt;size());
+        double sum_of_freqs = std::accumulate(freq_ptr-&amp;gt;begin(), freq_ptr-&amp;gt;end(), 0.0);
+        if (std::fabs(sum_of_freqs - 1.0) &amp;gt; 0.001)
+            throw XStrom(boost::format("Expecting sum of codon frequencies to be 1, but instead got %g") % sum_of_freqs);
+        _state_freqs = freq_ptr;
+        normalizeFreqsOrExchangeabilities(_state_freqs);
+        recalcRateMatrix();
+    }
+    
+    inline void QMatrixCodon::setStateFreqs(QMatrix::freq_xchg_t &amp; freqs) {
+        unsigned nstates = _genetic_code-&amp;gt;getNumNonStopCodons();
+        if (freqs.size() != nstates)
+            throw XStrom(boost::format("Expecting %d state frequencies and got %d: perhaps you meant to specify a subset data type other than codon") % nstates % freqs.size());
+        std::copy(freqs.begin(), freqs.end(), _state_freqs-&amp;gt;begin());
+        recalcRateMatrix();
+    }
+    
+    inline void QMatrixCodon::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) {
+        _omega = omega_ptr;
+        recalcRateMatrix();
+    }
+
+    inline void QMatrixCodon::setOmega(QMatrix::omega_t omega) {
+        *_omega = omega;
+        recalcRateMatrix();
+    }
+
+    inline void QMatrixCodon::recalcRateMatrix() {
+        // Must have assigned both _state_freqs and _omega to recalculate rate matrix
+        if (!_is_active || !(_state_freqs &amp;&amp; _omega))
+            return;
+        
+        unsigned nstates = _genetic_code-&amp;gt;getNumNonStopCodons();
+        assert(_state_freqs-&amp;gt;size() == nstates);
+        const double * pi = getStateFreqs();
+        double omega = getOmega();
+        
+        Eigen::Map&amp;lt;const Eigen::ArrayXd&amp;gt; tmp(_state_freqs-&amp;gt;data(), nstates);
+        _sqrtPi = tmp.sqrt().matrix().asDiagonal();
+        _sqrtPiInv = _sqrtPi.inverse();
+
+        // Calculate (unscaled) instantaneous rate matrix
+        _Q = Eigen::MatrixXd::Zero(nstates,nstates);
+
+        for (unsigned i = 0; i &amp;lt; nstates-1; i++) {
+            for (unsigned j = i+1; j &amp;lt; nstates; j++) {
+                unsigned diffs = 0;
+                if (_codons[i][0] != _codons[j][0])
+                    diffs++;
+                if (_codons[i][1] != _codons[j][1])
+                    diffs++;
+                if (_codons[i][2] != _codons[j][2])
+                    diffs++;
+                if (diffs == 1) {
+                    bool synonymous = _amino_acids[i] == _amino_acids[j];
+                    _Q(i,j) = (synonymous ? 1.0 : omega)*pi[j];
+                    _Q(j,i) = (synonymous ? 1.0 : omega)*pi[i];
+                    _Q(i,i) -= _Q(i,j);
+                    _Q(j,j) -= _Q(j,i);
+                }
+            }
+        }
+
+        double average_rate = 0.0;
+        for (unsigned i = 0; i &amp;lt; nstates; i++)
+            average_rate -= pi[i]*_Q(i,i);
+        double scaling_factor = 3.0/average_rate;
+        _Q *= scaling_factor;
+
+        // S is a symmetric matrix
+        eigenMatrixXd_t S = eigenMatrixXd_t(_sqrtPi*_Q*_sqrtPiInv);
+
+        // Can use efficient eigensystem solver because S is symmetric
+        Eigen::SelfAdjointEigenSolver&amp;lt;Eigen::MatrixXd&amp;gt; solver(S);
+        if (solver.info() != Eigen::Success) {
+            throw XStrom("Error in the calculation of eigenvectors and eigenvalues of the codon model rate matrix");
+        }
+
+        _eigenvectors           = _sqrtPiInv*solver.eigenvectors();
+        _inverse_eigenvectors   = solver.eigenvectors().transpose()*_sqrtPi;
+        _eigenvalues            = solver.eigenvalues();
+    }   
+
+</code></pre></div></div>
+
+<p>The element i,j of the instantaneous rate matrix in this codon model is 0 if codon states i and j differ by more than 1 nucleotide. The line</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>_Q = Eigen::MatrixXd::Zero(nstates,nstates);
+</code></pre></div></div>
+<p>initializes all elements of the rate matrix <code class="highlighter-rouge">_Q</code> to zero, so we only have to change those cells in which codons i and j are identical or differ by just one nucleotide. If the two codons differ by one nucleotide, and if the amino acid coded by both codons is identical, then this is a synonymous change and the rate is 1 times the frequency of codon j (the codon resulting from the change). If the “from” and “to” codons differ by just one nucleotide <em>and</em> the amino acid coded by each differs, then this is a nonsynonymous change and the rate would be omega times the frequency of codon j (the “to” codon). If codons i and j are identical, then the rate is the negative sum of all other rates in the same row.</p>
+
+<p>As was done for the nucleotide version, the rate matrix is calibrated so that one unit of time equals one nucleotide substitution per site. This calibration allows us to treat edge lengths (in units of substitutions per site) as if they were time. The calibration involves calculating the average rate implied by the matrix before calibration and then dividing each element of the rate matrix by <code class="highlighter-rouge">scaling_factor</code>, which is this average rate. We must also multiply by the factor 3 to account for the fact that each codon state is 3 nucleotides long.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-11/02-the-model-class.html">&lt;&nbsp;11.2</a> | 11.3 | <a href="/people/plewis/cpp//mac//steps/step-11/04-the-asrv-class.html">11.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1685 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Likelihood class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">10.1 The Likelihood class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-10/00-calculating-the-likelihood.html">&lt;&nbsp;10.0</a> | 10.1 | <a href="/people/plewis/cpp//win//steps/step-10/02-test-likelihood.html">10.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>Create a new header file named <em>likelihood.hpp</em>  containing the following code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;map&amp;gt;
+#include &amp;lt;boost/algorithm/string.hpp&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include &amp;lt;boost/shared_ptr.hpp&amp;gt;
+#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
+#include "libhmsbeagle/beagle.h"
+#include "tree.hpp"
+#include "data.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class Likelihood {  
+        public:
+                                                    Likelihood();
+                                                    ~Likelihood();
+
+            void                                    setRooted(bool is_rooted);
+            void                                    setPreferGPU(bool prefer_gpu);
+            void                                    setAmbiguityEqualsMissing(bool ambig_equals_missing);
+
+            bool                                    usingStoredData() const;
+            void                                    useStoredData(bool using_data);
+
+            std::string                             beagleLibVersion() const;
+            std::string                             availableResources() const;
+            std::string                             usedResources() const;
+
+            void                                    initBeagleLib();
+            void                                    finalizeBeagleLib(bool use_exceptions);
+
+            double                                  calcLogLikelihood(Tree::SharedPtr t);
+
+            Data::SharedPtr                         getData();
+            void                                    setData(Data::SharedPtr d);
+
+            void                                    clear();
+            
+            unsigned                                calcNumEdgesInFullyResolvedTree() const;
+            unsigned                                calcNumInternalsInFullyResolvedTree() const;
+
+        private:
+        
+            struct InstanceInfo {
+                int handle;
+                int resourcenumber;
+                std::string resourcename;
+                unsigned nstates;
+                unsigned nratecateg;
+                unsigned npatterns;
+                unsigned partial_offset;
+                unsigned tmatrix_offset;
+                std::vector&amp;lt;unsigned&amp;gt; subsets;
+                
+                InstanceInfo() : handle(-1), resourcenumber(-1), resourcename(""), nstates(0), nratecateg(0), npatterns(0), partial_offset(0), tmatrix_offset(0) {}
+            };
+
+            typedef std::pair&amp;lt;unsigned, int&amp;gt;        instance_pair_t;
+
+            unsigned                                getPartialIndex(Node * nd, InstanceInfo &amp; info) const;  
+            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const;   
+            void                                    updateInstanceMap(instance_pair_t &amp; p, unsigned subset);
+            void                                    newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices);
+            void                                    setTipStates();
+            void                                    setTipPartials();
+            void                                    setPatternPartitionAssignments();
+            void                                    setPatternWeights();
+            void                                    setAmongSiteRateHeterogenetity();
+            void                                    setModelRateMatrix();
+            void                                    addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);  
+            void                                    defineOperations(Tree::SharedPtr t);
+            void                                    updateTransitionMatrices();
+            void                                    calculatePartials();
+            double                                  calcInstanceLogLikelihood(InstanceInfo &amp; inst, Tree::SharedPtr t);
+
+
+            std::vector&amp;lt;InstanceInfo&amp;gt;               _instances;
+            std::map&amp;lt;int, std::string&amp;gt;              _beagle_error;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _operations;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _pmatrix_index;
+            std::map&amp;lt;int, std::vector&amp;lt;double&amp;gt; &amp;gt;     _edge_lengths;
+
+            std::vector&amp;lt;int&amp;gt;                        _subset_indices;
+            std::vector&amp;lt;int&amp;gt;                        _parent_indices;
+            std::vector&amp;lt;int&amp;gt;                        _child_indices;
+            std::vector&amp;lt;int&amp;gt;                        _tmatrix_indices;
+            std::vector&amp;lt;int&amp;gt;                        _weights_indices;
+            std::vector&amp;lt;int&amp;gt;                        _freqs_indices;
+            std::vector&amp;lt;int&amp;gt;                        _scaling_indices;
+        
+            Data::SharedPtr                         _data;
+            unsigned                                _ntaxa;
+            bool                                    _rooted;
+            bool                                    _prefer_gpu;
+            bool                                    _ambiguity_equals_missing;
+
+            bool                                    _using_data;
+
+        public:
+            typedef std::shared_ptr&amp;lt; Likelihood &amp;gt;   SharedPtr;
+    }; 
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor">Constructor</h2>
+
+<p>As in previous classes, the constructor reports (if the line was uncommented) that a <code class="highlighter-rouge">Likelihood</code> object was constructed and then calls the <code class="highlighter-rouge">clear</code> function to do the initialization work.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Likelihood::Likelihood() {   
+        //std::cout &amp;lt;&amp;lt; "Constructing a Likelihood" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="destructor">Destructor</h2>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Likelihood::~Likelihood() {  
+        //std::cout &amp;lt;&amp;lt; "Destroying a Likelihood" &amp;lt;&amp;lt; std::endl;
+        finalizeBeagleLib(false);
+        clear();
+    }   
+
+</code></pre></div></div>
+<p>The destructor calls the function <code class="highlighter-rouge">finalizeBeagleLib</code> to tell BeagleLib that our program is shutting down and its services will no longer be needed. If for some reason BeagleLib cannot shut down cleanly, an error message is output so that the user is informed. While it may be tempting to throw an <code class="highlighter-rouge">XStrom</code> exception here, C++11 implicitly assumes that destructors do not throw exceptions. Thus we avoid throwing an exception here (by passing <code class="highlighter-rouge">false</code> to the <code class="highlighter-rouge">finalizeBeagleLib</code> function) while still warning the user that something unusual happened.</p>
+
+<h2 id="the-calcnumedgesinfullyresolvedtree-member-function">The calcNumEdgesInFullyResolvedTree member function</h2>
+
+<p>This function returns the number of edges in a binary tree, taking into account whether the tree is rooted. This is used to allocate the correct amount of memory in BeagleLib for storing transition probability matrices.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Likelihood::calcNumEdgesInFullyResolvedTree() const {   
+        assert(_ntaxa &amp;gt; 0);
+        return (_rooted ? (2*_ntaxa - 2) : (2*_ntaxa - 3));
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-calcnuminternalsinfullyresolvedtree-member-function">The calcNumInternalsInFullyResolvedTree member function</h2>
+
+<p>This function returns the number of internal nodes in a binary tree, taking into account whether the tree is rooted. This is used to allocate the correct amount of memory in BeagleLib for partial likelihood arrays.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Likelihood::calcNumInternalsInFullyResolvedTree() const {  
+        assert(_ntaxa &amp;gt; 0);
+        return (_rooted ? (_ntaxa - 1) : (_ntaxa - 2));
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-finalizebeaglelib-member-function">The finalizeBeagleLib member function</h2>
+
+<p>This is used to shut down all active BeagleLib instances and erase the <code class="highlighter-rouge">_instances</code> vector. This function is called by the <code class="highlighter-rouge">Likelihood</code> constructor (via the <code class="highlighter-rouge">clear</code> member function) and destructor, and is also called by the <code class="highlighter-rouge">initBeagleLib</code> function to ensure that no instances already exist before creating new ones. The parameter <code class="highlighter-rouge">use_exceptions</code> is necessary because exceptions should not be thrown by a destructor (an implicit assumption in C++11); in this case, any error messages produced by BeagleLib need to be output using the standard error stream rather than by throwing an exception.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::finalizeBeagleLib(bool use_exceptions) {  
+        // Close down all BeagleLib instances if active
+        for (auto info : _instances) {
+            if (info.handle &amp;gt;= 0) {
+                int code = beagleFinalizeInstance(info.handle);
+                if (code != 0) {
+                    if (use_exceptions)
+                        throw XStrom(boost::format("Likelihood failed to finalize BeagleLib instance. BeagleLib error code was %d (%s).") % code % _beagle_error[code]);
+                    else
+                        std::cerr &amp;lt;&amp;lt; boost::format("Likelihood destructor failed to finalize BeagleLib instance. BeagleLib error code was %d (%s).") % code % _beagle_error[code] &amp;lt;&amp;lt; std::endl;
+                }
+            }
+        }
+        _instances.clear();
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+
+<p>The clear function of the <code class="highlighter-rouge">Likelihood</code> class is a little more complex than for previous classes because it creates the <code class="highlighter-rouge">_beagle_error</code> map.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::clear() {  
+        finalizeBeagleLib(true);
+        
+        _ntaxa                      = 0;
+        _rooted                     = false;
+        _prefer_gpu                 = false;
+        _ambiguity_equals_missing   = true;
+        _using_data                 = true;
+        _data                       = nullptr;
+        
+        _operations.clear();
+        _pmatrix_index.clear();
+        _edge_lengths.clear();
+        _subset_indices.assign(1, 0);
+        _parent_indices.assign(1, 0);
+        _child_indices.assign(1, 0);
+        _tmatrix_indices.assign(1, 0);
+        _weights_indices.assign(1, 0);
+        _freqs_indices.assign(1, 0);
+        _scaling_indices.assign(1, 0);
+        
+        // Store BeagleLib error codes so that useful
+        // error messages may be provided to the user
+        _beagle_error.clear();
+        _beagle_error[0]  = std::string("success");
+        _beagle_error[-1] = std::string("unspecified error");
+        _beagle_error[-2] = std::string("not enough memory could be allocated");
+        _beagle_error[-3] = std::string("unspecified exception");
+        _beagle_error[-4] = std::string("the instance index is out of range, or the instance has not been created");
+        _beagle_error[-5] = std::string("one of the indices specified exceeded the range of the array");
+        _beagle_error[-6] = std::string("no resource matches requirements");
+        _beagle_error[-7] = std::string("no implementation matches requirements");
+        _beagle_error[-8] = std::string("floating-point range exceeded");
+    }  
+
+</code></pre></div></div>
+<p>The function first ensures that no instances of BeagleLib exist by calling <code class="highlighter-rouge">finalizeBeagleLib</code>.</p>
+
+<p>The <code class="highlighter-rouge">_beagle_error</code> map simply stores BeagleLib error codes (cryptic negative integers) and associates them with meaningful messages so that your users have some chance of knowing what went wrong if BeagleLib fails. The constructor fills the map with all possible error codes so that we are ready for any error code that BeagleLib can spit out.</p>
+
+<h2 id="the-beaglelibversion-availableresources-and-usedresources-member-functions">The beagleLibVersion, availableResources, and usedResources member functions</h2>
+
+<p>The <code class="highlighter-rouge">beagleLibVersion</code> function is useful for obtaining the version of BeagleLib being used. The <code class="highlighter-rouge">availableResources</code> function queries BeagleLib and returns a string listing resources, which will include only the CPU resource unless you are using a machine that is set up for GPU processing.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Likelihood::beagleLibVersion() const {  
+        return std::string(beagleGetVersion());
+    }  
+    
+    inline std::string Likelihood::availableResources() const {  
+        BeagleResourceList * rsrcList = beagleGetResourceList();
+        std::string s;
+        for (int i = 0; i &amp;lt; rsrcList-&amp;gt;length; ++i) {
+            std::string desc = rsrcList-&amp;gt;list[i].description;
+            boost::trim(desc);
+            if (desc.size() &amp;gt; 0)
+                s += boost::str(boost::format("  resource %d: %s (%s)\n") % i % rsrcList-&amp;gt;list[i].name % desc);
+            else
+                s += boost::str(boost::format("  resource %d: %s\n") % i % rsrcList-&amp;gt;list[i].name);
+        }
+        boost::trim_right(s);
+        return s;
+    }  
+    
+    inline std::string Likelihood::usedResources() const {  
+        std::string s;
+        for (unsigned i = 0; i &amp;lt; _instances.size(); i++) {
+            s += boost::str(boost::format("  instance %d: %s (resource %d)\n") % _instances[i].handle % _instances[i].resourcename % _instances[i].resourcenumber);
+        }
+        return s;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getdata-and-setdata-member-functions">The getData and setData member functions</h2>
+
+<p>These functions allow you to associate a <code class="highlighter-rouge">Data</code> object with this <code class="highlighter-rouge">Likelihood</code> object. Note that the data to be used should be established before <code class="highlighter-rouge">initBeagleLib</code> is called, as the instances of BeagleLib created depend on the number of states and patterns in the data, hence the assert that checks to see that no BeagleLib instances exist.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Data::SharedPtr Likelihood::getData() {  
+        return _data;
+    }  
+    
+    inline void Likelihood::setData(Data::SharedPtr data) {  
+        assert(_instances.size() == 0);
+        assert(!data-&amp;gt;getDataMatrix().empty());
+        _data = data;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-setrooted-member-function">The setRooted member function</h2>
+
+<p>Sets the <code class="highlighter-rouge">_rooted</code> data member, which determines whether trees are to be considered rooted (<code class="highlighter-rouge">true</code>) or unrooted (<code class="highlighter-rouge">false</code>). The rooting status cannot be changed after BeagleLib instances are created in <code class="highlighter-rouge">initBeagelLib</code>, hence the assert that checks to see that no BeagleLib instances exist. If this function is called when <code class="highlighter-rouge">_rooted</code> is already equal to <code class="highlighter-rouge">is_rooted</code>, then the function call is a no-op (“no operation”), meaning that it has no effect. In this case, it does not matter whether BeagleLib instances have been created;  the second part of the assert prevents the assert from tripping in such cases.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setRooted(bool is_rooted) {  
+        assert(_instances.size() == 0 || _rooted == is_rooted); // can't change rooting status after initBeagleLib called
+        _rooted = is_rooted;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-setprefergpu-member-function">The setPreferGPU member function</h2>
+
+<p>Sets the <code class="highlighter-rouge">_prefer_gpu</code> data member, which determines whether BeagleLib should use GPU resources (<code class="highlighter-rouge">true</code>) or just the CPU version of the library (<code class="highlighter-rouge">false</code>). The GPU status cannot be changed after BeagleLib instances are created in <code class="highlighter-rouge">initBeagelLib</code>, hence the assert that checks to see that either no BeagleLib instances exist or that the call is a no-op.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setPreferGPU(bool prefer_gpu) {  
+        // Can't change GPU preference status after initBeagleLib called
+        assert(_instances.size() == 0 || _prefer_gpu == prefer_gpu);
+        _prefer_gpu = prefer_gpu;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-setambiguityequalsmissing-member-function">The setAmbiguityEqualsMissing member function</h2>
+
+<p>Sets the <code class="highlighter-rouge">_ambiguity_equals_missing</code> data member, which determines whether ambiguous states in the data are treated as if they were completely missing data. Treating ambiguities as missing data is both considerably faster computationally and requires less memory because states for tips can be stored directly rather than in the form of partial likelihood arrays.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setAmbiguityEqualsMissing(bool ambig_equals_missing) { 
+        // Can't change GPU preference status after initBeagleLib called
+        assert(_instances.size() == 0 || _ambiguity_equals_missing == ambig_equals_missing);
+        _ambiguity_equals_missing = ambig_equals_missing;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-usestoreddata-member-function">The useStoredData member function</h2>
+
+<p>This function allows you to toggle whether data stored is actually used when computing the likelihood. If <code class="highlighter-rouge">_using_data</code> is <code class="highlighter-rouge">false</code> (done by calling <code class="highlighter-rouge">useStoredData(false)</code>), the <code class="highlighter-rouge">calcLogLikelihood</code> function simply returns 0.0 and does not bother to compute anything. This will be useful for forcing an MCMC analysis to explore the prior distribution rather than the posterior distribution.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::useStoredData(bool using_data) {  
+        _using_data = using_data;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-usingstoreddata-member-function">The usingStoredData member function</h2>
+
+<p>This function allows you to determine whether data stored is being used when computing the likelihood. It simply returns the current value of <code class="highlighter-rouge">_using_data</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Likelihood::usingStoredData() const {   
+        return _using_data;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="graphical-overview-for-the-unpartitioned-case">Graphical overview for the unpartitioned case</h2>
+
+<p>Before diving into calling the BeagleLib functions that will set the stage for a likelihood calculation, it is useful to know the big picture. The figure below illustrates all the memory that must be allocated by BeagleLib before the likelihood can be computed. The example illustrated involves 5 taxa and only 8 sites (3 data patterns), with no data partitioning. The model is Jukes-Cantor with no rate heterogeneity. (<a href="/people/plewis/cpp/assets/img/unpartitioned.pdf">PDF version of this figure</a>)
+<a name="fig10-1">
+<img src="/people/plewis/cpp/assets/img/unpartitioned.png" alt="data elements needed by BeagleLib to compute the likelihood" title="Figure 10.1" class="center-image" /></a></p>
+
+<p class="center-image-caption"><em>Figure 10.1: Unpartitioned example</em></p>
+
+<p>The 7 transition probability matrices needed (one for each edge) are labeled with their indices (0,1,…,6). Each of these transition matrices is determined by a common eigensystem (eigenvectors and their corresponding eigenvalues), a common set of state frequencies (all 0.25 for the JC model), and the length of the edge to which the transition probability matrix belongs. There are 8 partials arrays (one for each node) and the partials arrays corresponding to leaf nodes (including the root, which is a leaf in this unrooted tree) are filled in with values corresponding to the 3 observed data patterns.</p>
+
+<h2 id="graphical-overview-for-the-partitioned-case">Graphical overview for the partitioned case</h2>
+
+<p>Here is the same example data but with a partition defined that separates the data into two subsets, with the first 2 patterns in subset 0 and the third pattern in subset 1. Furthermore, I’ve assumed an JC model for subset 0, and an F81 model with state frequencies 0.1, 0.2, 0.3, 0.4 for subset 1. Everything related to subset 1 is shown with lavender shading. This version of the example will help in understanding paths in the code that pertain to partitioned data. (<a href="/people/plewis/cpp/assets/img/partitioned.pdf">PDF version of this figure</a>)
+<a name="fig10-2">
+<img src="/people/plewis/cpp/assets/img/partitioned.png" alt="data elements needed by BeagleLib to compute the likelihood" title="Figure 10.2" class="center-image" /></a></p>
+
+<p class="center-image-caption"><em>Figure 10.2: Partitioned example with 2 subsets (relative rates 2.5 and 0.1)</em></p>
+
+<p>Note that the edge lengths have been adjusted using subset relative rates 2.5 (subset 0) and 0.1 (subset 1). These are valid (albeit arbitrary) subset relative rates because they result in a mean rate of 1.0:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2.5*(3/8) + 0.1*(5/8) = 1.0
+</code></pre></div></div>
+<p>The 3/8 and 5/8 terms in the calculation come from the fact that 3/8 of sites fall into subset 0 and 5/8 of sites fall into subset 1.</p>
+
+<p>Note also that twice as many transition probability matrices are needed in this partitioned example because there are two subsets and the edge lengths (as well as the eigenvectors, eigenvalues, and state frequencies) differ for each subset. The indices for the subset 1 transition probability matrices are offset by 7 from their subset 0 counterparts because there are 7 edge lengths.</p>
+
+<p>There are also two eigen decompositions and state frequency arrays needed because the substitution model differs between subsets.</p>
+
+<p>Finally, we still need just one set of partials (one partial array for each node). The part of each partial array pertaining to subset 1 is shown with lavender shading.</p>
+
+<h2 id="what-does-beaglelib-need">What does BeagleLib need?</h2>
+
+<p>Below is a description of all the major components that BeagleLib needs in order to compute the likelihood. Subsequent sections of this step of the tutorial each focus on the particular BeagleLib function that loads one or two of these components.</p>
+
+<p><strong>Partial likelihood arrays</strong></p>
+
+<blockquote>
+  <p>Partial likelihood arrays are all of length 12 in this example (4 values are required to hold the likelihood conditional on each of the 4 nucleotide states for each of the 3 patterns). Tip partials are shown with values corresponding to the nucleotide states shown; partials at internal nodes are shown as arrays of 12 elements, but the elements are occupied by gray rectangular placeholders instead of actual values.</p>
+</blockquote>
+
+<p><strong>Edge lengths</strong></p>
+
+<blockquote>
+  <p>The edge lengths are shown as white text on solid black boxes (or white text on solid purple boxes in the partitioned example).</p>
+</blockquote>
+
+<p><strong>Transition probability matrices</strong></p>
+
+<blockquote>
+  <p>Transition probability matrices are shown as 4 by 4 matrices containing 16 gray rectangular placeholders. The index of each transition probability matrix is indicated by the number in the center.</p>
+</blockquote>
+
+<p><strong>Pattern weights</strong></p>
+
+<blockquote>
+  <p>The 3 elements of this array hold the number of sites having each of the 3 patterns. In this example, the first site pattern occurs in 2 sites, the second pattern was found in only 1 site, and the third (constant) pattern was seen in 5 sites.</p>
+</blockquote>
+
+<p><strong>Category rates</strong></p>
+
+<blockquote>
+  <p>The relative substitution rate equals 1.0 when there is no rate heterogeneity among sites. Relative rate 1.0 means that every site evolves at 1.0 times the average rate (where the average rate is determined by the edge lengths).</p>
+</blockquote>
+
+<p><strong>Category weights</strong></p>
+
+<blockquote>
+  <p>Because we are assuming no rate heterogeneity, there is only one relative rate (1.0) and it has probability 1.0. The category weight is really the probability that a given site will experience that category’s rate. In this case, the probability is 1.0 that any given site will have relative rate 1.0.</p>
+</blockquote>
+
+<p><strong>Eigenvalues</strong></p>
+
+<blockquote>
+  <p>The Jukes-Cantor (JC) and Felsenstein 1981 (F81) instantaneous rate matricies used in the examples can be decomposed by <a href="https://en.wikipedia.org/wiki/Diagonalizable_matrix">diagonalization</a> into 4 eigenvalues, one of which equals 0 (reflecting the constraint that sequences neither grow nor shrink in length over time) with the other 3 all equal and negative, and 4 corresponding eigenvectors.</p>
+</blockquote>
+
+<p><strong>Eigenvectors</strong></p>
+
+<blockquote>
+  <p>These are the right eigenvectors of the JC (and, in <a href="#fig10-2">Fig. 10.2</a>, also F81) instantaneous rate matrix. Even though the eigenvectors are shown here as a matrix, BeagleLib expects the eigenvector matrix to be provided as an array with 16 elements. The first 4 elements correspond to the first row of the matrix, the next 4 elements correspond to the second row of the matrix, etc.</p>
+</blockquote>
+
+<p><strong>Inverse eigenvectors</strong></p>
+
+<blockquote>
+  <p>This is the inverse of the matrix of right eigenvectors. As with the eigenvector matrix, BeagleLib expects a flattened 16-element array, not a 2-dimensional array.</p>
+</blockquote>
+
+<p><strong>State frequencies</strong></p>
+
+<blockquote>
+  <p>The JC model specifies equal relative state frequencies. The F81 model allows arbitrary frequencies; the values 0.1, 0.2, 0.3, and 0.4 are assumed for the F81 model in <a href="#fig10-2">Fig. 10.2</a>.</p>
+</blockquote>
+
+<h2 id="tip-states-versus-tip-partials">Tip states versus tip partials</h2>
+
+<p>BeagleLib handles tips in one of two ways. We are currently allocating and using <em>tip partials</em> to store the observed data. In the figures above, this is clear from the fact that each state at a tip (leaf node) requires 4 values, all but one of which are zero if the state is unambiguous. This requires a lot of memory (and extra computation) but allows ambiguous observed states to be handled correctly. The alternative, which is possible only if states are unambiguous or completely ambiguous (i.e. missing data), is called <em>tip states</em>. If using tip states, we save only a single value for each observed state (e.g. 0 for A, 1 for C, 2 for G, and 3 for T; missing data is represented by a value equal to the number of states, which is 4 for nucleotide data) and save having to sum over four values for each tip state. Using tip states can lead to quite substantial savings computationally. Remember that more than half of the nodes in a tree are tips. Later in the tutorial, we will give users of our program an option that causes all ambiguities to be treated as missing data, which makes it possible to use tip states for every tip. BeagleLib makes it possible to use tip partials for some tips (those having ambiguous states for some sites) and tip states for other tips, but we will allow only all or none for purposes of this tutorial. Setting the data member <code class="highlighter-rouge">_ambiguity_equals_missing</code> to <code class="highlighter-rouge">true</code> (its value can be set using the member function <code class="highlighter-rouge">setAmbiguityEqualsMissing</code>) forces the use of tip <em>states</em> by converting all partial ambiguities to be completely missing data.</p>
+
+<p>Importantly, in BeagleLib, the indexing system used for internal node partials is the same whether tip states or tip partials are used. You might be lead to assume that, if tip states are used, internal node partials should be indexed starting at zero rather than the number of tips, but you would be wrong! If there are 5 tips (as in the figures above), then your first internal node partial should have index 5, not 0, even if you are using tip states. Internally, BeagleLib always allocates partials vectors as if tip partials was going to be used. If tips states are used, the first (number of tips) elements of these vectors are NULL (not allocated), so using an index of 0 when tip states are being used will lead to a memory fault as there is no memory allocated for partials at index 0.</p>
+
+<h2 id="the-initbeaglelib-member-function">The initBeagleLib member function</h2>
+
+<p>The <code class="highlighter-rouge">initBeagleLib</code> member function initializes BeagleLib, obtaining one or more BeagleLib instance handles (integer values) that are stored in the vector data member <code class="highlighter-rouge">_instance</code>. Before calling this function, you will need to know details about the data subsets you plan to analyze: the number of taxa, number of states (e.g. 4 for DNA), number of unique site patterns, number of rate categories for modeling among-site rate heterogeneity, whether the tree is rooted, and whether you prefer to use GPUs or the default CPU resource if there is a choice.</p>
+
+<p>Each <strong>BeagleLib instance</strong> is based on a particular fixed combination of number of states and number of rate categories. If all of your data is nucleotide and uses the same number of rate categories, then you will need only one BeagleLib instance, but if different combinations of number of states and number of rate categories exist across data subsets, then you will need to allocate multiple BeagleLib instances.</p>
+
+<p>Here is the body of the <code class="highlighter-rouge">initBeagleLib</code> function. The work of actually creating instances is farmed out to the member function <code class="highlighter-rouge">newInstance</code>, so much of what you see here is devoted to simply determining how many instances are needed. A <code class="highlighter-rouge">std::set</code> named <code class="highlighter-rouge">nstates_ncateg_combinations</code> is used to determine how many unique combinations of states and rates there are. For every unique combination there is an entry in the <code class="highlighter-rouge">std::map</code> named <code class="highlighter-rouge">subsets_for_pair</code> that stores the indices of all data subsets that have that particular combination. After <code class="highlighter-rouge">newInstance</code> is called to create each instance, the function concludes by setting the information that is data-specific (doesn’t depend on any particular tree toplogy).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::initBeagleLib() {  
+        assert(_data);
+
+        // Close down any existing BeagleLib instances
+        finalizeBeagleLib(true);
+
+        _ntaxa = _data-&amp;gt;getNumTaxa();
+        
+        unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+        std::set&amp;lt;instance_pair_t&amp;gt; nstates_ncateg_combinations;
+        std::map&amp;lt;instance_pair_t, std::vector&amp;lt;unsigned&amp;gt; &amp;gt; subsets_for_pair;
+        for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+            // Create a pair comprising number of states and number of rate categories
+            unsigned nstates = _data-&amp;gt;getNumStatesForSubset(subset);
+            int nrates = 1; // assuming no rate heterogeneity for now
+            instance_pair_t p = std::make_pair(nstates, nrates);
+            
+            // Add combo to set
+            nstates_ncateg_combinations.insert(p);
+            subsets_for_pair[p].push_back(subset);
+        }
+
+        // Create one instance for each distinct nstates-nrates combination
+        _instances.clear();
+        for (auto p : nstates_ncateg_combinations) {
+            newInstance(p.first, p.second, subsets_for_pair[p]);
+            
+            InstanceInfo &amp; info = *_instances.rbegin();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("Created BeagleLib instance %d (%d states, %d rate%s, %d subset%s)") % info.handle % info.nstates % info.nratecateg % (info.nratecateg == 1 ? "" : "s") % info.subsets.size() % (info.subsets.size() == 1 ? "" : "s")) &amp;lt;&amp;lt; std::endl;
+        }
+        
+        if (_ambiguity_equals_missing)
+            setTipStates();
+        else
+            setTipPartials();
+        setPatternWeights();
+        setPatternPartitionAssignments();
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-newinstance-member-function">The newInstance member function</h2>
+
+<p>This function is called by <code class="highlighter-rouge">initBeagleLib</code> to do the work of setting up individual instances. It is supplied with the number of states <code class="highlighter-rouge">nstates</code>, number of rate categories <code class="highlighter-rouge">nrates</code>, and a vector of indices of subsets that have this particular combination of <code class="highlighter-rouge">nstates</code> and <code class="highlighter-rouge">nrates</code>.</p>
+
+<p>The part of the code for this function that involves the <code class="highlighter-rouge">beagleCreateInstance</code> call will be described below the code block. At the end of the function, an <code class="highlighter-rouge">InstanceInfo</code> object is created with details of this particular instance and added to the <code class="highlighter-rouge">_instances</code> vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices) {  
+        unsigned num_subsets = (unsigned)subset_indices.size();
+        
+        unsigned ngammacat = (unsigned)nrates;
+        
+        unsigned num_patterns = 0;
+        for (auto s : subset_indices) {
+            num_patterns += _data-&amp;gt;getNumPatternsInSubset(s);
+        }
+        
+        unsigned num_internals = calcNumInternalsInFullyResolvedTree();
+
+        // add 1 to num_edges so that subroot node will have a tmatrix, root tip's tmatrix is never used
+        unsigned num_edges = 1 + calcNumEdgesInFullyResolvedTree();
+        unsigned num_tmats = num_edges*num_subsets;
+        
+        long requirementFlags = 0;
+
+        long preferenceFlags = BEAGLE_FLAG_PRECISION_SINGLE | BEAGLE_FLAG_THREADING_CPP;
+        if (_prefer_gpu)
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
+        else
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_CPU;
+        
+        BeagleInstanceDetails instance_details;
+        unsigned npartials = num_internals + _ntaxa;
+        unsigned nsequences = 0;
+        if (_ambiguity_equals_missing) {
+            npartials -= _ntaxa;
+            nsequences += _ntaxa;
+        }
+        
+        int inst = beagleCreateInstance(
+             _ntaxa,                      // tips
+             2*npartials,                 // partials
+             nsequences,                  // sequences
+             nstates,                     // states
+             num_patterns,                // patterns (total across all subsets that use this instance)
+             num_subsets,                 // models (one for each distinct eigen decomposition)
+             2*num_subsets*num_tmats,     // transition matrices
+             ngammacat,                   // rate categories
+             0,                           // scale buffers
+             NULL,                        // resource restrictions
+             0,                           // length of resource list
+             preferenceFlags,             // preferred flags
+             requirementFlags,            // required flags
+             &amp;instance_details);          // pointer for details
+        
+        if (inst &amp;lt; 0) {
+            // beagleCreateInstance returns one of the following:
+            //   valid instance (0, 1, 2, ...)
+            //   error code (negative integer)
+            throw XStrom(boost::str(boost::format("Likelihood init function failed to create BeagleLib instance (BeagleLib error code was %d)") % _beagle_error[inst]));
+        }
+        
+        InstanceInfo info;
+        info.handle         = inst;
+        info.resourcenumber = instance_details.resourceNumber;
+        info.resourcename   = instance_details.resourceName;
+        info.nstates        = nstates;
+        info.nratecateg     = ngammacat;
+        info.subsets        = subset_indices;
+        info.npatterns      = num_patterns;
+        info.partial_offset = num_internals;
+        info.tmatrix_offset = num_edges;
+        _instances.push_back(info);
+    } 
+
+</code></pre></div></div>
+
+<p>Note that <code class="highlighter-rouge">beagleCreateInstance</code> is a function defined by BeagleLib. Your program knows about it because you included the <em>beagle.h</em> header file at the top. The actual code for this function will not be stored in your program’s executable file; it will instead be loaded on demand from a Dynamic Link Library (provided by a file with a name that ends in <code class="highlighter-rouge">.dll</code> on Windows, <code class="highlighter-rouge">.dylib</code> on Mac, or <code class="highlighter-rouge">.so</code> in Unix) after your program begins to execute.</p>
+
+<p>Calling <code class="highlighter-rouge">beagleCreateInstance</code> requires you to provide a lot of details. Here is a short description of these in the order in which they are supplied to the function:</p>
+
+<p><strong>Number of tips</strong></p>
+
+<blockquote>
+  <p>This is the number of taxa in the tree.</p>
+</blockquote>
+
+<p><strong>Number of partials</strong></p>
+
+<blockquote>
+  <p>This is twice the number of partials (also known as partials arrays or conditional likelihood arrays), and should equal the number of internal nodes <em>plus</em> the number of tips (if tip partials are being used) or twice the number of internal nodes (if tip states are being used). Why twice? Planning ahead, we will eventually want two copies of every partial so that we can revert from failed Metropolis-Hastings proposals without having to recalculate partials (which is expensive). Right now, we don’t need the extra copies, but it seems prudent to write code now with the ultimate goal of MCMC in mind.</p>
+</blockquote>
+
+<p><strong>Number of sequences</strong></p>
+
+<blockquote>
+  <p>This is the number of observed sequences, which would equal the number of taxa if we were storing leaf states directly. Because the leaf states are being supplied as partials, however, we set this value to 0.</p>
+</blockquote>
+
+<p><strong>Number of states</strong></p>
+
+<blockquote>
+  <p>This is the number of states (e.g. 4 for DNA or RNA sequences, 20 for amino acid sequences, 61 for codons, etc.). Our program will only be using DNA sequences for now, so this value is set to 4. Note that because the number of states is fixed for any given instance, we will, eventually, need multiple BeagleLib instances to handle data subsets with different numbers of states.</p>
+</blockquote>
+
+<p><strong>Number of patterns</strong></p>
+
+<blockquote>
+  <p>This is the number of unique data patterns (you will later tell BeagleLib how many sites have each pattern). In <a href="#fig10-1">Fig. 10.1</a> and <a href="#fig10-2">10.2</a>, the number of patterns is 3.</p>
+</blockquote>
+
+<p><strong>Number of models</strong></p>
+
+<blockquote>
+  <p>This will be 1 if a single rate matrix and state frequencies are used for all sites (which is the case in the unpartitioned example shown in <a href="#fig10-1">Fig. 10.1</a> above). If the data are partitioned and a different model is applied to each subset (as in <a href="#fig10-2">Fig. 10.2</a>), then the value specified here should equal the number of subsets.</p>
+</blockquote>
+
+<p><strong>Number of transition matrices</strong></p>
+
+<blockquote>
+  <p>This is twice the number of transition matrices needed, which would equal twice the number of edges in the tree if no partitioning is done. In the example shown in <a href="#fig10-1">Fig. 10.1</a>, there are 7 edges and thus 14 transition probability matrices. In the partitioned example shown in <a href="#fig10-2">Fig. 10.2</a>, there are 7 edges and 2 data subsets, which have different subset relative rates as well as different models, necessitating separate edge lengths and transition matrices. The number supplied in the partitioned example would be 2<em>7</em>2=28 (and note in <a href="#fig10-2">Fig. 10.2</a> that the 28 transition matrices are indexed 0…27). Why twice? Again, we are planning ahead to when our program is performing MCMC analyses in which, often, a majority of proposed parameter updates fail. When a proposed update fails, it is much more computationally efficient to simply revert to the old transition matrices (and partials) than to recalcuate everything again (we’ve already done this work once, why repeat it?). Thus, we will always allocate twice as many transition matrices as we actually need to calculate the likelihood.</p>
+</blockquote>
+
+<p><strong>Number of rate categories</strong></p>
+
+<blockquote>
+  <p>If your model allows for rate heterogeneity across sites, this is the number of rate categories. Use 1 if rates are assumed equal across sites (this is the case in the examples shown in both <a href="#fig10-1">Fig. 10.1</a> and <a href="#fig10-2">10.2</a>). Note that the number of rate categories <strong>applies to all data subsets</strong>. If you wish to apply a model with no rate heterogeneity to one subset and a 4-category discrete gamma rate heterogeneity model to a different subset, you will either need to create two separate instances (one specifying 1 rate category and the other specifying 4 rate categories), or you will need to specify 4 and simply use 4 categories with all four rates equal to 1 to handle the first subset.</p>
+</blockquote>
+
+<p><strong>Number of scale buffers</strong></p>
+
+<blockquote>
+  <p>This has to do with scaling site likelihoods to avoid underflow, which is a concern for large trees, where site likelihoods can become so small that they cannot be distinguished them from zero given the number of bytes used to store the site likelihood value. The 0 value supplied here means we are not going to worry about scaling just yet.</p>
+</blockquote>
+
+<p><strong>Number of resource restrictions</strong></p>
+
+<blockquote>
+  <p>This is a pointer to a list of potential resources (e.g. GPUs) on which this instance is allowed; we’ve supplied NULL (points to nothing) to indicate that we do not wish to restrict resources).</p>
+</blockquote>
+
+<p><strong>Length of resource list</strong></p>
+
+<blockquote>
+  <p>The number of elements in the resource list supplied above (the pointer just points to the first element but stores no information about the total number of elements in the list, hence the need for this value); we’ve supplied 0 because we are not restricting BeagleLib.</p>
+</blockquote>
+
+<p><strong>Preferred flags</strong></p>
+
+<blockquote>
+  <p>These tell BeagleLib your preferences (a key to possible flags is given below).</p>
+</blockquote>
+
+<p><strong>Required flags</strong></p>
+
+<blockquote>
+  <p>These tell BeagleLib your requirements (a key to possible flags is given below).</p>
+</blockquote>
+
+<p><strong>Pointer for details</strong></p>
+
+<blockquote>
+  <p>This is a pointer to a BeagleInstanceDetails structure, which will store details about implementation and resources (i.e. the decisions BeagleLib made given your preferences and requirements).</p>
+</blockquote>
+
+<p>Here is the <code class="highlighter-rouge">BeagleFlags</code> enum in the <em>beagle.h</em> header file (this may change in a later version of BeagleLib, so consult the header file itself if you want to be sure to have the most accurate information for your version of BeagleLib):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*** NOTE: DO NOT ADD THIS TEXT TO YOUR PROGRAM ***
+
+enum BeagleFlags {
+BEAGLE_FLAG_PRECISION_SINGLE    = 1 &lt;&lt; 0,    /* Single precision computation */
+BEAGLE_FLAG_PRECISION_DOUBLE    = 1 &lt;&lt; 1,    /* Double precision computation */
+
+BEAGLE_FLAG_COMPUTATION_SYNCH   = 1 &lt;&lt; 2,    /* Synchronous computation (blocking) */
+BEAGLE_FLAG_COMPUTATION_ASYNCH  = 1 &lt;&lt; 3,    /* Asynchronous computation (non-blocking) */
+
+BEAGLE_FLAG_EIGEN_REAL          = 1 &lt;&lt; 4,    /* Real eigenvalue computation */
+BEAGLE_FLAG_EIGEN_COMPLEX       = 1 &lt;&lt; 5,    /* Complex eigenvalue computation */
+
+BEAGLE_FLAG_SCALING_MANUAL      = 1 &lt;&lt; 6,    /* Manual scaling */
+BEAGLE_FLAG_SCALING_AUTO        = 1 &lt;&lt; 7,    /* Auto-scaling on (deprecated, may not work correctly) */
+BEAGLE_FLAG_SCALING_ALWAYS      = 1 &lt;&lt; 8,    /* Scale at every updatePartials (deprecated, may not work correctly) */
+BEAGLE_FLAG_SCALING_DYNAMIC     = 1 &lt;&lt; 25,   /* Manual scaling with dynamic checking (deprecated, may not work correctly) */
+
+BEAGLE_FLAG_SCALERS_RAW         = 1 &lt;&lt; 9,    /* Save raw scalers */
+BEAGLE_FLAG_SCALERS_LOG         = 1 &lt;&lt; 10,   /* Save log scalers */
+
+BEAGLE_FLAG_INVEVEC_STANDARD    = 1 &lt;&lt; 20,   /* Inverse eigen vectors passed to BEAGLE have not been transposed */
+BEAGLE_FLAG_INVEVEC_TRANSPOSED  = 1 &lt;&lt; 21,   /* Inverse eigen vectors passed to BEAGLE have been transposed */
+
+BEAGLE_FLAG_VECTOR_SSE          = 1 &lt;&lt; 11,   /* SSE computation */
+BEAGLE_FLAG_VECTOR_AVX          = 1 &lt;&lt; 24,   /* AVX computation */
+BEAGLE_FLAG_VECTOR_NONE         = 1 &lt;&lt; 12,   /* No vector computation */
+
+BEAGLE_FLAG_THREADING_OPENMP    = 1 &lt;&lt; 13,   /* OpenMP threading */
+BEAGLE_FLAG_THREADING_NONE      = 1 &lt;&lt; 14,   /* No threading */
+
+BEAGLE_FLAG_PROCESSOR_CPU       = 1 &lt;&lt; 15,   /* Use CPU as main processor */
+BEAGLE_FLAG_PROCESSOR_GPU       = 1 &lt;&lt; 16,   /* Use GPU as main processor */
+BEAGLE_FLAG_PROCESSOR_FPGA      = 1 &lt;&lt; 17,   /* Use FPGA as main processor */
+BEAGLE_FLAG_PROCESSOR_CELL      = 1 &lt;&lt; 18,   /* Use Cell as main processor */
+BEAGLE_FLAG_PROCESSOR_PHI       = 1 &lt;&lt; 19,   /* Use Intel Phi as main processor */
+BEAGLE_FLAG_PROCESSOR_OTHER     = 1 &lt;&lt; 26,   /* Use other type of processor */
+
+BEAGLE_FLAG_FRAMEWORK_CUDA      = 1 &lt;&lt; 22,   /* Use CUDA implementation with GPU resources */
+BEAGLE_FLAG_FRAMEWORK_OPENCL    = 1 &lt;&lt; 23,   /* Use OpenCL implementation with GPU resources */
+BEAGLE_FLAG_FRAMEWORK_CPU       = 1 &lt;&lt; 27    /* Use CPU implementation */
+};
+</code></pre></div></div>
+
+<h2 id="the-settipstates-member-function">The setTipStates member function</h2>
+
+<p>This function is called in <code class="highlighter-rouge">initBeagleLib</code> if <code class="highlighter-rouge">_ambiguity_equals_missing</code> is true. It provides BeagleLib with the observed data for each leaf node in the tree. The data are stored in a <code class="highlighter-rouge">Data</code> object and made available to the function by means of the shared pointer data member <code class="highlighter-rouge">_data</code>. By the time these data are used, BeagleLib will know the length of this array of states (it is provided in the <code class="highlighter-rouge">beagleCreateInstance</code> function that was called in the <code class="highlighter-rouge">newInstance</code> member function above). Note that this function assumes that all necessary BeagleLib instances have already been created.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setTipStates() {   
+        assert(_instances.size() &amp;gt; 0);
+        assert(_data);
+        Data::state_t one = 1;
+
+        for (auto &amp; info : _instances) {
+            std::vector&amp;lt;int&amp;gt; states(info.nstates*info.npatterns);
+            
+            // Loop through all rows of the data matrix, setting the tip states for one taxon each row
+            unsigned t = 0;
+            for (auto &amp; row : _data-&amp;gt;getDataMatrix()) {
+            
+                // Loop through all subsets assigned to this instance
+                unsigned k = 0;
+                for (unsigned s : info.subsets) {
+                
+                    // Loop through all patterns in this subset
+                    auto interval = _data-&amp;gt;getSubsetBeginEnd(s);
+                    for (unsigned p = interval.first; p &amp;lt; interval.second; p++) {
+                    
+                        // d is the state for taxon t, pattern p (in subset s)
+                        // d is stored as a bit field (e.g., for nucleotide data, A=1, C=2, G=4, T=8, ?=15),
+                        // but BeagleLib expects states to be integers (e.g. for nucleotide data,
+                        // A=0, C=1, G=2, T=3, ?=4).
+                        Data::state_t d = row[p];
+                        
+                        // Handle common nucleotide case separately
+                        if (info.nstates == 4) {
+                            if (d == 1)
+                                states[k++] = 0;
+                            else if (d == 2)
+                                states[k++] = 1;
+                            else if (d == 4)
+                                states[k++] = 2;
+                            else if (d == 8)
+                                states[k++] = 3;
+                            else
+                                states[k++] = 4;
+                        }
+                        else {
+                            // This case is for any other data type except nucleotide
+                            int s = -1;
+                            for (unsigned b = 0; b &amp;lt; info.nstates; b++) {
+                                if (d == one &amp;lt;&amp;lt; b) {
+                                    s = b;
+                                    break;
+                                }
+                            }
+                            if (s == -1)
+                                states[k++] = info.nstates;
+                            else
+                                states[k++] = s;
+                        }
+                    } // pattern loop
+                }   // subset loop
+
+            int code = beagleSetTipStates(
+                info.handle,    // Instance number
+                t,              // Index of destination compactBuffer
+                &amp;states[0]);    //  Pointer to compact states vector
+
+            if (code != 0)
+                throw XStrom(boost::format("failed to set tip state for taxon %d (\"%s\"; BeagleLib error code was %d)") % (t+1) % _data-&amp;gt;getTaxonNames()[t] % code % _beagle_error[code]);
+            ++t;
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-settippartials-member-function">The setTipPartials member function</h2>
+<p>This function is called in <code class="highlighter-rouge">initBeagleLib</code> if <code class="highlighter-rouge">_ambiguity_equals_missing</code> is false. It provides BeagleLib with the observed data for each leaf node in the tree in the form of partials arrays (as in the examples from figures <a href="#fig10-1">10.1</a> and <a href="#fig10-2">10.2</a>). Using partials to store tip states requires more memory and comes with a substantial computation cost as well because this essentially doubles the number of loops over states needed in calculating the likelihood. Hence, we will give users the option (via <code class="highlighter-rouge">_ambiguity_equals_missing</code>) to treat all ambiguous states as fully missing if they wish to eliminate the additional computational burden associated with correctly handling ambiguities.</p>
+
+<p>As in <code class="highlighter-rouge">setTipStates</code>, the data are stored in a <code class="highlighter-rouge">Data</code> object and made available to the function by means of the shared pointer data member <code class="highlighter-rouge">_data</code>. Note that this function also assumes that all necessary BeagleLib instances have already been created.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setTipPartials() {  
+        assert(_instances.size() &amp;gt; 0);
+        assert(_data);
+        Data::state_t one = 1;
+        
+        for (auto &amp; info : _instances) {
+            if (info.nstates != 4)  
+                throw XStrom(boost::format("This program can handle only 4-state DNA/RNA data. You specified data having %d states for at least one data subset.") % info.nstates);  
+
+            std::vector&amp;lt;double&amp;gt; partials(info.nstates*info.npatterns);
+            
+            // Loop through all rows of data matrix, setting the tip states for one taxon each row
+            unsigned t = 0;
+            for (auto &amp; row : _data-&amp;gt;getDataMatrix()) {
+            
+                // Loop through all subsets assigned to this instance
+                unsigned k = 0;
+                for (unsigned s : info.subsets) {
+                
+                    // Loop through all patterns in this subset
+                    auto interval = _data-&amp;gt;getSubsetBeginEnd(s);
+                    for (unsigned p = interval.first; p &amp;lt; interval.second; p++) {
+                    
+                        // d is the state for taxon t, pattern p (in subset s)
+                        Data::state_t d = row[p];
+                        
+                        // Handle common nucleotide case separately
+                        if (info.nstates == 4) {
+                            partials[k++] = d &amp; 1 ? 1.0 : 0.0;  
+                            partials[k++] = d &amp; 2 ? 1.0 : 0.0;
+                            partials[k++] = d &amp; 4 ? 1.0 : 0.0;
+                            partials[k++] = d &amp; 8 ? 1.0 : 0.0;  
+                        }
+                        else {
+                            // This case is for any other data type except nucleotide
+                            for (unsigned b = 0; b &amp;lt; info.nstates; b++) {
+                                partials[k++] = d &amp; (one &amp;lt;&amp;lt; b) ? 1.0 : 0.0;
+                            }
+                        }
+                    }
+                }
+                
+            int code = beagleSetTipPartials(
+                info.handle,    // Instance number
+                t,              // Index of destination compactBuffer
+                &amp;partials[0]);  // Pointer to compact states vector
+
+            if (code != 0)
+                throw XStrom(boost::format("failed to set tip state for taxon %d (\"%s\"; BeagleLib error code was %d)") % (t+1) % _data-&amp;gt;getTaxonNames()[t] % code % _beagle_error[code]);
+            ++t;
+            }
+        }
+    } 
+
+</code></pre></div></div>
+
+<p>In the examples shown in Figures <a href="#fig10-1">10.1</a> and <a href="#fig10-2">10.2</a>, the original data set had 8 sites, compressed into just 3 patterns. (Yes, this is way smaller than any real data set, but having only 3 patterns allows me to show you complete leaf partials arrays!) The 3 site patterns are stored in the <code class="highlighter-rouge">data_matrix</code> retrieved from the <code class="highlighter-rouge">Data</code> object using the function call <code class="highlighter-rouge">_data-&gt;getDataMatrix()</code>. Each of the 3 states stored for each leaf requires <code class="highlighter-rouge">_nstates=4</code> floating point values, which explains why the vector <code class="highlighter-rouge">partials</code> defined at the top of this function has length <code class="highlighter-rouge">_states*_npatterns</code>.</p>
+
+<p>Consider the case of the second pattern in taxon 4 (leaf index 3), which has an ambiguous state Y that could be either a C or a T (i.e. either pyrimidine). The four floating point <em>partial likelihoods</em> used to store this information are 0.0, 1.0, 0.0, 1.0. The first and third values (both 0.0) correspond to A and G, respectively, while the second and fourth values (both 1.0) correspond to C and T.</p>
+
+<p>The four partials corresponding to one state are set in these four lines:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                            partials[k++] = d &amp; 1 ? 1.0 : 0.0;  
+                            partials[k++] = d &amp; 2 ? 1.0 : 0.0;
+                            partials[k++] = d &amp; 4 ? 1.0 : 0.0;
+                            partials[k++] = d &amp; 8 ? 1.0 : 0.0;  
+
+</code></pre></div></div>
+<p>You have to think in binary in order to make sense of these lines. The variable <code class="highlighter-rouge">d</code> holds a leaf state, which may be a combination of states (as for the pyrimidine ambiguity example above). The <code class="highlighter-rouge">d &amp; 1</code>, <code class="highlighter-rouge">d &amp; 2</code>, <code class="highlighter-rouge">d &amp; 4</code> and <code class="highlighter-rouge">d &amp; 8</code> expressions test, respectively, whether the state code <code class="highlighter-rouge">d</code> includes A (1), C (2), G (4) or T (8). For the pyrimidine example, the state code <code class="highlighter-rouge">d</code> would equal 2+8=10, which is 1010 in binary. The tests performed in these four lines are illustrated below:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>test for A      test for C      test for G      test for T
+  d   1010        d   1010        d   1010        d   1010
+  1   0001        2   0010        4   0100        8   1000
+----------      ----------      ----------      ----------
+d &amp; 1 0000      d &amp; 2 0010      d &amp; 4 0000      d &amp; 8 1000
+</code></pre></div></div>
+<p>Thus, the tests for C and T both result in <code class="highlighter-rouge">true</code> values (anything except 0) while the tests for A and G result in <code class="highlighter-rouge">false</code> value (both are 0000 because no 1 bits are in common).</p>
+
+<p>The best way to think about the meaning of these partial likelihood values is to imagine a point (X) immediately below the leaf Y (zero branch length separates X from Y). The four values 0.0, 1.0, 0.0, and 1.0, correspond to the probabilities of the state at Y given the state at X. The first 0.0 corresponds to state A at X and says that the probability of seeing a pyrimidine at Y given that there is an A at point X is 0.0 (because the zero branch length means there is no chance that the A at X could change into either a C or T at Y). The second 1.0 value corresponds to state C at X and says that the probability of seeing a pyrimidine at Y is 1.0 (certain) because there is already a pyrimidine at X and the zero branch length between X and Y means this pyrimidine cannot change to anything else.</p>
+
+<p>Partial likelihood arrays will also be calculated at internal nodes of the tree. Here, each cell  in the partials vector holds the likelihood (probability of all observed data) above that node in the tree given one particular state at that internal node. These internal node partials can be something other than 0.0 or 1.0 because there is length &gt; 0 associated with the edges in the subtree rooted at that internal node.</p>
+
+<h2 id="the-setpatternpartitionassignments-member-function">The setPatternPartitionAssignments member function</h2>
+
+<p>This function specifies the subset to which every pattern belongs. The only tricky part is that there may be several BeagleLib instances, and BeagleLib wants pattern and subset indices to be relative to a particular instance.</p>
+
+<p>For example, supposed there are 3 data subsets, and the first (index 0) and third (index 2) are in instance 0 and contain 5 and 6 patterns, respectively, while the second (index 1) is in a separate instance 1 and has 7 patterns. If these are the actual subset and pattern indices,</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>subset  | &lt;----- 0 -----&gt; | &lt;-------- 1 ---------&gt; | &lt;--------- 2 -------&gt; |
+pattern | 0  1  2  3  4   | 6  7  8  9  10  11  12 | 15  16  17  18  19  20|
+</code></pre></div></div>
+<p>then these are the indices BeagleLib wants for each instance:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Instance 0:
+subset  | &lt;---- 0 -----&gt; | &lt;----- 1 -----&gt; |
+pattern | 0  1  2  3  4  | 0  1  2  3  4  5|
+
+Instance 1:
+subset  | &lt;------- 0 -------&gt; |
+pattern | 0  1  2  3  4  5  6 |
+</code></pre></div></div>
+
+<p>The vector <code class="highlighter-rouge">v</code> is resized for each instance to hold the (relative) subset index for each pattern. Once this vector is filled, it is passed to BeagleLib via the <code class="highlighter-rouge">beagleSetPatternPartitions</code> function. For the example above, the vector <code class="highlighter-rouge">v</code> would look like this for the 2 instances:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Instance 0:
+v | 0  0  0  0  0  1  1  1  1  1  1|
+
+Instance 1:
+v | 0  0  0  0  0  0  0 |
+</code></pre></div></div>
+
+<p>Here is the body of the function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setPatternPartitionAssignments() {  
+        assert(_instances.size() &amp;gt; 0);
+        assert(_data);
+        
+        // beagleSetPatternPartitions does not need to be called if data are unpartitioned
+        // (and, in fact, BeagleLib only supports partitioning for 4-state instances if GPU is used,
+        // so not calling beagleSetPatternPartitions allows unpartitioned codon model analyses)
+        if (_instances.size() == 1 &amp;&amp; _instances[0].subsets.size() == 1)
+            return;
+        
+        Data::partition_key_t v;
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            unsigned nsubsets = (unsigned)info.subsets.size();
+            v.resize(info.npatterns);
+            unsigned pattern_index = 0;
+
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                // Loop through all patterns in this subset
+                auto interval = _data-&amp;gt;getSubsetBeginEnd(s);
+                for (unsigned p = interval.first; p &amp;lt; interval.second; p++) {
+                    v[pattern_index++] = instance_specific_subset_index;
+                }
+                ++instance_specific_subset_index;
+            }
+
+            int code = beagleSetPatternPartitions(
+               info.handle, // instance number
+               nsubsets,    // number of data subsets (equals 1 if data are unpartitioned)
+               &amp;v[0]);      // vector of subset indices: v[i] = 0 means pattern i is in subset 0
+
+            if (code != 0) {
+                throw XStrom(boost::format("failed to set pattern partition. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+            }
+        }
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-setpatternweights-member-function">The setPatternWeights member function</h2>
+
+<p>Before computing a likelihood, BeagleLib will need to know how many sites exhibited each site pattern in the data set: that is, the <strong>pattern counts</strong>. In the examples shown in Figures <a href="#fig10-1">10.1</a> and <a href="#fig10-2">10.2</a>, there are 3 patterns and the counts are 2, 1, 5. Some patterns will be found at a single site, whereas other patterns will be common to many sites (for example, constant patterns in which the same state is found for all taxa are relatively common). The <code class="highlighter-rouge">Data</code> class stores a vector of site counts for each pattern in its <code class="highlighter-rouge">_pattern_counts</code> data member, so all we have to do here is transfer those counts to our BeagleLib instance. Note that this function assumes that all necessary BeagleLib instances have already been created.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setPatternWeights() {  
+        assert(_instances.size() &amp;gt; 0);
+        assert(_data);
+        Data::pattern_counts_t v;
+        auto pattern_counts = _data-&amp;gt;getPatternCounts();
+        assert(pattern_counts.size() &amp;gt; 0);
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            v.resize(info.npatterns);
+            unsigned pattern_index = 0;
+
+            // Loop through all subsets assigned to this instance
+            for (unsigned s : info.subsets) {
+            
+                // Loop through all patterns in this subset
+                auto interval = _data-&amp;gt;getSubsetBeginEnd(s);
+                for (unsigned p = interval.first; p &amp;lt; interval.second; p++) {
+                    v[pattern_index++] = pattern_counts[p];
+                }
+            }
+
+            int code = beagleSetPatternWeights(
+               info.handle,   // instance number
+               &amp;v[0]);        // vector of pattern counts: v[i] = 123 means pattern i was encountered 123 times
+
+            if (code != 0)
+                throw XStrom(boost::format("Failed to set pattern weights for instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]);
+        }
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-setamongsiterateheterogenetity-member-function">The setAmongSiteRateHeterogenetity member function</h2>
+
+<p>BeagleLib handles rate heterogeneity in a very general way (as it handles all aspects of models). It expects you to provide it with an array of relative substitution rates and a corresponding array of rate probabilities. It does not care how you got these two arrays, so both rates and probabilities can be completely arbitrary (subject to certain constraints: probabilities must add to 1 and relative rates must have mean 1), but in this tutorial we will ultimately supply BeagleLib with rates and probabilities derived from the proportion of variable sites and discrete Gamma distribution widely used for modeling among-site rate heterogeneity.</p>
+
+<p>This function calls two BeagleLib functions, <code class="highlighter-rouge">beagleSetCategoryRates</code> (or <code class="highlighter-rouge">beagleSetCategoryRatesWithIndex</code>) and <code class="highlighter-rouge">beagleSetCategoryWeights</code>, both of which assume that a valid BeagleLib instance exists. For equal rates, the relative rate for each site is 1.0 and the probability that each site has that relative rate is also 1.0, so the rates and probs arrays passed to BeagleLib both have a single element that has value 1.0. This is the case shown in the examples illustrated by both <a href="#fig10-1">Fig. 10.1</a> and <a href="#fig10-2">Fig. 10.2</a>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setAmongSiteRateHeterogenetity() {  
+        assert(_instances.size() &amp;gt; 0);
+        int code = 0;
+        
+        // For now we are assuming rates among sites are equal
+        double rates[1] = {1.0};
+        double probs[1] = {1.0};
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+
+            // Loop through all subsets assigned to this instance
+            for (unsigned instance_specific_subset_index = 0; instance_specific_subset_index &amp;lt; info.subsets.size(); instance_specific_subset_index++) {
+            
+                code = beagleSetCategoryRatesWithIndex(
+                    info.handle,                    // instance number
+                    instance_specific_subset_index, // subset index
+                    rates);                         // vector containing rate scalers
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set category rates for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+
+                code = beagleSetCategoryWeights(
+                    info.handle,                    // Instance number
+                    instance_specific_subset_index, // Index of category weights buffer
+                    probs);                         // Category weights array (categoryCount)
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set category probabilities for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+            }
+        }
+    }  
+
+</code></pre></div></div>
+<p>Note that while <code class="highlighter-rouge">beagleSetCategoryRates</code> may be used to set rates in the unpartitioned case, we use <code class="highlighter-rouge">beagleSetCategoryRatesWithIndex</code> here just in case our data are partitioned: the <em>index</em> in the name of the function refers to the index (relative to the instance) of the data subset to which these rates will be applied. This allows, for example, a different gamma shape parameter to be used for each subset if a discrete gamma distribution is being used to model among-site rate heterogeneity.</p>
+
+<h2 id="the-setmodelratematrix-member-function">The setModelRateMatrix member function</h2>
+
+<p>BeagleLib handles the specification of a substitution model in a very general way. Specifically, it requires you to provide the equilibrium state frequencies and the eigenvalues and eigenvectors (and inverse eigenvectors) of the instantaneous rate matrix. We will be using the simplest model (the Jukes-Cantor, or JC69, model), which specifies equal base frequencies and a rate matrix in which all off-diagonal rates are identical. The BeagleLib function <code class="highlighter-rouge">beagleSetStateFrequencies</code> is used to transfer the state frequencies, and the function <code class="highlighter-rouge">beagleSetEigenDecomposition</code> is used to transfer the eigenvalues, eigenvectors, and inverse eigenvectors (all in the form of flat, single-dimensional arrays), to an existing BeagleLib instance. You may wonder why even simple models such as JC69, for which closed-form expressions (i.e. formulas) are available for transition probabilities, must be specified as eigensystems. The answer is that most models (e.g. GTR) used these days in phylogenetics are complex enough that transition probabilities must be computed by diagonalizing the rate matrix, so the approach used by BeagleLib is straightforward, flexible enough to allow quite complex models of evolution, and yet as simple as possible given the need to maintain generality. Don’t worry, the tutorial will later use the <a href="http://eigen.tuxfamily.org">Eigen</a> library to compute eigensystems for models - you will not need to hard code eigenvalue and eigenvectors for all models!</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::setModelRateMatrix() {  
+        assert(_instances.size() &amp;gt; 0);
+        int code = 0;
+        double state_freqs[4] = {0.25, 0.25, 0.25, 0.25};
+        
+        double eigenvalues[4] = {
+            -4.0/3.0,
+            -4.0/3.0,
+            -4.0/3.0,
+            0.0
+            };
+
+        double eigenvectors[16] = {
+            -1,   -1,  -1,  1,
+             0,    0,   1,  1,
+             0,    1,   0,  1,
+             1,    0,   0,  1
+            };
+
+        double inverse_eigenvectors[16] = {
+            -0.25,   -0.25,   -0.25,   0.75,
+            -0.25,   -0.25,    0.75,  -0.25,
+            -0.25,    0.75,   -0.25,  -0.25,
+             0.25,    0.25,    0.25,   0.25
+            };
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+
+            // Loop through all subsets assigned to this instance
+            for (unsigned instance_specific_subset_index = 0; instance_specific_subset_index &amp;lt; info.subsets.size(); instance_specific_subset_index++) {
+
+                code = beagleSetStateFrequencies(
+                     info.handle,                       // Instance number
+                     instance_specific_subset_index,    // Index of state frequencies buffer
+                     state_freqs);                      // State frequencies array (stateCount)
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set state frequencies for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+
+                 code = beagleSetEigenDecomposition(
+                    info.handle,                            // Instance number
+                    instance_specific_subset_index,         // Index of eigen-decomposition buffer
+                    (const double *)eigenvectors,           // Flattened matrix (stateCount x stateCount) of eigenvectors
+                    (const double *)inverse_eigenvectors,   // Flattened matrix (stateCount x stateCount) of inverse-eigenvectors
+                    eigenvalues);                           // Vector of eigenvalues
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("Failed to set eigen decomposition for BeagleLib instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+            }
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-defineoperations-member-function">The defineOperations member function</h2>
+
+<p>BeagleLib does not define or use trees <em>per se</em>. Instead, we must tell BeagleLib exactly which transition matrices to compute and which partial likelihoods to calculate in order to compute the likelihood. To do this, we traverse a tree (passed in using the shared pointer <code class="highlighter-rouge">t</code> to a <code class="highlighter-rouge">Tree</code> object) in reverse level-order sequence (i.e. visiting all descendants of an upper level before visiting any of the nodes at the next lower level) and create a list of “operations” for BeagleLib to carry out. We could visit nodes in postorder sequence (by visiting the <code class="highlighter-rouge">_preorder</code> vector in reverse order), but that would be less efficient (as explained earlier in the tutorial when we created the <code class="highlighter-rouge">_preorder</code> and <code class="highlighter-rouge">_levelorder</code> vectors) because all nodes at a given level can be calculated at the same time, yet postorder sequence makes us wait for some of these until dependent nodes at lower levels are finished.</p>
+
+<p>If data are <em>unpartitioned</em>, then the number of operations needed for a full likelihood calculation must equal the number of internal nodes. If data are <em>partitioned</em>, then the number of operations equals the number of internals multiplied by the number of subsets.</p>
+
+<p>Each operation is defined by providing 7 (unpartitioned data) or 9 (if data is partitioned) values in a particular sequence for each internal node. Here is a description of these values:</p>
+
+<p><strong>Destination partials</strong></p>
+
+<blockquote>
+  <p>The index of the internal node (leaf nodes are indexed from <code class="highlighter-rouge">0,...,n-1</code>, and internal nodes are indexed starting at <code class="highlighter-rouge">n</code>, which is the number of taxa). This value tells BeagleLib which partial (conditional likelihood array) to compute.</p>
+</blockquote>
+
+<p><strong>Destination scale write</strong></p>
+
+<blockquote>
+  <p>We provide the value <code class="highlighter-rouge">BEAGLE_OP_NONE</code> to indicate we are not scaling site likelihoods.</p>
+</blockquote>
+
+<p><strong>Destination scale read</strong></p>
+
+<blockquote>
+  <p>We provide the value <code class="highlighter-rouge">BEAGLE_OP_NONE</code> to indicate we are not scaling site likelihoods.</p>
+</blockquote>
+
+<p><strong>Left child partials</strong></p>
+
+<blockquote>
+  <p>The index of the left child node.</p>
+</blockquote>
+
+<p><strong>Left child transition matrix</strong></p>
+
+<blockquote>
+  <p>The index of the left child node. This tells BeagleLib which transition matrix to use to accommodate evolution along the edge leading to the left child.</p>
+</blockquote>
+
+<p><strong>Right child partials</strong></p>
+
+<blockquote>
+  <p>The index of the right child node.</p>
+</blockquote>
+
+<p><strong>Right child transition matrix</strong></p>
+
+<blockquote>
+  <p>The index of the right child node. This tells BeagleLib which transition matrix to use to accommodate evolution along the edge leading to the right child.</p>
+</blockquote>
+
+<p><strong>Subset index</strong></p>
+
+<blockquote>
+  <p>The index of the subset. This is the first of two values only supplied if data are partitioned.</p>
+</blockquote>
+
+<p><strong>Cumulative scale index</strong></p>
+
+<blockquote>
+  <p>This is the second of the two values only used if data are partitioned. We provide the value <code class="highlighter-rouge">BEAGLE_OP_NONE</code> to indicate we are not scaling site likelihoods.</p>
+</blockquote>
+
+<p>The operations array is flat, meaning that, if 3 operations are defined, the operations array will be a single-dimensional array having 21 elements (for unpartitioned data). While we are traversing the tree, we create a vector of node numbers (stored in the data member <code class="highlighter-rouge">_pmatrix_index</code>) and edge lengths (stored in the data member <code class="highlighter-rouge">_edge_lengths</code>) as they are encountered for use in the <code class="highlighter-rouge">calcLogLikelihood</code> function defined below.</p>
+
+<p>Important! When I say <em>unpartitioned</em> in the context of defining operations, what I really mean is <em>single data subset for a given BeagleLib instance</em>. Here is the body of the <code class="highlighter-rouge">defineOperations</code> member function: note that <code class="highlighter-rouge">_operations</code>, <code class="highlighter-rouge">_pmatrix_index</code>, and <code class="highlighter-rouge">_edge_lengths</code> are all <code class="highlighter-rouge">std::map</code> variables with keys equal to the instance handle and value equal to a <code class="highlighter-rouge">std::vector</code> (of <code class="highlighter-rouge">int</code> in the case of <code class="highlighter-rouge">_operations</code> and <code class="highlighter-rouge">_pmatrix_index</code>, and <code class="highlighter-rouge">double</code> in the case of <code class="highlighter-rouge">_edge_lengths</code>). Note also that the extra elements needed for “partitioned” data are only added to the <code class="highlighter-rouge">_operations</code> vector if there is more than one subset attached to a given instance. If there is just one subset for a given instance, even if there are multiple subsets total, then, for that instance, BeagleLib considers the data to be unpartitioned.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   
+        assert(_instances.size() &amp;gt; 0);
+        assert(t);
+        assert(t-&amp;gt;isRooted() == _rooted);
+        
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            _operations[info.handle].clear();
+            _pmatrix_index[info.handle].clear();
+            _edge_lengths[info.handle].clear();
+
+            // Loop through all subsets assigned to this instance
+            // Note: the loop below will generate a "warning: unused variable ‘s’" but 
+            // this will be fixed soon (s will be used in the next step of the tutorial)
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+
+                double subset_relative_rate = 1.0;  // assuming all subsets have equal relative rates for now
+                
+                // Loop through all nodes in reverse level order
+                for (auto nd : boost::adaptors::reverse(t-&amp;gt;_levelorder)) {
+                    assert(nd-&amp;gt;_number &amp;gt;= 0);
+                    if (!nd-&amp;gt;_left_child) {
+                        // This is a leaf
+                        if (nd-&amp;gt;isSelTMatrix()) {
+                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                            _pmatrix_index[info.handle].push_back(tindex);
+                            _edge_lengths[info.handle].push_back(nd-&amp;gt;_edge_length*subset_relative_rate);; 
+                        }
+                    }
+                    else {
+                        // This is an internal node
+                        if (nd-&amp;gt;isSelTMatrix()) {
+                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                            _pmatrix_index[info.handle].push_back(tindex);
+                            _edge_lengths[info.handle].push_back(nd-&amp;gt;_edge_length*subset_relative_rate);
+                        }
+
+                        // Internal nodes have partials to be calculated, so define
+                        // an operation to compute the partials for this node
+                        if (nd-&amp;gt;isSelPartial()) {
+                            Node * lchild = nd-&amp;gt;_left_child;
+                            assert(lchild);
+                            Node * rchild = lchild-&amp;gt;_right_sib;
+                            assert(rchild);
+                            addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
+                        }   // isSelPartial
+                    }   // internal node
+                }   // nd loop
+                ++instance_specific_subset_index;
+            }   // subsets loop
+        } // instances loop
+    }  
+
+</code></pre></div></div>
+<p>In the 5-taxon example illustrated in <a href="#fig10-1">Fig. 10.1</a> above, there are 3 internal partial arrays that need to be calculated and the data are unpartitioned, so the operations array will comprise <code class="highlighter-rouge">3*7=21</code> values. Here are the 21 values corresponding to the example shown in <a href="#fig10-1">Fig. 10.1</a>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>index      value         description
+-------------------------------------------------------
+   0         5           destination partials
+   1   BEAGLE_OP_NONE    destination scale write
+   2   BEAGLE_OP_NONE    destination scale read
+   3         4           left child partials
+   4         4           left child transition matrix
+   5         2           right child partials
+   6         2           right child transition matrix
+   
+   7         6           destination partials
+   8   BEAGLE_OP_NONE    destination scale write
+   9   BEAGLE_OP_NONE    destination scale read
+  10         1           left child partials
+  11         1           left child transition matrix
+  12         5           right child partials
+  13         5           right child transition matrix
+
+  14         7           destination partials
+  15   BEAGLE_OP_NONE    destination scale write
+  16   BEAGLE_OP_NONE    destination scale read
+  17         6           left child partials
+  18         6           left child transition matrix
+  19         3           right child partials
+  20         3           right child transition matrix
+</code></pre></div></div>
+
+<p>In the 5-taxon partitioned example illustrated in <a href="#fig10-2">Fig. 10.2</a> above, there are 3 internal partial arrays that need to be calculated, but the data are partitioned, so the operations array will comprise <code class="highlighter-rouge">3*2*9=54</code> values. Here are the 54 values corresponding to the example shown in <a href="#fig10-2">Fig. 10.2</a>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>index      value         description
+-------------------------------------------------------
+   0         5           destination partials
+   1   BEAGLE_OP_NONE    destination scale write
+   2   BEAGLE_OP_NONE    destination scale read
+   3         4           left child partials
+   4         4           left child transition matrix
+   5         2           right child partials
+   6         2           right child transition matrix
+   7         0           subset index
+   8   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
+   
+   9         5           destination partials
+  10   BEAGLE_OP_NONE    destination scale write
+  11   BEAGLE_OP_NONE    destination scale read
+  12         4           left child partials
+  13        11           left child transition matrix
+  14         2           right child partials
+  15         9           right child transition matrix
+  16         1           subset index
+  17   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
+   
+  18         6           destination partials
+  19   BEAGLE_OP_NONE    destination scale write
+  20   BEAGLE_OP_NONE    destination scale read
+  21         1           left child partials
+  22         1           left child transition matrix
+  23         5           right child partials
+  24         5           right child transition matrix
+  25         0           subset index
+  26   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
+
+  27         6           destination partials
+  28   BEAGLE_OP_NONE    destination scale write
+  29   BEAGLE_OP_NONE    destination scale read
+  30         1           left child partials
+  31         8           left child transition matrix
+  32         5           right child partials
+  33        12           right child transition matrix
+  34         1           subset index
+  35   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
+
+  36         7           destination partials
+  37   BEAGLE_OP_NONE    destination scale write
+  38   BEAGLE_OP_NONE    destination scale read
+  39         6           left child partials
+  40         6           left child transition matrix
+  41         3           right child partials
+  42         3           right child transition matrix
+  43         0           subset index
+  44   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
+
+  45         7           destination partials
+  46   BEAGLE_OP_NONE    destination scale write
+  47   BEAGLE_OP_NONE    destination scale read
+  48         6           left child partials
+  49        13           left child transition matrix
+  50         3           right child partials
+  51        10           right child transition matrix
+  52         1           subset index
+  53   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
+</code></pre></div></div>
+
+<h2 id="make-likelihood-a-friend-of-tree-and-node">Make Likelihood a friend of Tree and Node</h2>
+
+<p>The <code class="highlighter-rouge">defineOperations</code> member function body above accesses private data members of both the <code class="highlighter-rouge">Tree</code> and <code class="highlighter-rouge">Node</code> classes. To avoid compile-time errors, you will thus need to declare the <code class="highlighter-rouge">Likelihood</code> class to be a friend of both <code class="highlighter-rouge">Tree</code> and <code class="highlighter-rouge">Node</code>. In the <em>node.hpp</em> file, you should uncomment the 2 lines highlighted below:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+#include "split.hpp"
+
+namespace strom {
+
+    class Tree;
+    class TreeManip;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class Likelihood;&lt;/strong&gt;&lt;/span&gt;
+    //class Updater;
+
+    class Node {
+        friend class Tree;
+        friend class TreeManip;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class Likelihood;&lt;/strong&gt;&lt;/span&gt;
+        //friend class Updater;
+        
+
+</code></pre></div></div>
+<p>Uncomment the same 2 lines in the <em>tree.hpp</em> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;iostream&amp;gt;
+#include "node.hpp"
+
+namespace strom {
+
+    class TreeManip;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class Likelihood;&lt;/strong&gt;&lt;/span&gt;
+    //class Updater;
+
+    class Tree {
+
+            friend class TreeManip;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class Likelihood;&lt;/strong&gt;&lt;/span&gt;
+            //friend class Updater;
+            
+
+</code></pre></div></div>
+
+<h2 id="the-updatetransitionmatrices-member-function">The updateTransitionMatrices member function</h2>
+
+<p>This function recalculates all transition matrices. In the <code class="highlighter-rouge">defineOperations</code> member function, we created a vector (<code class="highlighter-rouge">_pmatrix_index</code>) for each instance containing the indices of all nodes that have a transition matrix needing to be recomputed, and we also created instance-specific vectors of <code class="highlighter-rouge">_edge_lengths</code> containing the edge lengths corresponding to the nodes listed in <code class="highlighter-rouge">_pmatrix_index</code>, so here all we need do is provide these lists to BeagleLib.</p>
+
+<p>There are two functions in BeagleLib that are concerned with updating transition matrices: <code class="highlighter-rouge">beagleUpdateTransitionMatrices</code> and <code class="highlighter-rouge">beagleUpdateTransitionMatricesWithMultipleModels</code>.  The function <code class="highlighter-rouge">beagleUpdateTransitionMatrices</code> is used when not partitioning, while <code class="highlighter-rouge">beagleUpdateTransitionMatricesWithMultipleModels</code> is used when partitioning. Again, partitioning is considered on an individual instance basis: if data are partitioned, but a particular instance only deals with one data subset, then, from the perspective of that instance, the data are <em>unpartitioned</em> and <code class="highlighter-rouge">beagleUpdateTransitionMatrices</code> would be used, not <code class="highlighter-rouge">beagleUpdateTransitionMatricesWithMultipleModels</code>.</p>
+
+<p>The first argument must be a valid BeagleLib instance, the second argument is the index of the eigen decomposition to use (0 in our case because there is only one), the third argument is the address of the first element of the array of node indices specifying the transition matrices to be computed, the fourth and fifth arguments are <code class="highlighter-rouge">NULL</code> because we are not concerned with calculating first and second deriviatives, the sixth argument is the address of the first element of the array of edge lengths, and the seventh and final argument is the number of transition probabilities to calculate.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::updateTransitionMatrices() {  
+        assert(_instances.size() &amp;gt; 0);
+        if (_pmatrix_index.size() == 0)
+            return;
+        unsigned num_edges = calcNumEdgesInFullyResolvedTree();
+        std::vector&amp;lt;int&amp;gt; eigen_indices;
+        std::vector&amp;lt;int&amp;gt; category_rate_indices;
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            int code = 0;
+
+            unsigned nsubsets = (unsigned)info.subsets.size();
+            if (nsubsets &amp;gt; 1) {
+                eigen_indices.resize(nsubsets*num_edges, 0);
+                category_rate_indices.resize(nsubsets*num_edges, 0);
+                unsigned k = 0;
+                for (unsigned s = 0; s &amp;lt; nsubsets; s++) {
+                    for (unsigned v = 0; v &amp;lt; num_edges; v++) {
+                        eigen_indices[k] = s;
+                        category_rate_indices[k] = s;
+                        k++;
+                    }
+                }
+                code = beagleUpdateTransitionMatricesWithMultipleModels(
+                    info.handle,                                // Instance number
+                    &amp;eigen_indices[0],                          // Index of eigen-decomposition buffer
+                    &amp;category_rate_indices[0],                  // category rate indices
+                    &amp;_pmatrix_index[info.handle][0],            // transition probability matrices to update
+                    NULL,                                       // first derivative matrices to update
+                    NULL,                                       // second derivative matrices to update
+                    &amp;_edge_lengths[info.handle][0],             // List of edge lengths
+                    (int)_pmatrix_index[info.handle].size());   // Length of lists
+            }
+            else {
+                code = beagleUpdateTransitionMatrices(
+                    info.handle,                                // Instance number
+                    0,                                          // Index of eigen-decomposition buffer
+                    &amp;_pmatrix_index[info.handle][0],            // transition probability matrices to update
+                    NULL,                                       // first derivative matrices to update
+                    NULL,                                       // second derivative matrices to update
+                    &amp;_edge_lengths[info.handle][0],             // List of edge lengths
+                    (int)_pmatrix_index[info.handle].size());   // Length of lists
+            }
+
+            if (code != 0)
+                throw XStrom(boost::str(boost::format("Failed to update transition matrices for instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+                
+        }   // instance loop
+    }  
+
+</code></pre></div></div>
+<p>The values of the arrays <code class="highlighter-rouge">_pmatrix_index</code>, and <code class="highlighter-rouge">_edge_lengths</code> that would be supplied to the <code class="highlighter-rouge">beagleUpdateTransitionMatrices</code> function for the example shown in <a href="#fig10-1">Fig. 10.1</a> are given below. Note that the values are in reverse level order sequence.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>index  _pmatrix_index  _edge_lengths
+------------------------------------
+  0           3            0.38      
+  1           2            0.11      
+  2           4            0.10      
+  3           1            0.23      
+  4           5            0.12      
+  5           6            0.13      
+  6           7            0.15      
+</code></pre></div></div>
+
+<p>The corresponding arrays for the partitioned example shown in <a href="#fig10-2">Fig. 10.2</a> are given below.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>index  _pmatrix_index  _edge_lengths
+------------------------------------
+  0           3            0.950      
+  1           2            0.275      
+  2           4            0.205      
+  3           1            0.575      
+  4           5            0.300      
+  5           6            0.325      
+  6           7            0.375      
+
+  7          10            0.038      
+  8           9            0.011      
+  9          11            0.010      
+ 10           8            0.023      
+ 11          12            0.012      
+ 12          13            0.013      
+ 13          14            0.015      
+</code></pre></div></div>
+
+<h2 id="the-calculatepartials-member-function">The calculatePartials member function</h2>
+
+<p>This function instructs BeagleLib to update all its partials using the information in the operations array. In the <code class="highlighter-rouge">defineOperations</code> member function, we created instance-specific vectors storing all the information BeagleLib needs, so here we simply allow it to copy these vectors stored in the <code class="highlighter-rouge">_operations</code> map.</p>
+
+<p>Once again, BeagleLib considers data to be partitioned if there is more than one subset attached to a particular instance. In this case, we use the BeagleLib function <code class="highlighter-rouge">beagleUpdatePartialsByPartition</code> to carry out the update. For unpartitioned data (instances in which only one data subset is attached), we use the <code class="highlighter-rouge">beagleUpdatePartials</code> BeagleLib function.</p>
+
+<p>The first argument of either of these functions must be a valid BeagleLib instance, the second argument is the address of the starting element of the appropriate vector stored in <code class="highlighter-rouge">_operations</code>, the third argument is the number of elements in this operations vector, and the final argument (<code class="highlighter-rouge">beagleUpdatePartials</code> only) is the index of the scale buffer used to store accumulated scaling factors, but because we are not scaling site likelihoods currently, we supply the value <code class="highlighter-rouge">BEAGLE_OP_NONE</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::calculatePartials() {  
+        assert(_instances.size() &amp;gt; 0);
+        if (_operations.size() == 0)
+            return;
+        int code = 0;
+        
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            unsigned nsubsets = (unsigned)info.subsets.size();
+
+            if (nsubsets &amp;gt; 1) {
+                code = beagleUpdatePartialsByPartition(
+                    info.handle,                                                    // Instance number
+                    (BeagleOperationByPartition *) &amp;_operations[info.handle][0],    // BeagleOperation list specifying operations
+                    (int)(_operations[info.handle].size()/9));                      // Number of operations
+            }
+            else {
+                // no partitioning, just one data subset
+                code = beagleUpdatePartials(
+                    info.handle,                                        // Instance number
+                    (BeagleOperation *) &amp;_operations[info.handle][0],   // BeagleOperation list specifying operations
+                    (int)(_operations[info.handle].size()/7),           // Number of operations
+                    BEAGLE_OP_NONE);                                    // Index number of scaleBuffer to store accumulated factors
+            }
+            
+            if (code != 0) {
+                throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+            }
+        }
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-calcinstanceloglikelihood-member-function">The calcInstanceLogLikelihood member function</h2>
+
+<p>This member function does the work of computing the log-likelihood for just the data managed by a single BeagleLib instance. The <code class="highlighter-rouge">calcLogLikelihood</code> function (next) adds the log-likelihoods computed for each instance together to yield the overall log-likelihood.</p>
+
+<p>The only remaining BeagleLib function that needs to be called is <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoods</code>. We have computed partials for the tree down to the bottom-most internal node (node 7 in the examples shown in Figs. <a href="#fig10-1">10.1</a> and <a href="#fig10-2">10.2</a>), which will be considered the “parent” in the <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoods</code> function call (even though it is actually the only <em>descendant</em> of the root). The leaf node serving as the root (node 0 in the examples shown in Figs. <a href="#fig10-1">10.1</a> and <a href="#fig10-2">10.2</a>) in this unrooted tree will be considered the “child” in the <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoods</code> function call. There is thus one edge left that has not been accounted for, and that is the edge connecting the parent to the child.</p>
+
+<p>The 13 arguments supplied to the <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoods</code> function are:</p>
+
+<p><strong>Instance</strong></p>
+
+<blockquote>
+  <p>This must be a valid BeagleLib instance.</p>
+</blockquote>
+
+<p><strong>List of indices of parent partials buffers</strong></p>
+
+<blockquote>
+  <p>In our case, the list has only one element, which is the index of the parent node (the internal node having index 7).</p>
+</blockquote>
+
+<p><strong>List of indices of child partials buffers</strong></p>
+
+<blockquote>
+  <p>In our case, the list has only one element, which is the index of the child node (the leaf having index 0).</p>
+</blockquote>
+
+<p><strong>List of indices of transition probability matrices for this edge</strong></p>
+
+<blockquote>
+  <p>In our case, the list has only one element, which is the index of the child node.</p>
+</blockquote>
+
+<p><strong>List of indices of first derivative matrices</strong></p>
+
+<blockquote>
+  <p>We do not need to calculate first derivatives, so NULL is supplied for this.</p>
+</blockquote>
+
+<p><strong>List of indices of second derivative matrices</strong></p>
+
+<blockquote>
+  <p>We do not need to calculate second derivatives, so NULL is supplied for this.</p>
+</blockquote>
+
+<p><strong>List of weights to apply to each partials buffer</strong></p>
+
+<blockquote>
+  <p>This list supplies the relative rates and probabilities, of which there is only one set in our case, so we supply the index 0 here.</p>
+</blockquote>
+
+<p><strong>List of state frequencies for each partials buffer</strong></p>
+
+<blockquote>
+  <p>This list supplies the state frequencies, of which there is only one set in our case, so we supply the index 0 here.</p>
+</blockquote>
+
+<p><strong>List of scale buffers containing accumulated factors to apply to each partials buffer</strong></p>
+
+<blockquote>
+  <p>Because we are not protecting site likelihoods from underflow yet, we supply BEAGLE_OP_NONE here.</p>
+</blockquote>
+
+<p><strong>Number of partials buffers</strong></p>
+
+<blockquote>
+  <p>This is the number of elements in each of the lists supplied above. In our case, the number of partials buffers is just 1.</p>
+</blockquote>
+
+<p><strong>Destination for log-likelihood value</strong></p>
+
+<blockquote>
+  <p>This is the address of a <code class="highlighter-rouge">double</code> value in which will be stored the final log-likelihood.</p>
+</blockquote>
+
+<p><strong>Destination for first derivative value</strong></p>
+
+<blockquote>
+  <p>This is the address of a <code class="highlighter-rouge">double</code> value in which will be stored the first derivative (we supply NULL because we do not need first derivatives to be calculated).</p>
+</blockquote>
+
+<p><strong>Destination for second derivative value</strong></p>
+
+<blockquote>
+  <p>This is the address of a <code class="highlighter-rouge">double</code> value in which will be stored the second derivative (we supply NULL because we do not need second derivatives to be calculated).</p>
+</blockquote>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo &amp; info, Tree::SharedPtr t) {  
+        int code = 0;
+        unsigned nsubsets = (unsigned)info.subsets.size();
+        assert(nsubsets &amp;gt; 0);
+        
+        // Assuming there are as many transition matrices as there are edge lengths
+        assert(_pmatrix_index[info.handle].size() == _edge_lengths[info.handle].size());
+
+        int stateFrequencyIndex  = 0;
+        int categoryWeightsIndex = 0;
+        int cumulativeScalingIndex = BEAGLE_OP_NONE;
+        int child_partials_index   = getPartialIndex(t-&amp;gt;_root, info);
+        int parent_partials_index  = getPartialIndex(t-&amp;gt;_preorder[0], info);
+        int parent_tmatrix_index   = getTMatrixIndex(t-&amp;gt;_preorder[0], info, 0);
+
+        // storage for results of the likelihood calculation
+        std::vector&amp;lt;double&amp;gt; subset_log_likelihoods(nsubsets, 0.0);
+        double log_likelihood = 0.0;
+
+        if (nsubsets &amp;gt; 1) {
+            _parent_indices.assign(nsubsets, parent_partials_index);
+            _child_indices.assign(nsubsets, child_partials_index);
+            _weights_indices.assign(nsubsets, categoryWeightsIndex);
+            _scaling_indices.resize(nsubsets); 
+            _subset_indices.resize(nsubsets);
+            _freqs_indices.resize(nsubsets);
+            _tmatrix_indices.resize(nsubsets);
+            for (unsigned s = 0; s &amp;lt; nsubsets; s++) {
+                _scaling_indices[s]  = BEAGLE_OP_NONE; 
+                _subset_indices[s]  = s;
+                _freqs_indices[s]   = s;
+                _tmatrix_indices[s] = getTMatrixIndex(t-&amp;gt;_preorder[0], info, s); //index_focal_child + s*tmatrix_skip;
+            }
+            code = beagleCalculateEdgeLogLikelihoodsByPartition(
+                info.handle,                 // instance number
+                &amp;_parent_indices[0],         // indices of parent partialsBuffers
+                &amp;_child_indices[0],          // indices of child partialsBuffers
+                &amp;_tmatrix_indices[0],        // transition probability matrices for this edge
+                NULL,                        // first derivative matrices
+                NULL,                        // second derivative matrices
+                &amp;_weights_indices[0],        // weights to apply to each partialsBuffer
+                &amp;_freqs_indices[0],          // state frequencies for each partialsBuffer
+                &amp;_scaling_indices[0],        // scaleBuffers containing accumulated factors
+                &amp;_subset_indices[0],         // indices of subsets
+                nsubsets,                    // partition subset count
+                1,                           // number of distinct eigen decompositions
+                &amp;subset_log_likelihoods[0],  // address of vector of log likelihoods (one for each subset)
+                &amp;log_likelihood,             // destination for resulting log likelihood
+                NULL,                        // destination for vector of first derivatives (one for each subset)
+                NULL,                        // destination for first derivative
+                NULL,                        // destination for vector of second derivatives (one for each subset)
+                NULL);                       // destination for second derivative
+        }
+        else {
+            code = beagleCalculateEdgeLogLikelihoods(
+                info.handle,                 // instance number
+                &amp;parent_partials_index,      // indices of parent partialsBuffers
+                &amp;child_partials_index,       // indices of child partialsBuffers
+                &amp;parent_tmatrix_index,       // transition probability matrices for this edge
+                NULL,                        // first derivative matrices
+                NULL,                        // second derivative matrices
+                &amp;categoryWeightsIndex,       // weights to apply to each partialsBuffer
+                &amp;stateFrequencyIndex,        // state frequencies for each partialsBuffer
+                &amp;cumulativeScalingIndex,     // scaleBuffers containing accumulated factors
+                1,                           // Number of partialsBuffer
+                &amp;log_likelihood,             // destination for log likelihood
+                NULL,                        // destination for first derivative
+                NULL);                       // destination for second derivative
+        }
+
+        if (code != 0)
+            throw XStrom(boost::str(boost::format("failed to calculate edge logLikelihoods in CalcLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+
+        return log_likelihood;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-calcloglikelihood-member-function">The calcLogLikelihood member function</h2>
+
+<p>The final member function we need to define is the one that returns the log-likelihood for a tree. For now, we only consider unrooted trees, so the beginning of this function is concerned with ensuring that this is true. After that, the member functions <code class="highlighter-rouge">setModelRateMatrix</code>, <code class="highlighter-rouge">setAmongSiteRateHeterogenetity</code>, <code class="highlighter-rouge">defineOperations</code>, <code class="highlighter-rouge">updateTransitionMatrices</code> and <code class="highlighter-rouge">calculatePartials</code> are called: see the description of those functions above for an explanation of what they do.</p>
+
+<p>After everything is set up, all that is left to do is call the calcInstanceLogLikelihood member function, which returns the log-likelihood for just the data managed by a single BeagleLib instance. These instance-specific log-likelihoods are added together to produce the overall log-likelihood, which is then returned.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {  
+        assert(_instances.size() &amp;gt; 0);
+        
+        if (!_using_data)
+            return 0.0;
+
+        // Must call setData before calcLogLikelihood
+        assert(_data);
+
+        if (t-&amp;gt;_is_rooted)
+            throw XStrom("This version of the program can only compute likelihoods for unrooted trees");
+
+        // Assuming "root" is leaf 0
+        assert(t-&amp;gt;_root-&amp;gt;_number == 0 &amp;&amp; t-&amp;gt;_root-&amp;gt;_left_child == t-&amp;gt;_preorder[0] &amp;&amp; !t-&amp;gt;_preorder[0]-&amp;gt;_right_sib);
+
+        setModelRateMatrix();
+        setAmongSiteRateHeterogenetity();
+        defineOperations(t);
+        updateTransitionMatrices();
+        calculatePartials();
+
+        double log_likelihood = 0.0;
+        for (auto &amp; info : _instances) {
+            log_likelihood += calcInstanceLogLikelihood(info, t);
+        }
+        
+        return log_likelihood;
+    }  
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-10/00-calculating-the-likelihood.html">&lt;&nbsp;10.0</a> | 10.1 | <a href="/people/plewis/cpp//win//steps/step-10/02-test-likelihood.html">10.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

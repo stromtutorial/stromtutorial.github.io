@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the main function</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">2.3 Create the main function</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/02-create-tree-class.html">&lt;&nbsp;2.2</a> | 2.3 | <a href="/people/plewis/cpp//win//steps/step-02/04-test-node-and-tree.html">2.4&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Every C++ program must define an entry point in the form of a <code class="highlighter-rouge">main</code> function .</p>
+
+<p>Delete the existing file <em>strom.cpp</em> (right-click its name in the Solution Explorer, then choose <em>Remove</em>). Create a new file <em>main.cpp</em> (right-click <em>Source Files</em> folder, then choose <em>Add &gt; New Item…</em>, click <em>C++ File (.cpp)</em>) and add the following code to it, saving the file when done.</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt;	
+#include "node.hpp"
+#include "tree.hpp"
+
+using namespace strom;
+
+const double Node::_smallest_edge_length = 1.0e-12;
+
+int main(int argc, const char * argv[]) {
+    std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+    Tree tree;
+    std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+
+    return 0;
+}	
+
+</code></pre></div></div>
+
+<h2 id="explanation-of-maincpp">Explanation of <em>main.cpp</em></h2>
+<p>Recall that the data member <code class="highlighter-rouge">_smallest_edge_length</code> in the class <code class="highlighter-rouge">Node</code> was declared to be static, so we must initialize it in a source code file, and <code class="highlighter-rouge">main.cpp</code> is our only source code file, hence the line that sets <code class="highlighter-rouge">_smallest_edge_length</code>  to the very tiny value <code class="highlighter-rouge">1.0e-12</code>.</p>
+
+<p>The <code class="highlighter-rouge">main</code> function firsts announces that the program is starting to run (by displaying <code class="highlighter-rouge">Starting...</code> to standard output), then creates a <code class="highlighter-rouge">Tree</code> object having nodes made of <code class="highlighter-rouge">Node</code> objects, then announces that the program is finished running just before returning 0 (the exit code 0 tells the operating system that the program ended normally).</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/02-create-tree-class.html">&lt;&nbsp;2.2</a> | 2.3 | <a href="/people/plewis/cpp//win//steps/step-02/04-test-node-and-tree.html">2.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

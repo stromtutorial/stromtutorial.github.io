@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding program options</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">8.0 Adding program options</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 8.0 | <a href="/people/plewis/cpp//linux//steps/step-08/01-the-strom-class.html">8.1&nbsp;&gt;</a></h3>
+</div>
+
+<p>In this part, you will use the Boost Program Options library to add the ability to specify options on the command line so that information such as tree and data file names need not be hard coded.</p>
+
+<p>In the previous step, we hard-coded the name of the tree file into the main function. This forces our users to always name their data file <em>test.tre</em> or go to some trouble (editing <em>main.cpp</em> and recompiling the program) in order to change the file names. Software run from the command line normally requires some input from the user, and such user input is normally accommodated by command line options (or switches if they are boolean true/false options). We will use the <a href="https://www.boost.org/doc/libs/1_71_0/doc/html/program_options.html">Boost program_options library</a>  to manage these options for our project. In this part you will also create a <code class="highlighter-rouge">Strom</code> class of which one instance will be created. This <code class="highlighter-rouge">Strom</code> object will have a <code class="highlighter-rouge">run</code> method that is called once program options are processed.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="8-1">
+		<td>Step 8.1</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-08/01-the-strom-class.html">The Strom class</a></td>
+		<td><p>The <code class="highlighter-rouge">Strom</code> class encapsulates the program itself, providing “global” variables and access to command line options.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="8-2">
+		<td>Step 8.2</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-08/02-testing-program-options.html">Testing program options</a></td>
+		<td><p>Test the command line option capability by specifying the tree file to be processed on the command line.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 8.0 | <a href="/people/plewis/cpp//linux//steps/step-08/01-the-strom-class.html">8.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

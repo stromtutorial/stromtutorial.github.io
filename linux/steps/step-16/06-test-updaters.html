@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test the New Updaters</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">16.6 Test the New Updaters</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-16/05-pinvar-omega-updater.html">&lt;&nbsp;16.5</a> | 16.6 | <a href="/people/plewis/cpp//linux//steps/step-17/00-updating-the-tree.html">17.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="add-the-new-updaters-to-chaincreateupdaters">Add the new updaters to Chain::createUpdaters</h2>
+
+<p>In order to use the new Updater-derived classes, they must be added to the Chain class <code class="highlighter-rouge">_updaters</code> vector. This is done in <code class="highlighter-rouge">Chain::createUpdaters</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { 
+        _model = model;
+        _lot = lot;
+        _updaters.clear();
+
+        double wstd             = 1.0;
+        double sum_weights      = 0.0;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add state frequency parameter updaters to _updaters&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::state_freq_params_t &amp; statefreq_shptr_vect = _model-&amp;gt;getStateFreqParams();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto statefreq_shptr : statefreq_shptr_vect) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = StateFreqUpdater::SharedPtr(new StateFreqUpdater(statefreq_shptr));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(0.001);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters(std::vector&amp;lt;double&amp;gt;(statefreq_shptr-&amp;gt;getStateFreqsSharedPtr()-&amp;gt;size(), 1.0));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wstd); sum_weights += wstd;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add exchangeability parameter updaters to _updaters&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::exchangeability_params_t &amp; exchangeability_shptr_vect = _model-&amp;gt;getExchangeabilityParams();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto exchangeability_shptr : exchangeability_shptr_vect) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = ExchangeabilityUpdater::SharedPtr(new ExchangeabilityUpdater(exchangeability_shptr));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(1.0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wstd); sum_weights += wstd;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+        // Add rate variance parameter updaters to _updaters
+        Model::ratevar_params_t &amp; ratevar_shptr_vect = _model-&amp;gt;getRateVarParams();
+        for (auto ratevar_shptr : ratevar_shptr_vect) {
+            Updater::SharedPtr u = GammaRateVarUpdater::SharedPtr(new GammaRateVarUpdater(ratevar_shptr));
+            u-&amp;gt;setLikelihood(likelihood);
+            u-&amp;gt;setLot(lot);
+            u-&amp;gt;setLambda(1.0);
+            u-&amp;gt;setTargetAcceptanceRate(0.3);
+            u-&amp;gt;setPriorParameters({1.0, 1.0});
+            u-&amp;gt;setWeight(wstd); sum_weights += wstd;
+            _updaters.push_back(u);
+        }
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add pinvar parameter updaters to _updaters&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::pinvar_params_t &amp; pinvar_shptr_vect = _model-&amp;gt;getPinvarParams();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto pinvar_shptr : pinvar_shptr_vect) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = PinvarUpdater::SharedPtr(new PinvarUpdater(pinvar_shptr));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(0.5);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters({1.0, 1.0});&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wstd); sum_weights += wstd;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add omega parameter updaters to _updaters&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::omega_params_t &amp; omega_shptr_vect = _model-&amp;gt;getOmegaParams();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto omega_shptr : omega_shptr_vect) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = OmegaUpdater::SharedPtr(new OmegaUpdater(omega_shptr));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(1.0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters({1.0, 1.0});&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wstd); sum_weights += wstd;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add subset relative rate parameter updater to _updaters&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_model-&amp;gt;isFixedSubsetRelRates()) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = SubsetRelRateUpdater::SharedPtr(new SubsetRelRateUpdater(_model));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(1.0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters(std::vector&amp;lt;double&amp;gt;(_model-&amp;gt;getNumSubsets(), 1.0));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wstd); sum_weights += wstd;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                
+        for (auto u : _updaters) {
+            u-&amp;gt;calcProb(sum_weights);
+        }
+        
+        return (unsigned)_updaters.size();
+    } 
+
+</code></pre></div></div>
+
+<p>Be sure to add the appropriate headers to the top of the <em>chain.hpp</em> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "lot.hpp"
+#include "data.hpp"
+#include "tree.hpp"
+#include "model.hpp"
+#include "likelihood.hpp"
+#include "tree_manip.hpp"
+#include "updater.hpp"
+#include "gamma_ratevar_updater.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "omega_updater.hpp"&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "pinvar_updater.hpp"&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "statefreq_updater.hpp"&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "exchangeability_updater.hpp"&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "subset_relrate_updater.hpp"&lt;/strong&gt;&lt;/span&gt;
+
+
+</code></pre></div></div>
+
+<h2 id="run-strom">Run strom</h2>
+
+<h3 id="nucleotide-model-analysis">Nucleotide model analysis</h3>
+
+<p>Copy the following into your <em>strom.conf</em> file. This tests all updaters except for <code class="highlighter-rouge">OmegaUpdater</code> (we will test that one separately below).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile    = rbcl10.nex    
+treefile    = rbcl10.tre
+
+subset      = first:1-1314\3
+subset      = second:2-1314\3
+subset      = third:3-1314\3
+
+statefreq   = default:0.294667,0.189172,0.206055,0.310106
+rmatrix     = default:0.06082,0.27887,0.06461,0.06244,0.48492,0.04834
+ratevar     = default:1.0
+ratevar     = third:1.0
+pinvar      = default:0.1
+pinvar      = third:0.1
+ncateg      = default:4
+relrate     = default:1,2,3
+niter       = 10000
+samplefreq  = 10
+printfreq   = 100
+expectedLnL = -6676.396     
+
+</code></pre></div></div>
+
+<p>Run strom and verify that all model parameters are being updated (except tree topology and edge lengths) by viewing the <em>params.txt</em> file in the program <a href="https://beast.community/tracer">Tracer</a>. You should find that rAC-0, rAC-1, and rAC-2 all have identical values at every iteration. This is because we specified only one set of starting values for <code class="highlighter-rouge">rmatrix</code> and assigned these to <code class="highlighter-rouge">default</code>, which means that one set of exchangeabilities applies to all subsets. In other words, we linked exchangeabilities across subsets.</p>
+
+<p>On the other hand, we allowed the third codon position subset to have its own ratevar and pinvar parameters. so you should find that pinvar-0 and pinvar-1 are always identical but pinvar-2 takes a different trajectory (and ratevar-0 and ratevar-1 are identical while ratevar-2 is different).</p>
+
+<p>Our program treats subset relative rates as a single multivariate parameter, so you can either fix these or allow them to vary, but if you allow them to vary, they all will vary. Note that the rate of 3rd codon position sites is more than 7 times higher than the rate of 1st position sites and more than 8 times higher than 2nd position sites, which makes sense given that rbcL is a strongly conserved protein coding gene that allows few nonsynonynous substitutions.</p>
+
+<h3 id="codon-model-analysis">Codon model analysis</h3>
+
+<p>To estimate the nonsynonymous/synonymous rate ratio directly, specifying a single codon subset rather than 3 nucleotide subsets in your <code class="highlighter-rouge">strom.conf</code> file as shown below:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile    = rbcl10.nex    
+treefile    = rbcl10.tre
+
+subset      = default[codon,standard]:1-438
+
+statefreq   = default:equal
+omega       = default:0.05
+ncateg      = default:1
+pinvar      = default:[0.0]
+niter       = 10000 
+samplefreq  = 10
+printfreq   = 1000
+expectedLnL = -6301.68752     
+
+</code></pre></div></div>
+
+<p>The codon model will take much longer than the nucleotide analysis - this is typical unless your BeagleLib is able to take advantage of a GPU resource, which speeds up codon models proportionately more than nucleotide models due to the difference in the number of states (61 for the codon model vs. 4 for the nucleotide models).</p>
+
+<p>Because the codon model is so slow, you may wish to create a <strong>release version</strong> of the program that is optimized for speed and use that executable to run the codon example. To do this, add <code class="highlighter-rouge">buildtype=release</code> to the default options in your <em>meson.build</em> file, as shown below:</p>
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp',
+	&lt;span style="color:#0000ff"&gt;&lt;strong&gt;default_options : ['cpp_std=c++11','buildtype=release','prefix=/home/paul/Documents/strom/distr'],&lt;/strong&gt;&lt;/span&gt;
+	version : '1.0')
+cpp = meson.get_compiler('cpp')
+lib_filesystem = cpp.find_library('boost_filesystem', dirs: ['/home/paul/lib/static'], required: true)
+lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)
+lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: true)
+lib_beagle = cpp.find_library('hmsbeagle', dirs: ['/home/paul/lib/static'], required: true)
+incl_beagle = include_directories('/home/paul/include/libhmsbeagle-1')
+incl_ncl = include_directories('/home/paul/include')
+incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
+incl_eigen = include_directories('/home/paul/Documents/libraries/eigen-eigen-323c052e1731')
+executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_beagle,lib_ncl,lib_program_options,lib_filesystem], include_directories: [incl_beagle,incl_ncl,incl_boost,incl_eigen])
+install_data('strom.conf', install_dir: '.')
+install_data('rbcl10.nex', install_dir: '.')
+install_data('rbcl10.tre', install_dir: '.')
+install_data('rbcl738.nex', install_dir: '.')
+install_data('rbcl738nj.tre', install_dir: '.')
+install_data('test.tre', install_dir: '.')
+install_data('rbcL.nex', install_dir: '.')
+install_data('rbcLjc.tre', install_dir: '.')
+install_data('go.sh', install_dir: '.')
+install_data('datatest.nex', install_dir: '.')
+
+</code></pre></div></div>
+
+<p>The options possible for the default_options list can be found at the <a href="https://mesonbuild.com/Builtin-options.html">built-in options section of the Meson web site</a>.</p>
+
+<p>You should find that omega has a posterior mean of about 0.02 to 0.03. This small nonsynonymous/synonymous rate ratio implies that this gene is under strong stabilizing selection and mutations that change the amino acid in the corresponding protein are rarely preserved compared to mutations that have no effect on the protein primary structure.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-16/05-pinvar-omega-updater.html">&lt;&nbsp;16.5</a> | 16.6 | <a href="/people/plewis/cpp//linux//steps/step-17/00-updating-the-tree.html">17.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

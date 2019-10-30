@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test Reading and Storing Data</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">9.4 Test Reading and Storing Data</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-09/03-create-the-data-class.html">&lt;&nbsp;9.3</a> | 9.4 | <a href="/people/plewis/cpp//win//steps/step-10/00-calculating-the-likelihood.html">10.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="add-the-subset-command-line-option">Add the subset command line option</h2>
+<p>To test the new <code class="highlighter-rouge">Partition</code> and <code class="highlighter-rouge">Data</code> classes, we’ll need to modify <em>strom.hpp</em> to input partition subset specifications from the user. Begin by including some additional header files in <em>strom.hpp</em> and a shared pointer to a <code class="highlighter-rouge">Partition</code> object in the <code class="highlighter-rouge">Strom</code> class declaration:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "data.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include "tree_summary.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "partition.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;boost/filesystem.hpp&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                        Strom();
+                                        ~Strom();
+
+            void                        clear();
+            void                        processCommandLineOptions(int argc, const char * argv[]);
+            void                        run();
+        
+        private:
+
+            std::string                 _data_file_name;
+            std::string                 _tree_file_name;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Partition::SharedPtr        _partition;&lt;/strong&gt;&lt;/span&gt;
+
+            TreeSummary::SharedPtr      _tree_summary;
+
+            static std::string          _program_name;
+            static unsigned             _major_version;
+            static unsigned             _minor_version;
+
+    };
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<p>Next, modify the <code class="highlighter-rouge">Strom::processCommandLineOptions</code> function as follows:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_subsets;&lt;/strong&gt;&lt;/span&gt;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("treefile,t",  boost::program_options::value(&amp;_tree_file_name), "name of a tree file in NEXUS format")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")&lt;/strong&gt;&lt;/span&gt;
+        ;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        try {
+            const boost::program_options::parsed_options &amp; parsed = boost::program_options::parse_config_file&amp;lt; char &amp;gt;("strom.conf", desc, false);
+            boost::program_options::store(parsed, vm);
+        }
+        catch(boost::program_options::reading_file &amp; x) {
+            std::cout &amp;lt;&amp;lt; "Note: configuration file (strom.conf) not found" &amp;lt;&amp;lt; std::endl;
+        }
+        boost::program_options::notify(vm);
+
+        // If user specified --help on command line, output usage summary and quit
+        if (vm.count("help") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; desc &amp;lt;&amp;lt; "\n";
+            std::exit(1);
+        }
+
+        // If user specified --version on command line, output version and quit
+        if (vm.count("version") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) &amp;lt;&amp;lt; std::endl;
+            std::exit(1);
+        }
+    
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// If user specified --subset on command line, break specified partition subset&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// definition into name and character set string and add to _partition&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (vm.count("subset") &amp;gt; 0) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_partition.reset(new Partition());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto s : partition_subsets) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_partition-&amp;gt;parseSubsetDefinition(s);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+<p>Note that I’ve moved the <code class="highlighter-rouge">required()</code> call in <code class="highlighter-rouge">Strom::processCommandLineOptions</code> from the treefile command line option to the datafile command line option:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format") 
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name), "name of a tree file in NEXUS format") 
+
+</code></pre></div></div>
+<p>You could remove the <code class="highlighter-rouge">required()</code> call from all command line options; I only use it here because this means <code class="highlighter-rouge">program_options</code> takes care of informing the user if they forget to specify a data file on the command line or in the <em>strom.conf</em> file and, in this particular version, we are testing only whether our program can successfully read in data from a file; we are not testing anything about trees, so the user does not need to specify a tree file to test this version of the program.</p>
+
+<p>The section at the bottom (highlighted in blue) that processes a subset specification provided by the user is worth a little explanation. We start by making sure the data member <code class="highlighter-rouge">_partition</code>, which is a shared pointer to a <code class="highlighter-rouge">Partition</code>, actually points to something. The <code class="highlighter-rouge">shared_ptr</code> <code class="highlighter-rouge">reset</code> function creates a new <code class="highlighter-rouge">Partition</code> object and sets <code class="highlighter-rouge">_partition</code> to point to it. You’ll notice that I’ve highlighted a line at the top of the function that declares a variable named <code class="highlighter-rouge">partition_subsets</code> that is a vector of strings. This <em>vector</em> is provided to the options description for the subset option. If a single string variable were provided, only the last subset specified would be saved. However, because we specified a containiner, Boost Program Options will save all subset options specified by the user! We can thus iterate through this string vector, passing each of these strings to the <code class="highlighter-rouge">Partition</code> <code class="highlighter-rouge">parsSubsetDefinition</code> member function for processing.</p>
+
+<p>Now add the following (highlighted) line to the <code class="highlighter-rouge">Strom::clear</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name = "";
+        _tree_file_name = "";
+        _tree_summary   = nullptr;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_partition.reset(new Partition());&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+<p>This line ensures that a newly-constructed <code class="highlighter-rouge">Strom</code> object has a default partition in place.</p>
+
+<h2 id="create-a-data-file">Create a data file</h2>
+
+<p>Before running it, however, you will need to create a data file. Right-click on your <em>Data Files</em> filter inside the <em>strom</em> project (you created this filter before in order to save the <em>test.tre</em> file) and choose <em>Add &gt; New Item…</em> from the popup menu. Select <em>Utility</em> from the <em>Visual C++</em> menu on the left, then <em>Text File (.txt)</em> form the main panel. Name the file <em>rbcL.nex</em>.</p>
+
+<p>Here is a Nexus-formatted data file containing 60 sites from the large subunit of the gene encoding the enzyme RuBisCO (rbcL). Save this as the contents of <em>rbcL.nex</em>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#NEXUS
+
+[
+Sites 76-135 (counting from the first site after the starting methionine triplet)
+from selected taxa in the data used in: K Fučíková, PO Lewis, S Neupane, KG Karol, 
+and LA Lewis. 2019. Order, please! Uncertainty in the ordinal-level classification 
+of Chlorophyceae. PeerJ:e6899. DOI:10.7717/peerj.6899 (https://peerj.com/articles/6899/)
+]
+
+Begin data;
+    Dimensions ntax=14 nchar=60;
+    Format datatype=dna gap=-;
+    Matrix
+        Atractomorpha_echinata          CCTGATTATGTTGTAAGAGACACTGATATTCTTGCTGCTTTCCGTATGACTCCTCAACCA
+        Bracteacoccus_aerius            CCAGATTACGTAGTTAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCACAACCA
+        Bracteacoccus_minor             CCAGATTACGTAGTTAAAGATACTGACATTTTAGCTGCATTCCGTATGACTCCACAACCA
+        Chlorotetraedron_incus          CCTGATTACGTTATCAAAGATACTGATATTTTAGCAGCATTCCGTATGACTCCACAACCA
+        Chromochloris_zofingiensis      CCTGATTACGTAGTTAAAGATACAGATATTTTAGCAGCTTTCCGTATGACTCCTCAACCA
+        Kirchneriella_aperta            CCTGATTACGTAGTAAGAGAGACTGACATCTTAGCTGCATTCCGTATGACTCCACAACCA
+        Mychonastes_homosphaera         CCAGATTACGTTGTTAAAGATACTGACATCTTAGCAGCATTCCGTATGACTCCACAACCA
+        Neochloris_aquatica             CCAGATTATGTTGTAAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCTCAACCA
+        Ourococcus_multisporus          CCTGATTACGTTGTAAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCACAACCA
+        Pediastrum_duplex               CCAGATTATGTTGTAAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCTCAACCA
+        Pseudomuriella_schumacherensis  CCTGATTACGTAGTAAAAGAAACAGACATTCTAGCTGCATTCCGTATGACTCCTCAACCA
+        Rotundella_rotunda              CCAGATTACGTTGTAAAAGAAACTGATATTTTAGCAGCATTCCGTATGACTCCTCAACCA
+        Scenedesmus_obliquus            CCAGATTACGTTGTAAAAGATACTGATATTTTAGCAGCATTCCGTATGACTCCACAACCA
+        Stigeoclonium_helveticum        CCAGATTATATGGTTAAAGATACTGATATTCTTGCTGCTTTCCGTATGACTCCTCAACCT
+    ;
+end;
+
+</code></pre></div></div>
+
+<p>Right-clicking the <em>strom</em> project in the Solution Explorer pane, choosing <em>Properties</em>, then <em>Debugging</em>, and finally looking at <em>Working Directory</em> reveals that a program started running in the debugger will use <em>$(ProjectDir)</em> as its working directory. The directory pointed to by <em>$(ProjectDir)</em> is the directory in which the project file <em>strom.vcxproj</em> resides. This is therefore the directory in which you should have created the <em>rbcL.nex</em> file if you used the default <em>Location</em> in the <em>Add New Item</em> dialog box. Check, using Windows Explorer, that <em>rbcL.nex</em> is in the same directory as <em>strom.vcxproj</em>. If not, please move it to that directory before running the program.</p>
+
+<h2 id="specifying-the-data-file">Specifying the data file</h2>
+
+<p>You will need to specify the data file and partition information either on the command line (using <code class="highlighter-rouge">--datafile rbcL.nex --subset first:1-60\3 --subset second:2-60\3 --subset third:3-60\3</code>) or (better) create a text file named <em>strom.conf</em> containing these lines:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile = rbcL.nex 
+subset = first:1-60\3
+subset = second:2-60\3
+subset = third:3-60\3
+
+</code></pre></div></div>
+
+<h2 id="finding-the-current-working-directory">Finding the current working directory</h2>
+<p>We’ve already arranged for the data file to be in the working directory when strom is run, but users of your program may not know where strom is expecting data files to reside. You can help your future users by getting the program to tell you its current working directory when it starts up. We accomplish this by placing the following (highlighted) line just inside the <code class="highlighter-rouge">Strom::run</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;   
+        
+        try {   
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            Data d;
+            d.setPartition(_partition);
+            d.getDataFromFile(_data_file_name);
+
+            // Report information about data partition subsets
+            unsigned nsubsets = d.getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; d.getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                }
+            }   
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+}   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</code></pre></div></div>
+
+<p>This line is what required us to compile the Boost <code class="highlighter-rouge">file_system</code> and <code class="highlighter-rouge">system</code> libraries. To use the <code class="highlighter-rouge">current_path</code> function, you’ll note that we included the <em>boost/filesystem.hpp</em> header at the top of the <em>strom.hpp</em> file.</p>
+
+<h2 id="modifying-the-stromrun-function">Modifying the Strom::run function</h2>
+
+<p>Replace the <code class="highlighter-rouge">try</code> block in the <code class="highlighter-rouge">Strom::run</code> function with the highlighted lines below (and also add the highlighted line reporting the current working directory):</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;try {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Data d;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;d.setPartition(_partition);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;d.getDataFromFile(_data_file_name);&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Report information about data partition subsets&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned nsubsets = d.getNumSubsets();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; d.getNumTaxa() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+<p>The new code creates a <code class="highlighter-rouge">Data</code> object, informs it of the partition set up by the user in the config file or command line, and then reads the data file whose name was provided by the user via the <code class="highlighter-rouge">--datafile</code> command line option or <code class="highlighter-rouge">datafile</code> config file option.</p>
+
+<h2 id="adding-genetic-code-definitions-to-maincpp">Adding genetic code definitions to main.cpp</h2>
+
+<p>The <code class="highlighter-rouge">_definitions</code> data member of the <code class="highlighter-rouge">GeneticCode</code> class was declared static, so we need to initialize it outside of the <code class="highlighter-rouge">GeneticCode</code> class in a source code (cpp) file. As <em>main.cpp</em> is the only source code file in our project (all others are header files), we must modify <em>main.cpp</em> to initialize <em>_definitions</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+#include "strom.hpp"
+
+using namespace strom;
+
+// static data member initializations
+std::string  Strom::_program_name        = "strom";
+unsigned     Strom::_major_version       = 1;
+unsigned     Strom::_minor_version       = 0;
+const double Node::_smallest_edge_length = 1.0e-12;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;GeneticCode::genetic_code_definitions_t GeneticCode::_definitions = {&lt;/strong&gt;&lt;/span&gt;
+                             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// codon order is alphabetical: i.e. AAA, AAC, AAG, AAT, ACA, ..., TTT&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"standard",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"vertmito",             "KNKNTTTT*S*SMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"yeastmito",            "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"moldmito",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"invertmito",           "KNKNTTTTSSSSMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"ciliate",              "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVVQYQYSSSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"echinomito",           "NNKNTTTTSSSSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"euplotid",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSCCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"plantplastid",         "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"altyeast",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLSLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"ascidianmito",         "KNKNTTTTGSGSMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"altflatwormmito",      "NNKNTTTTSSSSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVVYY*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"blepharismamacro",     "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*YQYSSSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"chlorophyceanmito",    "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*YLYSSSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"trematodemito",        "NNKNTTTTSSSSMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"scenedesmusmito",      "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*YLY*SSS*CWCLFLF"},&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;{"thraustochytriummito", "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWC*FLF"}&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;};&lt;/strong&gt;&lt;/span&gt;
+
+int main(int argc, const char * argv[]) {
+    Strom strom;
+    try {
+        strom.processCommandLineOptions(argc, argv);
+        strom.run();
+    }
+    catch(std::exception &amp; x) {
+        std::cerr &amp;lt;&amp;lt; "Exception: " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        std::cerr &amp;lt;&amp;lt; "Aborted." &amp;lt;&amp;lt; std::endl;
+    }
+    catch(...) {
+        std::cerr &amp;lt;&amp;lt; "Exception of unknown type!\n";
+    }
+
+    return 0;
+} 
+
+</code></pre></div></div>
+
+<h2 id="expected-output">Expected output</h2>
+<p>After running the program, the output should contain these lines, indicating that there were 14 taxa, 3 partition subsets, 60 sites divided equally into each subset, and a total of 9 + 5 + 17 = 31 data patterns found in the <em>rbcL.nex</em> file:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Partition subset first comprises sites 1-60\3 and has type nucleotide
+Partition subset second comprises sites 2-60\3 and has type nucleotide
+Partition subset third comprises sites 3-60\3 and has type nucleotide
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+
+*** Reading and storing the data in the file rbcL.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 14
+Number of partition subsets: 3
+  Subset 1 (first)
+    data type: nucleotide
+    sites:     20
+    patterns:  7
+  Subset 2 (second)
+    data type: nucleotide
+    sites:     20
+    patterns:  5
+  Subset 3 (third)
+    data type: nucleotide
+    sites:     20
+    patterns:  17
+
+Finished!
+
+</code></pre></div></div>
+
+<h2 id="something-to-try">Something to try</h2>
+
+<p>To further test the data aspect of your program, create a file <em>datatest.nex</em> containing the DATA block from the <em>rbcL.nex</em> file plus two other blocks: (1) a CHARACTERS block containing the amino acid translation of the rbcL nucleotide data (as a test of reading protein data); and (2) a CHARACTERS block containing 5 (contrived) discrete morphological characters:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#nexus
+
+begin data;
+    dimensions ntax=14 nchar=60;
+    format datatype=dna gap=-;
+    matrix
+        Atractomorpha_echinata          CCTGATTATGTTGTAAGAGACACTGATATTCTTGCTGCTTTCCGTATGACTCCTCAACCA
+        Bracteacoccus_aerius            CCAGATTACGTAGTTAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCACAACCA
+        Bracteacoccus_minor             CCAGATTACCTAGTTAAAGATACTGACATTTTATCTGCATTCCGTATGACTCCACAACCA
+        Chlorotetraedron_incus          CCTGATTACGTTATCAAAGATACTGATATTTTAGCAGCATTCCGTATGACTCCACAACCA
+        Chromochloris_zofingiensis      CCTGATTACGTAGTTAAAGATACAGATATTTTAGCAGCTTTCCGTATGACTCCTCAACCA
+        Kirchneriella_aperta            CCTGATTACGTAGTAAGAGAGACTGACATCTTAGCTGCATTCCGTATGACTCCACAACCA
+        Mychonastes_homosphaera         CCAGATTACGTTGTTAAAGATACTGACATCTTAGCAGCATTCCGTATGACTCCACAACCA
+        Neochloris_aquatica             CCAGATTATGTTGTAAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCTCAACCA
+        Ourococcus_multisporus          CCTGATTACGTTGTAAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCACAACCA
+        Pediastrum_duplex               CCAGATTATGTTGTAAAAGATACTGATATTTTAGCTGCATTCCGTATGACTCCTCAACCA
+        Pseudomuriella_schumacherensis  CCTGATTACGTAGTAAAAGAAACAGACATTCTAGCTGCATTCCGTATGACTCCTCAACCA
+        Rotundella_rotunda              CCAGATTACGTTGTAAAAGAAACTGATATTTTAGCAGCATTCCGTATGACTCCTCAACCA
+        Scenedesmus_obliquus            CCA?ATTACGTTGTAAAAGATACTGATATTTTAGCAGCATTCCGTATGACTCCACAACCA
+        Stigeoclonium_helveticum        CCAGATTATATGGTTAAAGATACTGATATTCTTGCTGCTTTCCGTATGACTCCTCAACCT
+    ;
+end;
+
+begin characters;
+    dimensions nchar=20;
+    format datatype=protein;
+    matrix
+        Atractomorpha_echinata             PDYVVRDTDILAAFRMTPQP
+        Bracteacoccus_aerius               PDYVVKDTDILAAFRMTPQP
+        Bracteacoccus_minor                PDYLVKDTDILSAFRMTPQP
+        Chlorotetraedron_incus             PDYVIKDTDILAAFRMTPQP
+        Chromochloris_zofingiensis         PDYVVKDTDILAAFRMTPQP
+        Kirchneriella_aperta               PDYVVRETDILAAFRMTPQP
+        Mychonastes_homosphaera            PDYVVKDTDILAAFRMTPQP
+        Neochloris_aquatica                PDYVVKDTDILAAFRMTPQP
+        Ourococcus_multisporus             PDYVVKDTDILAAFRMTPQP
+        Pediastrum_duplex                  PDYVVKDTDILAAFRMTPQP
+        Pseudomuriella_schumacherensis     PDYVVKETDILAAFRMTPQP
+        Rotundella_rotunda                 PDYVVKETDILAAFRMTPQP
+        Scenedesmus_obliquus               P?YVVKDTDILAAFRMTPQP
+        Stigeoclonium_helveticum           PDYMVKDTDILAAFRMTPQP
+    ;
+end;
+
+begin characters;
+    dimensions nchar=5;
+    format Datatype=standard symbols="0123";
+    matrix
+        Atractomorpha_echinata             01111
+        Bracteacoccus_aerius               11111
+        Bracteacoccus_minor                11111
+        Chlorotetraedron_incus             01111
+        Chromochloris_zofingiensis         01111
+        Kirchneriella_aperta               00111
+        Mychonastes_homosphaera            00111
+        Neochloris_aquatica                00011
+        Ourococcus_multisporus             00002
+        Pediastrum_duplex                  00002
+        Pseudomuriella_schumacherensis     00003
+        Rotundella_rotunda                 00003
+        Scenedesmus_obliquus               00003
+        Stigeoclonium_helveticum           00003
+    ;
+end;
+
+</code></pre></div></div>
+
+<p>Now modify your <em>strom.conf</em> file to look like this:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile = datatest.nex
+subset = rbcL[codon,plantplastid]:1-20
+subset = rbcL[protein]:21-40
+subset = morph[standard]:41-45 
+
+</code></pre></div></div>
+<p>Note that I’ve commented out the commands used for reading <em>rbcL.nex</em> by placing a hash (<code class="highlighter-rouge">#</code>) character at the beginning of each line. I’ve added a <code class="highlighter-rouge">datafile</code> command to read <em>datatest.nex</em> and <code class="highlighter-rouge">subset</code> commands to interpret the nucleotide data as codons, the protein data as type protein, and the morphological data as type standard. Note the site specification 1-20 rather than 1-60 for the first subset statement (storing 20 codons for each taxon rather than 60 nucleotides).</p>
+
+<p>Running the program again should now yield the following output:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Partition subset rbcL comprises sites 1-20 and has type codon,plantplastid
+Partition subset rbcL comprises sites 21-40 and has type protein
+Partition subset morph comprises sites 41-45 and has type standard
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+
+*** Reading and storing the data in the file datatest.nex
+storing implied block: TAXA
+storing read block: DATA
+storing read block: CHARACTERS
+storing read block: CHARACTERS
+
+Number of taxa: 14
+Number of partition subsets: 3
+  Subset 1 (rbcL)
+    data type: codon,plantplastid
+    sites:     20
+    patterns:  20
+  Subset 2 (rbcL)
+    data type: protein
+    sites:     20
+    patterns:  17
+  Subset 3 (morph)
+    data type: standard
+    sites:     5
+    patterns:  5
+
+Finished!
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-09/03-create-the-data-class.html">&lt;&nbsp;9.3</a> | 9.4 | <a href="/people/plewis/cpp//win//steps/step-10/00-calculating-the-likelihood.html">10.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

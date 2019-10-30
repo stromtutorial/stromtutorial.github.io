@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Strom class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">8.1 The Strom class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-08/00-adding-program-options.html">&lt;&nbsp;8.0</a> | 8.1 | <a href="/people/plewis/cpp//win//steps/step-08/02-testing-program-options.html">8.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>By the time you are finished with this lesson, your program will be able to obtain the name of the tree file to be processed from the user via command line options. It will also be possible to obtain the program version and help using command line switches.</p>
+
+<p>Create a new header file named <em>strom.hpp</em> containing the following code:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+#include "tree_summary.hpp"
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                Strom();
+                                ~Strom();
+
+            void                clear();
+            void                processCommandLineOptions(int argc, const char * argv[]);
+            void                run();
+
+        private:
+
+            std::string            _data_file_name;
+            std::string            _tree_file_name;
+
+            TreeSummary::SharedPtr _tree_summary;
+
+            static std::string     _program_name;
+            static unsigned        _major_version;
+            static unsigned        _minor_version;
+
+    };
+
+    // member function bodies go here
+    
+} 
+
+</code></pre></div></div>
+
+<h2 id="constructor">Constructor</h2>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Strom::Strom() { 
+        //std::cout &amp;lt;&amp;lt; "Constructing a Strom" &amp;lt;&amp;lt; std::endl;
+        clear();
+    } 
+
+</code></pre></div></div>
+<p>The constructor contains an output statement that notifies us when a <code class="highlighter-rouge">Strom</code> object is created. Note that this line is commented out. Constructor and destructor comments will be commented out from now on, but feel free to uncomment them if, for debugging purposes, you ever need to know when objects of a particular class are created or destroyed. Please do not comment out the <code class="highlighter-rouge">clear</code> function call, however. That ensures that a just-constructed <code class="highlighter-rouge">Strom</code> object is in a consistent state. The <code class="highlighter-rouge">clear</code> function may be used to return a <code class="highlighter-rouge">Strom</code> object to its just-constructed state if desired.</p>
+
+<h2 id="destructor">Destructor</h2>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Strom::~Strom() { 
+        //std::cout &amp;lt;&amp;lt; "Destroying a Strom" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+<p>Our usual destructor function just notifies us (if its single line is uncommented) that a <code class="highlighter-rouge">Strom</code> object has been destroyed.</p>
+
+<h2 id="the-clear-function">The <code class="highlighter-rouge">clear</code> function</h2>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name = "";
+        _tree_file_name = "";
+        _tree_summary   = nullptr;
+    }   
+
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">clear</code> function currently just sets each of the two non-static data members to the empty string.</p>
+
+<h2 id="the-processcommandlineoptions-function">The <code class="highlighter-rouge">processCommandLineOptions</code> function</h2>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+        ;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        try {
+            const boost::program_options::parsed_options &amp; parsed = boost::program_options::parse_config_file&amp;lt; char &amp;gt;("strom.conf", desc, false);
+            boost::program_options::store(parsed, vm);
+        }
+        catch(boost::program_options::reading_file &amp; x) {
+            std::cout &amp;lt;&amp;lt; "Note: configuration file (strom.conf) not found" &amp;lt;&amp;lt; std::endl;
+        }
+        boost::program_options::notify(vm);
+
+        // If user specified --help on command line, output usage summary and quit
+        if (vm.count("help") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; desc &amp;lt;&amp;lt; "\n";
+            std::exit(1);
+        }
+
+        // If user specified --version on command line, output version and quit
+        if (vm.count("version") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) &amp;lt;&amp;lt; std::endl;
+            std::exit(1);
+        }
+    }   
+
+</code></pre></div></div>
+<p>This function does the work of extracting information provided by the user on the command line.</p>
+
+<p>This function begins by creating two objects defined by the Boost <code class="highlighter-rouge">program_options</code> library (which is available because we included the <em>boost/program_options.hpp</em> header at the top of the <em>strom.hpp</em> file):</p>
+
+<p>The <code class="highlighter-rouge">desc</code> object stores information about the available program options. This object figures out whether what the user types is valid, and can provide a usage string that shows the user what options are available and what to type to specify each option.</p>
+
+<p>The <code class="highlighter-rouge">vm</code> object is what actually stores the information provided by the user.</p>
+
+<p>Our function then adds options to the <code class="highlighter-rouge">desc</code> object. Options that are stand-alone (e.g. “help” and “version”) are simply specified by providing the name of the option, a single-letter abbreviation (if desired), and a string description of the option. For example, we specify the “help” option by providing “help” as the name, “h” as the abbreviation, and “produce help message” as the description. If the user desired help, she or he could type either <code class="highlighter-rouge">-h</code> or <code class="highlighter-rouge">--help</code> on the command line when running the program and obtain string descriptions of each option along with what tokens to type in order to activate that option. The convention is that single letter abbreviations of program options are preceded by a single hyphen, while program option full names are preceded by two hyphens.</p>
+
+<p>The treefile option is more complicated because it will be followed by a string (the tree file name). We will also go ahead and provide for specifying a data file name on the command line, even though our program cannot yet read data files. The code</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>boost::program_options::value(&amp;_data_file_name)
+</code></pre></div></div>
+<p>provides the memory address (the <code class="highlighter-rouge">&amp;</code> symbol means “address of”) where the value provided by the user will be stored. The program options library can tell from the fact that the variable <code class="highlighter-rouge">_data_file_name</code> is an object of type <code class="highlighter-rouge">std::string</code> that it should expect the user to type a string at the command line for this option.</p>
+
+<p>Note that the <code class="highlighter-rouge">value</code> function returns an object that has associated member functions that may be called. In this case, we can call the member function <code class="highlighter-rouge">required()</code> for the <code class="highlighter-rouge">treefile</code> option. This has the effect of ensuring that the user supplies a value for this option. If this option is not provided, the program will abort and tell the user that a value must be supplied for the <code class="highlighter-rouge">treefile</code> option.</p>
+
+<p>The <code class="highlighter-rouge">parse_command_line</code> function call takes the supplied command line arguments (<code class="highlighter-rouge">argc</code> holds the number of these, while <code class="highlighter-rouge">argv</code> is an array of strings that holds what the user typed), along with the <code class="highlighter-rouge">desc</code> object, and parses the options, storing the results in the <code class="highlighter-rouge">vm</code> object.</p>
+
+<p>The <code class="highlighter-rouge">try</code>/<code class="highlighter-rouge">catch</code> block encloses a call to the <code class="highlighter-rouge">parse_config_file</code> function. This function attempts to read a file named <em>strom.conf</em> containing command line options in the form <em>key</em> = <em>value</em>, one per line. If the <em>strom.conf</em> file is not found, the <code class="highlighter-rouge">catch</code> block is entered and a note is issued to the user letting them know that the <em>strom.conf</em> file was not found. This is not an error, since the user may enter all options on the command line, but when the number of options grows large, being able to store them all in a config file is very convenient for the user, avoiding really long, complicated command line invocations.</p>
+
+<p>You will recognize the first two arguments to the <code class="highlighter-rouge">parse_config_file</code> function: it is obvious that this function needs the name of the config file to search for (“<em>strom.conf</em>”) and it needs the <code class="highlighter-rouge">desc</code> object so that it knows what options to expect in the config file, but what about that third argument: <code class="highlighter-rouge">false</code>? This last argument tells the <code class="highlighter-rouge">parse_config_file</code> function that we do not want to allow any options in the configuration file that have not been defined in the <code class="highlighter-rouge">desc</code> object. If the program discovers <code class="highlighter-rouge">sample_every = 100</code> in the configuration file but <code class="highlighter-rouge">sample_every</code> has not been specified in the <code class="highlighter-rouge">desc</code> object, then <code class="highlighter-rouge">strom</code> will refuse to run. This is good behavior for now because it prevents users from thinking that an option is being used and understood by strom when in fact that line in the config file is being ignored.</p>
+
+<p>The <code class="highlighter-rouge">notify</code> function call takes the parsed command line, now stored in the map variable <code class="highlighter-rouge">vm</code>, and sets the appropriate <code class="highlighter-rouge">Strom</code> object data members. For example, <code class="highlighter-rouge">_data_file_name</code> will be set to the value stored in <code class="highlighter-rouge">vm["datafile"]</code> and <code class="highlighter-rouge">_tree_file_name</code> will be set to the value stored in <code class="highlighter-rouge">vm["treefile"]</code>. You could do this yourself (e.g. <code class="highlighter-rouge">_data_file_name = vm["datafile"].as&lt;std::string&gt;();</code>), but the notify function makes it easy.</p>
+
+<p>After calling <code class="highlighter-rouge">parse_command_line</code> and <code class="highlighter-rouge">notify</code>, we first check to see if the user asked for help. If so, we ignore any other command line options that may have been supplied by the user and show the usage string generated when a <code class="highlighter-rouge">desc</code> object is output.</p>
+
+<p>Assuming that the user did not type <code class="highlighter-rouge">-h</code> or <code class="highlighter-rouge">--help</code>, we next check to see whether <code class="highlighter-rouge">-v</code> or <code class="highlighter-rouge">--version</code> was specified. If so, we again ignore any other command line options and output the program version number and then exit.</p>
+
+<p>If the user did not ask for either help or version, we must assume they wish to run the program. In order for the program to run, we need to have a tree file name. If this was not specified, the program exits with a suitable error message.</p>
+
+<h2 id="the-run-function">The <code class="highlighter-rouge">run</code> function</h2>
+<p>The <code class="highlighter-rouge">Strom::run</code> function can now take over all the duties that the main function performed before. Because <code class="highlighter-rouge">_data_file_name</code> and <code class="highlighter-rouge">_tree_file_name</code> are data members, and we’ve guaranteed that the user has supplied a value for the tree file name on the command line, we are free to use <code class="highlighter-rouge">_tree_file_name</code> in place of the hard coded literal string we used before.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {   
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+
+        try {
+            // Create a new TreeSummary object and let _tree_summary point to it
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+
+            // Read the tree file specified by the user
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(0);
+
+            // Summarize the trees read
+            _tree_summary-&amp;gt;showSummary();
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-08/00-adding-program-options.html">&lt;&nbsp;8.0</a> | 8.1 | <a href="/people/plewis/cpp//win//steps/step-08/02-testing-program-options.html">8.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

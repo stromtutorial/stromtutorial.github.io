@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Model class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">11.2 The Model class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-11/01-specifying-the-model.html">&lt;&nbsp;11.1</a> | 11.2 | <a href="/people/plewis/cpp//win//steps/step-11/03-the-qmatrix-class.html">11.3&nbsp;&gt;</a></h3>
+</div>
+
+<p>By way of a data member (<code class="highlighter-rouge">_model</code>) of the <code class="highlighter-rouge">Likelihood</code> class, the <code class="highlighter-rouge">Model</code> class will supply BeagleLib with the eigenvectors, eigenvalues, and relative rates it needs in order to compute the likelihood of a tree. The <a href="http://eigen.tuxfamily.org/">Eigen</a> library is used to compute the eigenvectors and eigenvalues for a given combination of exchangeabilities and nucleotide (or codon) frequencies.</p>
+
+<p>The model class will manage BeagleLib instances: if subsets differ in the number of states or number of rate categories, different BeagleLib instances must be created for each combination. The <code class="highlighter-rouge">Model</code> class will thus be our BeagleLib manager.</p>
+
+<p>Begin by creating a new header file named <em>model.hpp</em> to contain the <code class="highlighter-rouge">Model</code> class declaration and member function bodies:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;algorithm&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include "datatype.hpp"
+#include "qmatrix.hpp"
+#include "asrv.hpp"
+#include "libhmsbeagle/beagle.h"
+#include &amp;lt;boost/math/distributions/gamma.hpp&amp;gt;
+#include &amp;lt;Eigen/Dense&amp;gt;
+
+namespace strom {
+    
+    class Likelihood;
+
+    class Model {
+        
+        friend class Likelihood;
+
+        public:
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      asrv_vect_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   qmat_vect_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;             subset_sizes_t;
+            typedef std::vector&amp;lt;DataType&amp;gt;             subset_datatype_t;
+            typedef std::vector&amp;lt;double&amp;gt;               subset_relrate_vect_t;
+            typedef boost::shared_ptr&amp;lt;Model&amp;gt;          SharedPtr;
+        
+                                        Model();
+                                        ~Model();
+
+            void                        activate();
+            void                        inactivate();
+            
+            std::string                 describeModel();
+
+            void                        setSubsetDataTypes(const subset_datatype_t &amp; datatype_vect);
+
+            void                        setSubsetRateVar(ASRV::ratevar_ptr_t ratevar, unsigned subset, bool fixed);
+            void                        setSubsetPinvar(ASRV::pinvar_ptr_t pinvar, unsigned subset, bool fixed);
+            void                        setSubsetExchangeabilities(QMatrix::freq_xchg_ptr_t exchangeabilities, unsigned subset, bool fixed);
+            void                        setSubsetStateFreqs(QMatrix::freq_xchg_ptr_t state_frequencies, unsigned subset, bool fixed);
+            void                        setSubsetOmega(QMatrix::omega_ptr_t omega, unsigned subset, bool fixed);
+
+            void                        setSubsetRelRates(subset_relrate_vect_t &amp; relrates, bool fixed);
+            subset_relrate_vect_t &amp;     getSubsetRelRates();
+            bool                        isFixedSubsetRelRates() const;
+            double                      calcNormalizingConstantForSubsetRelRates() const;
+
+            void                        setTreeIndex(unsigned i, bool fixed);
+            unsigned                    getTreeIndex() const;
+            bool                        isFixedTree() const;
+        
+            unsigned                    getNumSubsets() const;
+            unsigned                    getNumSites() const;
+            unsigned                    getSubsetNumSites(unsigned subset) const;
+            const QMatrix &amp;             getQMatrix(unsigned subset) const;
+            const ASRV &amp;                getASRV(unsigned subset) const;
+
+            void                        setSubsetIsInvarModel(bool is_invar, unsigned subset);
+            bool                        getSubsetIsInvarModel(unsigned subset) const;
+
+            void                        setSubsetSizes(const subset_sizes_t nsites_vect);
+            subset_sizes_t &amp;            getSubsetSizes();
+
+            void                        setSubsetNumPatterns(const subset_sizes_t npatterns_vect);
+            unsigned                    getSubsetNumPatterns(unsigned subset) const;
+
+            void                        setSubsetNumCateg(unsigned ncateg, unsigned subset);
+            unsigned                    getSubsetNumCateg(unsigned subset) const;
+
+            int                         setBeagleEigenDecomposition(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleStateFrequencies(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationRates(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationProbs(int beagle_instance, unsigned subset, unsigned instance_subset);
+
+        private:
+        
+            void                        clear();
+        
+            unsigned                    _num_subsets;
+            unsigned                    _num_sites;
+            subset_sizes_t              _subset_sizes;
+            subset_sizes_t              _subset_npatterns;
+            subset_datatype_t           _subset_datatypes;
+            qmat_vect_t                 _qmatrix;
+            asrv_vect_t                 _asrv;
+        
+            bool                        _tree_index;
+            bool                        _tree_fixed;
+        
+            bool                        _subset_relrates_fixed;
+            subset_relrate_vect_t       _subset_relrates;
+        };
+    
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor-destructor-and-clear-functions">Constructor, destructor, and clear functions</h2>
+
+<p>The constructor and destructor are very simple, and are similar to most of the other constructors and destructors you have created thus far.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::Model() { 
+        //std::cout &amp;lt;&amp;lt; "Constructing a Model" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+    inline Model::~Model() {    
+        //std::cout &amp;lt;&amp;lt; "Destroying a Model" &amp;lt;&amp;lt; std::endl;
+    }   
+
+    inline void Model::clear() {    
+        _num_subsets = 0;
+        _num_sites = 0;
+        _tree_index = 0;
+        _tree_fixed = false;
+        _subset_relrates_fixed = false;
+        _subset_relrates.clear();
+        _subset_sizes.clear();
+        _subset_npatterns.clear();
+        _subset_datatypes.clear();
+        _qmatrix.clear();
+        _asrv.clear();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-describemodel-member-function">The describeModel member function</h2>
+
+<p>This function reveals the current state of the model. It constructs and returns a string, which can be output to either <code class="highlighter-rouge">std::cout</code> or to a file.</p>
+
+<p>This function will probably appear overly long and complicated to you! It could be made much shorted if it simply regurgitated the model specification provided by the user, but this function does a lot of sanity checking, reporting features of the model as it actually exists in memory. If this description differs from the model specified in the <em>strom.conf</em> file, then it is a clear sign that there is a bug. Later this function will be used to enumerate free model parameters that need updating during an MCMC analysis, so it could be argued that the name <code class="highlighter-rouge">describeModel</code> falls short of fully describing its significance.</p>
+
+<p>Some explanation of how this function works follows the code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Model::describeModel() { 
+        // Creates summary such as following and returns as a string:
+        //
+        // Partition information:
+        //
+        //          data subset           1           2           3
+        //    -----------------------------------------------------
+        //           num. sites          20          20          20
+        //        num. patterns           7           5          17
+        //          num. states           4           4           4
+        //      rate categories           4           1           4
+        //
+        // Parameter linkage:
+        //
+        //          data subset           1           2           3
+        //    -----------------------------------------------------
+        //          state freqs           1           1           1
+        //    exchangeabilities           1           1           2
+        //        rate variance           1           2           3
+        //               pinvar           1           2           -
+        
+        // Sets used to determine which parameters are linked across subsets
+        std::set&amp;lt;double *&amp;gt; freqset;
+        std::set&amp;lt;double *&amp;gt; xchgset;
+        std::set&amp;lt;double *&amp;gt; omegaset;
+        std::set&amp;lt;double *&amp;gt; ratevarset;
+        std::set&amp;lt;double *&amp;gt; pinvarset;
+        std::set&amp;lt;double *&amp;gt; relrateset;
+
+        // Vectors of pointers to distinct parameters
+        std::vector&amp;lt;double *&amp;gt; unique_freq;
+        std::vector&amp;lt;double *&amp;gt; unique_xchg;
+        std::vector&amp;lt;double *&amp;gt; unique_omega;
+        std::vector&amp;lt;double *&amp;gt; unique_ratevar;
+        std::vector&amp;lt;double *&amp;gt; unique_pinvar;
+        std::vector&amp;lt;double *&amp;gt; unique_relrate;
+
+        // Map for storing strings that will contain the information for each row
+        std::map&amp;lt;std::string, std::string&amp;gt; ss = {
+            {"subset",    ""},
+            {"dashes",    ""},
+            {"freqs",     ""},
+            {"xchg",      ""},
+            {"omega",     ""},
+            {"ratevar",   ""},
+            {"pinvar",    ""},
+            {"ncateg",    ""},
+            {"nsites",    ""},
+            {"npatterns", ""},
+            {"nstates",   ""}
+        };
+        
+        // Ensure that the subset relative rates are fixed if there is only one
+        // subset; otherwise the subset relative rates will be added to the list
+        // of free parameters that are updated, which makes no sense in this case
+        if (_num_subsets == 1)
+            _subset_relrates_fixed = true;
+
+        // Loop through subsets, building up rows as we go
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            // Ensure that for subsets in which the number of rate categories is 1 that
+            // the gamma rate variance is fixed; otherwise the gamma rate variance will
+            // be added to the list of free parameters that are updated, which makes
+            // no sense in this case
+            if (_asrv[i]-&amp;gt;getNumCateg() == 1) {
+                _asrv[i]-&amp;gt;fixRateVar(true);
+            }
+        
+            unsigned index;
+            ss["subset"] += boost::str(boost::format("%12d") % (i+1));
+            ss["dashes"] += "------------";
+
+            // Determine whether state freqs are unique for this subset
+            QMatrix::freq_xchg_ptr_t pfreq = _qmatrix[i]-&amp;gt;getStateFreqsSharedPtr();
+            QMatrix::freq_xchg_t &amp; freq = *pfreq;
+            double * freq_addr = &amp;freq[0];
+            auto f = freqset.insert(freq_addr);
+            if (f.second) {
+                unique_freq.push_back(freq_addr);
+                index = (unsigned)unique_freq.size();
+            }
+            else {
+                auto iter = std::find(unique_freq.begin(), unique_freq.end(), freq_addr);
+                index = (unsigned)std::distance(unique_freq.begin(), iter) + 1;
+            }
+            ss["freqs"] += boost::str(boost::format("%12d") % index);
+
+            // Determine whether exchangeabilities are unique for this subset   
+            if (_subset_datatypes[i].isNucleotide()) {
+                QMatrix::freq_xchg_ptr_t pxchg = _qmatrix[i]-&amp;gt;getExchangeabilitiesSharedPtr();
+                QMatrix::freq_xchg_t &amp; xchg = *pxchg;
+                double * xchg_addr = &amp;xchg[0];
+                auto x = xchgset.insert(xchg_addr);
+                if (x.second) {
+                    unique_xchg.push_back(xchg_addr);
+                    index = (unsigned)unique_xchg.size();
+                }
+                else {
+                    auto iter = std::find(unique_xchg.begin(), unique_xchg.end(), xchg_addr);
+                    index = (unsigned)std::distance(unique_xchg.begin(), iter) + 1;
+                }
+                ss["xchg"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["xchg"] += boost::str(boost::format("%12s") % "-");
+            }   
+            
+            // Determine whether omega is unique for this subset
+            if (_subset_datatypes[i].isCodon()) {
+                QMatrix::omega_ptr_t pomega = _qmatrix[i]-&amp;gt;getOmegaSharedPtr();
+                QMatrix::omega_t omegavalue = *pomega;
+                double * omega_addr = &amp;omegavalue;
+                auto o = omegaset.insert(omega_addr);
+                if (o.second) {
+                    unique_omega.push_back(omega_addr);
+                    index = (unsigned)unique_omega.size();
+                }
+                else {
+                    auto iter = std::find(unique_omega.begin(), unique_omega.end(), omega_addr);
+                    index = (unsigned)std::distance(unique_omega.begin(), iter) + 1;
+                }
+                ss["omega"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["omega"] += boost::str(boost::format("%12s") % "-");
+            }
+
+            // Determine whether rate variance is unique for this subset
+            ASRV::ratevar_ptr_t pratevar = _asrv[i]-&amp;gt;getRateVarSharedPtr();
+            double &amp; ratevar = *pratevar;
+            double * ratevar_addr = &amp;ratevar;
+            auto r = ratevarset.insert(ratevar_addr);
+            if (r.second) {
+                unique_ratevar.push_back(ratevar_addr);
+                index = (unsigned)unique_ratevar.size();
+            }
+            else {
+                auto iter = std::find(unique_ratevar.begin(), unique_ratevar.end(), ratevar_addr);
+                index = (unsigned)std::distance(unique_ratevar.begin(), iter) + 1;
+            }
+            ss["ratevar"] += boost::str(boost::format("%12d") % index);
+            
+            // Determine whether pinvar is unique for this subset
+            if (_asrv[i]-&amp;gt;getIsInvarModel()) {
+                ASRV::pinvar_ptr_t ppinvar = _asrv[i]-&amp;gt;getPinvarSharedPtr();
+                double &amp; pinvar = *ppinvar;
+                double * pinvar_addr = &amp;pinvar;
+                auto r = pinvarset.insert(pinvar_addr);
+                if (r.second) {
+                    unique_pinvar.push_back(pinvar_addr);
+                    index = (unsigned)unique_pinvar.size();
+                }
+                else {
+                    auto iter = std::find(unique_pinvar.begin(), unique_pinvar.end(), pinvar_addr);
+                    index = (unsigned)std::distance(unique_pinvar.begin(), iter) + 1;
+                }
+                ss["pinvar"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["pinvar"] += boost::str(boost::format("%12s") % "-");
+            }
+            
+            // Save number of rate categories for this subset
+            ss["ncateg"] += boost::str(boost::format("%12d") % _asrv[i]-&amp;gt;getNumCateg());
+
+            // Save number of sites for this subset
+            ss["nsites"] += boost::str(boost::format("%12d") % _subset_sizes[i]);
+
+            // Save number of patterns for this subset
+            ss["npatterns"] += boost::str(boost::format("%12d") % _subset_npatterns[i]);
+
+            // Save number of states for this subset
+            if (_subset_datatypes.size() == _num_subsets)
+                ss["nstates"] += boost::str(boost::format("%12d") % _subset_datatypes[i].getNumStates());
+            else
+                ss["nstates"] += boost::str(boost::format("%12s") % "?");
+
+        }
+        std::string s = "Partition information:\n\n";
+        
+        s += boost::str(boost::format("%20s%s\n") % "data subset" % ss["subset"]);
+        s += boost::str(boost::format("%20s%s\n") % "-----------------" % ss["dashes"]);
+        s += boost::str(boost::format("%20s%s\n") % "num. sites" % ss["nsites"]);
+        s += boost::str(boost::format("%20s%s\n") % "num. patterns" % ss["npatterns"]);
+        s += boost::str(boost::format("%20s%s\n") % "num. states" % ss["nstates"]);
+        s += boost::str(boost::format("%20s%s\n") % "rate categories" % ss["ncateg"]);
+
+        s += "\nParameter linkage:\n\n";
+        
+        s += boost::str(boost::format("%20s%s\n") % "data subset" % ss["subset"]);
+        s += boost::str(boost::format("%20s%s\n") % "-----------------" % ss["dashes"]);
+        s += boost::str(boost::format("%20s%s\n") % "state freqs" % ss["freqs"]);
+        s += boost::str(boost::format("%20s%s\n") % "exchangeabilities" % ss["xchg"]);
+        s += boost::str(boost::format("%20s%s\n") % "omega" % ss["omega"]);
+        s += boost::str(boost::format("%20s%s\n") % "rate variance" % ss["ratevar"]);
+        s += boost::str(boost::format("%20s%s\n") % "pinvar" % ss["pinvar"]);
+        
+        s += "\nParameter values for each subset:\n";
+
+        s += "\n  relative rate:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            s += boost::str(boost::format("  %12d: %g\n") % (i+1) % _subset_relrates[i]);
+        }
+        
+        s += "\n  state freqs:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            QMatrix::freq_xchg_t &amp; freqs = *(_qmatrix[i]-&amp;gt;getStateFreqsSharedPtr());
+            std::vector&amp;lt;std::string&amp;gt; freqs_as_strings(freqs.size());
+            std::transform(freqs.begin(), freqs.end(), freqs_as_strings.begin(), [](double freq) {return boost::str(boost::format("%g") % freq);});
+            std::string tmp = boost::algorithm::join(freqs_as_strings, ",");
+            s += boost::str(boost::format("  %12d: (%s)\n") % (i+1) % tmp);
+        }
+
+        s += "\n  exchangeabilities:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            if (_subset_datatypes[i].isNucleotide()) {
+                QMatrix::freq_xchg_t &amp; xchg = *(_qmatrix[i]-&amp;gt;getExchangeabilitiesSharedPtr());
+                std::vector&amp;lt;std::string&amp;gt; xchg_as_strings(xchg.size());
+                std::transform(xchg.begin(), xchg.end(), xchg_as_strings.begin(), [](double x) {return boost::str(boost::format("%g") % x);});
+                std::string tmp = boost::algorithm::join(xchg_as_strings, ",");
+                s += boost::str(boost::format("  %12d: (%s)\n") % (i+1) % tmp);
+            }
+            else {
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+            }
+        }
+
+        s += "\n  omega:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            if (_subset_datatypes[i].isCodon()) {
+                double omega = *(_qmatrix[i]-&amp;gt;getOmegaSharedPtr());
+                s += boost::str(boost::format("  %12d: %g\n") % (i+1) % omega);
+            }
+            else {
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+            }
+        }
+
+        s += "\n  rate variance:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            if (_asrv[i]-&amp;gt;getNumCateg() &amp;gt; 1) {
+                double ratevar = *(_asrv[i]-&amp;gt;getRateVarSharedPtr());
+                s += boost::str(boost::format("  %12d: %g\n") % (i+1) % ratevar);
+            }
+            else
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+        }
+
+        s += "\n  pinvar:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            double pinvar = *(_asrv[i]-&amp;gt;getPinvarSharedPtr());
+            bool is_invar_model = _asrv[i]-&amp;gt;getIsInvarModel();
+            if (is_invar_model)
+                s += boost::str(boost::format("  %12d: %g\n") % (i+1) % pinvar);
+            else
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+        }
+
+        return s;
+    } 
+
+</code></pre></div></div>
+<p>Each row of output is stored as one element of the map <code class="highlighter-rouge">ss</code>, which has keys that are descriptive of the information in that particular row.</p>
+
+<p>The table labeled “Partition information” is fairly straightforward. The number of sites, patterns, number of states, and number of (discrete gamma) rate categories for each subset are appended to the appropriate element of <code class="highlighter-rouge">ss</code> using <code class="highlighter-rouge">boost::format</code> to ensure they are all right-justified.</p>
+
+<p>The second table shows how many unique subset relative rates, state frequency vectors, exchangeability vectors, omegas, rate variances, and proportions of invariable sites are defined in the model. This is somewhat more tricky to determine, and rather than just use the information supplied by the user in the configuration file, this function <em>determines</em> actual linkage of parameters across subsets as a sanity check to make sure that the model is set up as the user intended.</p>
+
+<p>To do this, 6 <code class="highlighter-rouge">std::set</code> variables are created (<code class="highlighter-rouge">freqset</code>, <code class="highlighter-rouge">xchgset</code>, <code class="highlighter-rouge">omegaset</code>, <code class="highlighter-rouge">ratevarset</code>, <code class="highlighter-rouge">pinvarset</code>, and <code class="highlighter-rouge">relrateset</code>). I’ll use exchangeabilities to illustrate, as they are one of the more interesting parameters defined in this example, being shared across 2 subsets and distinct for the 3rd. Here is the relevant code. This is part of a loop over subsets, where <code class="highlighter-rouge">i</code> is the current subset index:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            // Determine whether exchangeabilities are unique for this subset   
+            if (_subset_datatypes[i].isNucleotide()) {
+                QMatrix::freq_xchg_ptr_t pxchg = _qmatrix[i]-&amp;gt;getExchangeabilitiesSharedPtr();
+                QMatrix::freq_xchg_t &amp; xchg = *pxchg;
+                double * xchg_addr = &amp;xchg[0];
+                auto x = xchgset.insert(xchg_addr);
+                if (x.second) {
+                    unique_xchg.push_back(xchg_addr);
+                    index = (unsigned)unique_xchg.size();
+                }
+                else {
+                    auto iter = std::find(unique_xchg.begin(), unique_xchg.end(), xchg_addr);
+                    index = (unsigned)std::distance(unique_xchg.begin(), iter) + 1;
+                }
+                ss["xchg"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["xchg"] += boost::str(boost::format("%12s") % "-");
+            }   
+
+</code></pre></div></div>
+<p>First, the reference <code class="highlighter-rouge">xchg</code> is assigned to the exchangeabilities for subset <code class="highlighter-rouge">i</code>. In the example model specification used for this step, the configuration file contains these lines pertaining to the assignment of exchangeabilities across subsets:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>rmatrix = first,second:1,1,1,1,1,1  
+rmatrix = third:1,2,1,1,2,1         
+
+</code></pre></div></div>
+<p>This specifies that the exact same exchangeabilities should be used for both subsets <code class="highlighter-rouge">first</code> and <code class="highlighter-rouge">second</code>, while a distinct set of exchangeabilities should be used for subset <code class="highlighter-rouge">third</code>. This means that the shared pointers to exchangeabilities stored in <code class="highlighter-rouge">_qmatrix[0]</code> and <code class="highlighter-rouge">_qmatrix[1]</code> should point to the same array in memory, and the shared pointer to the exchangeabilities stored in <code class="highlighter-rouge">_qmatrix[2]</code> should point to a different memory location. When visiting subset <code class="highlighter-rouge">i</code>, we find the address of the exchangeability array used for that subset (<code class="highlighter-rouge">xchg_addr</code>) and insert that address into the set <code class="highlighter-rouge">xchgset</code>. The return value of the <code class="highlighter-rouge">std::set::insert</code> function is a <code class="highlighter-rouge">std::pair</code>, the first element of which is an iterator positioned at the inserted element and the second of which is true if an insertion took place, false otherwise. If an insertion took place, it means that the memory address <code class="highlighter-rouge">xchg_addr</code> is distinct, and we thus push <code class="highlighter-rouge">xchg_addr</code> onto the end of the vector <code class="highlighter-rouge">unique_xchg</code>, which holds the distinct memory addresses of each unique exchangeability vector in the order in which it was discovered when iterating through subsets. If an insertion did not take place, it means that the memory address <code class="highlighter-rouge">xchg_addr</code> was not distinct. In this case, the index of that address in the <code class="highlighter-rouge">unique_xchg</code> vector is found. In either case, the index of the element in the <code class="highlighter-rouge">unique_xchg</code> vector (plus 1) serves as the value stored for subset <code class="highlighter-rouge">i</code> in the row corresponding to exchangeabilities.</p>
+
+<p>Note that this approach will not attribute the same index to two different subsets if only the exchangeability <em>values</em> are identical; it is the <em>memory address</em> of the first element of the exchangeability vector that matters. It is possible for two subsets to have <em>potentially</em> different exchangeability vectors but not be distinct at the moment this function was called (for example, it is quite possible that exchangeability vectors for every subset are allowed to differ but were all initialized to <code class="highlighter-rouge">1,1,1,1,1,1</code> at the start of the program).</p>
+
+<p>Don’t fret that you don’t know about the <code class="highlighter-rouge">ASRV</code> and <code class="highlighter-rouge">QMatrix</code> classes, those will be introduced in coming sections. For now just think of them as keepers of parameters and information related to Among-Site Rate Variation (<code class="highlighter-rouge">ASRV</code>) and the instantaneous rate matrix (<code class="highlighter-rouge">QMatrix</code>).</p>
+
+<h2 id="accessors">Accessors</h2>
+
+<p>These 8 functions (<code class="highlighter-rouge">getNumPatterns</code>, <code class="highlighter-rouge">getSubsetNumSites</code>, <code class="highlighter-rouge">getNumSites</code>, <code class="highlighter-rouge">getNumSubsets</code>, <code class="highlighter-rouge">getSubsetNumCateg</code>, <code class="highlighter-rouge">getSubsetIsInvarModel</code>, <code class="highlighter-rouge">getQMatrix</code>, and <code class="highlighter-rouge">getASRV</code>) simply provide a way to peek at the values of private data members.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+</code></pre></div></div>
+
+<h2 id="the-calcnormalizingconstantforsubsetrelrates-member-function">The calcNormalizingConstantForSubsetRelRates member function</h2>
+
+<p>This function calculates and returns the sum of the products of subset proportions and subset relative rates. The subset relative rates must be normalized so that they don’t affect the mean rate, which is determined by the edge lengths of the tree. To compute the normalization constant, we compute the sum of the products of subset proportions and subset relative rates. For example, for 3 subsets,</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>normalizing_constant = p1*r1 + p2*r2 +p3*r3
+</code></pre></div></div>
+<p>Dividing each relative rate by this sum of products ensures that the sum of products, if computed again, would be equal to 1.0 (which is the goal).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Model::calcNormalizingConstantForSubsetRelRates() const { 
+        // normalize _relrates so that expected relative rate across subsets equals 1.0
+        double normalizing_constant = 0.0;
+        for (unsigned s = 0; s &amp;lt; _num_subsets; s++) {
+            normalizing_constant += _subset_sizes[s]*_subset_relrates[s]/_num_sites;
+        }
+        return normalizing_constant;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getsubsetsizes-member-function">The getSubsetSizes member function</h2>
+<p>This function returns a reference to the vector of subset sizes, <code class="highlighter-rouge">_subset_sizes</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::subset_sizes_t &amp; Model::getSubsetSizes() { 
+        return _subset_sizes;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetsizes-member-function">The setSubsetSizes member function</h2>
+
+<p>This function uses <code class="highlighter-rouge">std::copy</code> to copy the subset sizes (i.e. the number of sites in each subset, supplied via the <code class="highlighter-rouge">nsites_vect</code> parameter) into the <code class="highlighter-rouge">_subset_sizes</code> data member. It then uses <code class="highlighter-rouge">std::accumulate</code> to sum all subset sizes and store the result in the data member <code class="highlighter-rouge">_num_sites</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetSizes(const subset_sizes_t nsites_vect) { 
+        assert(nsites_vect.size() == _num_subsets);
+        _subset_sizes.resize(_num_subsets);
+        std::copy(nsites_vect.begin(), nsites_vect.end(), _subset_sizes.begin());
+        _num_sites = std::accumulate(_subset_sizes.begin(), _subset_sizes.end(), 0);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetnumpatterns-member-function">The setSubsetNumPatterns member function</h2>
+
+<p>This function copies the supplied vector of pattern counts (<code class="highlighter-rouge">npatterns_vect</code>) to the data member <code class="highlighter-rouge">_subset_npatterns</code> using <code class="highlighter-rouge">std::copy</code>. The subset pattern counts are not needed by model; they are only supplied to the model to allow the model to print them out in the <code class="highlighter-rouge">describeModel</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetNumPatterns(const subset_sizes_t npatterns_vect) { 
+        assert(npatterns_vect.size() == _num_subsets);
+        _subset_npatterns.resize(_num_subsets);
+        std::copy(npatterns_vect.begin(), npatterns_vect.end(), _subset_npatterns.begin());
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetdatatypes-member-function">The setSubsetDataTypes member function</h2>
+
+<p>This function should be called as soon as the data types associated with each partition subset are known. The function sets the <code class="highlighter-rouge">_num_subsets</code> data member to the number of partition subsets and resizes the <code class="highlighter-rouge">_asrv</code>, <code class="highlighter-rouge">_qmatrix</code>, and <code class="highlighter-rouge">_subset_datatypes</code> vectors to have length <code class="highlighter-rouge">_num_subsets</code>. The <code class="highlighter-rouge">datatype_vect</code> parameter is copied (using <code class="highlighter-rouge">std::copy</code>) to the <code class="highlighter-rouge">_subset_datatypes</code> vector and each of the <code class="highlighter-rouge">_num_subsets</code> elements of <code class="highlighter-rouge">_asrv</code> and <code class="highlighter-rouge">_qmatrix</code> are initialized with new <code class="highlighter-rouge">ASRV</code> or <code class="highlighter-rouge">QMatrixNucleotide</code>/<code class="highlighter-rouge">QMatrixCodon</code> elements, respectively.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetDataTypes(const subset_datatype_t &amp; datatype_vect) { 
+        _num_subsets = (unsigned)datatype_vect.size();
+
+        _qmatrix.clear();
+        _qmatrix.resize(_num_subsets);
+
+        _asrv.clear();
+        _asrv.resize(_num_subsets);
+
+        _subset_datatypes.resize(_num_subsets);
+        std::copy(datatype_vect.begin(), datatype_vect.end(), _subset_datatypes.begin());
+
+		_subset_relrates.assign(_num_subsets, 1.0);
+        
+        for (unsigned s = 0; s &amp;lt; _num_subsets; s++) {
+            _asrv[s].reset(new ASRV());
+            if (_subset_datatypes[s].isNucleotide())
+                _qmatrix[s].reset(new QMatrixNucleotide());
+            else if (_subset_datatypes[s].isCodon()) {
+                GeneticCode::SharedPtr gcptr = _subset_datatypes[s].getGeneticCode();
+                _qmatrix[s].reset(new QMatrixCodon(gcptr));
+                }
+            else
+                throw XStrom(boost::format("Only nucleotide or codon data allowed in this version, you specified data type \"%s\" for subset %d") % _subset_datatypes[s].getDataTypeAsString() % (s+1));
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetnumcateg-member-function">The setSubsetNumCateg member function</h2>
+
+<p>This function sets the number of among-site rate categories. Everything about rate heterogeneity is handled by the <code class="highlighter-rouge">ASRV</code> data member, so, after performing a couple of sanity checks, the <code class="highlighter-rouge">setNumCateg</code> member function of the <code class="highlighter-rouge">_asrv</code> data member is called upon to store this value for the <code class="highlighter-rouge">Model</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetNumCateg(unsigned ncateg, unsigned subset) { 
+        assert(subset &amp;lt; _num_subsets);
+        if (ncateg &amp;lt; 1) {
+            throw XStrom(boost::str(boost::format("number of categories used for among-site rate variation must be greater than zero but the value %d was supplied") % ncateg));
+        }
+        _asrv[subset]-&amp;gt;setNumCateg(ncateg);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetratevar-member-function">The setSubsetRateVar member function</h2>
+
+<p>This function sets the variance of among-site rates. Everything about among-site rate heterogeneity is handled by the <code class="highlighter-rouge">ASRV</code> data member, so, after performing a couple of sanity checks, the <code class="highlighter-rouge">setRateVarSharedPtr</code> member function of the <code class="highlighter-rouge">_asrv</code> data member is called upon to store this value for the <code class="highlighter-rouge">Model</code>. Note that <code class="highlighter-rouge">ratevar</code> is a <code class="highlighter-rouge">shared_ptr</code> rather than a <code class="highlighter-rouge">double</code> value, so it must be dereferenced using an asterisk in order to check whether the user has supplied a valid value. The <code class="highlighter-rouge">fixed</code> parameter determines whether this rate variance parameter will be updated during a subsequent analysis (e.g. MCMC).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetRateVar(ASRV::ratevar_ptr_t ratevar, unsigned subset, bool fixed) { 
+        assert(subset &amp;lt; _num_subsets);
+        assert(ratevar);
+        if (*ratevar &amp;lt; 0.0)
+            throw XStrom(boost::str(boost::format("rate variance must be greater than or equal to zero but the value %.5f was supplied") % *ratevar));
+        _asrv[subset]-&amp;gt;setRateVarSharedPtr(ratevar);
+        _asrv[subset]-&amp;gt;fixRateVar(fixed);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetpinvar-member-function">The setSubsetPinvar member function</h2>
+
+<p>This function sets the proportion of invariable sites. Everything about among-site rate heterogeneity is handled by the <code class="highlighter-rouge">ASRV</code> data member, so, after performing sanity checks, the <code class="highlighter-rouge">setPinvarSharedPtr</code> member function of the <code class="highlighter-rouge">_asrv</code> data member is called upon to store this value for the <code class="highlighter-rouge">Model</code>. Note that <code class="highlighter-rouge">pinvar</code> is a <code class="highlighter-rouge">shared_ptr</code> rather than a <code class="highlighter-rouge">double</code> value, so it must be dereferenced using an asterisk in order to check whether the user has supplied a valid value. The <code class="highlighter-rouge">fixed</code> parameter determines whether this proportion of invariable site parameter will be updated during a subsequent analysis (e.g. MCMC).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetPinvar(ASRV::pinvar_ptr_t pinvar, unsigned subset, bool fixed) { 
+        assert(subset &amp;lt; _num_subsets);
+        assert(pinvar);
+        if (*pinvar &amp;lt; 0.0)
+            throw XStrom(boost::str(boost::format("proportion of invariable sites must be greater than or equal to zero but the value %.5f was supplied") % *pinvar));
+        if (*pinvar &amp;gt;= 1.0)
+            throw XStrom(boost::str(boost::format("proportion of invariable sites must be less than one but the value %.5f was supplied") % *pinvar));
+        _asrv[subset]-&amp;gt;setPinvarSharedPtr(pinvar);
+        _asrv[subset]-&amp;gt;fixPinvar(fixed);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetisinvarmodel-member-function">The setSubsetIsInvarModel member function</h2>
+
+<p>The <code class="highlighter-rouge">is_invar</code> parameter of this function determines whether this model will be an invariable sites model for the partition subset indicated.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetIsInvarModel(bool is_invar, unsigned subset) { 
+        assert(subset &amp;lt; _num_subsets);
+        _asrv[subset]-&amp;gt;setIsInvarModel(is_invar);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetexchangeabilities-member-function">The setSubsetExchangeabilities member function</h2>
+
+<p>This function sets the exchangeabilities for a particular subset. The exchangeabilities are normalized to make sure they sum to 1 and sent to the <code class="highlighter-rouge">QMatrix</code> object pointed to by the data member <code class="highlighter-rouge">_qmatrix</code>, which is responsible for all data related to calculating the instantaneous rate matrix and its eigenvalues/eigenvectors.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetExchangeabilities(QMatrix::freq_xchg_ptr_t exchangeabilities, unsigned subset, bool fixed) { 
+        assert(subset &amp;lt; _num_subsets);
+        if (!_subset_datatypes[subset].isCodon()) {
+            double first_xchg = (*exchangeabilities)[0];
+            if (first_xchg == -1)
+                _qmatrix[subset]-&amp;gt;setEqualExchangeabilities(exchangeabilities);
+            else
+                _qmatrix[subset]-&amp;gt;setExchangeabilitiesSharedPtr(exchangeabilities);
+            _qmatrix[subset]-&amp;gt;fixExchangeabilities(fixed);
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetstatefreqs-member-function">The setSubsetStateFreqs member function</h2>
+
+<p>This function sets the state frequencies for a particular subset. The frequencies are sent to the <code class="highlighter-rouge">QMatrix</code> object pointed to by the data member <code class="highlighter-rouge">_qmatrix</code>, which is responsible for all data related to calculating the instantaneous rate matrix and its eigenvalues/eigenvectors. It is possible that the user has specified the keyword <code class="highlighter-rouge">equal</code> for the state frequencies in the config file, in which case the first element of the parameter <code class="highlighter-rouge">state_frequencies</code> will be equal to -1. If that is the case, the <code class="highlighter-rouge">QMatrix::setEqualStateFreqs</code> member function is called instead of the <code class="highlighter-rouge">QMatrix::setStateFreqsSharedPtr</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetStateFreqs(QMatrix::freq_xchg_ptr_t state_frequencies, unsigned subset, bool fixed) { 
+        assert(subset &amp;lt; _num_subsets);
+        double first_freq = (*state_frequencies)[0];
+        if (first_freq == -1)
+            _qmatrix[subset]-&amp;gt;setEqualStateFreqs(state_frequencies);
+        else
+            _qmatrix[subset]-&amp;gt;setStateFreqsSharedPtr(state_frequencies);
+        _qmatrix[subset]-&amp;gt;fixStateFreqs(fixed);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetomega-member-function">The setSubsetOmega member function</h2>
+
+<p>This function sets the omega parameter for a particular subset. The <code class="highlighter-rouge">omega</code> parameter represents the nonsynonymous/synonymous rate ratio used in codon models. The parameter <code class="highlighter-rouge">omega</code> is a shared pointer, hence the need for indirection using the asterisk in order to assert that its value is valid.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetOmega(QMatrix::omega_ptr_t omega, unsigned subset, bool fixed) { 
+        assert(subset &amp;lt; _num_subsets);
+        assert(*omega &amp;gt; 0.0);
+        if (_subset_datatypes[subset].isCodon()) {
+            _qmatrix[subset]-&amp;gt;setOmegaSharedPtr(omega);
+            _qmatrix[subset]-&amp;gt;fixOmega(fixed);
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-settreeindex-gettreeindex-and-isfixedtree-member-functions">The setTreeIndex, getTreeIndex, and isFixedTree member functions</h2>
+
+<p>The <code class="highlighter-rouge">setTreeIndex</code> function allows for telling the model which tree is to be used to compute the likelihood (or starting likelihood in the case of an MCMC analysis). The <code class="highlighter-rouge">getTreeIndex</code> can be used to determine which tree index is currently held by the model, and <code class="highlighter-rouge">isFixedTree</code> returns whether the tree is considered fixed (which only makes sense in the context of an MCMC analysis).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setTreeIndex(unsigned i, bool fixed) {   
+        _tree_index = i;
+        _tree_fixed = fixed;
+    }   
+    
+    inline unsigned Model::getTreeIndex() const {   
+        return _tree_index;
+    }   
+    
+    inline bool Model::isFixedTree() const {  
+        return _tree_fixed;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-setsubsetrelrates-member-function">The setSubsetRelRates member function</h2>
+
+<p>This function sets the elements of the <code class="highlighter-rouge">_subset_relrates</code> vector according to the values specified by the user. If the user specified “equal” then the first element of the <code class="highlighter-rouge">relrates</code> vector will equal -1. In this case, the relative rates for all subsets are set to the value 1.0. If the user specified that the subset relative rates should be fixed at the specified values, then the data member <code class="highlighter-rouge">_subset_relrates_fixed</code> will be set to true.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setSubsetRelRates(subset_relrate_vect_t &amp; relrates, bool fixed) {   
+        assert(_num_subsets &amp;gt; 0);
+        assert(relrates.size() &amp;gt; 0);
+        if (relrates[0] == -1)
+            _subset_relrates.assign(_num_subsets, 1.0);
+        else
+            _subset_relrates.assign(relrates.begin(), relrates.end());
+        _subset_relrates_fixed = fixed;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getsubsetrelrates-member-function">The getSubsetRelRates member function</h2>
+
+<p>This accessor returns a reference to the <code class="highlighter-rouge">_subset_relrates</code> vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::subset_relrate_vect_t &amp; Model::getSubsetRelRates() {   
+        return _subset_relrates;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-isfixedsubsetrelrates-member-function">The isFixedSubsetRelRates member function</h2>
+<p>This accessor returns the boolean value of the data member <code class="highlighter-rouge">_subset_relrates_fixed</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Model::isFixedSubsetRelRates() const {  
+        return _subset_relrates_fixed;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-activate-and-inactivate-member-functions">The activate and inactivate member functions</h2>
+
+<p>This function is useful during model initiation: it is unnecessary to recalculate the eigensystem for the rate matrix when only part of the rate matrix has been specified. Hence the model should begin life in an inactivated state and the <code class="highlighter-rouge">activate</code> function can be called when it is set up and ready to go.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::activate() { 
+        for (auto q : _qmatrix)
+            q-&amp;gt;setActive(true);
+    } 
+
+    inline void Model::inactivate() { 
+        for (auto q : _qmatrix)
+            q-&amp;gt;setActive(false);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setbeagleeigendecomposition-member-function">The setBeagleEigenDecomposition member function</h2>
+
+<p>This function provides eigenvalues, eigenvectors, and inverse eigenvectors to BeagleLib for use in computing transition probabilities.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int Model::setBeagleEigenDecomposition(int beagle_instance, unsigned subset, unsigned instance_subset) { 
+        assert(subset &amp;lt; _qmatrix.size());
+        const double * pevec = _qmatrix[subset]-&amp;gt;getEigenvectors();
+        const double * pivec = _qmatrix[subset]-&amp;gt;getInverseEigenvectors();
+        const double * pival = _qmatrix[subset]-&amp;gt;getEigenvalues();
+        int code = beagleSetEigenDecomposition(
+            beagle_instance,    // Instance number (input)
+            instance_subset,    // Index of eigen-decomposition buffer (input)
+            pevec,              // Flattened matrix (stateCount x stateCount) of eigen-vectors (input)
+            pivec,              // Flattened matrix (stateCount x stateCount) of inverse-eigen- vectors (input)
+            pival);             // Vector of eigenvalues
+
+        return code;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setbeaglestatefrequencies-member-function">The setBeagleStateFrequencies member function</h2>
+
+<p>This function provides state frequencies to BeagleLib for use in computing transition probabilities and the log-likelihood.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int Model::setBeagleStateFrequencies(int beagle_instance, unsigned subset, unsigned instance_subset) { 
+        assert(subset &amp;lt; _qmatrix.size());
+        const double * pfreq = _qmatrix[subset]-&amp;gt;getStateFreqs();
+        int code = beagleSetStateFrequencies(
+             beagle_instance,   // Instance number (input)
+             instance_subset,   // Index of state frequencies buffer (input)
+             pfreq);            // State frequencies array (stateCount) (input)
+
+        return code;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setbeagleamongsiteratevariationrates-member-function">The setBeagleAmongSiteRateVariationRates member function</h2>
+
+<p>This function provides the rates component of the among-site rate heterogeneity submodel to BeagleLib.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int Model::setBeagleAmongSiteRateVariationRates(int beagle_instance, unsigned subset, unsigned instance_subset) { 
+        assert(subset &amp;lt; _asrv.size());
+        const double * prates = _asrv[subset]-&amp;gt;getRates();
+        int code = beagleSetCategoryRatesWithIndex(
+            beagle_instance,    // Instance number (input)
+            instance_subset,    // Index of category rates buffer (input)
+            prates);            // Array containing categoryCount rate scalers (input)
+
+        return code;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setbeagleamongsiteratevariationprobs-member-function">The setBeagleAmongSiteRateVariationProbs member function</h2>
+
+<p>This function sends the vector of category weights to BeagleLib. The category weights are the probabilities of each category in the among-site rate heterogeneity model.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int Model::setBeagleAmongSiteRateVariationProbs(int beagle_instance, unsigned subset, unsigned instance_subset) { 
+        assert(subset &amp;lt; _asrv.size());
+        const double * pprobs = _asrv[subset]-&amp;gt;getProbs();
+        int code = beagleSetCategoryWeights(
+            beagle_instance,    // Instance number (input)
+            instance_subset,    // Index of category weights buffer (input)
+            pprobs);            // Category weights array (categoryCount) (input)
+
+        return code;
+    } 
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-11/01-specifying-the-model.html">&lt;&nbsp;11.1</a> | 11.2 | <a href="/people/plewis/cpp//win//steps/step-11/03-the-qmatrix-class.html">11.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test creating Newick strings</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">5.2 Test creating Newick strings</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="/people/plewis/cpp//win//steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Add the following highlighted line to <em>main.cpp</em> (after <code class="highlighter-rouge">createTestTree()</code>):</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+#include "node.hpp"
+#include "tree.hpp"
+#include "tree_manip.hpp"
+
+using namespace strom;
+
+const double Node::_smallest_edge_length = 1.0e-12;
+
+int main(int argc, const char * argv[]) {
+    std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+    TreeManip tm;
+    tm.createTestTree();
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+    std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+
+    return 0;
+}   
+
+</code></pre></div></div>
+
+<h2 id="installing-the-boost-header-files">Installing the Boost header files</h2>
+
+<p>In your browser, go to the <a href="https://www.boost.org">Boost C++ home page</a>, find the latest release (1.71.0 at this writing), and navigate to the Downloads page. Download the file <em>boost_1_71_0.zip</em> and <em>extract</em> into the directory of your choice. I will assume that you extracted it at <em>~/Documents/libraries</em>, which I will hereafter refer to as the <strong>libraries directory</strong>). You should now have a directory <em>~/Documents/libraries/boost_1_71_0</em>, which I will hereafter refer to as <code class="highlighter-rouge">BOOST_ROOT</code>.</p>
+
+<h3 id="important-notes-about-zip-files-in-windows">Important notes about zip files in Windows</h3>
+
+<p>Windows can fool you into thinking you have a folder when in reality the apparent folder is still in form of a zip file. If what looks like the <em>boost_1_71_0</em> folder has a zipper on the icon, beware! The zipper means it is still a zip file. VSC19 will only be able to use files if they have been extracted from the <em>boost_1_71_0.zip</em> file.</p>
+
+<p>Windows is notoriously slow at extracting large zip files, so I recommend downloading the <a href="www.7-zip.org/">7-zip</a> program to do the unzipping for you. Once installed, you can right-click the zip file and choose <em>Extract here</em> from the 7-zip menu to unpack the boost libraries. It will still take awhile (because Boost is huge) but it will unpack orders of magnitude faster than using the native Windows unzipper.</p>
+
+<p>Finally, deleted the <em>boost_1_71_0.zip</em> file (the one with the zipper on the icon) after you extract it to avoid future confusion.</p>
+
+<h3 id="add-boost-to-header-search-path">Add Boost to header search path</h3>
+
+<p>Now we need to tell VSC19 about the Boost library so that we can use Boost header files and compiled libraries in our project.</p>
+
+<p>Right-click the <em>strom</em> project (note: click the project, not the solution) in the Solution Explorer pane of VSC19 and choose <em>Properties</em> from the popup menu.
+Expand <em>VC++ Directories</em>, then click on <em>Include Directories</em>, then click the down-pointing triangle, then click <em>&lt;Edit…&gt;</em> and add <code class="highlighter-rouge">BOOST_ROOT</code>, which, you remember from the paragraph above, is <em>~/Documents/libraries/boost_1_71_0</em>, where the <code class="highlighter-rouge">~</code> is a stand-in for your home directory. The easiest way to get this right is to use the button that allows you to add a new line, then click the elipses (<code class="highlighter-rouge">...</code>) button on the right end of that line, then choose the <code class="highlighter-rouge">BOOST_ROOT</code> directory using the file chooser. When I finished this process, the line read:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\Users\Paul Lewis\Documents\libraries\boost_1_71_0
+</code></pre></div></div>
+
+<h2 id="compile-and-run">Compile and run</h2>
+<p>Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional line appear in the output when the program is run:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>((1:0.100,2:0.100):0.100,3:0.200)
+</code></pre></div></div>
+
+<p>Note that 3 decimal places are used in outputting edge lengths because you supplied 3 as an argument to the <code class="highlighter-rouge">makeNewick</code> function.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="/people/plewis/cpp//win//steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

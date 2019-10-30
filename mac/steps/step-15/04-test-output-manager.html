@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test the OutputManager class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">15.4 Test the OutputManager class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-15/03-modify-strom-and-chain.html">&lt;&nbsp;15.3</a> | 15.4 | <a href="/people/plewis/cpp//mac//steps/step-16/00-updating-other-parameters.html">16.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Run the program using the following <code class="highlighter-rouge">strom.conf</code> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile    = rbcl10.nex    
+treefile    = rbcl10.tre
+statefreq   = default:0.294701,0.189205,0.205994,0.310100
+rmatrix     = default:0.06082,0.27887,0.06461,0.06244,0.48492,0.04834
+ratevar     = default:1.0
+pinvar      = default:0.0
+ncateg      = default:4
+niter       = 1000
+samplefreq  = 1
+printfreq   = 100 
+expectedLnL = -6897.492    
+
+</code></pre></div></div>
+
+<p>As before, the <code class="highlighter-rouge">ncatag = default:4</code> is required to force the model to include rate heterogeneity, which in turn forces the gamma rate variance (<code class="highlighter-rouge">ratevar</code>) parameter to be updated during MCMC.</p>
+
+<p>Here is the output you should expect:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Starting...
+Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-15/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+Number of taxa: 10
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     1314
+    patterns:  424
+    ambiguity: treated as missing data (faster)
+
+*** Resources available to BeagleLib 3.1.2:
+  resource 0: CPU
+
+*** Creating the likelihood calculator
+
+*** Model description
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites        1314
+       num. patterns         424
+         num. states           4
+     rate categories           4
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           1
+               omega           -
+       rate variance           1
+              pinvar           -
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.294701,0.189205,0.205994,0.3101)
+
+  exchangeabilities:
+             1: (0.06082,0.27887,0.06461,0.06244,0.48492,0.04834)
+
+  omega:
+             1: -
+
+  rate variance:
+             1: 1
+
+  pinvar:
+             1: -
+
+Created BeagleLib instance 0 (4 states, 4 rates, 1 subset, not invar. sites model)
+
+*** Reading and storing the first tree in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+log likelihood = -6897.50119
+      (expecting -6897.492)
+
+   iteration      logLike     logPrior           TL
+           0  -6897.50119     -1.00000      1.75014
+         100  -6723.24797     -3.82676      1.75014
+         200  -6723.36455     -3.77476      1.75014
+         300  -6723.57824     -4.19035      1.75014
+         400  -6725.66292     -3.39929      1.75014
+         500  -6724.14492     -4.32369      1.75014
+         600  -6724.08629     -3.60218      1.75014
+         700  -6723.51995     -3.72464      1.75014
+         800  -6723.80059     -3.65665      1.75014
+         900  -6723.29172     -4.08572      1.75014
+        1000  -6723.76580     -3.66414      1.75014
+
+Chain summary:
+                       Updater   Tuning Param.        Accept %     No. Updates
+           Gamma Rate Variance           0.689            30.5            1000
+
+Finished!
+
+</code></pre></div></div>
+
+<p>This output does not tell the whole story, however. To see that the gamma rate variance parameter (but no other parameter) is being updated, take a look at the <em>params.txt</em> file that was generated by the <code class="highlighter-rouge">OutputManager</code> object. Note that all columns remain at their starting values except the “iter” column, the log-likelihood (labeled “lnL”) column, the log-prior (labeled “lnPr”) column, and the last column labeled “ratevar-0” (the gamma rate variance parameter).</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-15/03-modify-strom-and-chain.html">&lt;&nbsp;15.3</a> | 15.4 | <a href="/people/plewis/cpp//mac//steps/step-16/00-updating-other-parameters.html">16.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

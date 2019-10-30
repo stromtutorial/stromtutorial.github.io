@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The GammaRateVarUpdater Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">14.2 The GammaRateVarUpdater Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-14/01-the-updater-class.html">&lt;&nbsp;14.1</a> | 14.2 | <a href="/people/plewis/cpp//linux//steps/step-14/03-the-chain-class.html">14.3&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Most of the work of updating the discrete gamma rate variance parameter has already been done by creating the <code class="highlighter-rouge">Updater</code> base class. Now all we need to do is to fill in the blanks by implementing the abstract functions in <code class="highlighter-rouge">Updater</code>.</p>
+
+<p>Create a new header file named <em>gamma_ratevar_updater.hpp</em> and add the following class declaration code to it:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "model.hpp"
+#include "updater.hpp"
+#include "asrv.hpp"
+
+namespace strom {
+    
+    class GammaRateVarUpdater : public Updater {
+    
+        public:
+            typedef std::shared_ptr&amp;lt;GammaRateVarUpdater&amp;gt; SharedPtr;
+
+                                        GammaRateVarUpdater(ASRV::SharedPtr asrv);
+                                        ~GammaRateVarUpdater();
+        
+            virtual void                clear();
+            double                      getCurrentPoint() const;
+
+            // mandatory overrides of pure virtual functions
+            virtual double              calcLogPrior();
+            virtual void                revert();
+            virtual void                proposeNewState();
+        
+        private:
+        
+            double                      _prev_point;
+            ASRV::SharedPtr             _asrv;
+    };
+
+    // member function bodies go here
+        
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+
+<p>The constructor sets <code class="highlighter-rouge">_name</code> to be “Gamma Rate Variance” and calls the <code class="highlighter-rouge">clear</code> function. Note that <code class="highlighter-rouge">_name</code> is not listed as a data member of <code class="highlighter-rouge">GammaRateVarUpdater</code> in this class’s declaration above, so why are we allowed to modify its value here? The answer is that <code class="highlighter-rouge">_name</code> is a member of the <code class="highlighter-rouge">Updater</code> base class and thus is inherited by <code class="highlighter-rouge">GammaRateVarUpdater</code>. So, it really <em>is</em> a data member of <code class="highlighter-rouge">GammaRateVarUpdater</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline GammaRateVarUpdater::GammaRateVarUpdater(ASRV::SharedPtr asrv) { 
+        //std::cout &amp;lt;&amp;lt; "GammaRateVarUpdater being created" &amp;lt;&amp;lt; std::endl;
+        clear();
+        _name = "Gamma Rate Variance";
+        assert(asrv);
+        _asrv = asrv;
+    } 
+
+    inline GammaRateVarUpdater::~GammaRateVarUpdater() { 
+        //std::cout &amp;lt;&amp;lt; "GammaRateVarUpdater being destroyed" &amp;lt;&amp;lt; std::endl;
+        _asrv.reset();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+
+<p>The <code class="highlighter-rouge">clear</code> function first calls the parent class’s version (<code class="highlighter-rouge">Updater::clear()</code>) and then returns data members <code class="highlighter-rouge">_prev_point</code> and <code class="highlighter-rouge">_curr_point</code> to their just-constructed state.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GammaRateVarUpdater::clear() { 
+        Updater::clear();
+        _prev_point = 0.0;
+        _asrv = nullptr;
+        reset();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getcurrentpoint-member-function">The getCurrentPoint member function</h2>
+
+<p>This function returns the current value of the gamma rate variance parameter.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double GammaRateVarUpdater::getCurrentPoint() const { 
+        return *(_asrv-&amp;gt;getRateVarSharedPtr());
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-calclogprior-member-function">The calcLogPrior member function</h2>
+
+<p>The <code class="highlighter-rouge">calcLogPrior</code> function is (you’ll remember) a pure virtual function that we must provide for this class in order to compile the program; there is no generic version of this function provided by the <code class="highlighter-rouge">Updater</code> parent class. The function body below calculates and returns the log of the Gamma prior probability density at <code class="highlighter-rouge">_curr_point</code>. The shape and scale parameters of the Gamma prior distribution are extracted from the <code class="highlighter-rouge">_prior_parameters</code> vector. This function body shows that the program produced by this tutorial will not allow the user to apply anything other than a Gamma prior distribution for this parameter, but the user will be able to set the parameters of that Gamma prior distribution.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double GammaRateVarUpdater::calcLogPrior() { 
+        // Assumes Gamma(a,b) prior with mean a*b and variance a*b^2
+        assert(_prior_parameters.size() == 2);
+        double prior_a = _prior_parameters[0];
+        double prior_b = _prior_parameters[1];
+        
+        double log_prior = 0.0;
+        double curr_point = getCurrentPoint();
+        if (curr_point &amp;gt; 0.0) {
+            log_prior += (prior_a - 1.0)*std::log(curr_point);
+            log_prior -= curr_point/prior_b;
+            log_prior -= prior_a*std::log(prior_b);
+            log_prior -= std::lgamma(prior_a);
+        }
+        else
+            log_prior = Updater::_log_zero;
+        return log_prior;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-revert-member-function">The revert member function</h2>
+
+<p>In the event that the proposed value is rejected, this function can be called to copy <code class="highlighter-rouge">_prev_point</code> to <code class="highlighter-rouge">_curr_point</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GammaRateVarUpdater::revert() { 
+        _asrv-&amp;gt;setRateVar(_prev_point);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
+
+<p>This is another pure virtual function in the parent class <code class="highlighter-rouge">Updater</code> that we must provide. The proposal algorithm used here generates a new point (<code class="highlighter-rouge">_curr_point</code>) close to the old point (<code class="highlighter-rouge">_prev_point</code>) by multiplying <code class="highlighter-rouge">_prev_point</code> by a factor that is either slightly larger than or slightly smaller than 1.0. What is meant by “slightly” depends on <code class="highlighter-rouge">_lambda</code>, the boldness factor, with larger values of <code class="highlighter-rouge">_lambda</code> yielding bigger distances, on average, between <code class="highlighter-rouge">_prev_point</code> and <code class="highlighter-rouge">_curr_point</code>. This proposal is not symmetric: the probability (density) of proposing <code class="highlighter-rouge">_curr_point</code> from <code class="highlighter-rouge">_prev_point</code> is not the same as the probability of proposing <code class="highlighter-rouge">_prev_point</code> from <code class="highlighter-rouge">_curr_point</code>. This means that we have to put the (log of the) ratio of these two probabilities into the <code class="highlighter-rouge">_log_hastings_ratio</code> data member so that the asymmetry of the move can be countered by a modified acceptance probability. That is, if proposals tend to be to the right twice as often as to the left, we accept half as many to the right to compensate for the proposal bias.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GammaRateVarUpdater::proposeNewState() { 
+        // Save copy of _curr_point in case revert is necessary.
+        _prev_point = getCurrentPoint();
+        
+        // Propose new value using multiplier with boldness _lambda
+        double m = exp(_lambda*(_lot-&amp;gt;uniform() - 0.5));
+        _asrv-&amp;gt;setRateVar(m*_prev_point);
+        
+        // Calculate log of Hastings ratio
+        _log_hastings_ratio = log(m);
+        
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+    } 
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-14/01-the-updater-class.html">&lt;&nbsp;14.1</a> | 14.2 | <a href="/people/plewis/cpp//linux//steps/step-14/03-the-chain-class.html">14.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

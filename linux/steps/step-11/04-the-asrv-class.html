@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The ASRV class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">11.4 The ASRV class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-11/03-the-qmatrix-class.html">&lt;&nbsp;11.3</a> | 11.4 | <a href="/people/plewis/cpp//linux//steps/step-11/05-adding-model-to-likelihood.html">11.5&nbsp;&gt;</a></h3>
+</div>
+
+<p>The <code class="highlighter-rouge">ASRV</code> class handles everything associated with among-site rate heterogeneity for the <code class="highlighter-rouge">Model</code>. The <code class="highlighter-rouge">Model</code> has only to provide the variance among rates and the <code class="highlighter-rouge">ASRV</code> object recalculates the rate category boundaries and discrete gamma rate category means. Hiding the details of rate heterogeneity in this way makes it easy to later swap in a different version of <code class="highlighter-rouge">ASRV</code> that does not use the discrete gamma distribution to model among-site rate heterogeneity.</p>
+
+<p>Begin by creating a new header file named <em>asrv.hpp</em> to contain the <code class="highlighter-rouge">ASRV</code> class declaration and member function bodies:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;vector&amp;gt;
+#include &amp;lt;boost/math/distributions/gamma.hpp&amp;gt;
+
+namespace strom {
+
+    class ASRV {
+
+        public:
+            typedef std::vector&amp;lt;double&amp;gt;         rate_prob_t;
+            typedef std::shared_ptr&amp;lt;double&amp;gt;     relrate_ptr_t;
+            typedef std::shared_ptr&amp;lt;double&amp;gt;     ratevar_ptr_t;
+            typedef std::shared_ptr&amp;lt;double&amp;gt;     pinvar_ptr_t;
+            typedef std::shared_ptr&amp;lt;ASRV&amp;gt;       SharedPtr;
+        
+                                                ASRV();
+            virtual                             ~ASRV();
+        
+            void                                clear();
+        
+            void                                setNumCateg(unsigned ncateg);
+            unsigned                            getNumCateg() const;
+
+            void                                setRateVarSharedPtr(ratevar_ptr_t ratevar);
+            void                                setRateVar(double v);
+            const ratevar_ptr_t                 getRateVarSharedPtr() const;
+            double                              getRateVar() const;
+            void                                fixRateVar(bool is_fixed);
+            bool                                isFixedRateVar() const;
+
+            void                                setPinvarSharedPtr(pinvar_ptr_t pinvar);
+            void                                setPinvar(double p);
+            const pinvar_ptr_t                  getPinvarSharedPtr() const;
+            double                              getPinvar() const;
+            void                                fixPinvar(bool is_fixed);
+            bool                                isFixedPinvar() const;
+
+            void                                setIsInvarModel(bool is_invar_model);
+            bool                                getIsInvarModel() const;
+
+            const double *                      getRates() const;
+            const double *                      getProbs() const;
+
+        private:
+        
+            virtual void                        recalcASRV();
+
+            unsigned                            _num_categ;
+            bool                                _invar_model;
+        
+            ratevar_ptr_t                       _ratevar;
+            pinvar_ptr_t                        _pinvar;
+        
+            bool                                _ratevar_fixed;
+            bool                                _pinvar_fixed;
+        
+            rate_prob_t                         _rates;
+            rate_prob_t                         _probs;
+    };
+    
+    // Member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="the-constructor-destructor-and-clear-function">The constructor, destructor, and clear function</h2>
+<p>The constructor and destructor are routine, and the <code class="highlighter-rouge">clear</code> function simply sets the number of rate categories to 1 (i.e. rate homogeneity is the default).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline ASRV::ASRV() {   
+        //std::cout &amp;lt;&amp;lt; "Constructing a ASRV" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+    inline ASRV::~ASRV() {   
+        //std::cout &amp;lt;&amp;lt; "Destroying a ASRV" &amp;lt;&amp;lt; std::endl;
+    }   
+
+    inline void ASRV::clear() {   
+        // Rate homogeneity is the default
+        _invar_model = false;
+        _ratevar_fixed = false;
+        _pinvar_fixed = false;
+        _ratevar = std::make_shared&amp;lt;double&amp;gt;(1.0);
+        _pinvar = std::make_shared&amp;lt;double&amp;gt;(0.0);
+        _num_categ = 1;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getratevarsharedptr-member-function">The getRateVarSharedPtr member function</h2>
+<p>Returns the shared pointer <code class="highlighter-rouge">_ratevar</code>, which points to the double value storing the variance of rates across sites.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const ASRV::ratevar_ptr_t ASRV::getRateVarSharedPtr() const {   
+        return _ratevar;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getratevar-member-function">The getRateVar member function</h2>
+<p>Returns the double value stored at the shared pointer <code class="highlighter-rouge">_ratevar</code>, which represents the variance of rates across sites.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double ASRV::getRateVar() const {   
+        assert(_ratevar);
+        return *_ratevar;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getpinvarsharedptr-member-function">The getPinvarSharedPtr member function</h2>
+<p>Returns the shared pointer <code class="highlighter-rouge">_pinvar</code>, which points to the double value storing the proportion of invariable sites.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const ASRV::pinvar_ptr_t ASRV::getPinvarSharedPtr() const {   
+        return _pinvar;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getpinvar-member-function">The getPinvar member function</h2>
+<p>Returns the double value at the shared pointer <code class="highlighter-rouge">_pinvar</code>, which represents the proportion of invariable sites.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double ASRV::getPinvar() const {   
+        assert(_pinvar);
+        return *_pinvar;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getrates-member-function">The getRates member function</h2>
+<p>Returns a pointer to the array of rates stored in the vector <code class="highlighter-rouge">_rates</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const double * ASRV::getRates() const {   
+        return &amp;_rates[0];
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getprobs-member-function">The getProbs member function</h2>
+<p>Returns a pointer to the array of rate probabilities stored in the vector <code class="highlighter-rouge">_probs</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const double * ASRV::getProbs() const {   
+        return &amp;_probs[0];
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getisinvarmodel-member-function">The getIsInvarModel member function</h2>
+<p>Returns the value of  <code class="highlighter-rouge">_invar_model</code>. which determines whether this is an invariable sites model.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool ASRV::getIsInvarModel() const {   
+        return _invar_model;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getnumcateg-member-function">The getNumCateg member function</h2>
+<p>Returns the number of rate categories, <code class="highlighter-rouge">_num_categ</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned ASRV::getNumCateg() const {   
+        return _num_categ;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setnumcateg-member-function">The setNumCateg member function</h2>
+<p>This function sets the number of rate categories (<code class="highlighter-rouge">_num_categ</code>) and calls <code class="highlighter-rouge">recalcASRV</code> to recompute rate category boundaries, rate category probabilities, and category mean rates.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::setNumCateg(unsigned ncateg) {   
+        _num_categ = ncateg;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setratevarsharedptr-member-function">The setRateVarSharedPtr member function</h2>
+<p>This function assigns a shared pointer to the variance of rates across sites to the data member <code class="highlighter-rouge">_ratevar</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::setRateVarSharedPtr(ratevar_ptr_t ratevar) {   
+        _ratevar = ratevar;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setratevar-member-function">The setRateVar member function</h2>
+<p>This function sets the value of the variance of rates across sites, pointed to by the data member <code class="highlighter-rouge">_ratevar</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::setRateVar(double v) {   
+        *_ratevar = v;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setpinvarsharedptr-member-function">The setPinvarSharedPtr member function</h2>
+<p>This function assigns a shared pointer to the proportion of invariable sites to the data member <code class="highlighter-rouge">_pinvar</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::setPinvarSharedPtr(pinvar_ptr_t pinvar) {   
+        _pinvar = pinvar;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setpinvar-member-function">The setPinvar member function</h2>
+<p>This function sets the value of the proportion of invariable sites, pointed to by the  data member <code class="highlighter-rouge">_pinvar</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::setPinvar(double p) {   
+        *_pinvar = p;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setisinvarmodel-member-function">The setIsInvarModel member function</h2>
+<p>This function sets the <code class="highlighter-rouge">_invar_model</code> data member, a bool value that determines whether this <code class="highlighter-rouge">ASRV</code> object will represent the invariable sites model.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::setIsInvarModel(bool is_invar_model) {   
+        _invar_model = is_invar_model;
+        recalcASRV();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-fixratevar-fixpinvar-isfixedratevar-and-isfixedpinvar-member-functions">The fixRateVar, fixPinvar, isFixedRateVar, and isFixedPinvar member functions</h2>
+<p>The first 2 of these functions set the <code class="highlighter-rouge">_ratevar_fixed</code> and <code class="highlighter-rouge">_pinvar_fixed</code> data members, respectively. Each stores a bool value that determines whether their particular model parameter will be fixed or allowed to vary in, say, an MCMC analysis. The second set of 2 functions serve as accessors for these bool values.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::fixRateVar(bool is_fixed) {  
+        _ratevar_fixed = is_fixed;
+    }   
+
+    inline void ASRV::fixPinvar(bool is_fixed) {  
+        _pinvar_fixed = is_fixed;
+    }   
+
+    inline bool ASRV::isFixedRateVar() const {  
+        return _ratevar_fixed;
+    }   
+
+    inline bool ASRV::isFixedPinvar() const {  
+        return _pinvar_fixed;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-recalcasrv-member-function">The recalcASRV member function</h2>
+<h3 id="discrete-gamma-rate-heterogeneity-g-model">Discrete Gamma Rate Heterogeneity (+G model)</h3>
+<p>This function recomputes several vectors related to modeling discrete-gamma among-site rate variation. The relative rate of a nucleotide site is the ratio of its rate of substitution to the average rate. A relative rate equal to 1.0 means that the site is evolving at exactly the average rate, while a relative rate of 2.0 means that site is evolving at twice the average rate. Relative rates are assumed to follow a Gamma distribution with mean 1.0 and shape <code class="highlighter-rouge">1/_ratevar</code>.</p>
+
+<p>A Gamma(α,β) distribution having shape α and scale β has mean αβ. Because the mean relative rate should be 1.0, this implies that β = 1/α, so the scale parameter α completely determines the Gamma distribution. Because the variance of a Gamma(α,β) distribution is α β<sup>2</sup> = α(1/α)(1/α) = 1/α, it makes sense to specify the variance of rates across sites (<code class="highlighter-rouge">_ratevar</code>) and determine the shape parameter α as <code class="highlighter-rouge">1/_ratevar</code>. Rate heterogeneity is thus proportional to <code class="highlighter-rouge">_ratevar</code>, and <code class="highlighter-rouge">_ratevar</code> equal to zero corresponds to no rate heterogeneity.</p>
+
+<p>The Gamma distribution is partitioned into <code class="highlighter-rouge">_num_categ</code> subsets having equal area under the probability density curve (and thus equal probability), and the mean of each category serves as the relative rate representing that category. Rate heterogeneity is thus modeled as a discrete mixture distribution with each component of the mixture having equal probability (i.e. representing the same proportion of sites).</p>
+
+<p>The mean of one category is computed as follows:</p>
+
+<p><img src="../../assets/img/rateMean.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+
+<p>This involves a ratio of integrals of two Gamma distributions. The Gamma distribution in the numerator has shape α + 1, while the Gamma distribution in the denominator has shape α, and both have scale β = 1/α. The values <em>u</em> and <em>v</em> define the boundaries of the category for which the mean is being calculated. Calcluation of these two integrals is done using the quantile and cdf functions for the Gamma distribution provided by the <a href="https://www.boost.org/doc/libs/1_65_1/libs/math/doc/html/index.html">Boost Math library</a>.</p>
+
+<h3 id="invariable-sites-i-model">Invariable Sites (+I model)</h3>
+<p>The <code class="highlighter-rouge">ASRV</code> class also allows a rate heterogeneity model to allow a fraction of sites (determined by the proportion of invariable sites <code class="highlighter-rouge">_pinvar</code> parameter) to be invariable (rate of substitution equal to zero). Adding invariable sites capability involves adding an additional rate (equal to 0.0) and and additional rate category (having probability pinvar). The remaining <code class="highlighter-rouge">_ncateg</code> categories no longer have probability equal to <code class="highlighter-rouge">1/_ncateg</code> because their sum must now equal 1 - pinvar. Making the probability of each non-zero rate category equal to (1-pinvar)/ncateg accomplishes this.</p>
+
+<p>Here is the code for handling calculation of the rates and probabilities under the +G or +I+G models:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::recalcASRV() {   
+        // This implementation assumes discrete gamma among-site rate heterogeneity
+        // using a _num_categ category discrete gamma distribution with equal category
+        // probabilities and Gamma density with mean 1.0 and variance _rate_var.
+        // If _invar_model is true, then rate probs will sum to 1 - _pinvar rather than 1
+        // and the mean rate will be 1/(1 - _pinvar) rather than 1; the rest of the invariable
+        // sites component of the model is handled outside the ASRV class.
+        
+        // _num_categ, _rate_var, and _pinvar must all have been assigned in order to compute rates and probs
+        if ( (!_ratevar) || (!_num_categ) || (!_pinvar) )
+            return;
+        
+        double pinvar = *_pinvar;
+        assert(pinvar &amp;gt;= 0.0);
+        assert(pinvar &amp;lt;  1.0);
+
+        assert(_num_categ &amp;gt; 0);
+
+        double equal_prob = 1.0/_num_categ;
+        double mean_rate_variable_sites = 1.0;
+        if (_invar_model)
+            mean_rate_variable_sites /= (1.0 - pinvar);
+        
+        _rates.assign(_num_categ, mean_rate_variable_sites);
+        _probs.assign(_num_categ, equal_prob);
+
+        double rate_variance = *_ratevar;
+        assert(rate_variance &amp;gt;= 0.0);
+        
+        if (_num_categ == 1 || rate_variance == 0.0)
+            return;
+
+        double alpha = 1.0/rate_variance;
+        double beta = rate_variance;
+    
+        boost::math::gamma_distribution&amp;lt;&amp;gt; my_gamma(alpha, beta);
+        boost::math::gamma_distribution&amp;lt;&amp;gt; my_gamma_plus(alpha + 1.0, beta);
+
+        double cum_upper        = 0.0;
+        double cum_upper_plus   = 0.0;
+        double upper            = 0.0;
+        double cum_prob         = 0.0;
+        for (unsigned i = 1; i &amp;lt;= _num_categ; ++i) {
+            double cum_lower_plus       = cum_upper_plus;
+            double cum_lower            = cum_upper;
+            cum_prob                    += equal_prob;
+
+            if (i &amp;lt; _num_categ) {
+                upper                   = boost::math::quantile(my_gamma, cum_prob);
+                cum_upper_plus          = boost::math::cdf(my_gamma_plus, upper);
+                cum_upper               = boost::math::cdf(my_gamma, upper);
+            }
+            else {
+                cum_upper_plus          = 1.0;
+                cum_upper               = 1.0;
+            }
+
+            double numer                = cum_upper_plus - cum_lower_plus;
+            double denom                = cum_upper - cum_lower;
+            double r_mean               = (denom &amp;gt; 0.0 ? (alpha*beta*numer/denom) : 0.0);
+            _rates[i-1]        = r_mean*mean_rate_variable_sites;
+        }
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-11/03-the-qmatrix-class.html">&lt;&nbsp;11.3</a> | 11.4 | <a href="/people/plewis/cpp//linux//steps/step-11/05-adding-model-to-likelihood.html">11.5&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

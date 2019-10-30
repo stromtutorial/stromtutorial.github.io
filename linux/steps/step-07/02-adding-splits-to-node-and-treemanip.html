@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding splits to Node and TreeManip</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">7.2 Adding splits to Node and TreeManip</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-07/01-split-class.html">&lt;&nbsp;7.1</a> | 7.2 | <a href="/people/plewis/cpp//linux//steps/step-07/03-tree-summary.html">7.3&nbsp;&gt;</a></h3>
+</div>
+
+<p>Before we can do anything interesting with our <code class="highlighter-rouge">Split</code> class, we need to add a <code class="highlighter-rouge">Split</code> object to the <code class="highlighter-rouge">Node</code> class and a <code class="highlighter-rouge">storeSplits</code> member function to the <code class="highlighter-rouge">TreeManip</code> class.</p>
+
+<h2 id="adding-splits-to-the-node-class">Adding splits to the <code class="highlighter-rouge">Node</code> class</h2>
+
+<p>Uncomment the line that includes the <em>split.hpp</em> header, which is located at the top of the <em>node.hpp</em> file. Also uncomment the line that declares a data member of type <code class="highlighter-rouge">Split</code> just below <code class="highlighter-rouge">_edge_length</code> inside the <code class="highlighter-rouge">Node</code> class declaration. Finally, uncomment the <code class="highlighter-rouge">getSplit</code> accessor member function. The changes needed in the <code class="highlighter-rouge">Node</code> class are shown below.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "split.hpp"&lt;/strong&gt;&lt;/span&gt;
+
+namespace strom {
+
+    class Tree;
+    class TreeManip;
+    //class Likelihood;
+    //class Updater;
+
+    class Node {
+            friend class Tree;
+            friend class TreeManip;
+            //friend class Likelihood;
+            //friend class Updater;
+
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()     {return _parent;}
+                    Node *              getLeftChild()  {return _left_child;}
+                    Node *              getRightSib()   {return _right_sib;}
+                    int                 getNumber()     {return _number;}
+                    std::string         getName()       {return _name;}
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Split               getSplit()      {return _split;}&lt;/strong&gt;&lt;/span&gt;
+
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+
+        private:
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Split               _split;&lt;/strong&gt;&lt;/span&gt;
+        };
+
+
+</code></pre></div></div>
+
+<h2 id="adding-the-storesplits-member-function-to-the-treemanip-class">Adding the <code class="highlighter-rouge">storeSplits</code> member function to the <code class="highlighter-rouge">TreeManip</code> class</h2>
+
+<p>Add the following member function prototype to the <code class="highlighter-rouge">TreeManip</code> class declaration (just below <code class="highlighter-rouge">buildFromNewick</code> member function prototype).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;cassert&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;stack&amp;gt;
+#include &amp;lt;queue&amp;gt;
+#include &amp;lt;set&amp;gt;
+#include &amp;lt;regex&amp;gt;
+#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "tree.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class TreeManip {
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            std::string                 makeNewick(unsigned precision) const;
+
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);&lt;/strong&gt;&lt;/span&gt;
+            void                        rerootAtNodeNumber(int node_number);
+
+            void                        clear();
+
+        private:
+
+            void                        refreshPreorder();
+            void                        refreshLevelorder();
+            void                        renumberInternals();
+            void                        rerootAtNode(Node * prospective_root);
+            void                        extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used);
+            void                        extractEdgeLen(Node * nd, std::string edge_length_string);
+            unsigned                    countNewickLeaves(const std::string newick);
+            void                        stripOutNexusComments(std::string &amp; newick);
+            bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };
+    
+
+</code></pre></div></div>
+
+<p>Now add the member function body to the end of the <em>tree_manip.hpp</em> file (but before the right curly bracket that terminates the namespace scope).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset) {    
+        // Start by clearing and resizing all splits
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd._split.resize(_tree-&amp;gt;_nleaves);
+        }
+
+        // Now do a postorder traversal and add the bit corresponding
+        // to the current node in its parent node's split
+        for (auto nd : boost::adaptors::reverse(_tree-&amp;gt;_preorder)) {
+            if (nd-&amp;gt;_left_child) {
+                // add this internal node's split to splitset
+                splitset.insert(nd-&amp;gt;_split);
+            }
+            else {
+                // set bit corresponding to this leaf node's number
+                nd-&amp;gt;_split.setBitAt(nd-&amp;gt;_number);
+            }
+
+            if (nd-&amp;gt;_parent) {
+                // parent's bits are the union of the bits set in all its children
+                nd-&amp;gt;_parent-&amp;gt;_split.addSplit(nd-&amp;gt;_split);
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>The first for loop visits each node in the tree (i.e. every element of the <code class="highlighter-rouge">_nodes</code> vector) and resizes that node’s <code class="highlighter-rouge">_split</code> to ensure that all splits have just enough elements in their <code class="highlighter-rouge">_bits</code> vector to store any possible split defined on <code class="highlighter-rouge">_nleaves</code> taxa.</p>
+
+<p>The second loop (which involves the use of <code class="highlighter-rouge">boost::adaptors::reverse</code> to reverse the order in which nodes in the <code class="highlighter-rouge">_preorder</code> vector are visited) conducts a postorder traversal (i.e. all descendants are visited before the node representing their most recent common ancestor is visited). Because of the <code class="highlighter-rouge">Split::resize</code> call we just did for every node, it is safe to assume that all splits have zeros in every bit. When visiting a leaf node (i.e. <code class="highlighter-rouge">nd-&gt;_left_child = 0</code>), this function sets the bit in its split corresponding to that leaf’s taxon number. If the leaf node has <code class="highlighter-rouge">_number = 0</code>, then the first (i.e. 0th) bit will be set in its <code class="highlighter-rouge">_split</code>.</p>
+
+<p>Note that for any node having a <code class="highlighter-rouge">_parent</code> (i.e. all nodes except the root node), the bits in the node being visited are added to the bits already set in the <code class="highlighter-rouge">_parent</code> node. Thus, by the time all descendants of an internal node have been visited, the <code class="highlighter-rouge">_split</code> for that internal node is already completely specified. When an internal node is visited, all that needs to be done is to add its <code class="highlighter-rouge">_split</code> to the growing <code class="highlighter-rouge">splitset</code> and, of course, add the bits defined in its <code class="highlighter-rouge">_split</code> to its own parent.</p>
+
+<p>The parameter <code class="highlighter-rouge">splitset</code> is a reference to a <code class="highlighter-rouge">std::set</code> of <code class="highlighter-rouge">Split</code> objects. A reference in C++ represents an alias to an existing variable. In this case, the <code class="highlighter-rouge">std::set&lt;Split&gt;</code> variable aliased must be created before this function is called, and this function builds up the set as it walks through the tree. Why use a <code class="highlighter-rouge">std::set</code> and not a <code class="highlighter-rouge">std::vector</code> here? Different trees may have identical splits, but they may not be in the same order depending on how each edge is rotated. If splits are added to a set, then the order in which they are encountered does not matter: trees with the same set of splits will have identical split sets. When the function exits, the external <code class="highlighter-rouge">std::set&lt;Split&gt;</code> variable will contain the same number of splits as there are internal nodes in the tree, and will serve as a <strong>tree ID</strong>: a unique bar code that identifies the tree topology and allows other trees with the same topology (but probably different edge lengths) to be identified.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-07/01-split-class.html">&lt;&nbsp;7.1</a> | 7.2 | <a href="/people/plewis/cpp//linux//steps/step-07/03-tree-summary.html">7.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

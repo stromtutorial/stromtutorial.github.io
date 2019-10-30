@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Saving trees</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">5.0 Saving trees</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 5.0 | <a href="/people/plewis/cpp//mac//steps/step-05/01-create-newick-description.html">5.1&nbsp;&gt;</a></h3>
+</div>
+
+<p><img src="/people/plewis/cpp/assets/img/newicks.jpg" alt="Newick's restaurant near Dover, New Hampshire" class="right-image" />
+<a href="http://www.newicks.com">Newick’s Lobster House</a>  was the site of an historic 1986 meeting 
+at which a standard was devised for storing descriptions of phylogenetic trees as strings. These newick tree descriptions (also called the New Hampshire format) became part of the NEXUS file format (described in <a href="http://dx.doi.org/10.1093/sysbio/46.4.590">Maddison, Swofford, and Maddison, 1997</a>), which is a standard file format for storing systematic data that is still widely used despite the advent of <a href="http://www.nexml.org">NexML</a>.</p>
+
+<p>In this step you will learn how to save a tree in memory in the form of a string known as a Newick tree description. You will also begin using some functionality from the Boost C++ library.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="5-1">
+		<td>Step 5.1</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-05/01-create-newick-description.html">Create a Newick tree description</a></td>
+		<td><p>In this section you will write the <code class="highlighter-rouge">makeNewick</code> function, which creates a string that records both the topology and edge lengths of the tree.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="5-2">
+		<td>Step 5.2</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-05/02-test-makenewick.html">Test creating Newick strings</a></td>
+		<td><p>Here you will test your new makeNewick function</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 5.0 | <a href="/people/plewis/cpp//mac//steps/step-05/01-create-newick-description.html">5.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

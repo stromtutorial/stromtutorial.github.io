@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the Node Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">2.1 Create the Node Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/00-node-and-tree-classes.html">&lt;&nbsp;2.0</a> | 2.1 | <a href="/people/plewis/cpp//win//steps/step-02/02-create-tree-class.html">2.2&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="creating-a-header-file">Creating a header file</h2>
+
+<p><em>Important: whenever I ask you to create a new header file, use the procedure below. Right now, we are just creating files; you will fill in these files later in the tutorial.</em></p>
+
+<ol>
+  <li>Right-click on the <em>Header Files</em> folder inside the <em>strom</em> project and choose <em>Add &gt; New Item…</em>, then choose <em>Header File (.h)</em>, set the <em>Name</em> field to <em>node.hpp</em> and press the <em>Add</em> button</li>
+  <li>If you forgot to set the name of the header file before creating it, you can easily change the name of the default header file created from <em>Header.h</em> to <em>node.hpp</em> by right-clicking its name and choosing <em>Rename</em> from the popup menu.</li>
+</ol>
+
+<p>Now that you have the header file <em>node.hpp</em>, fill it with the following code.</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+//#include "split.hpp"
+
+namespace strom {
+
+    //class Tree;
+    //class TreeManip;
+    //class Likelihood;
+    //class Updater;
+
+    class Node {
+            //friend class Tree;
+            //friend class TreeManip;
+            //friend class Likelihood;
+            //friend class Updater;
+
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()     {return _parent;}
+                    Node *              getLeftChild()  {return _left_child;}
+                    Node *              getRightSib()   {return _right_sib;}
+                    int                 getNumber()     {return _number;}
+                    std::string         getName()       {return _name;}
+                    //Split               getSplit()      {return _split;}
+
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+
+        private:
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            //Split               _split;
+    };
+
+    inline Node::Node() {
+        std::cout &amp;lt;&amp;lt; "Creating Node object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }
+
+    inline Node::~Node() {
+        std::cout &amp;lt;&amp;lt; "Destroying Node object" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Node::clear() {
+        _left_child = 0;
+        _right_sib = 0;
+        _parent = 0;
+        _number = -1;
+        _name = "";
+        _edge_length = _smallest_edge_length;
+    }
+
+    inline void Node::setEdgeLength(double v) {
+        _edge_length = (v &amp;lt; _smallest_edge_length ? _smallest_edge_length : v);
+    }
+
+}	
+
+</code></pre></div></div>
+
+<h2 id="explanation-of-nodehpp">Explanation of <em>node.hpp</em></h2>
+<h3 id="pragmas">Pragmas</h3>
+<p>The first line is a  <code class="highlighter-rouge">pragma</code>, which is an instruction to the compiler that can be either used or ignored, depending on the compiler. The <code class="highlighter-rouge">once</code> pragma says that this header file should not be included more than once.</p>
+
+<h3 id="including-header-files">Including header files</h3>
+<p>The  <code class="highlighter-rouge">#include &lt;string&gt;</code> statement near the beginning of the file causes the code defining a standard string object to be inserted at that location in <em>node.hpp</em>, replacing the <code class="highlighter-rouge">#include &lt;string&gt;</code> line as if you had carried out a search and replace operation. This allows us to create and use objects of type <code class="highlighter-rouge">std::string</code> inside <em>node.hpp</em> (and any file other that specifies <code class="highlighter-rouge">#include "node.hpp"</code>). Similarly, <code class="highlighter-rouge">#include &lt;vector&gt;</code> allows us to use the <code class="highlighter-rouge">std::vector</code> container to create arrays of Node objects, and <code class="highlighter-rouge">#include &lt;iostream&gt;</code> allows us to use <code class="highlighter-rouge">std::cout</code> objects to output information to the console.</p>
+
+<p>You have probably noticed the <code class="highlighter-rouge">#include "split.hpp"</code> statement that has been commented out by preceding it with a double slash (<code class="highlighter-rouge">//</code>). We will uncomment this line later after we create the <em>split.hpp</em> file.</p>
+
+<h3 id="namespaces">Namespaces</h3>
+<p>The <code class="highlighter-rouge">Node</code> class is wrapped in a namespace just in case this class is used along with other code that defines a class of the same name. The namespace we will be using to wrap everything in this tutorial is  <code class="highlighter-rouge">strom</code>, which means “tree” in Czech. Note that the <code class="highlighter-rouge">std</code> in <code class="highlighter-rouge">std::string</code> is also a namespace. In order to use a standard string, you must qualify the name string with the namespace (i.e. <code class="highlighter-rouge">std::string</code>). While we will not do it, if you were to define a <code class="highlighter-rouge">string</code> class inside <em>node.hpp</em>, you would need to refer to it as <code class="highlighter-rouge">strom::string</code> outside the <code class="highlighter-rouge">strom</code> namespace.</p>
+
+<h3 id="data-members">Data members</h3>
+<p>A data member is a variable defined for objects of a particular C++ class. Note that all data members have names beginning with a single underscore character. This is not required by C++ but is a convention that will be used throughout to make it easy to recognize data members as opposed to local variables or function parameters.</p>
+
+<h4 id="node-data-members">Node data members</h4>
+<p>The data members of the  <code class="highlighter-rouge">Node</code> class include three pointers to other <code class="highlighter-rouge">Node</code> objects.</p>
+
+<dl>
+  <dt><code class="highlighter-rouge">_parent</code></dt>
+  <dd>
+    <p>The <code class="highlighter-rouge">_parent</code> pointer points to the ancestor of the current <code class="highlighter-rouge">Node</code>. If <code class="highlighter-rouge">_parent</code> is 0, then the current <code class="highlighter-rouge">Node</code> is the root node.</p>
+  </dd>
+  <dt><code class="highlighter-rouge">_left_child</code></dt>
+  <dd>
+    <p>The <code class="highlighter-rouge">_left_child</code> pointer points to the left-most child node of the current <code class="highlighter-rouge">Node</code> in the tree. If <code class="highlighter-rouge">_left_child</code> is 0, then the <code class="highlighter-rouge">Node</code> is a leaf node in the tree.</p>
+  </dd>
+  <dt><code class="highlighter-rouge">_right_sib</code></dt>
+  <dd>
+    <p>Finally, the <code class="highlighter-rouge">_right_sib</code> pointer points to the next sibling <code class="highlighter-rouge">Node</code> on the right. If <code class="highlighter-rouge">_right_sib</code> is 0, then the current <code class="highlighter-rouge">Node</code> is the rightmost child of its ancestor.</p>
+  </dd>
+</dl>
+
+<p>There are four other data members of the <code class="highlighter-rouge">Node</code> class.</p>
+
+<dl>
+  <dt><code class="highlighter-rouge">_name</code></dt>
+  <dd>
+    <p>This is a string that represents the taxon name of a leaf and is often (but not necessarily) an empty string for interior nodes.</p>
+  </dd>
+  <dt><code class="highlighter-rouge">_number</code></dt>
+  <dd>
+    <p>This is the node number, which serves as an index into the <code class="highlighter-rouge">Tree::_nodes</code> vector.</p>
+  </dd>
+  <dt><code class="highlighter-rouge">_edge_length</code></dt>
+  <dd>
+    <p>This is the length of the edge between this <code class="highlighter-rouge">Node</code> and its ancestor (i.e. <code class="highlighter-rouge">_parent</code>).</p>
+  </dd>
+  <dt><code class="highlighter-rouge">_smallest_edge_length</code></dt>
+  <dd>
+    <p>This is the length of the smallest allowable edge length. This is a static data member, which means that it exists and its value can be set and used even if no object of this class is ever created. As such it functions as a global variable that can be used anywhere, but has the advantage of still being nestled within the <code class="highlighter-rouge">Node</code> class so there is no danger of it being confused with some global variable with the same name introduced by, for example, a third-party header file. Because it is static, we don’t initialize it in the construtor; instead, it will be initialized in <em>main.cpp</em>, which is our only source code file (all other files in this project are header files).</p>
+  </dd>
+</dl>
+
+<p>Finally, there is one data member (<code class="highlighter-rouge">_split</code>) that is currently commented out. You will uncomment this line later.</p>
+
+<h3 id="member-functions">Member functions</h3>
+<h4 id="accessors-and-setters">Accessors and setters</h4>
+<p>The <code class="highlighter-rouge">Node</code> class has several member functions. Most of these functions are <strong>accessors</strong>: they provide access to the private data members that are not otherwise accessible except by a member function of the <code class="highlighter-rouge">Node</code> class itself. The accessor functions are <code class="highlighter-rouge">getParent()</code>, <code class="highlighter-rouge">getLeftChild()</code>, <code class="highlighter-rouge">getRightSib()</code>, <code class="highlighter-rouge">getNumber()</code>, <code class="highlighter-rouge">getName()</code>, <code class="highlighter-rouge">getEdgeLength()</code>, and (commented out for now) <code class="highlighter-rouge">getSplit()</code>.</p>
+
+<p>Note that these functions are defined (i.e. their function body is provided) directly in the class declaration (i.e. the part between <code class="highlighter-rouge">class Node</code> and <code class="highlighter-rouge">};</code>). This is fine for really simple functions, but for functions with even slightly more complicated bodies, we will move the bodies further down in the file to avoid making the class declaration too difficult to comprehend at a glance.</p>
+
+<p>The member function <code class="highlighter-rouge">setEdgeLength</code> is a <strong>setter</strong>: it sets the value of a particular data member to the specified floating point value. The function body is a bit too long to include in the class declaration, so its body is provided near the bottom (but inside the <code class="highlighter-rouge">strom namespace</code> code block). This function enforces a minimum length (<code class="highlighter-rouge">_smallest_edge_length</code>) for any edge.</p>
+
+<h4 id="constructors-and-destructors">Constructors and destructors</h4>
+<p>Two member functions are special: the <strong>constructor</strong> function and the <strong>destructor</strong> function. You can identify these by the fact that they have no return type (not even <code class="highlighter-rouge">void</code>!) and their names are identical to the class name. The constructor is called automatically when a new object of the class is created, so it is the logical place for doing setup tasks that should be done before an object is used for the first time. The destructor is called automatically when the object is being deleted, and is the logical place for cleanup tasks that should be done before the object goes away.</p>
+
+<p>The constructor defined here just reports that an object of type <code class="highlighter-rouge">Node</code> has been created, and then calls the <code class="highlighter-rouge">clear()</code> function to initialize data members. The destructor simply reports that a <code class="highlighter-rouge">Node</code> object is being destroyed. We will eventually comment out these <code class="highlighter-rouge">std::cout</code> statements to avoid cluttering the output, but for now it is nice to be able to see when objects are created and destroyed.</p>
+
+<h3 id="public-versus-private">Public versus private</h3>
+<p>You might wonder “why don’t we just make all data members public?” It is always wise to expose as little as possible to the outside world. Accessors provide read-only access to anyone who is interested, but do not allow just anyone to make changes to the data members of the <code class="highlighter-rouge">Node</code> class. This makes it harder for someone (maybe even yourself at a later time!) who does not fully understand your code to introduce errors when modifying it.</p>
+
+<p>We will soon find that some classes use private members of <code class="highlighter-rouge">Node</code> to such an extent that we will make each of these classes a <strong>friend</strong> of <code class="highlighter-rouge">Node</code>. Any class declared as a <code class="highlighter-rouge">friend</code> of <code class="highlighter-rouge">Node</code> has full access to private data members. Because the classes <code class="highlighter-rouge">Tree</code> (which comprises <code class="highlighter-rouge">Node</code> objects), <code class="highlighter-rouge">TreeManip</code> (whose purpose is to manipulate <code class="highlighter-rouge">Tree</code> objects), and <code class="highlighter-rouge">Likelihood</code> (whose purpose is to compute the likelihood of a tree) do not yet exist, these <code class="highlighter-rouge">friend</code> declarations are currently commented out.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/00-node-and-tree-classes.html">&lt;&nbsp;2.0</a> | 2.1 | <a href="/people/plewis/cpp//win//steps/step-02/02-create-tree-class.html">2.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

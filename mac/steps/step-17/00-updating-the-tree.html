@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Updating the Tree</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">17.0 Updating the Tree</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-16/00-updating-other-parameters.html">&lt;&nbsp;16.0</a> | 17.0 | <a href="/people/plewis/cpp//mac//steps/step-17/01-the-tree-updater-class.html">17.1&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The only remaining obstacle on the way to creating a fully-functional MCMC sampler for phylogenetics is to derive a <code class="highlighter-rouge">TreeUpdater</code> class from <code class="highlighter-rouge">Updater</code> that can simultaneously update both the tree topology and edge lengths. The <code class="highlighter-rouge">TreeUpdater</code> created in this tutorial implements the “LOCAL move without a molecular clock” for unrooted trees described by Larget and Simon (1999). There are many other tree proposal methods that have been invented since 1999, so you should feel free to implement others. See Clemens et al. (2008) for some examples of unrooted tree proposals and Höhna et al. (2008) for similar rooted tree examples.</p>
+
+<p>Markov chains used in phylogenetic MCMC mix much better if proposals are added that rescale the tree periodically. If a tree needs to get generally bigger or smaller, it can take a long time to achieve the rescaling if we are depending on the LOCAL move, which only modifies 3 edges in a single update, and then only if the proposed move is accepted. Thus, we will simultaneously add a <code class="highlighter-rouge">TreeLengthUpdater</code> class that proposes rescaling the entire tree when its update method is called.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="17-1">
+		<td>Step 17.1</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-17/01-the-tree-updater-class.html">The TreeUpdater class</a></td>
+		<td><p>Create an updater that modifies the tree topology and edge lengths.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="17-2">
+		<td>Step 17.2</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-17/02-the-tree-length-updater-class.html">The TreeLengthUpdater class</a></td>
+		<td><p>Create an updater that scales all edge lengths simultaneously (i.e. updates the tree length).</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="17-3">
+		<td>Step 17.3</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-17/03-modify-chain.html">Modify the Chain Class</a></td>
+		<td><p>Add the TreeUpdater and TreeLengthUpdater to the Chain function createUpdaters.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="17-4">
+		<td>Step 17.4</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-17/04-modify-treemanip.html">Modify the TreeManip Class</a></td>
+		<td><p>Add the LargetSimonSwap and randomInternalEdge functions to TreeManip.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="17-5">
+		<td>Step 17.5</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-17/05-testing-tree-updaters.html">Testing TreeUpdater and TreeLengthUpdater</a></td>
+		<td><p>Explore both the prior and posterior while updating tree topology and edge lengths.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+<h2 id="literature-cited">Literature Cited</h2>
+
+<p>Höhna, S., Defoin-Platel, M., and Drummond, A. J. 2008. Clock-constrained tree proposal operators in Bayesian phylogenetic inference (pp. 1–7). Presented at the 2008 8th IEEE International Conference on Bioinformatics and BioEngineering (BIBE), IEEE. <a href="https://doi.org/10.1109/BIBE.2008.4696663">DOI: 10.1109/BIBE.2008.4696663</a></p>
+
+<p>Lakner, C., Van Der Mark, P., Huelsenbeck, J. P., Larget, B., and Ronquist, F. 2008. Efficiency of Markov chain Monte Carlo tree proposals in Bayesian phylogenetics. Systematic Biology 57:86–103. <a href="https://doi.org/10.1080/10635150801886156">DOI: 10.1080/10635150801886156</a></p>
+
+<p>Larget, B., and Simon, D. 1999. Markov Chain Monte Carlo Algorithms for the Bayesian Analysis of Phylogenetic Trees. Molecular Biology and Evolution 16:750–759. <a href="https://doi.org/10.1093/oxfordjournals.molbev.a026160">DOI: 10.1093/oxfordjournals.molbev.a026160</a></p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-16/00-updating-other-parameters.html">&lt;&nbsp;16.0</a> | 17.0 | <a href="/people/plewis/cpp//mac//steps/step-17/01-the-tree-updater-class.html">17.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

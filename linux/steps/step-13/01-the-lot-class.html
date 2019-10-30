@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Lot Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">13.1 The Lot Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 13.1 | <a href="/people/plewis/cpp//linux//steps/step-13/02-test-lot.html">13.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>Create a class whose objects can generate pseudorandom numbers.</p>
+
+<p>MCMC involves random numbers at several levels. Proposed changes to the tree topology, edge lengths, or other substitution model parameters require random numbers, as does the decision to accept or reject a proposed change. The <code class="highlighter-rouge">Lot</code> class will generate the pseudorandom numbers that will be used to make these decisions.</p>
+
+<p>The main member functions we will use are:</p>
+
+<p><strong>setSeed</strong></p>
+
+<blockquote>
+  <p>Providing an integer to this function completely determines the sequence of pseudorandom numbers that will be issued by this object, allowing for exact replication of an analysis.</p>
+</blockquote>
+
+<p><strong>uniform and logUniform</strong></p>
+
+<blockquote>
+  <p>These functions provide random deviates from a Uniform(0,1) distribution, with the latter function returning the logarithm of a Uniform(0,1) random deviate.</p>
+</blockquote>
+
+<p><strong>normal</strong></p>
+
+<blockquote>
+  <p>Provides a standard normal, i.e. Normal(0,1), random deviate.</p>
+</blockquote>
+
+<p><strong>gamma</strong></p>
+
+<blockquote>
+  <p>Provides a random deviate from a Gamma distribution with the specified shape and scale (mean equals shape*scale in this parameterization)</p>
+</blockquote>
+
+<p><strong>randint</strong></p>
+
+<blockquote>
+  <p>Provides a random draw from a discrete uniform distribution such that the returned value is greater than or equal to low and less than or equal to high.</p>
+</blockquote>
+
+<p>Create a new file <em>lot.hpp</em> and populate it with the following class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;ctime&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;boost/random/mersenne_twister.hpp&amp;gt;
+#include &amp;lt;boost/random/uniform_real.hpp&amp;gt;
+#include &amp;lt;boost/random/normal_distribution.hpp&amp;gt;
+#include &amp;lt;boost/random/gamma_distribution.hpp&amp;gt;
+#include &amp;lt;boost/random/variate_generator.hpp&amp;gt;
+
+namespace strom {
+
+    class Lot {
+        public:
+                                            Lot();
+                                            ~Lot();
+            
+            void                            setSeed(unsigned seed);
+            double                          uniform();
+            int                             randint(int low, int high);
+            double                          normal();
+            double                          gamma(double shape, double scale);
+            double                          logUniform();
+            
+            typedef std::shared_ptr&amp;lt;Lot&amp;gt;    SharedPtr;
+
+        private:
+        
+            typedef boost::variate_generator&amp;lt;boost::mt19937 &amp;, boost::random::uniform_01&amp;lt;&amp;gt; &amp;gt;                uniform_variate_generator_t;
+            typedef boost::variate_generator&amp;lt;boost::mt19937 &amp;, boost::random::normal_distribution&amp;lt;&amp;gt; &amp;gt;       normal_variate_generator_t;
+            typedef boost::variate_generator&amp;lt;boost::mt19937 &amp;, boost::random::gamma_distribution&amp;lt;&amp;gt; &amp;gt;        gamma_variate_generator_t;
+            typedef boost::variate_generator&amp;lt;boost::mt19937 &amp;, boost::random::uniform_int_distribution&amp;lt;&amp;gt; &amp;gt;  uniform_int_generator_t;
+
+            unsigned                                        _seed;
+            boost::mt19937                                  _generator;
+            std::shared_ptr&amp;lt;uniform_variate_generator_t&amp;gt;    _uniform_variate_generator;
+            std::shared_ptr&amp;lt;normal_variate_generator_t&amp;gt;     _normal_variate_generator;
+            std::shared_ptr&amp;lt;gamma_variate_generator_t&amp;gt;      _gamma_variate_generator;
+            std::shared_ptr&amp;lt;uniform_int_generator_t&amp;gt;        _uniform_int_generator;
+
+            double                                          _gamma_shape;
+            int                                             _low;
+            int                                             _high;
+    };
+    
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<p>All of the heavy lifting in our <code class="highlighter-rouge">Lot</code> class will be done by the Boost random library. While I will briefly describe the member functions, I refer you to the <a href="https://www.boost.org/doc/libs/1_65_1/doc/html/boost_random.html">Boost random documentation</a> for further details.</p>
+
+<h2 id="the-constructor-and-destructor">The constructor and destructor</h2>
+<p>Boost random offers a choice of several pseudorandom number generators. I have chosen to use the <a href="https://en.wikipedia.org/wiki/Mersenne_Twister">Mersenne Twister 19937</a>. This is why the <code class="highlighter-rouge">_generator</code> data member has type <code class="highlighter-rouge">boost::mt19937</code>. The constructor sets the seed of the Mersenne Twister using the current time. It is always a good idea to set your own seed so that an analysis can be repeated exactly if needed, so a <code class="highlighter-rouge">setSeed</code> member function is also provided (see below).</p>
+
+<p>The constructor also creates 4 function objects (variate generators) that can translate the pseudorandom numbers output by the Mersenne Twister into random deviates from particular probability distributions. The 4 specialized functors are:</p>
+<ul>
+  <li><code class="highlighter-rouge">_uniform_variate_generator</code>, which produces Uniform(0,1) random deviates,</li>
+  <li><code class="highlighter-rouge">_normal_variate_generator</code>, which produces Normal(0,1) random deviates,</li>
+  <li><code class="highlighter-rouge">_gamma_variate_generator</code>, which produces Gamma(<code class="highlighter-rouge">_gamma_shape</code>, 1) random deviates, and</li>
+  <li><code class="highlighter-rouge">_uniform_int_generator</code>, which produces discrete uniform deviates in the range <code class="highlighter-rouge">_low</code> to <code class="highlighter-rouge">_high</code>, inclusive.
+All are stored as shared pointers and so must be dereferenced to be called as functions.</li>
+</ul>
+
+<p>The data member <code class="highlighter-rouge">_gamma_shape</code> is initialized to 1 and represents the shape parameter of the gamma distribution encapsulated by <code class="highlighter-rouge">_gamma_variate_generator</code>. It is possible to change the value of <code class="highlighter-rouge">_gamma_shape</code> using the gamma member function.</p>
+
+<p>The data members _low, and _high store parameters of the discrete uniform distribution encapsulated by <code class="highlighter-rouge">_uniform_int_generator</code>. It is possible to change the values of <code class="highlighter-rouge">_low</code> and <code class="highlighter-rouge">_high</code> using the <code class="highlighter-rouge">randint</code> member function.</p>
+
+<p>The destructor resets all 4 shared pointers so that the objects they point to can be destroyed.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Lot::Lot() : _seed(0), _gamma_shape(1.0), _low(0), _high(100) {  
+        //std::cout &amp;lt;&amp;lt; "Constructing a Lot" &amp;lt;&amp;lt; std::endl;
+        _generator.seed(static_cast&amp;lt;unsigned int&amp;gt;(std::time(0)));
+        _uniform_variate_generator = std::shared_ptr&amp;lt;uniform_variate_generator_t&amp;gt;(new uniform_variate_generator_t(_generator, boost::random::uniform_01&amp;lt;&amp;gt;()));
+        _normal_variate_generator = std::shared_ptr&amp;lt;normal_variate_generator_t&amp;gt;(new normal_variate_generator_t(_generator, boost::random::normal_distribution&amp;lt;&amp;gt;()));
+        _gamma_variate_generator = std::shared_ptr&amp;lt;gamma_variate_generator_t&amp;gt;(new gamma_variate_generator_t(_generator, boost::random::gamma_distribution&amp;lt;&amp;gt;(_gamma_shape)));
+        _uniform_int_generator = std::shared_ptr&amp;lt;uniform_int_generator_t&amp;gt;(new uniform_int_generator_t(_generator, boost::random::uniform_int_distribution&amp;lt;&amp;gt;(_low, _high)));
+    }  
+        
+    inline Lot::~Lot() {  
+        //std::cout &amp;lt;&amp;lt; "Destroying a Lot" &amp;lt;&amp;lt; std::endl;
+        _uniform_variate_generator.reset();
+        _normal_variate_generator.reset();
+        _gamma_variate_generator.reset();
+        _uniform_int_generator.reset();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setseed-member-function">The setSeed member function</h2>
+<p>This function allows you to set the seed used by the <code class="highlighter-rouge">Lot</code> object’s <code class="highlighter-rouge">_generator</code>. If the seed supplied is equal to 0, the seed is taken from the system clock.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Lot::setSeed(unsigned seed) {   
+        _seed = seed;
+        _generator.seed(_seed &amp;gt; 0 ? _seed : static_cast&amp;lt;unsigned int&amp;gt;(std::time(0)));
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-uniform-member-function">The uniform member function</h2>
+<p>This function calls the <code class="highlighter-rouge">_uniform_variate_generator</code> functor to generate a draw from a Uniform(0,1) distribution.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Lot::uniform() {  
+        return (*_uniform_variate_generator)();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-loguniform-member-function">The logUniform member function</h2>
+<p>This function calls the <code class="highlighter-rouge">_uniform_variate_generator</code> functor to generate a draw from a Uniform(0,1) distribution, then returns the log of that value.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Lot::logUniform() {   
+        double u = (*_uniform_variate_generator)();
+        assert(u &amp;gt; 0.0);
+        return std::log(u);
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-normal-member-function">The normal member function</h2>
+<p>This function calls the <code class="highlighter-rouge">_normal_variate_generator</code> functor to generate a draw from a Normal(0,1) (i.e. Standard Normal) distribution.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Lot::normal() {   
+        return (*_normal_variate_generator)();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-gamma-member-function">The gamma member function</h2>
+<p>If the <code class="highlighter-rouge">shape</code> parameter equals <code class="highlighter-rouge">_gamma_shape</code>, this function calls the <code class="highlighter-rouge">_gamma_variate_generator</code> functor to generate a draw from a Gamma(<code class="highlighter-rouge">shape</code>,1) distribution, then returns that value multiplied by the <code class="highlighter-rouge">scale</code> parameter. If the <code class="highlighter-rouge">shape</code> parameter does not equal <code class="highlighter-rouge">_gamma_shape</code>, then <code class="highlighter-rouge">_gamma_variate_generator</code> is first set to point to a new <code class="highlighter-rouge">gamma_variate_generator_t</code> object with the new <code class="highlighter-rouge">shape</code> parameter and <code class="highlighter-rouge">_gamma_shape</code> is set to <code class="highlighter-rouge">shape</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Lot::gamma(double shape, double scale) {  
+        assert(shape &amp;gt; 0.0);
+        assert(scale &amp;gt; 0.0);
+        if (shape != _gamma_shape) {
+            _gamma_shape = shape;
+            _gamma_variate_generator.reset(new gamma_variate_generator_t(_generator, boost::random::gamma_distribution&amp;lt;&amp;gt;(_gamma_shape,1)));
+        }
+        double deviate = (*_gamma_variate_generator)();
+        return scale*deviate;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-randint-member-function">The randint member function</h2>
+
+<p>If the <code class="highlighter-rouge">low</code> parameter equals <code class="highlighter-rouge">_low</code> and the <code class="highlighter-rouge">high</code> parameter equals <code class="highlighter-rouge">_high</code>, this function calls the <code class="highlighter-rouge">_uniform_int_generator</code> functor to generate a draw from a Discrete Uniform(<code class="highlighter-rouge">_low</code>,<code class="highlighter-rouge">_high</code>) distribution. If either the <code class="highlighter-rouge">low</code> or <code class="highlighter-rouge">high</code> parameter does not equal its data member counterpart, then <code class="highlighter-rouge">_uniform_int_generator</code> is first set to point to a new <code class="highlighter-rouge">_uniform_int_generator_t</code> object with the new <code class="highlighter-rouge">low</code> and <code class="highlighter-rouge">high</code> parameters, and <code class="highlighter-rouge">_low</code> and <code class="highlighter-rouge">_high</code> are set to <code class="highlighter-rouge">low</code> and <code class="highlighter-rouge">high</code>, respectively.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int Lot::randint(int low, int high) {    
+        if (low != _low || high != _high) {
+            _low  = low;
+            _high = high;
+            _uniform_int_generator.reset(new uniform_int_generator_t(_generator, boost::random::uniform_int_distribution&amp;lt;&amp;gt;(_low,_high)));
+        }
+        return (*_uniform_int_generator)();
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 13.1 | <a href="/people/plewis/cpp//linux//steps/step-13/02-test-lot.html">13.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

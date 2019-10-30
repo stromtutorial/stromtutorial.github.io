@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Split class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">7.1 The Split class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 7.1 | <a href="/people/plewis/cpp//mac//steps/step-07/02-adding-splits-to-node-and-treemanip.html">7.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>The <code class="highlighter-rouge">Split</code> class provides an object that can store the set of taxa that represent descendants of a given <code class="highlighter-rouge">Node</code> object. We will provide a <code class="highlighter-rouge">Split</code> object for every <code class="highlighter-rouge">Node</code>.</p>
+
+<p>Create a new class named <code class="highlighter-rouge">Split</code> in a header file named <em>split.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;vector&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;set&amp;gt;
+#include &amp;lt;map&amp;gt;
+#include &amp;lt;climits&amp;gt;
+#include &amp;lt;cassert&amp;gt;
+
+namespace strom {
+
+    class Split {
+        public:
+                                                                Split();
+                                                                Split(const Split &amp; other);
+                                                                ~Split();
+
+            Split &amp;                                             operator=(const Split &amp; other);
+            bool                                                operator==(const Split &amp; other) const;
+            bool                                                operator&amp;lt;(const Split &amp; other) const;
+
+            void                                                clear();
+            void                                                resize(unsigned nleaves);
+
+            typedef unsigned long                               split_unit_t;
+            typedef std::vector&amp;lt;split_unit_t&amp;gt;                   split_t;
+            typedef std::set&amp;lt;Split&amp;gt;                             treeid_t;
+            typedef std::map&amp;lt; treeid_t, std::vector&amp;lt;unsigned&amp;gt; &amp;gt; treemap_t;
+            typedef std::tuple&amp;lt;unsigned,unsigned,unsigned&amp;gt;      split_metrics_t;
+
+            split_unit_t                                        getBits(unsigned unit_index) const;
+            bool                                                getBitAt(unsigned leaf_index) const;
+            void                                                setBitAt(unsigned leaf_index);
+            void                                                addSplit(const Split &amp; other);
+
+            bool                                                isEquivalent(const Split &amp; other) const;
+            bool                                                isCompatible(const Split &amp; other) const;
+            bool                                                conflictsWith(const Split &amp; other) const;
+
+            std::string                                         createPatternRepresentation() const;
+            split_metrics_t                                     getSplitMetrics() const;
+
+        private:
+
+            split_unit_t                                        _mask;
+            split_t                                             _bits;
+            unsigned                                            _bits_per_unit;
+            unsigned                                            _nleaves;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; Split &amp;gt;                    SharedPtr;
+    };
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h3 id="constructors-and-destructor">Constructors and destructor</h3>
+
+<p>Here are the bodies of the two constructors and the destructor. Copy these into the <em>split.hpp</em> header file just above the closing curly bracket defining the end of the <code class="highlighter-rouge">strom</code> namespace.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Split::Split() { 
+        _mask = 0L;
+        _nleaves = 0;
+        _bits_per_unit = (CHAR_BIT)*sizeof(Split::split_unit_t);
+        clear();
+        //std::cout &amp;lt;&amp;lt; "Constructing a Split" &amp;lt;&amp;lt; std::endl;
+    } 
+
+    inline Split::Split(const Split &amp; other) { 
+        _mask = other._mask;
+        _nleaves = other._nleaves;
+        _bits_per_unit = (CHAR_BIT)*sizeof(Split::split_unit_t);
+        _bits = other._bits;
+        //std::cout &amp;lt;&amp;lt; "Constructing a Split by copying an existing split" &amp;lt;&amp;lt; std::endl;
+    } 
+
+    inline Split::~Split() { 
+        //std::cout &amp;lt;&amp;lt; "Destroying a Split" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+
+<p>The destructor for this class simply reports that a <code class="highlighter-rouge">Split</code> object is being destroyed. There are two constructors, each of which sets the value of the <code class="highlighter-rouge">_bits_per_unit</code> data member to the number of bits in the data type specified by <code class="highlighter-rouge">split_unit_t</code>. The calculation involves multiplying the constant <code class="highlighter-rouge">CHAR_BIT</code> (number of bits in a byte) by the number of bytes in the data type specified by <code class="highlighter-rouge">split_unit_t</code>. (<code class="highlighter-rouge">CHAR_BIT</code> is a constant provided in the climits header file.) This value will determine how many units of that data type will be needed to store a 0 or 1 for each taxon. These units are stored in the vector data member <code class="highlighter-rouge">_bits</code>, which has type <code class="highlighter-rouge">split_t</code>. (Besides <code class="highlighter-rouge">split_unit_t</code> and <code class="highlighter-rouge">split_t</code>, two other types are defined here, namely <code class="highlighter-rouge">treeid_t</code> and <code class="highlighter-rouge">treemap_t</code>, but I will postpone explaining these until later when they are used in the <code class="highlighter-rouge">TreeSummary</code> class)</p>
+
+<p>For example, suppose <code class="highlighter-rouge">split_unit_t</code> is defined to be an integer of type <code class="highlighter-rouge">char</code>, which is 8 bits in length. If there are 10 taxa, then 2 <code class="highlighter-rouge">char</code> units will be required to store each split. A split that specifies that taxa having indices 0, 2, 6, and 9 are descendants of a node would be encoded as follows (note that bits within each unit are counted starting from the right, and because there are 10 taxa and 16 bits total, the leftmost 6 bits of unit 1 will always be set to 0):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  6   2 0       9   &lt;-- taxon index
+|01000101|00000010| &lt;-- _bits vector
+| unit 0 | unit 1 |
+</code></pre></div></div>
+<p>In our case, <code class="highlighter-rouge">split_unit_t</code> is defined to be an <code class="highlighter-rouge">unsigned long integer</code> rather than a <code class="highlighter-rouge">char</code>. On my computer, a <code class="highlighter-rouge">char</code> comprises only 8 bits and is the smallest integer type, whereas an <code class="highlighter-rouge">unsigned long</code> has 64 bits. Thus, we can get by with fewer units if we use <code class="highlighter-rouge">unsigned long</code> rather than <code class="highlighter-rouge">char</code>.</p>
+
+<h4 id="default-constructor-versus-copy-constructor">Default constructor versus copy constructor</h4>
+<p>The first constructor defined above is the default constructor. It sets <code class="highlighter-rouge">_nleaves</code> to 0 and calls the <code class="highlighter-rouge">clear</code> function to set everything else to their default values. The second constructor is a <strong>copy constructor</strong>. It sets the <code class="highlighter-rouge">_nleaves</code> data member to the value of <code class="highlighter-rouge">_nleaves</code> in  <code class="highlighter-rouge">other</code>, the reference to which is supplied as an argument to the copy constructor. It also copies the <code class="highlighter-rouge">_bits</code> vector from <code class="highlighter-rouge">other</code>. As a result, the new split will be an exact copy of <code class="highlighter-rouge">other</code>.</p>
+
+<h3 id="the-clear-member-function">The clear member function</h3>
+
+<p>The <code class="highlighter-rouge">clear</code> function simply sets all bits in all units of the <code class="highlighter-rouge">_bits</code> vector to 0. The for loop assigns the reference <code class="highlighter-rouge">u</code>, in turn, to each unit in <code class="highlighter-rouge">_bits</code>. It is important that the variable <code class="highlighter-rouge">u</code> is a reference: if we used <code class="highlighter-rouge">for (auto u : _bits)</code> instead, then each unit would be <em>copied</em> to <code class="highlighter-rouge">u</code> and any changes made to <code class="highlighter-rouge">u</code> in the body of the loop would affect the copy but not the original!</p>
+
+<p>The <code class="highlighter-rouge">L</code> in <code class="highlighter-rouge">0L</code> specifies that we are assigning a long integer (long integers typically comprise twice as many bits as an ordinary integer) with value 0 to <code class="highlighter-rouge">u</code>: there is little consequence if we forget the <code class="highlighter-rouge">L</code> because the compiler would automatically convert <code class="highlighter-rouge">0</code> to <code class="highlighter-rouge">0L</code> for us, but it is always best to be as explicit as possible.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Split::clear() { 
+        for (auto &amp; u : _bits) {
+            u = 0L;
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="operators">Operators</h2>
+
+<p>We will eventually need to sort splits, and sorting algorithms need to be able to ask whether one <code class="highlighter-rouge">Split</code> object is less than another <code class="highlighter-rouge">Split</code> object, and also need to know if two <code class="highlighter-rouge">Split</code> objects are identical. Special functions called <strong>operators</strong> are used to provide this functionality. Once these operators are defined, you can treat <code class="highlighter-rouge">Split</code> objects like ordinary numbers with respect to the operators involved: for example, this code would work:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(Note: this is an example; do not add this code to split.hpp!)
+
+Split a;
+Split b;
+if (a &lt; b)
+  std::cout &lt;&lt; "Split a is less than Split b";
+else if (a == b)
+  std::cout &lt;&lt; "Split a equals Split b";
+else
+  std::cout &lt;&lt; "Split a is greater than Split b";
+</code></pre></div></div>
+<p>The equals and less-than operators both compare the current object to another <code class="highlighter-rouge">Split</code> object for which the reference <code class="highlighter-rouge">other</code> is provided. Note that we are assuming that two <code class="highlighter-rouge">Split</code> objects are equal if their <code class="highlighter-rouge">_bits</code> vectors are equal, and one <code class="highlighter-rouge">Split</code> object is less than another <code class="highlighter-rouge">Split</code> object if its <code class="highlighter-rouge">_bits</code> vector is less than <code class="highlighter-rouge">other._bits</code>. For the less-than operator, we assert that the two <code class="highlighter-rouge">_bits</code> vectors being compared have the same number of elements (the <code class="highlighter-rouge">operator&lt;</code> defined for standard containers such as <code class="highlighter-rouge">std::vector</code> do not provide any warning if the containers being compared are of different lengths).</p>
+
+<p>We also define an assignment operator that allows us to easily copy one <code class="highlighter-rouge">Split</code> object to another. Note the difference between <code class="highlighter-rouge">operator=</code> (assignment operator) and <code class="highlighter-rouge">operator==</code> (equivalence operator): the first copies one object to another and returns a reference to the new copy, while the second asks whether one object is equal to another object and returns a bool (true or false) result.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Split &amp; Split::operator=(const Split &amp; other) { 
+        _nleaves = other._nleaves;
+        _bits = other._bits;
+        return *this;
+    } 
+
+    inline bool Split::operator==(const Split &amp; other) const { 
+        return (_bits == other._bits);
+    } 
+
+    inline bool Split::operator&amp;lt;(const Split &amp; other) const { 
+        assert(_bits.size() == other._bits.size());
+        return (_bits &amp;lt; other._bits);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-resize-member-function">The resize member function</h2>
+
+<p>Given the number of taxa (<code class="highlighter-rouge">_nleaves</code> below), we can use <code class="highlighter-rouge">_bits_per_unit</code> to determine how many units the <code class="highlighter-rouge">_bits</code> vector should have. For example, if <code class="highlighter-rouge">_bits_per_unit</code> was 8, then up to 8 taxa could be represented by a <code class="highlighter-rouge">_bits</code> vector of length 1; however 9 taxa would require the <code class="highlighter-rouge">_bits</code> vector to have length 2. Dividing <code class="highlighter-rouge">_nleaves - 1</code> by <code class="highlighter-rouge">_bits_per_unit</code> and adding 1 provides the correct number of units. If <code class="highlighter-rouge">_nleaves</code> = 8, (8-1)/8 = 0.875, which is truncated to 0 when converted to an integer, so adding 1 to (8-1)/8 yields the correct number of units (1). If <code class="highlighter-rouge">_nleaves</code> = 9, (9-1)/8 = 1.0, which is truncated to 1 when converted to an integer, and adding 1 to (9-1)/8 yields the correct number of units (2). Once <code class="highlighter-rouge">nunits</code> is computed, the function simply resizes <code class="highlighter-rouge">_bits</code> to have length <code class="highlighter-rouge">nunits</code> and then calls the <code class="highlighter-rouge">clear</code> function to ensure that all bits in all units are set to 0.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Split::resize(unsigned nleaves) { 
+        _nleaves = nleaves;
+        unsigned nunits = 1 + ((nleaves - 1)/_bits_per_unit);
+        _bits.resize(nunits);
+
+        // create mask used to select only those bits used in final unit
+        unsigned num_unused_bits = nunits*_bits_per_unit - _nleaves;
+        unsigned num_used_bits = _bits_per_unit - num_unused_bits;
+        _mask = 0L;
+        split_unit_t unity = 1;
+        for (unsigned i = 0; i &amp;lt; num_used_bits; i++)
+            _mask |= (unity &amp;lt;&amp;lt; i);
+
+        clear();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-setbitat-member-function">The setBitAt member function</h2>
+
+<p>I’ll first show you the <code class="highlighter-rouge">setBitAt</code> function, then explain it in detail below the code block:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Split::setBitAt(unsigned leaf_index) { 
+        unsigned unit_index = leaf_index/_bits_per_unit;
+        unsigned bit_index = leaf_index - unit_index*_bits_per_unit;
+        split_unit_t unity = 1;
+        split_unit_t bit_to_set = unity &amp;lt;&amp;lt; bit_index;
+        _bits[unit_index] |= bit_to_set;
+    } 
+
+</code></pre></div></div>
+<p>The way to set the 6th bit involves shifting the value 1 to the left 6 places using the <strong>bit shift operator</strong>. The bit shift operator is made up of two less-than symbols (<code class="highlighter-rouge">&lt;&lt;</code>), and is the same operator that you have used to output text to an output stream such as <code class="highlighter-rouge">std::cout</code>. Here are some examples assuming that the data type char (8 bits) is used:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(Note: this is an example; do not add this code to split.hpp!)
+
+char zero = (char)0;
+char one  = (char)1;
+zero looks like this: |00000000|
+one looks like this:  |00000001|
+one &lt;&lt; 0 produces |00000001|
+one &lt;&lt; 1 produces |00000010|
+one &lt;&lt; 2 produces |00000100|
+one &lt;&lt; 3 produces |00001000|
+one &lt;&lt; 4 produces |00010000|
+one &lt;&lt; 5 produces |00100000|
+one &lt;&lt; 6 produces |01000000|
+one &lt;&lt; 7 produces |10000000|
+</code></pre></div></div>
+<p>To set a specific bit in a value that may already have some bits set, use the <strong>bitwise OR</strong> operator:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(Note: this is an example; do not add this code to split.hpp!)
+
+char x = 13;
+x looks like this:     |00001101|
+char y = 1 &lt;&lt; 4
+y looks like this:     |00010000|
+char z = x | y;
+z looks like this:     |00011101|
+x |= y;
+x now looks like z:    |00011101|
+</code></pre></div></div>
+<p>Note that <code class="highlighter-rouge">x | y</code> simply sets all bits that are set in either <code class="highlighter-rouge">x</code> or <code class="highlighter-rouge">y</code>, and <code class="highlighter-rouge">x |= y</code> does the same but assigns the result back to <code class="highlighter-rouge">x</code>. Given that background, the function <code class="highlighter-rouge">setBitAt</code> should now be understandable. Given a <code class="highlighter-rouge">leaf_index</code> (where <code class="highlighter-rouge">leaf_index</code> ranges from 0 to the number of taxa minus 1), the function first determines which unit to modify (<code class="highlighter-rouge">unit_index</code>), then the specific bit within that unit to set (<code class="highlighter-rouge">bit_index</code>), and finally uses the bit shift and bitwise OR operators to set the bit.</p>
+
+<h3 id="a-subtle-but-important-point-about-setting-bits">A subtle but important point about setting bits</h3>
+<p>Note that, in creating the <code class="highlighter-rouge">unity</code> variable, we cast the value 1 to be of type <code class="highlighter-rouge">split_unit_t</code> before using the bit shift operator (<code class="highlighter-rouge">&lt;&lt;</code>). This casting is important because the value 1 may be, by default, an integer type with fewer bits than <code class="highlighter-rouge">split_unit_t</code> type. If 1 has only 32 bits, but <code class="highlighter-rouge">split_unit_t</code> has 64, and we try <code class="highlighter-rouge">1 &lt;&lt; 33</code>, then the program will set bits but the bits set will necessarily be less than 33 because there are only 32 bits available. Using a version of the value 1 that has 64 bits (by casting it to <code class="highlighter-rouge">split_unit_t</code>) prevents us from shifting the 1 out of the memory allocated to store the value.</p>
+
+<h2 id="the-getbits-member-function">The getBits member function</h2>
+<p>The <code class="highlighter-rouge">getBits</code> member function simply returns the unit at the supplied <code class="highlighter-rouge">unit_index</code>. This
+accessor function is needed because the <code class="highlighter-rouge">_bits</code> vector is a private data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Split::split_unit_t Split::getBits(unsigned unit_index) const { 
+        assert(unit_index &amp;lt; _bits.size());
+        return _bits[unit_index];
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getbitat-member-function">The getBitAt member function</h2>
+
+<p>The <code class="highlighter-rouge">getBitAt</code> member function provides a way to query a split to find out if the bit
+corresponding to a particular taxon is set. The taxon is specified using <code class="highlighter-rouge">leaf_index</code>.
+See the documentation for the <code class="highlighter-rouge">createPatternRepresentation</code> function below for an explanation
+of how this is determined.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Split::getBitAt(unsigned leaf_index) const { 
+        unsigned unit_index = leaf_index/_bits_per_unit;
+        unsigned bit_index = leaf_index - unit_index*_bits_per_unit;
+        split_unit_t unity = 1;
+        split_unit_t bit_to_set = unity &amp;lt;&amp;lt; bit_index;
+        return (bool)(_bits[unit_index] &amp; bit_to_set);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-addsplit-member-function">The addSplit member function</h2>
+
+<p>This function creates a union of the taxon set defined by this <code class="highlighter-rouge">Split</code> object and the taxon set defined by <code class="highlighter-rouge">other</code>, then assigns that union to this <code class="highlighter-rouge">Split</code> object. The for loop iterates through all elements of the <code class="highlighter-rouge">_bits</code> vector and bitwise ORs that unit with the corresponding unit from other. This function is useful when constructing splits for interior nodes of a tree: the bits set in an interior node are the union of all sets corresponding to its descendant nodes.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Split::addSplit(const Split &amp; other) { 
+        unsigned nunits = (unsigned)_bits.size();
+        assert(nunits == other._bits.size());
+        for (unsigned i = 0; i &amp;lt; nunits; ++i) {
+            _bits[i] |= other._bits[i];
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-createpatternrepresentation-member-function">The createPatternRepresentation member function</h2>
+
+<p>This function creates a coded representation of a split in which <code class="highlighter-rouge">*</code> represents bits that are “on” (i.e. set to 1) and <code class="highlighter-rouge">-</code> represents “off” bits (i.e. set to 0).</p>
+
+<p>Here is an example involving 10 taxa where <code class="highlighter-rouge">bits_per_unit = 8</code> and taxa 1, 7 and 9 are “on” and taxa 0, 2-6, and 8 are “off”:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+--------+--------+
+|10000010|00000010|
++--------+--------+
+ _bits[0]  _bits[1]
+</code></pre></div></div>
+<p>Note the nasty tangle we have to navigate to write out a sensible split representation! First we read unit 0 from right to left: the 1 on the far left of unit 0 corresponds to the “on” bit for taxon 7. After unit 0 has been interpreted, move to unit 1: the rightmost bit in unit 1 (0) corresponds to the “off” bit for taxon 8. This split would be output as follows:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        -*-----*-*
+taxon 0 ^        ^ taxon 9
+</code></pre></div></div>
+<p>Note that we must be careful to avoid looking at the extra bits: the two units together contain 16 bits, yet there are only 10 taxa, so whatever is stored in the last 6 bits of <code class="highlighter-rouge">_bits[1]</code> should not be considered. The algorithm works by letting <code class="highlighter-rouge">i</code> iterate over units, letting <code class="highlighter-rouge">j</code> iterate over the bits within each unit, and testing whether bit <code class="highlighter-rouge">j</code> is set in <code class="highlighter-rouge">_bits[i]</code>.</p>
+
+<p>For example, suppose i=0. Shifting 1 to the left j places yields, as j takes on values from 0 to 7:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code> 1 &lt;&lt; j     j
+-------------
+00000001    0
+00000010    1
+00000100    2
+00001000    3
+00010000    4
+00100000    5
+01000000    6
+10000000    7
+</code></pre></div></div>
+<p>Now consider the result of a <strong>bitwise AND</strong> between <code class="highlighter-rouge">1 &lt;&lt; j</code> (when <code class="highlighter-rouge">j=7</code>) and the value of <code class="highlighter-rouge">_bits[0]</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>10000000    1 &lt;&lt; j, where j=7
+10000010    unit[0]
+-----------------------------------
+10000000    (1 &lt;&lt; 7) &amp; unit[0]
+</code></pre></div></div>
+<p>The bitwise AND operator (<code class="highlighter-rouge">&amp;</code>) yields 1 for a bit position whenever the two numbers being compared both have a 1 in that position and produces 0 otherwise. The bitwise AND operator can thus be used to determine whether any particular bit position contains a 1 or 0.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Split::createPatternRepresentation() const { 
+        std::string s;
+        unsigned ntax_added = 0;
+        for (unsigned i = 0; i &amp;lt; _bits.size(); ++i) {
+            for (unsigned j = 0; j &amp;lt; _bits_per_unit; ++j) {
+                split_unit_t bitmask = ((split_unit_t)1 &amp;lt;&amp;lt; j);
+                bool bit_is_set = ((_bits[i] &amp; bitmask) &amp;gt; (split_unit_t)0);
+                if (bit_is_set)
+                    s += '*';
+                else
+                    s += '-';
+                if (++ntax_added == _nleaves)
+                    break;
+            }
+        }
+        return s;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-isequivalent-member-function">The isEquivalent member function</h2>
+
+<p>The <code class="highlighter-rouge">isEquivalent</code> member function returns true if this split and <code class="highlighter-rouge">other</code> are equivalent. Equivalence is less strict than equality. Two splits can be equivalent even if they are not equal because of the position of the root. For example, splits <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are both equal and equivalent because <code class="highlighter-rouge">a &amp; b == a == b</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>split a: -***---*--
+split b: -***---*--
+  a &amp; b: -***---*-- (equals both a and b)
+</code></pre></div></div>
+<p>Splits <code class="highlighter-rouge">c</code> and <code class="highlighter-rouge">d</code> are not equal but they are nevertheless equivalent: they specify the same bipartition of taxa because one is the complement of the other. Thus, equivalence means <code class="highlighter-rouge">c &amp; ~d = c</code> and <code class="highlighter-rouge">~c &amp; d = d</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>split c: -****-*---
+split d: *----*-***
+     ~c: *----*-***
+     ~d: -****-*---
+  c &amp; d: ----------
+ c &amp; ~d: -****-*--- (equal to c)
+ ~c &amp; d: *----*-*** (equal to d)
+</code></pre></div></div>
+<p>Splits <code class="highlighter-rouge">e</code> and <code class="highlighter-rouge">f</code>, on the other hand, are neither equal nor equivalent because <code class="highlighter-rouge">e &amp; f</code> equals neither <code class="highlighter-rouge">e</code> nor <code class="highlighter-rouge">f</code>, <code class="highlighter-rouge">e &amp; ~f</code> does not equal <code class="highlighter-rouge">e</code>, and <code class="highlighter-rouge">~e &amp; f</code> does not equal <code class="highlighter-rouge">f</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>split e: -***---*--
+split f: ---***---*
+  e &amp; f: ---*------ (equals neither e nor f)
+ e &amp; ~f: -**----*-- (not equal to e)
+ ~e &amp; f: ----**---* (not equal to f)
+</code></pre></div></div>
+<p>Here is the body of the <code class="highlighter-rouge">isEquivalent</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Split::isEquivalent(const Split &amp; other) const { 
+        unsigned nunits = (unsigned)_bits.size();
+        assert(nunits &amp;gt; 0);
+
+        // polarity 1 means root is on the same side of both splits
+        // polarity 2 means they are inverted relative to one another
+        unsigned polarity = 0;
+        for (unsigned i = 0; i &amp;lt; nunits; ++i) {
+            split_unit_t a = _bits[i];
+            split_unit_t b = other._bits[i];
+            bool a_equals_b = (a == b);
+            bool a_equals_inverse_b = (a == ~b);
+            if (i == nunits - 1) {
+                a_equals_inverse_b = (a == (~b &amp; _mask));
+            }
+            bool ok = (a_equals_b || a_equals_inverse_b);
+            if (ok) {
+                if (polarity == 0) {
+                    // First unit examined determines polarity
+                    if (a_equals_b)
+                        polarity = 1;
+                    else
+                        polarity = 2;
+                }
+                else {
+                    // Polarity determined by first unit used for all subsequent units
+                    if (polarity == 1 &amp;&amp; !a_equals_b )
+                        return false;
+                    else if (polarity == 2 &amp;&amp; !a_equals_inverse_b )
+                        return false;
+                }
+            }
+            else {
+                return false;
+            }
+        }
+
+        // All of the units were equivalent, so that means the splits are equivalent
+        return true;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-iscompatible-member-function">The isCompatible member function</h2>
+
+<p>The <code class="highlighter-rouge">isCompatible</code> member function returns true if this split and <code class="highlighter-rouge">other</code> are compatible , which means that they can co-exist in the same tree. The two splits <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are incompatible if <code class="highlighter-rouge">a &amp; b</code> is nonzero and also not equal to either <code class="highlighter-rouge">a</code> or <code class="highlighter-rouge">b</code>. For example, these two splits</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  split a: -***---*--
+  split b: ----***--*
+    a &amp; b: ----------
+</code></pre></div></div>
+<p>are compatible, because <code class="highlighter-rouge">a &amp; b == 0</code>.</p>
+
+<p>The two splits below are also compatible, even though <code class="highlighter-rouge">a &amp; b != 0</code>, because <code class="highlighter-rouge">a &amp; b == b</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  split a: -****-*---
+  split b: --**--*---
+    a &amp; b: --**--*---
+</code></pre></div></div>
+<p>These two splits, on the other hand, are not compatible because <code class="highlighter-rouge">a &amp; b != 0</code> and <code class="highlighter-rouge">a &amp; b</code> is not equal to either <code class="highlighter-rouge">a</code> or <code class="highlighter-rouge">b</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  split a: -***---*--
+  split b: ---***---*
+    a &amp; b: ---*------
+</code></pre></div></div>
+<p>Here is the body of the <code class="highlighter-rouge">isCompatible</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Split::isCompatible(const Split &amp; other) const { 
+        for (unsigned i = 0; i &amp;lt; _bits.size(); ++i) {
+            split_unit_t a = _bits[i];
+            split_unit_t b = other._bits[i];
+            split_unit_t a_and_b = (a &amp; b);
+            bool equals_a   = (a_and_b == a);
+            bool equals_b   = (a_and_b == b);
+            if (a_and_b &amp;&amp; !(equals_a || equals_b)) {
+                // A failure of any unit to be compatible makes the entire split incompatible
+                return false;
+            }
+        }
+
+        // None of the units were incompatible, so that means the splits are compatible
+        return true;
+    }
+
+</code></pre></div></div>
+
+<h2 id="the-conflictswith-member-function">The conflictsWith member function</h2>
+
+<p>The <code class="highlighter-rouge">conflictsWith</code> member function simply calls <code class="highlighter-rouge">isCompatible(other)</code> and returns the opposite.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Split::conflictsWith(const Split &amp; other) const { 
+        return !isCompatible(other);
+    } 
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 7.1 | <a href="/people/plewis/cpp//mac//steps/step-07/02-adding-splits-to-node-and-treemanip.html">7.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

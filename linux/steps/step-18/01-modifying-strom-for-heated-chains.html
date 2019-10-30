@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modify the Strom Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">18.1 Modify the Strom Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-18/00-heated-chains.html">&lt;&nbsp;18.0</a> | 18.1 | <a href="/people/plewis/cpp//linux//steps/step-18/02-testing-heated-chains.html">18.2&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>All of the modifications needed to switch to a multichain version of our program are confined to the <code class="highlighter-rouge">Strom</code> class. The changes needed are relatively minor, but numerous, because each chain needs to have its own <code class="highlighter-rouge">Likelihood</code> and <code class="highlighter-rouge">Model</code> objects (otherwise all chains would update the exact same model parameter values).</p>
+
+<h2 id="the-strom-class-declaration">The Strom class declaration</h2>
+
+<p>Begin by making the indicated changes and additions in the <code class="highlighter-rouge">Strom</code> class declaration (in the file <em>strom.hpp</em>). Note that some highlighted functions are already in your file, but have been changed, so look carefully to find what’s different!</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+#include "data.hpp"
+#include "likelihood.hpp"
+#include "tree_summary.hpp"
+#include "partition.hpp"
+#include "lot.hpp"
+#include "chain.hpp"
+#include "output_manager.hpp"
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+#include &amp;lt;boost/filesystem.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    processAssignmentString(Model::SharedPtr m, const std::string &amp; which, const std::string &amp; definition);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition);&lt;/strong&gt;&lt;/span&gt;
+            bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);
+            void                                    sample(unsigned iter, Chain &amp; chain);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    readData();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    readTrees();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    showPartitionInfo();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    showBeagleInfo();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    showMCMCInfo();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    calcHeatingPowers();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    initChains();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    startTuningChains();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    stopTuningChains();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    stepChains(unsigned iteration, bool sampling);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    swapChains();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    stopChains();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    swapSummary() const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    showChainTuningInfo() const;&lt;/strong&gt;&lt;/span&gt;
+
+            double                                  _expected_log_likelihood;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;Likelihood::SharedPtr&amp;gt;      _likelihoods;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//Model::SharedPtr                        _model;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//Likelihood::SharedPtr                   _likelihood;&lt;/strong&gt;&lt;/span&gt;
+            TreeSummary::SharedPtr                  _tree_summary;
+            Lot::SharedPtr                          _lot;
+
+            unsigned                                _random_seed;
+            unsigned                                _num_iter;
+            unsigned                                _print_freq;
+            unsigned                                _sample_freq;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                _num_burnin_iter;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                _num_chains;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _heating_lambda;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _using_stored_data;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;Chain&amp;gt;                      _chains;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;double&amp;gt;                     _heating_powers;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;unsigned&amp;gt;                   _swaps;&lt;/strong&gt;&lt;/span&gt;
+
+            bool                                    _use_gpu;
+            bool                                    _ambig_missing;
+            bool                                    _use_underflow_scaling;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+            
+            OutputManager::SharedPtr                _output_manager;
+
+    };  
+
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">processAssignmentString</code> and <code class="highlighter-rouge">handleAssignmentStrings</code> member functions now have an additional <code class="highlighter-rouge">Model::SharedPtr</code> parameter. The <code class="highlighter-rouge">_likelihood</code> data member has been replaced by a vector of <code class="highlighter-rouge">Likelihood</code> shared pointers named <code class="highlighter-rouge">_likelihoods</code>, and <code class="highlighter-rouge">_model</code> has been deleted because the model specific to a particular <code class="highlighter-rouge">Likelihood</code> object can always be obtained from that <code class="highlighter-rouge">Likelihood</code> object using the <code class="highlighter-rouge">getModel</code> member function. The other changes are all additions of member functions or data members.</p>
+
+<h2 id="modify-the-clear-member-function">Modify the clear member function</h2>
+
+<p>Initialize the new additions in the <code class="highlighter-rouge">clear</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name             = "";
+        _tree_file_name             = "";
+        _tree_summary               = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu                    = true;
+        _ambig_missing              = true;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//_model.reset(new Model());&lt;/strong&gt;&lt;/span&gt;
+        _expected_log_likelihood    = 0.0;
+        _use_underflow_scaling      = false;
+        _data                       = nullptr;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//_likelihood                 = nullptr;&lt;/strong&gt;&lt;/span&gt;
+        _lot                        = nullptr;
+        _random_seed                = 1;
+        _num_iter                   = 1000;
+        _print_freq                 = 1;
+        _sample_freq                = 1;
+        _output_manager             = nullptr;
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_using_stored_data          = true;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihoods.clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_num_burnin_iter            = 1000;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_heating_lambda             = 0.5;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_num_chains                 = 1;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_chains.resize(0);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_heating_powers.resize(0);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_swaps.resize(0);&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-new-program-options">Add new program options</h2>
+
+<p>Add new program options for the number of chains to run simultaneously (<code class="highlighter-rouge">nchains</code>), the factor that determines how hot each heated chain is (<code class="highlighter-rouge">heatfactor</code>), the number of iterations to use for burn-in (<code class="highlighter-rouge">burnin</code>), and whether to explore the posterior (<code class="highlighter-rouge">usedata=yes</code>) or the prior (<code class="highlighter-rouge">usedata=no</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        std::vector&amp;lt;std::string&amp;gt; partition_statefreq;
+        std::vector&amp;lt;std::string&amp;gt; partition_rmatrix;
+        std::vector&amp;lt;std::string&amp;gt; partition_omega;
+        std::vector&amp;lt;std::string&amp;gt; partition_ratevar;
+        std::vector&amp;lt;std::string&amp;gt; partition_pinvar;
+        std::vector&amp;lt;std::string&amp;gt; partition_ncateg;
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        std::vector&amp;lt;std::string&amp;gt; partition_relrates;
+        std::vector&amp;lt;std::string&amp;gt; partition_tree;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("seed,z",        boost::program_options::value(&amp;_random_seed)-&amp;gt;default_value(1),   "pseudorandom number seed")
+            ("niter,n",       boost::program_options::value(&amp;_num_iter)-&amp;gt;default_value(1000),   "number of MCMC iterations")
+            ("printfreq",  boost::program_options::value(&amp;_print_freq)-&amp;gt;default_value(1),   "skip this many iterations before reporting progress")
+            ("samplefreq",  boost::program_options::value(&amp;_sample_freq)-&amp;gt;default_value(1),   "skip this many iterations before sampling next")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            ("ncateg,c", boost::program_options::value(&amp;partition_ncateg), "number of categories in the discrete Gamma rate heterogeneity model")
+            ("statefreq", boost::program_options::value(&amp;partition_statefreq), "a string defining state frequencies for one or more data subsets, e.g. 'first,second:0.1,0.2,0.3,0.4'")
+            ("omega", boost::program_options::value(&amp;partition_omega), "a string defining the nonsynonymous/synonymous rate ratio omega for one or more data subsets, e.g. 'first,second:0.1'")
+            ("rmatrix", boost::program_options::value(&amp;partition_rmatrix), "a string defining the rmatrix for one or more data subsets, e.g. 'first,second:1,2,1,1,2,1'")
+            ("ratevar", boost::program_options::value(&amp;partition_ratevar), "a string defining the among-site rate variance for one or more data subsets, e.g. 'first,second:2.5'")
+            ("pinvar", boost::program_options::value(&amp;partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
+            ("relrate", boost::program_options::value(&amp;partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
+            ("tree", boost::program_options::value(&amp;partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
+            ("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("nchains",       boost::program_options::value(&amp;_num_chains)-&amp;gt;default_value(1),                "number of chains")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("heatfactor",    boost::program_options::value(&amp;_heating_lambda)-&amp;gt;default_value(0.5),          "determines how hot the heated chains are")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("burnin",        boost::program_options::value(&amp;_num_burnin_iter)-&amp;gt;default_value(100),         "number of iterations used to burn in chains")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("usedata",       boost::program_options::value(&amp;_using_stored_data)-&amp;gt;default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)")&lt;/strong&gt;&lt;/span&gt;
+            ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available") 
+            ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
+            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
+        ;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        try {
+            const boost::program_options::parsed_options &amp; parsed = boost::program_options::parse_config_file&amp;lt; char &amp;gt;("strom.conf", desc, false);
+            boost::program_options::store(parsed, vm);
+        }
+        catch(boost::program_options::reading_file &amp; x) {
+            std::cout &amp;lt;&amp;lt; "Note: configuration file (strom.conf) not found" &amp;lt;&amp;lt; std::endl;
+        }
+        boost::program_options::notify(vm);
+
+        // If user specified --help on command line, output usage summary and quit
+        if (vm.count("help") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; desc &amp;lt;&amp;lt; "\n";
+            std::exit(1);
+        }
+
+        // If user specified --version on command line, output version and quit
+        if (vm.count("version") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) &amp;lt;&amp;lt; std::endl;
+            std::exit(1);
+        }
+    
+        // If user specified --subset on command line, break specified partition subset 
+        // definition into name and character set string and add to _partition
+        if (vm.count("subset") &amp;gt; 0) {
+            _partition.reset(new Partition());
+            for (auto s : partition_subsets) {
+                _partition-&amp;gt;parseSubsetDefinition(s);
+            }
+        }
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Be sure number of chains is greater than or equal to 1&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_num_chains &amp;lt; 1)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom("nchains must be a positive integer greater than 0");&lt;/strong&gt;&lt;/span&gt;
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Be sure heatfactor is between 0 and 1&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_heating_lambda &amp;lt;= 0.0 || _heating_lambda &amp;gt; 1.0)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom("heatfactor must be a real number in the interval (0.0,1.0]");&lt;/strong&gt;&lt;/span&gt;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_using_stored_data)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\n*** Not using stored data (posterior = prior) ***\n" &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Allocate a separate model for each chain&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned c = 0; c &amp;lt; _num_chains; c++) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Likelihood::SharedPtr likelihood = Likelihood::SharedPtr(new Likelihood());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;likelihood-&amp;gt;setPreferGPU(_use_gpu);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::SharedPtr m = likelihood-&amp;gt;getModel();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetDataTypes(_partition-&amp;gt;getSubsetDataTypes());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "statefreq", partition_statefreq, "default:equal");&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "rmatrix",   partition_rmatrix,   "default:equal");&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "omega",     partition_omega,     "default:0.1"  );&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "ncateg",    partition_ncateg,    "default:1"    );&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "ratevar",   partition_ratevar,   "default:1.0"  );&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "pinvar",    partition_pinvar,    "default:0.0"  );&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "relrate",   partition_relrates,  "default:equal");&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(m, vm, "tree",      partition_tree,      "default:1");&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihoods.push_back(likelihood);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+<p>At the end of the <code class="highlighter-rouge">processCommandLineOptions</code> function, note that the section below</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        _model-&amp;gt;setSubsetDataTypes(_partition-&amp;gt;getSubsetDataTypes());   
+        
+        handleAssignmentStrings(vm, "statefreq", partition_statefreq, "default:equal");
+        handleAssignmentStrings(vm, "rmatrix",   partition_rmatrix,   "default:equal");
+        handleAssignmentStrings(vm, "omega",     partition_omega,     "default:0.1"  );
+        handleAssignmentStrings(vm, "ncateg",    partition_ncateg,    "default:1"    );
+        handleAssignmentStrings(vm, "ratevar",   partition_ratevar,   "default:1.0"  );
+        handleAssignmentStrings(vm, "pinvar",    partition_pinvar,    "default:0.0"  );
+        handleAssignmentStrings(vm, "relrate",   partition_relrates,  "default:equal");
+        handleAssignmentStrings(vm, "tree",      partition_tree,      "default:1"    ); 
+
+</code></pre></div></div>
+<p>has been replaced by</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        // Allocate a separate model for each chain 
+        for (unsigned c = 0; c &amp;lt; _num_chains; c++) {
+            Likelihood::SharedPtr likelihood = Likelihood::SharedPtr(new Likelihood());
+            likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            Model::SharedPtr m = likelihood-&amp;gt;getModel();
+            m-&amp;gt;setSubsetDataTypes(_partition-&amp;gt;getSubsetDataTypes());
+            handleAssignmentStrings(m, vm, "statefreq", partition_statefreq, "default:equal");
+            handleAssignmentStrings(m, vm, "rmatrix",   partition_rmatrix,   "default:equal");
+            handleAssignmentStrings(m, vm, "omega",     partition_omega,     "default:0.1"  );
+            handleAssignmentStrings(m, vm, "ncateg",    partition_ncateg,    "default:1"    );
+            handleAssignmentStrings(m, vm, "ratevar",   partition_ratevar,   "default:1.0"  );
+            handleAssignmentStrings(m, vm, "pinvar",    partition_pinvar,    "default:0.0"  );
+            handleAssignmentStrings(m, vm, "relrate",   partition_relrates,  "default:equal");
+            handleAssignmentStrings(m, vm, "tree",      partition_tree,      "default:1");
+            _likelihoods.push_back(likelihood);
+        }   
+
+</code></pre></div></div>
+<p>We now must create a separate <code class="highlighter-rouge">Likelihood</code> object for every chain and set up the model contained by each of those <code class="highlighter-rouge">Likelihood</code> objects.</p>
+
+<h2 id="modify-the-handleassignmentstrings-member-function">Modify the handleAssignmentStrings member function</h2>
+
+<p>In addition to adding the <code class="highlighter-rouge">Model::SharedPtr m</code> parameter to the function, change the two lines indicated so that the model <code class="highlighter-rouge">m</code> is passed as the first parameter to the <code class="highlighter-rouge">processAssignmentString</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline void Strom::handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition) {&lt;/strong&gt;&lt;/span&gt;
+        if (vm.count(label) &amp;gt; 0) {
+            bool first = true;
+            for (auto s : definitions) {
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool is_default = processAssignmentString(m, label, s);&lt;/strong&gt;&lt;/span&gt;
+                if (is_default &amp;&amp; !first)
+                    throw XStrom(boost::format("default specification must be first %s encountered") % label);
+                first = false;
+            }
+        }
+        else {
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;processAssignmentString(m, label, default_definition);&lt;/strong&gt;&lt;/span&gt;
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modify-the-processassignmentstring-member-function">Modify the processAssignmentString member function</h2>
+
+<p>In addition to adding the <code class="highlighter-rouge">Model::SharedPtr m</code> parameter to the function, change all instances of <code class="highlighter-rouge">_model</code> to <code class="highlighter-rouge">m</code>, as indicated, because there is no longer a single model pointed to by <code class="highlighter-rouge">_model</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline bool Strom::processAssignmentString(Model::SharedPtr m, const std::string &amp; which, const std::string &amp; definition) {&lt;/strong&gt;&lt;/span&gt;
+        unsigned num_subsets_defined = _partition-&amp;gt;getNumSubsets();
+        std::vector&amp;lt;std::string&amp;gt; vector_of_subset_names;
+        std::vector&amp;lt;double&amp;gt; vector_of_values;
+        bool fixed = splitAssignmentString(definition, vector_of_subset_names, vector_of_values);
+        
+        if (vector_of_values.size() == 1 &amp;&amp; vector_of_values[0] == -1 &amp;&amp; !(which == "statefreq" || which == "rmatrix" || which == "relrate"))
+            throw XStrom("Keyword equal is only allowed for statefreq, rmatrix, and relrate");
+
+        // Assign values to subsets in model
+        bool default_found = false;
+        if (which == "statefreq") {
+            QMatrix::freq_xchg_ptr_t freqs = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(vector_of_values);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetStateFreqs(freqs, i, fixed);&lt;/strong&gt;&lt;/span&gt;
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetStateFreqs(freqs, _partition-&amp;gt;findSubsetByName(s), fixed);&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+        }
+        else if (which == "rmatrix") {
+            QMatrix::freq_xchg_ptr_t xchg = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(vector_of_values);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetExchangeabilities(xchg, i, fixed);&lt;/strong&gt;&lt;/span&gt;
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetExchangeabilities(xchg, _partition-&amp;gt;findSubsetByName(s), fixed);&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+        }
+        else if (which == "omega") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for omega, found %d values") % vector_of_values.size());
+            QMatrix::omega_ptr_t omega = std::make_shared&amp;lt;QMatrix::omega_t&amp;gt;(vector_of_values[0]);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetOmega(omega, i, fixed);&lt;/strong&gt;&lt;/span&gt;
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetOmega(omega, _partition-&amp;gt;findSubsetByName(s), fixed);&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+        }
+        else if (which == "pinvar") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for pinvar, found %d values") % vector_of_values.size());
+            ASRV::pinvar_ptr_t p = std::make_shared&amp;lt;double&amp;gt;(vector_of_values[0]);
+            bool invar_model = (*p &amp;gt; 0);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++) {
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetIsInvarModel(invar_model, i);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetPinvar(p, i, fixed);&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    unsigned i = _partition-&amp;gt;findSubsetByName(s);
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetIsInvarModel(invar_model, i);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetPinvar(p, i, fixed);&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+        }
+        else if (which == "ratevar") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for ratevar, found %d values") % vector_of_values.size());
+            ASRV::ratevar_ptr_t rv = std::make_shared&amp;lt;double&amp;gt;(vector_of_values[0]);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetRateVar(rv, i, fixed);&lt;/strong&gt;&lt;/span&gt;
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetRateVar(rv, _partition-&amp;gt;findSubsetByName(s), fixed);&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+        }
+        else if (which == "ncateg") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for ncateg, found %d values") % vector_of_values.size());
+            unsigned ncat = vector_of_values[0];
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetNumCateg(ncat, i);&lt;/strong&gt;&lt;/span&gt;
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetNumCateg(ncat, _partition-&amp;gt;findSubsetByName(s));&lt;/strong&gt;&lt;/span&gt;
+                }
+            }
+        }
+        else if (which == "tree") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for tree, found %d values") % vector_of_values.size());
+            unsigned tree_index = vector_of_values[0];
+            assert(tree_index &amp;gt; 0);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setTreeIndex(tree_index - 1, fixed);&lt;/strong&gt;&lt;/span&gt;
+            if (vector_of_subset_names[0] != "default")
+                throw XStrom("tree must be assigned to default only");
+        }
+        else {
+            assert(which == "relrate");
+            if (vector_of_subset_names[0] != "default")
+                throw XStrom("relrate must be assigned to default only");
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setSubsetRelRates(vector_of_values, fixed);&lt;/strong&gt;&lt;/span&gt;
+        }
+
+        return default_found;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="replace-the-run-member-function">Replace the run member function</h2>
+
+<p>Replace the entire <code class="highlighter-rouge">run</code> function body with the version below. A lot has changed in this function, so it makes more sense to just replace it rather than show individual modifications in highlighted text. The biggest change is that the creation of model and likelihood objects has been moved into the initChains function (because a <code class="highlighter-rouge">Model</code> object and its <code class="highlighter-rouge">Likelihood</code> wrapper must be created for each <code class="highlighter-rouge">Chain</code> separately). I’ve also created several small functions to handle showing various kinds of output so that <code class="highlighter-rouge">run</code> becomes more of an outline than a narrative.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            readData();
+            readTrees();
+            showPartitionInfo();
+
+            // Create a Lot object that generates (pseudo)random numbers
+            _lot = Lot::SharedPtr(new Lot);
+            _lot-&amp;gt;setSeed(_random_seed);
+
+            // Create  Chain objects
+            initChains();
+            
+            showBeagleInfo();
+            showMCMCInfo();
+
+            // Create an output manager and open output files
+            _output_manager.reset(new OutputManager);
+            _output_manager-&amp;gt;outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
+            _output_manager-&amp;gt;openTreeFile("trees.tre", _data);
+            _output_manager-&amp;gt;openParameterFile("params.txt", _chains[0].getModel());
+            sample(0, _chains[0]);
+                        // Burn-in the chains
+            startTuningChains();
+            for (unsigned iteration = 1; iteration &amp;lt;= _num_burnin_iter; ++iteration) {
+                stepChains(iteration, false);
+                swapChains();
+            }
+            stopTuningChains();
+
+            // Sample the chains
+            for (unsigned iteration = 1; iteration &amp;lt;= _num_iter; ++iteration) {
+                stepChains(iteration, true);
+                swapChains();
+            }
+            showChainTuningInfo();
+            stopChains();
+            
+            // Create swap summary
+            swapSummary();
+
+            // Close output files
+            _output_manager-&amp;gt;closeTreeFile();
+            _output_manager-&amp;gt;closeParameterFile();
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-readdata-member-function">Add the readData member function</h2>
+
+<p>This function takes care of reading the data file whose name is stored in the data member <code class="highlighter-rouge">_data_file_name</code> (the value of this data member was set by the user via program options. The code in this function was previously in the body of the <code class="highlighter-rouge">run</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::readData() {  
+        std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+        _data = Data::SharedPtr(new Data());
+        _data-&amp;gt;setPartition(_partition);
+        _data-&amp;gt;getDataFromFile(_data_file_name);
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-readtrees-member-function">Add the readTrees member function</h2>
+
+<p>This function takes care of reading the tree file whose name is stored in the data member <code class="highlighter-rouge">_tree_file_name</code> (the value of this data member was set by the user via program options). This function also checks to ensure that the tree has the same number of taxa as the data file and throws an exception the number of taxa differ. The code in this function was previously in the body of the <code class="highlighter-rouge">run</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::readTrees() {  
+        assert(_data);
+        assert(_likelihoods.size() &amp;gt; 0 &amp;&amp; _likelihoods[0]);
+        auto m = _likelihoods[0]-&amp;gt;getModel();
+        unsigned tree_index = m-&amp;gt;getTreeIndex();
+        std::cout &amp;lt;&amp;lt; "\n*** Reading and storing tree number " &amp;lt;&amp;lt; (tree_index + 1) &amp;lt;&amp;lt; " in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+        _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+        _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+
+        Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(tree_index);
+        if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+            throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-showpartitioninfo-member-function">Add the showPartitionInfo member function</h2>
+<p>This function summarizes the data partition information. The code in this function was previously in the body of the <code class="highlighter-rouge">run</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::showPartitionInfo() {  
+        // Report information about data partition subsets
+        unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+        std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+        for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+            DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+            std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+        }
+    }  
+
+</code></pre></div></div>
+
+<h2 id="add-the-showbeagleinfo-member-function">Add the showBeagleInfo member function</h2>
+<p>This function shows what BeagleLib resources are available. The code in this function was previously in the body of the <code class="highlighter-rouge">run</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::showBeagleInfo() {  
+        assert(_likelihoods.size() &amp;gt; 0 &amp;&amp; _likelihoods[0]);
+        std::cout &amp;lt;&amp;lt; "\n*** BeagleLib " &amp;lt;&amp;lt; _likelihoods[0]-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; " resources:\n";
+        std::cout &amp;lt;&amp;lt; "Preferred resource: " &amp;lt;&amp;lt; (_use_gpu ? "GPU" : "CPU") &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Available resources:" &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; _likelihoods[0]-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Resources used:" &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; _likelihoods[0]-&amp;gt;usedResources() &amp;lt;&amp;lt; std::endl;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="add-the-calcheatingpowers-member-function">Add the calcHeatingPowers member function</h2>
+
+<p>This is a new function called within another new function, <code class="highlighter-rouge">initChains</code> (described below). Its job is to compute the heating power of each chain using the chain index and the <code class="highlighter-rouge">heatfactor</code> (data member <code class="highlighter-rouge">_heating_lambda</code>) specified by the user on the command line. The chain with index 0 is the cold chain and has power 1.0 (i.e. it explores the posterior distribution), while chains with indices greater than 0 explore distributions that are more gentle (valleys higher, peaks lower) due to the fact that the posterior density is raised to a power between 0.0 and 1.0 (determined by this function).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::calcHeatingPowers() {    
+        // Specify chain heating power (e.g. _heating_lambda = 0.2)
+        // chain_index  power
+        //      0       1.000 = 1/(1 + 0.2*0)
+        //      1       0.833 = 1/(1 + 0.2*1)
+        //      2       0.714 = 1/(1 + 0.2*2)
+        //      3       0.625 = 1/(1 + 0.2*3)
+        unsigned i = 0;
+        for (auto &amp; h : _heating_powers) {
+            h = 1.0/(1.0 + _heating_lambda*i++);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-initchains-member-function">Add the initChains member function</h2>
+
+<p>This new function equips each chain with an index, starting tree, random number generator, model, likelihood calculator, and heating power.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::initChains() {   
+        // Create _num_chains chains
+        _chains.resize(_num_chains);
+        
+        // Create _num_chains by _num_chains swap matrix
+        _swaps.assign(_num_chains*_num_chains, 0);
+
+        // Create heating power vector
+        _heating_powers.assign(_num_chains, 1.0);
+        calcHeatingPowers();
+        
+        // Initialize chains
+        for (unsigned chain_index = 0; chain_index &amp;lt; _num_chains; ++chain_index) {
+            auto &amp; c        = _chains[chain_index];
+            auto likelihood = _likelihoods[chain_index];
+            auto m          = likelihood-&amp;gt;getModel();
+            
+            // Finish setting up models
+            m-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            m-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            m-&amp;gt;activate();
+            if (chain_index == 0)
+                std::cout &amp;lt;&amp;lt; "\n" &amp;lt;&amp;lt; m-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+            else
+                m-&amp;gt;describeModel();
+                
+            // Finish setting up likelihoods
+            likelihood-&amp;gt;setData(_data);
+            likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);
+            likelihood-&amp;gt;initBeagleLib();
+            likelihood-&amp;gt;useStoredData(_using_stored_data);
+            
+            // Build list of updaters, one for each free parameter in the model
+            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);
+            if (num_free_parameters == 0)
+                throw XStrom("MCMC skipped because there are no free parameters in the model");
+
+            // Tell the chain that it should adapt its updators (at least initially)
+            c.startTuning();
+
+            // Set heating power to precalculated value
+            c.setChainIndex(chain_index);
+            c.setHeatingPower(_heating_powers[chain_index]);
+            
+            // Give the chain a starting tree
+            std::string newick = _tree_summary-&amp;gt;getNewick(m-&amp;gt;getTreeIndex());
+            c.setTreeFromNewick(newick);
+
+            // Print headers in output files and make sure each updator has its starting value
+            c.start();
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-showmcmcinfo-member-function">Add the showMCMCInfo member function</h2>
+<p>This function spits out information about the MCMC analysis. It is called just before the burnin iteration loop begins. If data is being ignored, it says “Exploring prior”; otherwise, it computes and displays the starting likelihood, arbitrarily using the first <code class="highlighter-rouge">Likelihood</code> object in the <code class="highlighter-rouge">_likelihoods</code> vector (all <code class="highlighter-rouge">Likelihood</code> objects are identical at this point except for the BeagleLib instance assigned to them).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::showMCMCInfo() {  
+        assert(_likelihoods.size() &amp;gt; 0 &amp;&amp; _likelihoods[0]);
+        std::cout &amp;lt;&amp;lt; "\n*** MCMC analysis beginning..." &amp;lt;&amp;lt; std::endl;
+        if (_likelihoods[0]-&amp;gt;usingStoredData()) {
+            unsigned tree_index = _likelihoods[0]-&amp;gt;getModel()-&amp;gt;getTreeIndex();
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(tree_index);
+            double lnL = _chains[0].getLogLikelihood();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("Starting log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+        }
+        else
+            std::cout &amp;lt;&amp;lt; "Exploring prior" &amp;lt;&amp;lt; std::endl;
+    
+        if (_expected_log_likelihood != 0.0)
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("      (expecting %.3f)") % _expected_log_likelihood) &amp;lt;&amp;lt; std::endl;
+    
+        std::cout &amp;lt;&amp;lt; "Number of chains is " &amp;lt;&amp;lt; _num_chains &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Burning in for " &amp;lt;&amp;lt; _num_burnin_iter &amp;lt;&amp;lt; " iterations." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Running after burn-in for " &amp;lt;&amp;lt; _num_iter &amp;lt;&amp;lt; " iterations." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Sampling every " &amp;lt;&amp;lt; _sample_freq &amp;lt;&amp;lt; " iterations." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Sample size is " &amp;lt;&amp;lt; (int)(_num_iter/_sample_freq) &amp;lt;&amp;lt; std::endl;
+                
+    }  
+
+</code></pre></div></div>
+
+<h2 id="add-the-starttuningchains-and-stoptuningchains-member-functions">Add the startTuningChains and stopTuningChains member functions</h2>
+
+<p>These functions tell each chain to start and stop autotuning, respectively. The <code class="highlighter-rouge">startTuningChains</code> function should be called prior to burn-in, and the <code class="highlighter-rouge">stopTuningChains</code> should be called after burn-in so that tuning parameters are not modified during the sampling run.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::startTuningChains() { 
+        _swaps.assign(_num_chains*_num_chains, 0);
+        for (auto &amp; c : _chains) {
+            c.startTuning();
+        }
+    }   
+    
+    inline void Strom::stopTuningChains() { 
+        _swaps.assign(_num_chains*_num_chains, 0);
+        for (auto &amp; c : _chains) {
+            c.stopTuning();
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-stepchains-member-function">Add the stepChains member function</h2>
+
+<p>This function loops through chains, telling each one to take one step. Each step involves calling the <code class="highlighter-rouge">update</code> method of each updater. The <code class="highlighter-rouge">sample</code> function is also called if sampling is true. Note that just because <code class="highlighter-rouge">sample</code> is called does not necessarily mean that a line is added to the tree and parameter file; that depends on the iteration and degree of thinning specified by the user. Also, sample does nothing if the chain <code class="highlighter-rouge">c</code> passed to it does not currently represent the cold chain. Remember that chain 0 started out as the cold chain but cannot any longer be assumed to be the cold chain because the cold chain may have swapped with one of the heated chains in the interim.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::stepChains(unsigned iteration, bool sampling) {  
+        for (auto &amp; c : _chains) {
+             c.nextStep(iteration);
+            if (sampling)
+                sample(iteration, c);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-swapchains-member-function">Add the swapChains member function</h2>
+
+<p>The <code class="highlighter-rouge">swapChains</code> function selects two chains at random and asks them to attempt a swap. The swap is successful if a uniform random deviate is less than or equal to the coupled acceptance probability. Although it is not quite this simple, essentially both chains have to be able to move to where the other chain is located in order for the proposed swap to be accepted. If a swap is accepted, then the chain objects swap indices, tuning parameters, and heating power. It is much simpler to swap these three simple quantities than it would be to swap the entire state (tree topology, all edge lengths, and the current value of all substitution model parameters). The tuning parameters need to be swapped because the chains are exploring different landscapes, and a chain tuned for one landscape would not mix well if it suddenly found itself using a tuning parameter adjusted for a different landscape.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::swapChains() {   
+        if (_num_chains == 1)
+            return;
+
+        // Select two chains at random to swap
+        // If _num_chains = 3...
+        //  i  j  = (i + 1 + randint(0,1)) % _num_chains
+        // ---------------------------------------------
+        //  0  1  = (0 + 1 +      0      ) %     3
+        //     2  = (0 + 1 +      1      ) %     3
+        // ---------------------------------------------
+        //  1  2  = (1 + 1 +      0      ) %     3
+        //     0  = (1 + 1 +      1      ) %     3
+        // ---------------------------------------------
+        //  2  0  = (2 + 1 +      0      ) %     3
+        //     1  = (2 + 1 +      1      ) %     3
+        // ---------------------------------------------
+        unsigned i = _lot-&amp;gt;randint(0, _num_chains-1);
+        unsigned j = i + 1 + _lot-&amp;gt;randint(0, _num_chains-2);
+        j %= _num_chains;
+
+        assert(i != j &amp;&amp; i &amp;gt;=0 &amp;&amp; i &amp;lt; _num_chains &amp;&amp; j &amp;gt;= 0 &amp;&amp; j &amp;lt; _num_chains);
+
+        // Determine upper and lower triangle cells in _swaps vector
+        unsigned smaller = _num_chains;
+        unsigned larger  = _num_chains;
+        double index_i   = _chains[i].getChainIndex();
+        double index_j   = _chains[j].getChainIndex();
+        if (index_i &amp;lt; index_j) {
+            smaller = index_i;
+            larger  = index_j;
+        }
+        else {
+            smaller = index_j;
+            larger  = index_i;
+        }
+        unsigned upper = smaller*_num_chains + larger;
+        unsigned lower = larger*_num_chains  + smaller;
+        _swaps[upper]++;
+
+        // Propose swap of chains i and j
+        // Proposed state swap will be successful if a uniform random deviate is less than R, where
+        //    R = Ri * Rj = (Pi(j) / Pi(i)) * (Pj(i) / Pj(j))
+        // Chain i: power = a, kernel = pi
+        // Chain j: power = b, kernel = pj
+        //      pj^a         pi^b
+        // Ri = ----    Rj = ----
+        //      pi^a         pj^b
+        // log R = (a-b) [log(pj) - log(pi)]
+
+        double heat_i       = _chains[i].getHeatingPower();
+        double log_kernel_i = _chains[i].calcLogLikelihood() + _chains[i].calcLogJointPrior();
+
+        double heat_j       = _chains[j].getHeatingPower();
+        double log_kernel_j = _chains[j].calcLogLikelihood() + _chains[j].calcLogJointPrior();
+
+        double logR = (heat_i - heat_j)*(log_kernel_j - log_kernel_i);
+
+        double logu = _lot-&amp;gt;logUniform();
+        if (logu &amp;lt; logR) {
+            // accept swap
+            _swaps[lower]++;
+            _chains[j].setHeatingPower(heat_i);
+            _chains[i].setHeatingPower(heat_j);
+            _chains[j].setChainIndex(index_i);
+            _chains[i].setChainIndex(index_j);
+            std::vector&amp;lt;double&amp;gt; lambdas_i = _chains[i].getLambdas();
+            std::vector&amp;lt;double&amp;gt; lambdas_j = _chains[j].getLambdas();
+            _chains[i].setLambdas(lambdas_j);
+            _chains[j].setLambdas(lambdas_i);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-showchaintuninginfo-member-function">Add the showChainTuningInfo member function</h2>
+
+<p>This function displays the tuning parameter values for each defined updater. Because autotuning is performed during burn-in, these will differ from the starting values defined in <code class="highlighter-rouge">Chain::createUpdaters</code> after burn-in is completed. This function also dispays the acceptance percentage for each updater, so it makes sense to call this function after the sampling run is finished in order to see the acceptance rates that were achieved during sampling.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::showChainTuningInfo() const {    
+        for (unsigned idx = 0; idx &amp;lt; _num_chains; ++idx) {
+            for (auto &amp; c : _chains) {
+                if (c.getChainIndex() == idx) {
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("\nChain %d (power %.5f)") % idx % c.getHeatingPower()));
+                    std::vector&amp;lt;std::string&amp;gt; names = c.getUpdaterNames();
+                    std::vector&amp;lt;double&amp;gt; lambdas    = c.getLambdas();
+                    std::vector&amp;lt;double&amp;gt; accepts    = c.getAcceptPercentages();
+                    std::vector&amp;lt;unsigned&amp;gt; nupdates = c.getNumUpdates();
+                    unsigned n = (unsigned)names.size();
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
+                    for (unsigned i = 0; i &amp;lt; n; ++i) {
+                        _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
+                    }
+                }
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-stopchains-member-function">Add the stopChains member function</h2>
+
+<p>This function loops through all chains and calls the <code class="highlighter-rouge">stop</code> function for each.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::stopChains() {   
+        for (auto &amp; c : _chains)
+            c.stop();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-swapsummary-member-function">Add the swapSummary member function</h2>
+
+<p>Each time two chains attempt a swap, the event is recorded in the <code class="highlighter-rouge">_swaps</code> data member, which is a vector that is used to represent a 2-dimensional matrix in which the upper triangle is used to store the number of attempted swaps between each pair of chains and the bottom triangle is used to store the number of successful swaps between each pair. This function simply displays the <code class="highlighter-rouge">_swaps</code> vector in the form of a table.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::swapSummary() const {    
+        if (_num_chains &amp;gt; 1) {
+            unsigned i, j;
+            std::cout &amp;lt;&amp;lt; "\nSwap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):" &amp;lt;&amp;lt; std::endl;
+
+            // column headers
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12s") % " ");
+            for (i = 0; i &amp;lt; _num_chains; ++i)
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format(" %12d") % i);
+            std::cout &amp;lt;&amp;lt; std::endl;
+
+            // top line
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12s") % "------------");
+            for (i = 0; i &amp;lt; _num_chains; ++i)
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("-%12s") % "------------");
+            std::cout &amp;lt;&amp;lt; std::endl;
+
+            // table proper
+            for (i = 0; i &amp;lt; _num_chains; ++i) {
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d") % i);
+                for (j = 0; j &amp;lt; _num_chains; ++j) {
+                    if (i == j)
+                        std::cout &amp;lt;&amp;lt; boost::str(boost::format(" %12s") % "---");
+                    else
+                        std::cout &amp;lt;&amp;lt; boost::str(boost::format(" %12.5f") % _swaps[i*_num_chains + j]);
+                }
+                std::cout &amp;lt;&amp;lt; std::endl;
+            }
+
+            // bottom line
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12s") % "------------");
+            for (i = 0; i &amp;lt; _num_chains; ++i)
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("-%12s") % "------------");
+            std::cout &amp;lt;&amp;lt; std::endl;
+        }
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-18/00-heated-chains.html">&lt;&nbsp;18.0</a> | 18.1 | <a href="/people/plewis/cpp//linux//steps/step-18/02-testing-heated-chains.html">18.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

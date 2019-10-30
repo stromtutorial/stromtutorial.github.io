@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test creating Newick strings</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">5.2 Test creating Newick strings</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="/people/plewis/cpp//linux//steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Add the following highlighted line to <em>main.cpp</em> (after <code class="highlighter-rouge">createTestTree()</code>):</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+#include "node.hpp"
+#include "tree.hpp"
+#include "tree_manip.hpp"
+
+using namespace strom;
+
+const double Node::_smallest_edge_length = 1.0e-12;
+
+int main(int argc, const char * argv[]) {
+    std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+    TreeManip tm;
+    tm.createTestTree();
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+    std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+
+    return 0;
+}   
+
+</code></pre></div></div>
+
+<h2 id="installing-the-boost-header-files">Installing the Boost header files</h2>
+
+<p>Build strom using the usual <code class="highlighter-rouge">meson install</code> command from the <code class="highlighter-rouge">build</code> directory:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd ~/Documents/strom/build
+meson install
+</code></pre></div></div>
+<p>This time things will not go smoothly, however. You should see errors to the effect that <em>boost/format.hpp</em> does not exist. The problem is that we’ve used a feature from a header <em>format.hpp</em> in the Boost C++ library but have not yet told meson where this header file can be found. In fact, we have not yet even installed the Boost C++ library, so let’s do that now.</p>
+
+<p>In your browser, go to the <a href="https://www.boost.org">Boost C++ home page</a>, find the latest release, and navigate to the Downloads page. Copy the link address for the gzipped tar file for the latest version and download it into your home directory as follows:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd
+curl -LO https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.gz
+</code></pre></div></div>
+
+<p>Here, the -L switch tells curl to follow the path indicated if the original file has moved and redirection information has been provided. The -O switch tells curl to save the file under the name specified in the last part of the URL.</p>
+
+<p>Create the directory <em>~/Documents/libraries</em>, then use the tar command to uncompress and untar the <em>boost_1_71_0.tar.gz</em> into the libraries directory as follows:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd ~/Documents
+mkdir libraries
+cd libraries
+tar zxvf ~/boost_1_71_0.tar.gz
+</code></pre></div></div>
+
+<p>We now need to modify the <em>meson.build</em> file to tell meson where to find the boost headers:</p>
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp',
+	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
+	version : '1.0')
+incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
+executable('strom', 'main.cpp', install: true, install_dir: '.', include_directories: incl_boost)
+
+</code></pre></div></div>
+
+<p>I’ve added an <code class="highlighter-rouge">include_directories</code> command pointing to the boost install directory and stored this directory as the meson variable <code class="highlighter-rouge">incl_boost</code>. You should of course use the correct absolute path to <em>your</em> boost installation; unless your user name is <code class="highlighter-rouge">paul</code>, the <code class="highlighter-rouge">include_directories</code> command will not work as written above! Note that I’ve also appended <code class="highlighter-rouge">, include_directories: incl_boost</code> to the end of the <code class="highlighter-rouge">executable</code> command.</p>
+
+<h2 id="compile-and-run">Compile and run</h2>
+<p>Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional line appear in the output when the program is run:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>((1:0.100,2:0.100):0.100,3:0.200)
+</code></pre></div></div>
+
+<p>Note that 3 decimal places are used in outputting edge lengths because you supplied 3 as an argument to the <code class="highlighter-rouge">makeNewick</code> function.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="/people/plewis/cpp//linux//steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

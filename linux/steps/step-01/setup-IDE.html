@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Setting Up A Build System</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">1.0 Setting Up A Build System</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp/linux/steps/">Table of Contents</a> | 1.0 | <a href="/people/plewis/cpp//linux//steps/step-02/00-node-and-tree-classes.html">2.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The Linux version will not use an Integrated Development Environment as this version is designed to show how to use the <a href="https://mesonbuild.com">Meson</a> and <a href="https://ninja-build.org">Ninja</a>   build systems to simplify compiling and linking to create each step of the program being developed during the tutorial. Many projects use other build systems, such as cmake or Gnu autotools (the familiar configure/make combination). Here Meson takes the place of <code class="highlighter-rouge">configure</code> and Ninja takes the place of <code class="highlighter-rouge">make</code> and the Meson/Ninja combination greatly simplifies building a complex executable that requires linking several third-party libraries (Nexus Class Library, Boost Program Options, and BeagleLib).</p>
+
+<p>I will assume you are using Ubuntu 16.04 LTS Linux. The instructions will probably still work if you have a different flavor of Linux, but in this case you will need to figure out how to install the needed tools for your system (e.g. for a Fedora system you would use the package manager <code class="highlighter-rouge">yum</code> rather than <code class="highlighter-rouge">apt</code> to install tools).</p>
+
+<p>The first step is to ensure that your system has some critical capabilities installed.</p>
+
+<h2 id="test">Test</h2>
+
+<p>operatingsystem is linux.</p>
+
+<h2 id="install-the-gnu-c-compiler">Install the Gnu C++ compiler</h2>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt install build-essential
+</code></pre></div></div>
+<p><strong>Note:</strong> Do not type the initial <code class="highlighter-rouge">$</code> symbol. That is the bash prompt character and it is included here so that you know that this code block contains commands to be issued when you are in a bash shell. If you are in a bash shell (bash is the standard command interpreter in Linux), you should see the <code class="highlighter-rouge">$</code> in your terminal (perhaps preceded by other information, such as your username and the current directory), but you should only type (or copy/paste) what follows the <code class="highlighter-rouge">$</code> character.</p>
+
+<h2 id="install-git-for-version-control">Install Git for version control</h2>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt install git
+</code></pre></div></div>
+
+<h2 id="install-curl-for-downloading-files-from-urls">Install curl for downloading files from URLs</h2>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt install curl
+</code></pre></div></div>
+
+<h2 id="install-unzip-for-unpacking-zip-files">Install unzip for unpacking zip files</h2>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt install unzip
+</code></pre></div></div>
+
+<h2 id="install-the-meson-build-system">Install the meson build system</h2>
+<p>Because meson is a python app, we will use pip to install it. This will also ensure that we install the latest version. We first must ensure that pip itself is installed:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt install python3-pip
+pip3 install meson
+</code></pre></div></div>
+
+<h2 id="install-ninja">Install ninja</h2>
+<p>Download the latest linux binary of ninja (see <a href="https://github.com/ninja-build/ninja/releases">release list</a>. Here’s how to do this using curl for version 1.8.2:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd
+curl -LO https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip
+unzip ninja-linux.zip
+rm ninja-linux.zip
+sudo mv ninja /usr/local/bin
+</code></pre></div></div>
+<p>We can’t use the apt package manager to install ninja because the version of ninja installed will probably be too old to work with the version of meson that you just installed.</p>
+
+<h2 id="create-a-folder-for-your-project">Create a folder for your project</h2>
+<p>Create a folder named <em>strom</em> inside your <em>~/Documents</em> directory, create a directory <em>src</em> inside <em>~/Documents/strom</em>, then create the <em>meson.build</em> and <em>main.cpp</em> files inside <em>~/Documents/strom/src</em>. You should also create a directory <em>distr</em> to serve as an install target. The commands for doing this are:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd ~/Documents
+mkdir strom
+cd strom
+mkdir distr
+mkdir src
+cd src
+touch meson.build
+touch main.cpp
+</code></pre></div></div>
+<p><strong>Note:</strong> The tilde (<code class="highlighter-rouge">~</code>) in the change-directory (<code class="highlighter-rouge">cd</code>) command is replaced by your home directory. The make-directory (<code class="highlighter-rouge">mkdir</code>) command creates a new directory. The nominal duty of the <code class="highlighter-rouge">touch</code> command is to modify the time stamp for a file, but if the file specified does not exist, it can be used to create an empty file by that name (and that is its purpose here).</p>
+
+<h2 id="editing-files">Editing files</h2>
+
+<p>You can use whatever editor you like to modify text files. There is a built-in text editor in Ubuntu called “Text Editor”. Because I work on linux systems remotely from a Mac, I use the <a href="http://www.barebones.com/products/bbedit/">BBEdit</a> editor on my Mac, editing files on the Ubuntu server remotely using the <em>File &gt; Open From FTP/SFTP Server…</em> menu command. You are of course also free to use emacs, vim, or nano. The program nano is usually the easiest text editor to use for Linux newbies. Just be sure to use a <em>text editor</em>, not a <em>word processor</em>, so that you end up with text files and not documents filled with formatting commands that will not be understood by compilers, autotools, etc.</p>
+
+<h2 id="editing-mesonbuild">Editing <em>meson.build</em></h2>
+
+<p>Use your favorite text editor to add the following text to the currently empty file <em>~/Documents/strom/src/meson.build</em>:</p>
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+</code></pre></div></div>
+<p>We will add to this file as the program develops, but this much will enable us to compile the file <em>main.cpp</em> using the <a href="https://en.wikipedia.org/wiki/C%2B%2B11">C++11 programming language standard</a>.</p>
+
+<p>The first line of meson.build declares the name of the project (<code class="highlighter-rouge">strom</code>), which is a C++ program (<code class="highlighter-rouge">cpp</code>), defines the version (<code class="highlighter-rouge">1.0</code>), and specifies a couple of default options. The <code class="highlighter-rouge">cpp_std=c++11</code> specifies that we want to use features of C++11. The <code class="highlighter-rouge">cpp_link_args=-static</code> causes the standard libraries (and libraries we add) to be directly incorporated into (statically linked to) the strom executable. Without this option, these libraries would be dynamically linked, which would work but slightly complicates running the program if some of the libraries are not installed in standard locations where they can be located by the operating system. We will thus statically link every library to our executable so that everything needed is in a single file on the disk. Documantation for options such as <code class="highlighter-rouge">cpp_std</code> and <code class="highlighter-rouge">cpp_link_args</code> can be found at the <a href="https://mesonbuild.com/Builtin-options.html">Meson Built-in Options web page</a>.</p>
+
+<p>Finally, the <code class="highlighter-rouge">prefix=/home/plewis/Documents/strom/distr</code> option tells meson where we wish to install our program. Note that the prefix directory is an absolute URL on <em>my</em> system; <strong>you should modify this so that it specifies an actual directory on your system.</strong></p>
+
+<p>The second line tells meson that we wish to create an executable file (a program) named <code class="highlighter-rouge">strom</code> by compiling <code class="highlighter-rouge">main.cpp</code> and that we wish to install this program into the directory specified by the prefix that we declared in the <code class="highlighter-rouge">default_options</code> section. The dot <code class="highlighter-rouge">.</code> means “current directory”, but note that this is relative to the prefix, so by using <code class="highlighter-rouge">'.'</code> we are telling meson that we wish to install this program directly into the prefix directory, not a subdirectory within the directory defined by the prefix.</p>
+
+<h2 id="editing-maincpp">Editing <em>main.cpp</em></h2>
+
+<p>We will need at least one source code file in order to test out the build system, so add the following text to the currently empty <em>~/Documents/strom/src/main.cpp</em> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt;	
+
+int main(int argc, const char * argv[]) {
+    std::cout &amp;lt;&amp;lt; "Hello World!" &amp;lt;&amp;lt; std::endl;
+
+    return 0;
+} 
+
+</code></pre></div></div>
+
+<p>This is the C++ version of the <a href="https://en.wikipedia.org/wiki/&quot;Hello,_World!&quot;_program">Hello World!</a> program.</p>
+
+<h2 id="building-the-hello-world-program">Building the “Hello World!” program</h2>
+
+<p>Create a directory to hold the build products:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd ~/Documents/strom/src
+mkdir build
+</code></pre></div></div>
+<p>Everything in this <em>build</em> folder can later be deleted because the contents of this folder are automatically generated from your source files. The first (<code class="highlighter-rouge">cd</code>) command simply ensures that you are in the correct directory before you issue the <code class="highlighter-rouge">mkdir</code> command; you do not need to type the <code class="highlighter-rouge">cd</code> command if you are sure you are in that directory already.</p>
+
+<p>Now run meson to create the <em>build.ninja</em> file inside the newly-created <em>build</em> directory:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>meson ./build
+</code></pre></div></div>
+<p>This <code class="highlighter-rouge">meson ./build</code> command is analogous to the <code class="highlighter-rouge">configure</code> command you may have used when installing packages that use Gnu autotools. The <em>build.ninja</em> file is analogous to the <em>Makefile</em> generated by the <code class="highlighter-rouge">configure</code> command and used by the <code class="highlighter-rouge">make</code> command to compile and link a program.</p>
+
+<p>Finally, run ninja to do the actual building:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ninja -C ./build
+</code></pre></div></div>
+<p>Ninja looks for the build.ninja file in the directory specified (the <code class="highlighter-rouge">-C</code> switch tells ninja to change to the build directory before doing anything), and uses the information therein to build the program.</p>
+
+<p>The executable file should now be found inside the <em>~/Documents/strom/src/build</em> directory. Try to run it just to make sure everything worked:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd ~/Documents/strom/src/build
+./strom
+</code></pre></div></div>
+<p>You should see the output</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Hello World!
+</code></pre></div></div>
+
+<p>While you are still inside the build directory, try typing</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>meson install
+</code></pre></div></div>
+<p>This will install the <code class="highlighter-rouge">strom</code> executable in the directory specified by the variable prefix in the <em>meson.build</em> file, which should be the directory <em>~/Documents/strom/distr</em>. Because meson install calls ninja automatically, you can actually skip the ninja step in the future.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp/linux/steps/">Table of Contents</a> | 1.0 | <a href="/people/plewis/cpp//linux//steps/step-02/00-node-and-tree-classes.html">2.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

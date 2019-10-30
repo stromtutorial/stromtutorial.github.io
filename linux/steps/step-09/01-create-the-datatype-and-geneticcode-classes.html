@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the DataType and GeneticCode classes</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">9.1 Create the DataType and GeneticCode classes</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-09/00-reading-and-storing-data.html">&lt;&nbsp;9.0</a> | 9.1 | <a href="/people/plewis/cpp//linux//steps/step-09/02-create-the-partition-class.html">9.2&nbsp;&gt;</a></h3>
+</div>
+
+<h2 id="defining-a-data-partition">Defining a data partition</h2>
+
+<p>We will ultimately want to be able to partition our data: assign one model to one subset of sites and a different model to the remaining sites. This tutorial adopts the definition of the term <strong>partition</strong> as a wall or set of walls that subdivide something. In this case, a partition refers to the way in which sites are divided into subsets, each getting its own model. The individual subsets are often (confusingly) also called partitions, but I will use the term <strong>data subset</strong> to represent a “room” and reserve partition for the “walls” separating the rooms. A partition or a partitioning will be used to denote a particular number and placement of walls.</p>
+
+<p>For example, suppose we want to partition the sequences for a protein coding gene into first, second, and third codon positions. We will use three <strong>subset</strong> commands to do this, either on the command line or (more reasonably) in our <em>strom.conf</em> file:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>subset = first:1-60\3
+subset = second:2-60\3
+subset = third:3-60\3
+</code></pre></div></div>
+<p>These <code class="highlighter-rouge">subset</code> commands provide arbitrary names (<code class="highlighter-rouge">first</code>, <code class="highlighter-rouge">second</code>, and <code class="highlighter-rouge">third</code>) for the three data subsets composing the partition, and also indicate which sites fall in each subset. The <code class="highlighter-rouge">\3</code> indicates the step size, also known as the stride, which is by default 1. Thus, <code class="highlighter-rouge">2-60\3</code> means <code class="highlighter-rouge">2, 2+3, 2+6, 2+9, ...</code>.</p>
+
+<p>The <code class="highlighter-rouge">Strom</code> class will take responsibility for grabbing the <code class="highlighter-rouge">first:1-60\3</code>, <code class="highlighter-rouge">second:2-60\3</code>, and <code class="highlighter-rouge">third:3-60\3 </code>strings from the command line or <em>strom.conf</em> file; the <code class="highlighter-rouge">Partition</code> class handles interpreting these strings. The <code class="highlighter-rouge">Partition</code> class will store a vector of tuples, called <code class="highlighter-rouge">_subset_ranges</code>, with each tuple comprising four integers: begin site (inclusive), end site (inclusive), step size, and subset index. Each tuple in <code class="highlighter-rouge">_subset_ranges</code> assigns a subset index (0, 1, 2, …, <code class="highlighter-rouge">_num_subsets</code>-1) to a chunk of sites, where a chunk can be either a single site (begin=end), a range of contiguous sites (end &gt; begin, step = 1), or a range of non-contiguous sites that can be defined by stepping from begin to end by steps greater than 1.</p>
+
+<p>For example, assume the following <code class="highlighter-rouge">subset</code> statements are present in the <em>strom.conf</em> file:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>subset = a:1-1234
+subset = b:1235,2001-2050
+subset = c:1236-2000
+subset = d:2051-3000\2
+subset = e:2052-3000\2
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">_subset_ranges</code> vector would end up looking like this (sorted by beginning site, not subset index):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>index          tuple
+  0     (   1, 1234, 1, 0)
+  1     (1235, 1235, 1, 1)
+  2     (1236, 2000, 1, 2)
+  3     (2001, 2050, 1, 1)
+  4     (2051, 3000, 2, 3)
+  5     (2052, 3000, 2, 4)
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">_subset_names</code> vector holds the subset names defined in the <code class="highlighter-rouge">part</code> commands:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>index   name
+  0     "a"
+  1     "b"
+  2     "c"
+  3     "d"
+  4     "e"
+</code></pre></div></div>
+
+<h3 id="specifying-the-data-type-for-a-subset">Specifying the data type for a subset</h3>
+
+<p>The above examples of partition definitions are fine as long as we can assume that data is always in the form of sequences of nucleotides. What if we wanted to interpret the nucleotide sequences as codons rather than individual nucleotides? It would also be helpful to be explicit about other possible data types, such as protein (amino acid sequences) or discrete morphological data. To handle these cases, we will add an optional data type specification to our subset definition. If the data type is omitted by the user, then that subset is assumed to contain nucleotide sequence data.</p>
+
+<p>For example, the following definitions are possible:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>subset = rbcL[codon,plantplastid]:1-20
+subset = tufA[protein]:21-40
+subset = morph[standard]:41-45
+subset = rDNA:46-1845
+</code></pre></div></div>
+<p>The subset named <code class="highlighter-rouge">rbcL</code> holds data for 20 <strong>codon</strong> “sites” (but note that the 20 codon sites correspond to 60 nucleotide sites in the data file). The associated <strong>genetic code</strong> is supplied after the word <code class="highlighter-rouge">codon</code> (the comma separator is required).</p>
+
+<p>The subset named <code class="highlighter-rouge">tufA</code> holds data for 20 amino acid sites.</p>
+
+<p>The subset labeled <code class="highlighter-rouge">morph</code> holds data from 5 discrete morphological characters.</p>
+
+<p>Finally, the subset <code class="highlighter-rouge">rDNA</code> holds data for 1800 nucleotide sites (the nucleotide data type is assumed because the data type was not specified).</p>
+
+<p>We will implement the <code class="highlighter-rouge">subset</code> command in <em>strom.hpp</em> as a command line (or control file) option, but for now let’s create the <code class="highlighter-rouge">DataType</code> and <code class="highlighter-rouge">GeneticCode</code> classes that will handle storing part of the information provided by the user in these <code class="highlighter-rouge">subset</code> commands. Both of these classes will assist the <code class="highlighter-rouge">Partition</code> class (next up), which parses the string that the user supplies to the subset command and stores all information about data partitioning.</p>
+
+<h2 id="geneticcode-class">GeneticCode class</h2>
+
+<p><code class="highlighter-rouge">GeneticCode</code> is a lightweight object that stores information about the genetic codes that are recognized by the program. Its main function is to translate an index into the list of all 64 codons into an index into a list of codons that are relevant to the particular genetic code assumed. Stop codons are not considered valid states in a codon model and are thus removed, so (for example) the standard (“universal”) genetic code has only 61 states even though there are 64 possible codons (3 are stop codons). GeneticCode objects also provide the amino acid corresponding to each codon, which is important in determining synonymous vs. non-synonymous transitions when constructing the instantaneous rate matrix.</p>
+
+<p>Create a new C++ class named <code class="highlighter-rouge">GeneticCode</code> and add it to your project as the header file <em>genetic_code.hpp</em>. Below is the class declaration. The body of each member function will be described separately (you should add each of these member function bodies just above the right curly bracket that terminates the namespace block).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "xstrom.hpp"
+#include &amp;lt;boost/algorithm/string.hpp&amp;gt;
+
+namespace strom {
+
+    class Data;
+    class Model;
+    class QMatrix;
+
+    class GeneticCode {
+
+        friend class Data;
+        friend class Model;
+        friend class QMatrix;
+
+        public:
+
+            typedef std::map&amp;lt;int, int&amp;gt;                  genetic_code_map_t;
+            typedef std::map&amp;lt;char, unsigned&amp;gt;            amino_acid_map_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;               amino_acid_vect_t;
+            typedef std::vector&amp;lt;std::string&amp;gt;            codon_vect_t;
+            typedef std::vector&amp;lt;char&amp;gt;                   amino_acid_symbol_vect_t;
+            typedef std::map&amp;lt;std::string, std::string&amp;gt;  genetic_code_definitions_t;
+            typedef std::vector&amp;lt;std::string&amp;gt;            genetic_code_names_t;
+            
+        
+                                                GeneticCode();
+                                                GeneticCode(std::string name);
+                                                ~GeneticCode();
+        
+            std::string                         getGeneticCodeName() const;
+            void                                useGeneticCode(std::string name);
+        
+            unsigned                            getNumNonStopCodons() const;
+            int                                 getStateCode(int triplet_index) const;
+            char                                getAminoAcidAbbrev(unsigned aa_index) const;
+
+            void                                copyCodons(std::vector&amp;lt;std::string&amp;gt; &amp; codon_vect) const;
+            void                                copyAminoAcids(std::vector&amp;lt;unsigned&amp;gt; &amp; aa_vect) const;
+
+            static genetic_code_names_t         getRecognizedGeneticCodeNames();
+            static bool                         isRecognizedGeneticCodeName(const std::string &amp; name);
+            static void                         ensureGeneticCodeNameIsValid(const std::string &amp; name);
+
+        private:
+
+            void                                buildGeneticCodeTranslators();
+
+            std::string                         _genetic_code_name;
+        
+            genetic_code_map_t                  _genetic_code_map;
+            amino_acid_map_t                    _amino_acid_map;
+        
+            amino_acid_vect_t                   _amino_acids;
+            codon_vect_t                        _codons;
+        
+            const amino_acid_symbol_vect_t      _all_amino_acids = {'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y'};
+            const std::vector&amp;lt;std::string&amp;gt;      _all_codons = {"AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT", "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT", "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT", "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT", "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT"};
+
+            static genetic_code_definitions_t   _definitions;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt;GeneticCode&amp;gt; SharedPtr;
+    };
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h3 id="constructors-and-destructor">Constructors and destructor</h3>
+<p>Two constructors are provided: the first accepts no arguments and sets itself up to represent the standard genetic code; the second accepts a genetic code name string and sets itself to represent that genetic code. Both constructors call the member function <code class="highlighter-rouge">buildGeneticCodeTranslators</code> (described below) to do all of the work except setting<code class="highlighter-rouge"> _genetic_code_name</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline GeneticCode::GeneticCode() { 
+        //std::cout &amp;lt;&amp;lt; "Constructing a standard GeneticCode" &amp;lt;&amp;lt; std::endl;
+        useGeneticCode("standard");
+    } 
+
+    inline GeneticCode::GeneticCode(std::string name) { 
+        //std::cout &amp;lt;&amp;lt; "Constructing a " &amp;lt;&amp;lt; name &amp;lt;&amp;lt; " GeneticCode" &amp;lt;&amp;lt; std::endl;
+        useGeneticCode(name);
+    } 
+
+    inline GeneticCode::~GeneticCode() { 
+        //std::cout &amp;lt;&amp;lt; "Destroying a GeneticCode" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-getgeneticcodename-member-function">The getGeneticCodeName member function</h3>
+<p>This function can be used to obtain the name of the genetic code currently represented by this object.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string GeneticCode::getGeneticCodeName() const { 
+        return _genetic_code_name;
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-usegeneticcode-member-function">The useGeneticCode member function</h3>
+<p>This function can be used to change which genetic code the <code class="highlighter-rouge">GeneticCode</code> object represents after construction. This is in fact the same method that the constructors use.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GeneticCode::useGeneticCode(std::string name) { 
+        _genetic_code_name = name;
+        buildGeneticCodeTranslators();
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-getnumnonstopcodons-member-function">The getNumNonStopCodons member function</h3>
+<p>This returns the number of codons that are not stop codons in the genetic code represented by this <code class="highlighter-rouge">GeneticCode</code> object. This number is simply the length of the <code class="highlighter-rouge">_codons</code> vector because that vector stores only non-stop codons.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned GeneticCode::getNumNonStopCodons() const { 
+        return (unsigned)_codons.size();
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-getstatecode-member-function">The getStateCode member function</h3>
+<p>Given an index into a vector of all 64 codons (<code class="highlighter-rouge">triplet_index</code>), this function returns the index of the same triplet in the <code class="highlighter-rouge">_codons</code> vector, which is a list of all non-stop codons for the genetic code represented by this <code class="highlighter-rouge">GeneticCode</code> object. This function will be used to map the 64-state codes used by the Nexus Class Library (NCL) onto the states used by our codon models (codon models do not include the stop codons as states).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline int GeneticCode::getStateCode(int triplet_index) const { 
+        return _genetic_code_map.at(triplet_index);
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-getaminoacidabbrev-member-function">The getAminoAcidAbbrev member function</h3>
+<p>This function returns the single-letter abbreviation for an amino acid given its (0-offset) index in the <code class="highlighter-rouge">_all_amino_acids</code> vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline char GeneticCode::getAminoAcidAbbrev(unsigned aa_index) const { 
+        return _all_amino_acids[aa_index];
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-copycodons-member-function">The copyCodons member function</h3>
+<p>This function copies its own<code class="highlighter-rouge">_codons</code> vector to the supplied vector reference <code class="highlighter-rouge">codon_vect</code>. This function will later be used by codon models, which need to know all valid codon states for the appropriate genetic code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GeneticCode::copyCodons(std::vector&amp;lt;std::string&amp;gt; &amp; codon_vect) const { 
+        codon_vect.resize(_codons.size());
+        std::copy(_codons.begin(), _codons.end(), codon_vect.begin());
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-copyaminoacids-member-function">The copyAminoAcids member function</h3>
+<p>This function copies its own<code class="highlighter-rouge">_amino_acids</code> vector to the supplied vector reference <code class="highlighter-rouge">aa_vect</code>. This function will later be used by codon models, which need to know the amino acid for each codon state for the appropriate genetic code in order to determine whether a particular transition represents a synonymous or nonsynonymous substitution.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GeneticCode::copyAminoAcids(std::vector&amp;lt;unsigned&amp;gt; &amp; aa_vect) const { 
+        aa_vect.resize(_amino_acids.size());
+        std::copy(_amino_acids.begin(), _amino_acids.end(), aa_vect.begin());
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-buildgeneticcodetranslators-member-function">The buildGeneticCodeTranslators member function</h3>
+<p>This function sets up all data members based on the current value of the data member _genetic_code_name. The data member <code class="highlighter-rouge">_amino_acid_map</code> provides the index of a particular amino acid into the <code class="highlighter-rouge">_all_amino_acids</code> vector given its single letter abbreviation. The <code class="highlighter-rouge">_codons</code> and <code class="highlighter-rouge">_amino_acids</code> data members are vectors containing all non-stop codons and the corresponding amino acids, respectively, for the chosen genetic code. Finally, _genetic_code_map provides the codon state code for a nucleotide triplet index. For example, in the standard genetic code, TTT is the 64th triplet but its state code is 61 because 3 triplets represent stop codons and are not counted as states.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GeneticCode::buildGeneticCodeTranslators() { 
+        _amino_acid_map.clear();
+        for (unsigned i = 0; i &amp;lt; 20; ++i) {
+            char aa = _all_amino_acids[i];
+            _amino_acid_map[aa] = i;
+        }
+
+        ensureGeneticCodeNameIsValid(_genetic_code_name);
+        std::string gcode_aa = _definitions[_genetic_code_name];  // e.g. "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"
+        
+        int k = 0;
+        int state_code = 0;
+        _codons.clear();
+        _amino_acids.clear();
+        _genetic_code_map.clear();
+        for (char ch : gcode_aa) {
+            if (ch != '*') {
+                _genetic_code_map[k] = state_code++;
+                _codons.push_back(_all_codons[k]);
+                _amino_acids.push_back(_amino_acid_map[ch]);
+            }
+            ++k;
+        }
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-getrecognizedgeneticcodenames-member-function">The getRecognizedGeneticCodeNames member function</h3>
+<p>This is a static member function (which means it can be called even if no objects of the GeneticCode class have been constructed) that builds and returns a vector of genetic code names. The genetic code names used are the keys of the <code class="highlighter-rouge">_definitions</code> map, which, as a static variable, must be instantiated in a source code file (not a header file). In our case, the only source code file is <em>main.cpp</em>, which is where all static variables are initialized.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline GeneticCode::genetic_code_names_t GeneticCode::getRecognizedGeneticCodeNames() { 
+        genetic_code_names_t names;
+        for (auto it = _definitions.begin(); it != _definitions.end(); ++it)
+            names.push_back(it-&amp;gt;first);
+        return names;
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-isrecognizedgeneticcodename-member-function">The isRecognizedGeneticCodeName member function</h3>
+<p>This is a static function that returns <code class="highlighter-rouge">true</code> if the supplied string <code class="highlighter-rouge">name</code> represents a valid genetic code name stored as a key in the (static) <code class="highlighter-rouge">_definitions</code> vector. Note that <code class="highlighter-rouge">name</code> is converted to lower case before the lookup because all keys in <code class="highlighter-rouge">_definitions</code> are lower case.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool GeneticCode::isRecognizedGeneticCodeName(const std::string &amp; name) { 
+        std::string lcname = name;
+        boost::to_lower(lcname);
+        return (_definitions.find(lcname) != _definitions.end());
+    } 
+
+</code></pre></div></div>
+
+<h3 id="the-ensuregeneticcodenameisvalid-member-function">The ensureGeneticCodeNameIsValid member function</h3>
+<p>This is a static member function that checks whether the supplied string <code class="highlighter-rouge">name</code> represents a recognized genetic code. If not, a list of valid genetic code names is printed to standard out and an <code class="highlighter-rouge">XStrom</code> exception is thrown.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GeneticCode::ensureGeneticCodeNameIsValid(const std::string &amp; name) { 
+        if (!isRecognizedGeneticCodeName(name)) {
+            auto valid_genetic_code_names = getRecognizedGeneticCodeNames();
+            std::cout &amp;lt;&amp;lt; "Recognized genetic codes:\n";
+            for (std::string name : valid_genetic_code_names) {
+                std::cout &amp;lt;&amp;lt; "  " &amp;lt;&amp;lt; name &amp;lt;&amp;lt; "\n";
+            }
+            std::cout &amp;lt;&amp;lt; std::endl;
+            throw XStrom(boost::format("%s is not a recognized genetic code") % name);
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="datatype-class">DataType class</h2>
+
+<p><code class="highlighter-rouge">DataType</code> is a lightweight object that stores the type of data for a partition along with a small amount of associated information, such as the number of discrete states for a data type and the genetic code in the case of the codon data type. A <code class="highlighter-rouge">DataType</code> object will be associated with each data subset defined in the <code class="highlighter-rouge">Partition</code> object.</p>
+
+<p>Create a new C++ class named <code class="highlighter-rouge">DataType</code> and add it to your project as the header file <em>datatype.hpp</em>. Below is the class declaration. The body of each member function will be described separately (you should add each of these member function bodies just above the right curly bracket that terminates the namespace block).</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "genetic_code.hpp"
+#include &amp;lt;boost/format.hpp&amp;gt;
+
+namespace strom {
+
+    class DataType {
+        public:
+                                            DataType();
+                                            ~DataType();
+
+            void                            setNucleotide();
+            void                            setCodon();
+            void                            setProtein();
+            void                            setStandard();
+        
+            bool                            isNucleotide() const;
+            bool                            isCodon() const;
+            bool                            isProtein() const;
+            bool                            isStandard() const;
+
+            void                            setStandardNumStates(unsigned nstates);
+            void                            setGeneticCodeFromName(std::string genetic_code_name);
+            void                            setGeneticCode(GeneticCode::SharedPtr gcode);
+
+            unsigned                        getDataType() const;
+            unsigned                        getNumStates() const;
+            std::string                     getDataTypeAsString() const;
+            const GeneticCode::SharedPtr    getGeneticCode() const;
+            
+            static std::string              translateDataTypeToString(unsigned datatype);
+
+        private:
+
+            unsigned                        _datatype;
+            unsigned                        _num_states;
+            GeneticCode::SharedPtr          _genetic_code;
+    };
+    
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h3 id="constructor-and-destructor">Constructor and destructor</h3>
+<p>The only thing out of the ordinary here is the fact that the constructor sets the data type to be nucleotide by default. This is done by calling the <code class="highlighter-rouge">setNucleotide</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline DataType::DataType() : _datatype(0), _num_states(0) {    
+        //std::cout &amp;lt;&amp;lt; "Creating a DataType object" &amp;lt;&amp;lt; std::endl;
+        setNucleotide();
+    }    
+    
+    inline DataType::~DataType() {    
+        //std::cout &amp;lt;&amp;lt; "Destroying a DataType object" &amp;lt;&amp;lt; std::endl;
+    }    
+
+</code></pre></div></div>
+
+<h3 id="setters">Setters</h3>
+<p>The four functions <code class="highlighter-rouge">setNucleotide</code>, <code class="highlighter-rouge">setCodon</code>, <code class="highlighter-rouge">setProtein</code>, and <code class="highlighter-rouge">setStandard</code> are used to change the data type to one of the four recognized types: nucleotide, codon, protein, and standard. The data member <code class="highlighter-rouge">_datatype</code> is set to a unique value for each data type, and <code class="highlighter-rouge">_num_states</code> is set to the appropriate number of states. The codon data type makes no sense without an associated genetic code, which is set to <code class="highlighter-rouge">standard</code> (i.e. the “universal” code) by default and can be changed later using the <code class="highlighter-rouge">setGeneticCode</code> member function. The number of states for the standard data type (not to be confused with the standard genetic code!) is set to 2 initially and can be dhanged later using the <code class="highlighter-rouge">setStandardNumStates</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void DataType::setNucleotide() {    
+        _datatype = 1;
+        _num_states = 4;
+        _genetic_code = nullptr;
+    }   
+    
+    inline void DataType::setCodon() {  
+        _datatype = 2;
+        _genetic_code = GeneticCode::SharedPtr(new GeneticCode("standard"));
+        _num_states = _genetic_code-&amp;gt;getNumNonStopCodons();
+    }   
+    
+    inline void DataType::setProtein() {    
+        _datatype = 3;
+        _num_states = 20;
+        _genetic_code = nullptr;
+    }   
+    
+    inline void DataType::setStandard() {   
+        _datatype = 4;
+        _num_states = 2;
+        _genetic_code = nullptr;
+    }   
+
+</code></pre></div></div>
+
+<h3 id="querying-the-data-type">Querying the data type</h3>
+<p>The four member functions <code class="highlighter-rouge">isNucleotide</code>, <code class="highlighter-rouge">isCodon</code>, <code class="highlighter-rouge">isProtein</code>, and <code class="highlighter-rouge">isStandard</code> allow you to query the data type to determine which of the four possible data types it represents.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool DataType::isNucleotide() const {    
+        return (_datatype == 1);
+    }   
+
+    inline bool DataType::isCodon() const { 
+        return (_datatype == 2);
+    }   
+
+    inline bool DataType::isProtein() const {   
+        return (_datatype == 3);
+    }   
+
+    inline bool DataType::isStandard() const {  
+        return (_datatype == 4);
+    }   
+
+</code></pre></div></div>
+
+<h3 id="changing-the-default-genetic-code-and-for-standard-datatype-number-of-states">Changing the default genetic code and (for standard datatype) number of states</h3>
+<p>The <code class="highlighter-rouge">setGeneticCodeFromName</code> member function takes a string argument representing the genetic code to associate with the codon data type. The string suppled should be one of the 17 names returned by the <code class="highlighter-rouge">GeneticCode::getRecognizedGeneticCodeNames</code> function: <code class="highlighter-rouge">standard</code>, <code class="highlighter-rouge">vertmito</code>, <code class="highlighter-rouge">yeastmito</code>, <code class="highlighter-rouge">moldmito</code>, <code class="highlighter-rouge">invertmito</code>, <code class="highlighter-rouge">ciliate</code>, <code class="highlighter-rouge">echinomito</code>, <code class="highlighter-rouge">euplotid</code>, <code class="highlighter-rouge">plantplastid</code> , <code class="highlighter-rouge">altyeast</code>, <code class="highlighter-rouge">ascidianmito</code>, <code class="highlighter-rouge">altflatwormmito</code>, <code class="highlighter-rouge">blepharismamacro</code>, <code class="highlighter-rouge">chlorophyceanmito</code> , <code class="highlighter-rouge">trematodemito</code>, <code class="highlighter-rouge">scenedesmusmito</code>, and <code class="highlighter-rouge">thraustochytriummito</code>. These are defined as the keys of the static map <code class="highlighter-rouge">GeneticCode::_definitions</code>, which is initialized in the <em>main.cpp</em> file.</p>
+
+<p>The <code class="highlighter-rouge">setGeneticCode</code> member function allows you to set the genetic code using an existing GeneticCode object by passing in a shared pointer to the existing object.</p>
+
+<p>The <code class="highlighter-rouge">setStandardNumStates</code> member function takes an integer argument representing the number of discrete character states for a standard data type and sets <code class="highlighter-rouge">_num_states</code> to that value. Note that it also sets <code class="highlighter-rouge">_datatype</code>, which means you can use this function instead of <code class="highlighter-rouge">setStandard</code>, which sets <code class="highlighter-rouge">_num_states</code> to 2.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void DataType::setGeneticCodeFromName(std::string genetic_code_name) {   
+        assert(isCodon());
+        _genetic_code = GeneticCode::SharedPtr(new GeneticCode(genetic_code_name));
+    }   
+    
+    inline void DataType::setGeneticCode(GeneticCode::SharedPtr gcode) {   
+        assert(isCodon());
+        assert(gcode);
+        _genetic_code = gcode;
+    }   
+
+    inline void DataType::setStandardNumStates(unsigned nstates) {   
+        _datatype = 4;
+        _num_states = nstates;
+        _genetic_code = nullptr;
+    }   
+
+</code></pre></div></div>
+
+<h3 id="the-getdatatype-getnumstates-and-getgeneticcode-member-functions">The getDataType, getNumStates, and getGeneticCode member functions</h3>
+<p>These are accessor functions that return the values stored in the private data members <code class="highlighter-rouge">_datatype</code>, <code class="highlighter-rouge">_num_states</code>, and <code class="highlighter-rouge">_genetic_code</code>, respectively.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned DataType::getDataType() const {   
+        return _datatype;
+    }   
+    
+    inline unsigned DataType::getNumStates() const {   
+        return _num_states;
+    }   
+    
+    inline const GeneticCode::SharedPtr DataType::getGeneticCode() const {   
+        assert(isCodon());
+        return _genetic_code;
+    }   
+
+</code></pre></div></div>
+
+<h3 id="the-getdatatypeasstring-and-translatedatatypetostring-functions">The getDataTypeAsString and translateDataTypeToString functions</h3>
+<p>The <code class="highlighter-rouge">translateDataTypeToString</code> function is declared static, which means it can be called without reference to any particular <code class="highlighter-rouge">DataType</code> object. It is used to translate the arbitrary integer code for a datatype into a meaningful name (e.g., “nucleotide”, “codon”, “protein”, or “standard”).</p>
+
+<p>The <code class="highlighter-rouge">getDataTypeAsString</code> function simply calls <code class="highlighter-rouge">translateDataTypeToString</code>, passing its stored <code class="highlighter-rouge">_datatype</code> value. This function can be used to query a particular <code class="highlighter-rouge">DataType</code> object for the name of its particular data type. For the codon data type, the string returned also specifies the name of the associated genetic code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string DataType::getDataTypeAsString() const {   
+        std::string s = translateDataTypeToString(_datatype);
+        if (isCodon())
+            s += boost::str(boost::format(",%s") % _genetic_code-&amp;gt;getGeneticCodeName());
+        return s;
+    }   
+    
+    inline std::string DataType::translateDataTypeToString(unsigned datatype) {   
+        assert(datatype == 1 || datatype == 2 || datatype == 3 || datatype == 4);
+        if (datatype == 1)
+            return std::string("nucleotide");
+        else if (datatype == 2)
+            return std::string("codon");
+        else if (datatype == 3)
+            return std::string("protein");
+        else
+            return std::string("standard");
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-09/00-reading-and-storing-data.html">&lt;&nbsp;9.0</a> | 9.1 | <a href="/people/plewis/cpp//linux//steps/step-09/02-create-the-partition-class.html">9.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

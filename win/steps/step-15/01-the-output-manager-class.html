@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The OutputManager Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">15.1 The OutputManager Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 15.1 | <a href="/people/plewis/cpp//win//steps/step-15/02-adding-helper-functions-to-data-and-model.html">15.2&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The <code class="highlighter-rouge">OutputManager</code> will handle opening and closing tree and parameter files, saving sampled trees to the tree file, saving sampled parameter values to the parameter file, and displaying output to the console.</p>
+
+<p>Some changes/additions will need to be made to the <code class="highlighter-rouge">Data</code> and <code class="highlighter-rouge">Model</code> classes, but that will be postponed until after we’ve created the <code class="highlighter-rouge">OutputManager</code> class.</p>
+
+<p>Create a new file <em>output_manager.hpp</em> and replace the default contents with the following class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "data.hpp"
+#include "tree_manip.hpp"
+#include "model.hpp"
+#include "xstrom.hpp"
+#include &amp;lt;fstream&amp;gt;
+
+namespace strom {
+
+    class OutputManager {
+        public:
+            typedef std::shared_ptr&amp;lt; OutputManager &amp;gt; SharedPtr;
+
+                                       OutputManager();
+                                       ~OutputManager();
+            
+            void                       setModel(Model::SharedPtr model) {_model = model;}
+            void                       setTreeManip(TreeManip::SharedPtr tm) {_tree_manip = tm;}
+            
+            void                       openTreeFile(std::string filename, Data::SharedPtr data);
+            void                       openParameterFile(std::string filename, Model::SharedPtr model);
+            
+            void                       closeTreeFile();
+            void                       closeParameterFile();
+
+            void                       outputConsole(std::string s);
+            void                       outputTree(unsigned iter, TreeManip::SharedPtr tm);
+            void                       outputParameters(unsigned iter, double lnL, double lnP, double TL, Model::SharedPtr model);
+            
+
+        private:
+
+            TreeManip::SharedPtr       _tree_manip;
+            Model::SharedPtr           _model;
+            std::ofstream              _treefile;
+            std::ofstream              _parameterfile;
+            std::string                _tree_file_name;
+            std::string                _param_file_name;
+    };
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+
+<p>The constructor stores default names for the tree and parameter files, and the destructor is empty. (The output lines are provided but can remain commented out unless you need them at a later time.)</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline OutputManager::OutputManager() { 
+        //std::cout &amp;lt;&amp;lt; "Constructing an OutputManager" &amp;lt;&amp;lt; std::endl;
+        _tree_file_name = "trees.t";
+        _param_file_name = "params.p";
+    }   
+
+    inline OutputManager::~OutputManager() { 
+        //std::cout &amp;lt;&amp;lt; "Destroying an OutputManager" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-opentreefile-and-closetreefile-member-functions">The openTreeFile and closeTreeFile member functions</h2>
+
+<p>These functions are responsible for opening and closing the file used to store trees sampled during the MCMC simulation. Note that some of the work in the <code class="highlighter-rouge">openTreeFile</code> function is done by the <code class="highlighter-rouge">Data</code> class: because the <code class="highlighter-rouge">Data</code> object knows the taxon names, it can easily write out the taxa block for us, as well as the translate command in the trees block.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void OutputManager::openTreeFile(std::string filename, Data::SharedPtr data) {   
+        assert(!_treefile.is_open());
+        _tree_file_name = filename;
+        _treefile.open(_tree_file_name.c_str());
+        if (!_treefile.is_open())
+            throw XStrom(boost::str(boost::format("Could not open tree file \"%s\"") % _tree_file_name));
+
+        _treefile &amp;lt;&amp;lt; "#nexus\n\n";
+        _treefile &amp;lt;&amp;lt; data-&amp;gt;createTaxaBlock() &amp;lt;&amp;lt; std::endl;
+       
+        _treefile &amp;lt;&amp;lt; "begin trees;\n";
+        _treefile &amp;lt;&amp;lt; data-&amp;gt;createTranslateStatement() &amp;lt;&amp;lt; std::endl;
+    }   
+
+    inline void OutputManager::closeTreeFile() {    
+        assert(_treefile.is_open());
+        _treefile &amp;lt;&amp;lt; "end;\n";
+        _treefile.close();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-openparameterfile-and-closeparameterfile-member-functions">The openParameterFile and closeParameterFile member functions</h2>
+
+<p>These functions are responsible for opening and closing the file used to store model parameters sampled during the MCMC simulation. The <code class="highlighter-rouge">openParameterFile</code> function asks the supplied <code class="highlighter-rouge">Model</code> object to provide a list of parameter names that it then uses for column headers when creating a new parameter file.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void OutputManager::openParameterFile(std::string filename, Model::SharedPtr model) {    
+        assert(model);
+        assert(!_parameterfile.is_open());
+        _param_file_name = filename;
+        _parameterfile.open(_param_file_name.c_str());
+        if (!_parameterfile.is_open())
+            throw XStrom(boost::str(boost::format("Could not open parameter file \"%s\"") % _param_file_name));
+        _parameterfile &amp;lt;&amp;lt; boost::str(boost::format("%s\t%s\t%s\t%s\t%s") % "iter" % "lnL" % "lnPr" % "TL" % model-&amp;gt;paramNamesAsString("\t")) &amp;lt;&amp;lt; std::endl;
+    }   
+
+    inline void OutputManager::closeParameterFile() {   
+        assert(_parameterfile.is_open());
+        _parameterfile.close();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-outputconsole-outputtree-and-outputparameters-member-functions">The outputConsole, outputTree, and outputParameters member functions</h2>
+
+<p>These three functions are called to output messages to the user on the console, output sampled trees to the tree file, and output sampled parameters to the parameter file, respectively. The <code class="highlighter-rouge">outputConsole</code> function currently just outputs the supplied message to the terminal (console), but could easily be modified to output the same message to both the console and to a file (we are not going to write that code in this tutorial, however). The <code class="highlighter-rouge">outputTree</code> function asks the supplied <code class="highlighter-rouge">TreeManip</code> object to provide the tree description that it then stores in the tree file. The <code class="highlighter-rouge">outputParameters</code> function asks the supplied <code class="highlighter-rouge">Model</code> object to provide the current values of all model parameters that it then stores in the parameters file.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void OutputManager::outputConsole(std::string s) {   
+        std::cout &amp;lt;&amp;lt; s &amp;lt;&amp;lt; std::endl;
+    }
+    
+    inline void OutputManager::outputTree(unsigned iter, TreeManip::SharedPtr tm) {  
+        assert(_treefile.is_open());
+        assert(tm);
+        _treefile &amp;lt;&amp;lt; boost::str(boost::format("  tree iter_%d = %s;") % iter % tm-&amp;gt;makeNewick(5)) &amp;lt;&amp;lt; std::endl;
+    }
+    
+    inline void OutputManager::outputParameters(unsigned iter, double lnL, double lnP, double TL, Model::SharedPtr model) {   
+        assert(model);
+        assert(_parameterfile.is_open());
+        _parameterfile &amp;lt;&amp;lt; boost::str(boost::format("%d\t%.5f\t%.5f\t%.5f\t%s") % iter % lnL % lnP % TL % model-&amp;gt;paramValuesAsString("\t")) &amp;lt;&amp;lt; std::endl;
+    }
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 15.1 | <a href="/people/plewis/cpp//win//steps/step-15/02-adding-helper-functions-to-data-and-model.html">15.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

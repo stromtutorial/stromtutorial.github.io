@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Testing program options</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">8.2 Testing program options</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="/people/plewis/cpp//linux//steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Modify <em>main.cpp</em> to contain the following code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+#include "strom.hpp"
+
+using namespace strom;
+
+// static data member initializations
+std::string  Strom::_program_name        = "strom";
+unsigned     Strom::_major_version       = 1;
+unsigned     Strom::_minor_version       = 0;
+const double Node::_smallest_edge_length = 1.0e-12;
+
+int main(int argc, const char * argv[]) {
+    Strom strom;
+    try {
+        strom.processCommandLineOptions(argc, argv);
+        strom.run();
+    }
+    catch(std::exception &amp; x) {
+        std::cerr &amp;lt;&amp;lt; "Exception: " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        std::cerr &amp;lt;&amp;lt; "Aborted." &amp;lt;&amp;lt; std::endl;
+    }
+    catch(...) {
+        std::cerr &amp;lt;&amp;lt; "Exception of unknown type!\n";
+    }
+
+    return 0;
+}   
+
+</code></pre></div></div>
+
+<p>The main function now creates a <code class="highlighter-rouge">Strom</code> object, then passes <code class="highlighter-rouge">argc</code> and <code class="highlighter-rouge">argv</code> off to the <code class="highlighter-rouge">Strom</code> object’s <code class="highlighter-rouge">processCommandLineOptions</code> function, and finally calls the <code class="highlighter-rouge">Strom</code> object’s <code class="highlighter-rouge">run</code> method. Any exceptions thrown are caught and their error messsages displayed to the user.</p>
+
+<p>The <em>main.cpp</em> file will not change very much from now on. Any new options will be added to the <code class="highlighter-rouge">Strom</code> class instead.</p>
+
+<h2 id="static-data-members">Static data members</h2>
+
+<p>Some data members (<code class="highlighter-rouge">_program_name</code>, <code class="highlighter-rouge">_major_version</code>, and <code class="highlighter-rouge">_minor_version</code>) of the <code class="highlighter-rouge">Strom</code> class were declared static. We must therefore initialize these in <em>main.cpp</em>, as it is our only source code file, just like we have been doing for <code class="highlighter-rouge">Node::_smallest_edge_length</code>.</p>
+
+<h2 id="compiling-the-boost-program_options-library">Compiling the Boost <code class="highlighter-rouge">program_options</code> library</h2>
+<p>The extra capability we’ve added to our program requires us to:</p>
+<ul>
+  <li>compile the Boost <code class="highlighter-rouge">program_options</code> library,</li>
+  <li>tell our development environment where to find it for linking purposes
+Let’s take these one at a time</li>
+</ul>
+
+<h3 id="compile-the-boost-program_options-library">Compile the Boost <code class="highlighter-rouge">program_options</code> library</h3>
+
+<p>Navigate to where you previously (<a href="/people/plewis/cpp/steps/step-05/02-test-makenewick.html">in step 5</a>) installed the Boost headers (<em>~/Documents/libraries/boost_1_71_0</em>) and enter the following command:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bootstrap.sh --with-toolset=gcc --with-libraries=program_options,filesystem,system
+</code></pre></div></div>
+
+<p>The <em>bootstrap.sh</em> script will fairly quickly return, instructing you to type <code class="highlighter-rouge">./b2</code> to perform the actual compilation.</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./b2 cxxflags="-std=c++11" -d 2
+</code></pre></div></div>
+<p>Note that I’ve added <code class="highlighter-rouge">cxxflags="-std=c++11"</code> to ensure that the Boost libraries are compiled under the same C++ <em>dialect</em> used to compile the main strom program. This will ensure that the libraries can be linked to the strom executable. I’ve also specified <code class="highlighter-rouge">-d 2</code> to specify debugging level 2, which causes the Boost build system to display the compile and link commands it is using (this helps when trying to diagnose what happened if the compiling or linking fails).</p>
+
+<p>Assuming the compilation was successful, you should now see something similar to the following output:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>The Boost C++ Libraries were successfully built!
+
+The following directory should be added to compiler include paths:
+
+    /home/plewis/Documents/libraries/boost_1_71_0
+
+The following directory should be added to linker library paths:
+
+    /home/plewis/Documents/libraries/boost_1_71_0/stage/lib
+</code></pre></div></div>
+<p>Copy the files <em>libboost_program_options.a</em>, <em>libboost_filesystem.a</em>, and <em>libboost_system.a</em> to the ~/lib/static folder.</p>
+
+<h3 id="tell-meson-where-to-find-libboost_program_optionsa-for-linking-purposes">Tell meson where to find <em>libboost_program_options.a</em> for linking purposes</h3>
+<p>Here is the meson.build file we’ve been building up, with the highlighted lines either added or modified to accommodate program options:</p>
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp',
+	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
+	version : '1.0')
+cpp = meson.get_compiler('cpp')
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)&lt;/strong&gt;&lt;/span&gt;
+lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/staticlib/static'], required: true)
+incl_ncl = include_directories('/home/paul/include')
+incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_ncl,lib_program_options], include_directories: [incl_ncl,incl_boost])&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;install_data('test.tre', install_dir: '.')&lt;/strong&gt;&lt;/span&gt;
+
+</code></pre></div></div>
+<p>Note the meson variable <code class="highlighter-rouge">lib_program_options</code> stores the location of the <em>libboost_program_options.a</em>, and this variable is added to the <code class="highlighter-rouge">lib_ncl</code> variable to form a list that is supplied to the <code class="highlighter-rouge">dependencies</code> argument to the executables command.</p>
+
+<p>The last line in the <em>meson.build</em> file copies the <em>test.tre</em> file to the <em>distr</em> directory so that it will be available in the same directory as the strom executable when you test the program.</p>
+
+<h2 id="running-strom">Running strom</h2>
+
+<p>If you run the program now by typing simply <code class="highlighter-rouge">./strom</code>, from your <em>~/Documents/strom/distr</em> directory, you should see an error message:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Exception: the option '--treefile' is required but missing
+</code></pre></div></div>
+
+<p>Why did we get this error message? Try running the program like this from the command line:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./strom --treefile test.tre
+</code></pre></div></div>
+<p>Because the name of the tree file is no longer hard-coded in the main function, the program forces you to supply these file names.</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./gostrom.sh --treefile test.tre
+</code></pre></div></div>
+
+<h2 id="expected-output">Expected output</h2>
+<p>Here is the output you should see if everything is working correctly:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Note: configuration file (strom.conf) not found
+Starting...
+storing read block: TAXA
+storing read block: TREES
+
+Read 14 trees from file
+Topology 1 seen in these 4 trees:
+  10 11 12 13 
+Topology 2 seen in these 2 trees:
+  8 9 
+Topology 3 seen in these 8 trees:
+  0 1 2 3 4 5 6 7 
+
+Topologies sorted by sample frequency:
+            topology            frequency
+                   3                    8
+                   1                    4
+                   2                    2
+
+Finished!
+
+</code></pre></div></div>
+
+<p>If the lines in your output are flooded with lines such as “Creating Node object” and “Destroying Node object”, then you failed to heed the advise in the section “Lost at sea” at the very bottom of the <a href="../step-07/04-test-tree-summary">Test the TreeSummary class</a> page.</p>
+
+<p>You may have wondered about this line:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Note: configuration file (strom.conf) not found
+</code></pre></div></div>
+<p>The Boost <code class="highlighter-rouge">program_options</code> library makes it possible to store command line options inside a configuration file rather than entering them from the command line. If you create a file named <em>strom.conf</em> inside the install directory (<em>~/Documents/strom/distr</em>) containing these two lines…</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code># this is a comment
+treefile = test.tre
+
+</code></pre></div></div>
+
+<p>you should be able to run strom <em>without</em> specifying any command line options. You may wish to create the <em>strom.conf</em> file inside your <em>src</em> directory and add a line to your <em>meson.build</em> file to copy it to the install directory.</p>
+
+<p>Note that in the config file the convention is to use key/value pairs, whereas on the command line, <code class="highlighter-rouge">--</code> is the convention. Be sure to use one key/value pair per line, and note that lines starting with <code class="highlighter-rouge">#</code> are ignored (this feature can be used to insert comments into your configuration files).</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="/people/plewis/cpp//linux//steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

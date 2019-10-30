@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modify Strom</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">15.3 Modify Strom</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-15/02-adding-helper-functions-to-data-and-model.html">&lt;&nbsp;15.2</a> | 15.3 | <a href="/people/plewis/cpp//win//steps/step-15/04-test-output-manager.html">15.4&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="changes-to-strom">Changes to Strom</h2>
+
+<p>All that is needed now is to create an <code class="highlighter-rouge">OutputManager</code> object and call its functions at the appropriate places. The parts that need to be added (or modified) in the <code class="highlighter-rouge">Strom</code> class declaration in the file <em>strom.hpp</em> are marked with bold, blue text below.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+#include "data.hpp"
+#include "likelihood.hpp"
+#include "tree_summary.hpp"
+#include "partition.hpp"
+#include "lot.hpp"
+#include "chain.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "output_manager.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+#include &amp;lt;boost/filesystem.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+            bool                                    processAssignmentString(const std::string &amp; which, const std::string &amp; definition);
+            void                                    handleAssignmentStrings(const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition);
+            bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    sample(unsigned iter, Chain &amp; chain);&lt;/strong&gt;&lt;/span&gt;
+
+            double                                  _expected_log_likelihood;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            Model::SharedPtr                        _model;
+            Likelihood::SharedPtr                   _likelihood;
+            TreeSummary::SharedPtr                  _tree_summary;
+            Lot::SharedPtr                          _lot;
+
+            unsigned                                _random_seed;
+            unsigned                                _num_iter;
+            unsigned                                _print_freq;
+            unsigned                                _sample_freq;
+
+            bool                                    _use_gpu;
+            bool                                    _ambig_missing;
+            bool                                    _use_underflow_scaling;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;OutputManager::SharedPtr                _output_manager;&lt;/strong&gt;&lt;/span&gt;
+
+    };  
+
+</code></pre></div></div>
+
+<p>Add the indicated line to the <code class="highlighter-rouge">clear</code> function body to initialize the <code class="highlighter-rouge">_output_manager</code> data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name             = "";
+        _tree_file_name             = "";
+        _tree_summary               = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu                    = true;
+        _ambig_missing              = true;
+        _model.reset(new Model());
+        _expected_log_likelihood    = 0.0;
+        _use_underflow_scaling      = false;
+        _data                       = nullptr;
+        _likelihood                 = nullptr;
+        _lot                        = nullptr;
+        _random_seed                = 1;
+        _num_iter                   = 1000;
+        _print_freq                 = 1;
+        _sample_freq                = 1;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager             = nullptr;&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+
+<p>You’ll note that I’ve added a private member function named <code class="highlighter-rouge">sample</code>. This function is not essential, but serves to make the <code class="highlighter-rouge">run</code> function more tidy by gathering all code lines related to saving a tree and parameter sample together so that they can be called by adding a single line to the run function whereever sampling needs to occur. Here is the body of the <code class="highlighter-rouge">sample</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::sample(unsigned iteration, Chain &amp; chain) {  
+        if (chain.getHeatingPower() &amp;lt; 1.0)
+            return;
+        
+        bool time_to_sample = (bool)(iteration % _sample_freq == 0);
+        bool time_to_report = (bool)(iteration % _print_freq == 0);
+        if (time_to_sample || time_to_report) {
+            double logLike = chain.getLogLikelihood();
+            double logPrior = chain.calcLogJointPrior();
+            double TL = chain.getTreeManip()-&amp;gt;calcTreeLength();
+            if (time_to_report) {
+                if (logPrior == Updater::getLogZero())
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
+                else
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+            }
+            if (time_to_sample) {
+                _output_manager-&amp;gt;outputTree(iteration, chain.getTreeManip());
+                _output_manager-&amp;gt;outputParameters(iteration, logLike, logPrior, TL, chain.getModel());
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>Changes to the <code class="highlighter-rouge">run</code> function involve creating an <code class="highlighter-rouge">OutputManager</code> object and opening/closing tree and sample files. You will also note that some of the blue, bold text reflects sections of code that have been commented out because their functionality has been replaced by the new <code class="highlighter-rouge">OutputManager</code> object. The two calls to the <code class="highlighter-rouge">sample</code> function cause output to be sent to the console and/or sample and tree files at the very start (iteration 0) and at each <code class="highlighter-rouge">samplefreq</code> (or <code class="highlighter-rouge">printfreq</code>) iteration thereafter.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            _data = Data::SharedPtr(new Data());
+            _data-&amp;gt;setPartition(_partition);
+            _data-&amp;gt;getDataFromFile(_data_file_name);
+            
+            _model-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            _model-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            _model-&amp;gt;activate();
+
+            // Report information about data partition subsets
+            unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+                }
+
+            std::cout &amp;lt;&amp;lt; "\n*** Resources available to BeagleLib " &amp;lt;&amp;lt; _likelihood-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; ":\n";
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Creating the likelihood calculator" &amp;lt;&amp;lt; std::endl;
+            _likelihood = Likelihood::SharedPtr(new Likelihood());
+            _likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            _likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            _likelihood-&amp;gt;setData(_data);
+            _likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);
+
+            std::cout &amp;lt;&amp;lt; "\n*** Model description" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; _model-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+            _likelihood-&amp;gt;setModel(_model);
+
+            _likelihood-&amp;gt;initBeagleLib();
+
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the first tree in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(0);
+            std::string newick = _tree_summary-&amp;gt;getNewick(0);  
+
+            if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+                throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+
+            std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
+            TreeManip tm(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
+            double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
+            tm.deselectAllPartials();
+            tm.deselectAllTMatrices();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+            
+            if (_expected_log_likelihood != 0.0) 
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("      (expecting %.3f)") % _expected_log_likelihood) &amp;lt;&amp;lt; std::endl;
+            
+            // Create a Lot object that generates (pseudo)random numbers   
+            _lot = Lot::SharedPtr(new Lot);
+            _lot-&amp;gt;setSeed(_random_seed);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Create an output manager and open output files&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager.reset(new OutputManager);&lt;/strong&gt;&lt;/span&gt;
+
+            // Create a Chain object and take _num_iter steps
+            Chain chain;
+            unsigned num_free_parameters = chain.createUpdaters(_model, _lot, _likelihood);
+            if (num_free_parameters &amp;gt; 0) {
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;openTreeFile("trees.tre", _data);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;openParameterFile("params.txt", _model);&lt;/strong&gt;&lt;/span&gt;
+                chain.setTreeFromNewick(newick);
+                chain.start();
+                
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// // Output column headers and first line of output showing starting state (iteration 0)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//std::cout &amp;lt;&amp;lt; boost::str(boost::format("\n%12s %12s %12s %12s %12s %12s\n")&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % "iteration"&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % "lnLike"&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % "lnPrior"&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % "ratevar"&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % "accept"&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % "samples");&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//GammaRateVarUpdater::SharedPtr ratevar_updater = std::dynamic_pointer_cast&amp;lt;GammaRateVarUpdater&amp;gt; (chain.findUpdaterByName("Gamma Rate Variance"));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f %12d\n")&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % 0&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % chain.getLogLikelihood()&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % chain.calcLogJointPrior()&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % ratevar_updater-&amp;gt;getCurrentPoint()&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % 0&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    % 0);&lt;/strong&gt;&lt;/span&gt;
+                
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;sample(0, chain);&lt;/strong&gt;&lt;/span&gt;
+                for (unsigned iteration = 1; iteration &amp;lt;= _num_iter; ++iteration) {
+                    chain.nextStep(iteration);
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;sample(iteration, chain);&lt;/strong&gt;&lt;/span&gt;
+                    
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//if (iteration % _sample_freq == 0) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    GammaRateVarUpdater::SharedPtr ratevar_updater = std::dynamic_pointer_cast&amp;lt;GammaRateVarUpdater&amp;gt; (chain.findUpdaterByName("Gamma Rate Variance"));&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    double log_prior = chain.calcLogJointPrior();&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    if (log_prior == Updater::getLogZero())&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//        std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d %12.5f %12s %12.5f %12.1f %12d\n")&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % iteration&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % chain.getLogLikelihood()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % "-infinity"&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % ratevar_updater-&amp;gt;getCurrentPoint()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % ratevar_updater-&amp;gt;getAcceptPct()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % ratevar_updater-&amp;gt;getNumUpdates());&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//    else&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//        std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f %12d\n")&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % iteration&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % chain.getLogLikelihood()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % log_prior&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % ratevar_updater-&amp;gt;getCurrentPoint()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % ratevar_updater-&amp;gt;getAcceptPct()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//            % ratevar_updater-&amp;gt;getNumUpdates());&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//}&lt;/strong&gt;&lt;/span&gt;
+                }
+                chain.stop(); 
+                
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Close output files&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;closeTreeFile();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;closeParameterFile();&lt;/strong&gt;&lt;/span&gt;
+                
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Summarize updater efficiency&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole("\nChain summary:");&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; names = chain.getUpdaterNames();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;double&amp;gt; lambdas    = chain.getLambdas();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;double&amp;gt; accepts    = chain.getAcceptPercentages();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;unsigned&amp;gt; nupdates = chain.getNumUpdates();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned n = (unsigned)names.size();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned i = 0; i &amp;lt; n; ++i) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            }
+            else {
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole("MCMC skipped because there are no free parameters in the model");&lt;/strong&gt;&lt;/span&gt;
+            }   
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-15/02-adding-helper-functions-to-data-and-model.html">&lt;&nbsp;15.2</a> | 15.3 | <a href="/people/plewis/cpp//win//steps/step-15/04-test-output-manager.html">15.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

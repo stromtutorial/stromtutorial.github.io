@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Testing TreeUpdater and TreeLengthUpdater</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">17.5 Testing TreeUpdater and TreeLengthUpdater</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-17/04-modify-treemanip.html">&lt;&nbsp;17.4</a> | 17.5 | <a href="/people/plewis/cpp//mac//steps/step-18/00-heated-chains.html">18.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Run the program using this <em>strom.conf</em> file.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile    = rbcl10.nex    
+treefile    = rbcl10.tre
+
+subset      = first:1-1314\3
+subset      = second:2-1314\3
+subset      = third:3-1314\3
+
+statefreq   = default:0.294667,0.189172,0.206055,0.310106
+rmatrix     = default:0.06082,0.27887,0.06461,0.06244,0.48492,0.04834
+ratevar     = default:1.0
+ratevar     = third:1.0
+pinvar      = default:0.1
+pinvar      = third:0.1
+ncateg      = default:4
+relrate     = default:1,2,3
+niter       = 10000
+samplefreq  = 10
+printfreq   = 100
+expectedLnL = -6676.396     
+
+</code></pre></div></div>
+
+<p>This time take a look at the file <em>trees.tre</em> and note how the tree topology and edge lengths vary during the run. You may wish to load the tree file into the program <a href="https://beast.community/figtree">FigTree</a> to view the trees.</p>
+
+<h2 id="exploring-the-prior">Exploring the prior</h2>
+
+<p>A good way to test Bayesian MCMC software is to allow the program to explore the prior rather than the posterior. Because the prior is known, this provides a good sanity check of the MCMC machinery.</p>
+
+<p>Modify the <code class="highlighter-rouge">Strom::run</code> function, adding just the one line highlighted in bold, blue text. The default behavior is to use data if it is available (see the <code class="highlighter-rouge">Likelihood::clear</code> function). The line we’re adding sets <code class="highlighter-rouge">Likelihood::_using_data</code> to <code class="highlighter-rouge">false</code>, which causes the <code class="highlighter-rouge">Likelihood::calcLogLikelihood</code> to always return 0.0 rather than computing the log-likelihood.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            _data = Data::SharedPtr(new Data());
+            _data-&amp;gt;setPartition(_partition);
+            _data-&amp;gt;getDataFromFile(_data_file_name);
+            
+            _model-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            _model-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            _model-&amp;gt;activate();
+
+            // Report information about data partition subsets
+            unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+                }
+
+            std::cout &amp;lt;&amp;lt; "\n*** Model description" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; _model-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Creating the likelihood calculator" &amp;lt;&amp;lt; std::endl;
+            _likelihood = Likelihood::SharedPtr(new Likelihood());
+            _likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            _likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            _likelihood-&amp;gt;setData(_data);
+            _likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);
+            _likelihood-&amp;gt;setModel(_model);
+            _likelihood-&amp;gt;initBeagleLib();
+
+            std::cout &amp;lt;&amp;lt; "\n*** Resources available to BeagleLib " &amp;lt;&amp;lt; _likelihood-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; ":\n";
+            std::cout &amp;lt;&amp;lt; "Preferred resource: " &amp;lt;&amp;lt; (_use_gpu ? "GPU" : "CPU") &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Available resources:" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Resources used:" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;usedResources() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing tree number " &amp;lt;&amp;lt; (_model-&amp;gt;getTreeIndex() + 1) &amp;lt;&amp;lt; " in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(_model-&amp;gt;getTreeIndex());
+            std::string newick = _tree_summary-&amp;gt;getNewick(_model-&amp;gt;getTreeIndex());
+
+            if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+                throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+
+            std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
+            TreeManip tm(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
+            double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
+            tm.deselectAllPartials();
+            tm.deselectAllTMatrices();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+            
+            if (_expected_log_likelihood != 0.0) 
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("      (expecting %.3f)") % _expected_log_likelihood) &amp;lt;&amp;lt; std::endl;
+            
+            // Create a Lot object that generates (pseudo)random numbers   
+            _lot = Lot::SharedPtr(new Lot);
+            _lot-&amp;gt;setSeed(_random_seed);
+
+            // Create an output manager and open output files
+            _output_manager.reset(new OutputManager);
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihood-&amp;gt;useStoredData(false);&lt;/strong&gt;&lt;/span&gt;
+
+            // Create a Chain object and take _num_iter steps
+            Chain chain;
+            unsigned num_free_parameters = chain.createUpdaters(_model, _lot, _likelihood);
+            if (num_free_parameters &amp;gt; 0) {
+                _output_manager-&amp;gt;outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
+                _output_manager-&amp;gt;openTreeFile("trees.tre", _data);
+                _output_manager-&amp;gt;openParameterFile("params.txt", _model);
+                chain.setTreeFromNewick(newick);
+                chain.start();
+                sample(0, chain);
+                for (unsigned iteration = 1; iteration &amp;lt;= _num_iter; ++iteration) {
+                    chain.nextStep(iteration);
+                    sample(iteration, chain);
+                }
+                chain.stop();
+                
+                // Close output files
+                _output_manager-&amp;gt;closeTreeFile();
+                _output_manager-&amp;gt;closeParameterFile();
+                
+                // Summarize updater efficiency
+                _output_manager-&amp;gt;outputConsole("\nChain summary:");
+                std::vector&amp;lt;std::string&amp;gt; names = chain.getUpdaterNames();
+                std::vector&amp;lt;double&amp;gt; lambdas    = chain.getLambdas();
+                std::vector&amp;lt;double&amp;gt; accepts    = chain.getAcceptPercentages();
+                std::vector&amp;lt;unsigned&amp;gt; nupdates = chain.getNumUpdates();
+                unsigned n = (unsigned)names.size();
+                _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
+                for (unsigned i = 0; i &amp;lt; n; ++i) {
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
+                }            }
+            else {
+                _output_manager-&amp;gt;outputConsole("MCMC skipped because there are no free parameters in the model");
+            }
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<p>Bump up the number of iterations (niter) in the <code class="highlighter-rouge">strom.conf</code> file to 100,000 in order to get an extremely good sample:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>niter = 100000
+</code></pre></div></div>
+
+<p>Run the program again and view the results in <a href="https://beast.community/tracer">Tracer</a>.</p>
+
+<h3 id="check-the-tree-length-prior">Check the tree length prior</h3>
+
+<p><img src="/people/plewis/cpp/assets/img/exponential_mean_10.png" alt="Exponential distribution with mean 10" class="right-image" />
+In Tracer, bring the panel labeled “Marginal Density” to the front and click on “TL” in the Traces list. We specified the tree length prior to be Exponential with mean 10. To the right is a plot of this density for comparison. Because Tracer approximates the density using a generic kernel density estimator, which does not take into account the fact that an exponential 0.1 density must have height 0.1 at 0.0, the density shown in Tracer will not exactly fit the plot, but it should be close except for the gap on the left end.</p>
+
+<p>Switch to the “Estimates” panel while still selecting TL in Traces: the mean of the distribution should be close to 10 and the variance close to 100.</p>
+
+<h3 id="check-the-subset-relative-rates">Check the subset relative rates</h3>
+
+<p>The subset relative rates have a prior distribution related to Dirichlet(1,1,1). The difference lies in the fact that it is the product of subset rates and subset proportions that is distributed as Dirichlet(1,1,1), not the rates themselves. Select all three subset relative rates (m-0, m-1, and m-2) under Traces on the left. These three densities should be identical (“Marginal Density” panel), and they should all have means close to 1.0 and variances close to 0.5.</p>
+
+<h3 id="check-the-state-frequencies">Check the state frequencies</h3>
+
+<p>The state frequencies have prior Dirichlet(1,1,1,1). This is a flat Dirichlet distribution. Each component of a flat Dirichlet has variance equal to</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>variance of one component = (1/n)*(1 - 1/n)/(n + 1)
+</code></pre></div></div>
+<p>where n is the number of dimensions (i.e. the number of Dirichlet parameters). For nucleotide state frequencies, n = 4 so the variance of one component should equal (1/4)(3/4)/5 = 3/80 = 0.0375. Being flat, each state frequency has the same probability as any other state frequency, so the mean for each should be 1/4 = 0.25.</p>
+
+<p>Select all 4 state frequencies for any subset (e.g. piA-0, piC-0, piG-0, and piT-0) under Traces on the left. These 4 densities should be identical (“Marginal Density” panel), and they should all have means close to 1/4 and variances close to 0.0375.</p>
+
+<h3 id="check-the-exchangeabilities">Check the exchangeabilities</h3>
+
+<p>The exchangeabilities have prior Dirichlet(1,1,1,1,1,1). Select all 6 exchangeabilities for any subset (e.g. rAC-0, rAG-0, rAT-0, rCG-0, rCT-0, and rGT-0) under Traces on the left. These 6 densities should be identical (“Marginal Density” panel), and they should all have means close to 0.167 and variances close to 0.0198. These values can be obtained using the formula given above with n = 6 rather than n = 4.</p>
+
+<h3 id="check-pinvar">Check pinvar</h3>
+
+<p>The pinvar parameter has prior Beta(1,1), which is just a special case of a flat Dirichlet distribution. Hence, using n = 2, we find that pinvar should have mean 0.5 and variance (1/2)(1/2)/3 = 1/12 = 0.0833.</p>
+
+<h3 id="check-the-rate-variance">Check the rate variance</h3>
+
+<p>Fihnally, the rate variance parameter has prior Exponential(1), which has mean 1 and variance 1.</p>
+
+<h2 id="on-to-the-final-step">On to the final step!</h2>
+
+<p>The final step of the tutorial will introduce multiple chains (Metropolis coupling) to the MCMC analysis to improve mixing. We will also add a program option (<code class="highlighter-rouge">usedata</code>) to make ignoring data (exploring the prior) easy.</p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-17/04-modify-treemanip.html">&lt;&nbsp;17.4</a> | 17.5 | <a href="/people/plewis/cpp//mac//steps/step-18/00-heated-chains.html">18.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

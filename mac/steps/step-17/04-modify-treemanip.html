@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modify the TreeManip Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">17.4 Modify the TreeManip Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-17/03-modify-chain.html">&lt;&nbsp;17.3</a> | 17.4 | <a href="/people/plewis/cpp//mac//steps/step-17/05-testing-tree-updaters.html">17.5&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Three helper functions need to be added to the <code class="highlighter-rouge">TreeManip</code> class. The <code class="highlighter-rouge">countEdges</code> member function returns the number of elements in the <code class="highlighter-rouge">_preorder</code> vector; this value equals the number of edges in the tree. The <code class="highlighter-rouge">randomInternalEdge</code> function returns a pointer to the <code class="highlighter-rouge">Node</code> object managing a randomly selected internal edge. The <code class="highlighter-rouge">LargetSimonSwap</code> function effects a swap of nodes <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code>, where <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are the ends of the 3-edge segment modified during a Larget-Simon move, with <code class="highlighter-rouge">a</code> the higher (furthest from the root) of the two in the tree. If <code class="highlighter-rouge">b</code> is not the bottom-most node in the path, node <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are both removed from the tree, then <code class="highlighter-rouge">a</code> is placed back into the tree where <code class="highlighter-rouge">b</code> once was and vice versa. If <code class="highlighter-rouge">b</code> is bottom-most, then the other nodes along the path are swapped (which accomplishes the same NNI swap but is less trouble). This function works even if the nodes in the path are polytomies.</p>
+
+<p>Here are the two lines that must be added to the class declaration in <em>tree_manip.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;cassert&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;stack&amp;gt;
+#include &amp;lt;queue&amp;gt;
+#include &amp;lt;set&amp;gt;
+#include &amp;lt;regex&amp;gt;
+#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "tree.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class TreeManip {
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            std::string                 makeNewick(unsigned precision) const;
+
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);
+            void                        rerootAtNodeNumber(int node_number);
+        
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        LargetSimonSwap(Node * a, Node * b);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      randomInternalEdge(double uniform01);&lt;/strong&gt;&lt;/span&gt;
+        
+            void                        selectAll();
+            void                        deselectAll();
+            void                        selectAllPartials();
+            void                        deselectAllPartials();
+            void                        selectAllTMatrices();
+            void                        deselectAllTMatrices();
+
+            void                        selectPartialsHereToRoot(Node * a);
+            void                        flipPartialsAndTMatrices();
+
+            void                        clear();
+
+        private:
+
+            void                        refreshPreorder();
+            void                        refreshLevelorder();
+            void                        renumberInternals();
+            void                        rerootAtNode(Node * prospective_root);
+            void                        extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used);
+            void                        extractEdgeLen(Node * nd, std::string edge_length_string);
+            unsigned                    countNewickLeaves(const std::string newick);
+            void                        stripOutNexusComments(std::string &amp; newick);
+            bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };
+    
+
+</code></pre></div></div>
+
+<p>Here is the function body for the <code class="highlighter-rouge">LargetSimonSwap</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::LargetSimonSwap(Node * a, Node * b) {    
+        // a and b are the ends of the selected 3-edge path in a Larget-Simon move
+        // The 3-edge path is indicated by parentheses around the nodes involved.
+        // x is always the parent of a
+        // y can be the parent of b (case 1) or the child of b (case 2)
+        
+        Node * x = a-&amp;gt;_parent;
+        assert(x);
+        
+        Node * y = x-&amp;gt;_parent;
+        assert(y);
+        
+        if (y == b-&amp;gt;_parent) {
+            // Case 1: y is the parent of b
+            //
+            //    (a) d  e             (b) d  e
+            //      \ | /                \ | /
+            //       \|/                  \|/
+            //       (x) f (b)            (x) f (a)    Swap a and b, leaving everything
+            //         \ | /                \ | /      else as is
+            //          \|/     ==&amp;gt;          \|/
+            //          (y)                  (y)
+            //           |                    |
+            //           |                    |
+            //           c                    c
+            //
+
+            // Detach a from tree
+            if (a == x-&amp;gt;_left_child) {
+                x-&amp;gt;_left_child = a-&amp;gt;_right_sib;
+            } else {
+                Node * child = x-&amp;gt;_left_child;
+                while (child-&amp;gt;_right_sib != a)
+                    child = child-&amp;gt;_right_sib;
+                child-&amp;gt;_right_sib = a-&amp;gt;_right_sib;
+            }
+            a-&amp;gt;_parent = 0;
+            a-&amp;gt;_right_sib = 0;
+            
+            // Detach b from tree
+            if (b == y-&amp;gt;_left_child) {
+                y-&amp;gt;_left_child = b-&amp;gt;_right_sib;
+            } else {
+                Node * child = y-&amp;gt;_left_child;
+                while (child-&amp;gt;_right_sib != b)
+                    child = child-&amp;gt;_right_sib;
+                child-&amp;gt;_right_sib = b-&amp;gt;_right_sib;
+            }
+            b-&amp;gt;_parent = 0;
+            b-&amp;gt;_right_sib = 0;
+
+            // Reattach a to y
+            a-&amp;gt;_right_sib = y-&amp;gt;_left_child;
+            y-&amp;gt;_left_child = a;
+            a-&amp;gt;_parent = y;
+            
+            // Reattach b to x
+            b-&amp;gt;_right_sib = x-&amp;gt;_left_child;
+            x-&amp;gt;_left_child = b;
+            b-&amp;gt;_parent = x;
+        }
+        else {
+            // Case 2: y is the child of b
+            //
+            //    (a) d  e             (a) f  c
+            //      \ | /                \ | /
+            //       \|/                  \|/
+            //       (x) f  c            (x) d  e    swap x's children (except a)
+            //         \ | /               \ | /     with y's children (except x)
+            //          \|/     ==&amp;gt;         \|/
+            //          (y)                 (y)
+            //           |                   |
+            //           |                   |
+            //          (b)                 (b)
+            assert(b == y-&amp;gt;_parent);
+            
+            // Remove x's children from tree and store in xchildren stack
+            std::stack&amp;lt;Node *&amp;gt; xchildren;
+            Node * child = x-&amp;gt;_left_child;
+            Node * prevchild = 0;
+            while (child) {
+                if (child == a) {
+                    prevchild = child;
+                    child = child-&amp;gt;_right_sib;
+                } else {
+                    if (child == x-&amp;gt;_left_child) {
+                        x-&amp;gt;_left_child = child-&amp;gt;_right_sib;
+                        child-&amp;gt;_right_sib = 0;
+                        child-&amp;gt;_parent = 0;
+                        xchildren.push(child);
+                        child = x-&amp;gt;_left_child;
+                    } else if (child-&amp;gt;_right_sib) {
+                        prevchild-&amp;gt;_right_sib = child-&amp;gt;_right_sib;
+                        child-&amp;gt;_right_sib = 0;
+                        child-&amp;gt;_parent = 0;
+                        xchildren.push(child);
+                        child = prevchild-&amp;gt;_right_sib;
+                    } else {
+                        assert(prevchild == a);
+                        a-&amp;gt;_right_sib = 0;
+                        child-&amp;gt;_parent = 0;
+                        xchildren.push(child);
+                        child = 0;
+                        prevchild = 0;
+                    }
+                }
+            }
+            
+            // Remove y's children from tree and store in ychildren stack
+            std::stack&amp;lt;Node *&amp;gt; ychildren;
+            child = y-&amp;gt;_left_child;
+            prevchild = 0;
+            while (child) {
+                if (child == x) {
+                    prevchild = child;
+                    child = child-&amp;gt;_right_sib;
+                } else {
+                    if (child == y-&amp;gt;_left_child) {
+                        y-&amp;gt;_left_child = child-&amp;gt;_right_sib;
+                        child-&amp;gt;_right_sib = 0;
+                        child-&amp;gt;_parent = 0;
+                        ychildren.push(child);
+                        child = y-&amp;gt;_left_child;
+                    } else if (child-&amp;gt;_right_sib) {
+                        prevchild-&amp;gt;_right_sib = child-&amp;gt;_right_sib;
+                        child-&amp;gt;_right_sib = 0;
+                        child-&amp;gt;_parent = 0;
+                        ychildren.push(child);
+                        child = prevchild-&amp;gt;_right_sib;
+                    } else {
+                        assert(prevchild == x);
+                        x-&amp;gt;_right_sib = 0;
+                        child-&amp;gt;_parent = 0;
+                        ychildren.push(child);
+                        child = 0;
+                        prevchild = 0;
+                    }
+                }
+            }
+            
+            // Reattach xchildren to y
+            while (!xchildren.empty()) {
+                Node * popped = xchildren.top();
+                xchildren.pop();
+                popped-&amp;gt;_right_sib = y-&amp;gt;_left_child;
+                y-&amp;gt;_left_child = popped;
+                popped-&amp;gt;_parent = y;
+            }
+
+            // Reattach ychildren to x
+            while (!ychildren.empty()) {
+                Node * popped = ychildren.top();
+                ychildren.pop();
+                popped-&amp;gt;_right_sib = x-&amp;gt;_left_child;
+                x-&amp;gt;_left_child = popped;
+                popped-&amp;gt;_parent = x;
+            }
+        }
+        
+        refreshPreorder();
+        refreshLevelorder();
+    }   
+
+</code></pre></div></div>
+
+<p>Here is the function body for the <code class="highlighter-rouge">randomInternalEdge</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {   
+        assert(uniform_deviate &amp;gt;= 0.0);
+        assert(uniform_deviate &amp;lt; 1.0);
+
+        // Unrooted case:                        Rooted case:
+        //
+        // 2     3     4     5                   1     2     3     4
+        //  \   /     /     /                     \   /     /     /
+        //   \ /     /     /                       \ /     /     /
+        //    8     /     /                         7     /     /
+        //     \   /     /                           \   /     /
+        //      \ /     /                             \ /     /
+        //       7     /                               6     /
+        //        \   /                                 \   /
+        //         \ /                                   \ /
+        //          6   nleaves = 5                       5   nleaves = 4
+        //          |   num_internal_edges = 2            |   num_internal_edges = 2
+        //          |   choose node 7 or node 8           |   choose node 6 or node 7
+        //          1                                    root
+        //
+        // _preorder = [6, 7, 8, 2, 3, 4, 5]     _preorder = [5, 6, 7, 1, 2, 3, 4]
+        //
+        // Note: _preorder is actually a vector of T *, but is shown here as a
+        // vector of integers solely to illustrate the algorithm below
+        
+        unsigned num_internal_edges = (unsigned)_tree-&amp;gt;_preorder.size() - _tree-&amp;gt;_nleaves - (_tree-&amp;gt;_is_rooted ? 0 : 1);
+
+        // Add one to skip first node in _preorder vector, which is an internal node whose edge
+        // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
+        unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
+
+        unsigned internal_nodes_visited = 0;
+        Node * chosen_node = 0;
+        for (auto nd : _tree-&amp;gt;_preorder) {
+            if (nd-&amp;gt;_left_child) {
+                if (internal_nodes_visited == index_of_chosen) {
+                    chosen_node = nd;
+                    break;
+                }
+                else
+                    ++internal_nodes_visited;
+            }
+        }
+        assert(chosen_node);
+        return chosen_node;
+    }   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-17/03-modify-chain.html">&lt;&nbsp;17.3</a> | 17.4 | <a href="/people/plewis/cpp//mac//steps/step-17/05-testing-tree-updaters.html">17.5&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

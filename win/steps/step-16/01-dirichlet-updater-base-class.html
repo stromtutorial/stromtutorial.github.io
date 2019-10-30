@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Dirichlet Updater Base Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">16.1 The Dirichlet Updater Base Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-16/00-updating-other-parameters.html">&lt;&nbsp;16.0</a> | 16.1 | <a href="/people/plewis/cpp//win//steps/step-16/02-statefrequpdater-class.html">16.2&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Create a file named <em>dirichlet_updater.hpp</em> and fill it with the following class declaration. Note that the <code class="highlighter-rouge">DirichletUpdater</code> class is derived from the class <code class="highlighter-rouge">Updater</code> and overrides 2 of pure virtual functions specified in <code class="highlighter-rouge">Updater</code> (namely <code class="highlighter-rouge">proposeNewState</code> and <code class="highlighter-rouge">revert</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "updater.hpp"
+
+namespace strom {
+    
+    class Chain;
+    
+    class DirichletUpdater : public Updater {
+
+        friend class Chain;
+        
+        public:
+            typedef std::vector&amp;lt;double&amp;gt;                 point_t;
+            typedef std::shared_ptr&amp;lt; DirichletUpdater &amp;gt; SharedPtr;
+
+                                                DirichletUpdater();
+            virtual                             ~DirichletUpdater();
+        
+            void                                clear();
+            virtual double                      calcLogPrior();
+        
+        protected:
+        
+            virtual void                        pullFromModel() = 0;    
+            virtual void                        pushToModel() = 0;    
+
+            void                                proposeNewState();
+            void                                revert();
+        
+            point_t                             _curr_point;
+            point_t                             _prev_point;
+    };
+    
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+
+<p>As usual, the constructor just calls the <code class="highlighter-rouge">clear</code> function to do its work and the destructor is a placeholder but does nothing currently.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline DirichletUpdater::DirichletUpdater() {   
+        // std::cout &amp;lt;&amp;lt; "Creating DirichletUpdater object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+    inline DirichletUpdater::~DirichletUpdater() {  
+        // std::cout &amp;lt;&amp;lt; "Destroying DirichletUpdater object" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+
+<p>This function returns the object to its just-constructed state (and is what actually does the work of the constructor). Note that this class is derived from <code class="highlighter-rouge">Updater</code> and first calls the <code class="highlighter-rouge">Updater::clear</code> function before doing additional work specific to this class.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void DirichletUpdater::clear() { 
+        Updater::clear();
+        _prev_point.clear();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-calclogprior-member-function">The calcLogPrior member function</h2>
+
+<p>This function assumes that the <code class="highlighter-rouge">_prior_parameters</code> vector in the <code class="highlighter-rouge">Updater</code> base class has been filled with the appropriate number of Dirichlet prior parameters. The assumption is that if <code class="highlighter-rouge">DirichletUpdater</code> is being used to update a multivariate model parameter, that parameter must have a Dirichlet prior and thus the length of a vector representing the current value of the parameter (<code class="highlighter-rouge">_curr_point</code>) should have the same length as the vector <code class="highlighter-rouge">_prior_parameters</code>. Because all parameters governed by <code class="highlighter-rouge">DirichletUpdater</code> have a Dirichlet prior (or at least a transformed Dirichlet prior), this class can handle calculation of most or all of the log prior, thus relieving derived classes of the need to do this job.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double DirichletUpdater::calcLogPrior() {  
+        pullFromModel();
+        assert(_curr_point.size() &amp;gt; 0);
+        assert(_curr_point.size() == _prior_parameters.size());
+        bool flat_prior = true;
+        bool bad_point = false;
+        double log_prior = 0.0;
+        double prior_param_sum = 0.0;
+        for (unsigned i = 0; i &amp;lt; _curr_point.size(); ++i) {
+            if (_prior_parameters[i] != 1.0)
+                flat_prior = false;
+            if (_curr_point[i] == 0.0)
+                bad_point = true;
+            log_prior += (_prior_parameters[i] - 1.0)*std::log(_curr_point[i]);
+            log_prior -= std::lgamma(_prior_parameters[i]);
+            prior_param_sum += _prior_parameters[i];
+        }
+        if (flat_prior)
+            return std::lgamma(prior_param_sum);
+        else if (bad_point)
+            return Updater::_log_zero;
+        else
+            log_prior += std::lgamma(prior_param_sum);
+        return log_prior;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-pullfrommodel-and-pushtomodel-pure-virtual-member-functions">The pullFromModel and pushToModel pure virtual member functions</h2>
+
+<p>From the class declaration:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            virtual void                        pullFromModel() = 0;    
+            virtual void                        pushToModel() = 0;    
+
+</code></pre></div></div>
+
+<p>These are placeholders for functions that must be defined in derived classes. Each derived class must provide a way to fill the <code class="highlighter-rouge">_curr_point</code> vector with values that have a Dirichlet prior and are updated using the focussed Dirichlet proposal implemented in this abstract base class. For example, the <code class="highlighter-rouge">StateFreqUpdater</code> will simply copy the state frequencies stored in the model to <code class="highlighter-rouge">_curr_point</code> in its <code class="highlighter-rouge">pullFromModel</code> function, and copy the values in <code class="highlighter-rouge">_curr_point</code> to the model in its <code class="highlighter-rouge">pushToModel</code> function.</p>
+
+<h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
+
+<p>This updater works by centering a sharp (low variance) Dirichlet distribution over the current value of the parameter (<code class="highlighter-rouge">_curr_point</code>), then choosing the proposed value from that Dirichlet distribution. Note that the tuning parameter <code class="highlighter-rouge">_lambda</code> controls the sharpness of the proposal distribution: larger values of <code class="highlighter-rouge">_lambda</code> (e.g. 1) mean bolder proposals that generate proposed states further away from the current state on average, while smaller <code class="highlighter-rouge">_lambda</code> values (e.g. 1/1000) result in a sharper proposal distribution that chooses proposed values close to the current state.</p>
+
+<p>Yes, it is a little confusing that we are using distinct Dirichlet distributions for the prior and the proposal distribution, but the advantage of this is that we modify all 4 nucleotide frequencies (or 6 exchangeabilities, or 61 codon frequencies, or all subset relative rates) at once but in a way that keeps the proposed values close to the current values. This proposal approach also automatically ensures that the proposed values add to 1, thus maintaining the constraint that is required.</p>
+
+<p>One additional complication is that this proposal is not symmetric, so we must calculate the Hastings ratio in this function as well as proposing a new state. The Hastings ratio is the conditional probability density of the current state given the proposed state divided by the conditional probability density of the proposed state given the current state. Said more simply, but less precisely, it is the ratio of the probability of the reverse proposal to the probability of the forward proposal.</p>
+
+<p>What is the reverse proposal? It involves proposing the current state assuming that the Markov chain is currently sitting at the proposed state. Calculation of the Hastings ratio thus involves centering a sharp Dirichlet distribution over the proposed state and asking about the probability density of the current state were the current state to be drawn from that distribution.</p>
+
+<p>The comments attempt to explain which part of the process is being done by each chunk of code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void DirichletUpdater::proposeNewState() {   
+        // Save length of _curr_point.
+        pullFromModel();
+        unsigned dim = (unsigned)_curr_point.size();
+        
+        // Save copy of _curr_point in case revert is necessary.
+        _prev_point.assign(_curr_point.begin(), _curr_point.end());
+        
+        // Determine parameters of Dirichlet forward proposal distribution and, at the same time,
+        // draw gamma deviates that will be used to form the proposed point.
+        std::vector&amp;lt;double&amp;gt; forward_params(dim, 0.0);
+        for (unsigned i = 0; i &amp;lt; dim; ++i) {
+            // Calculate ith forward parameter
+            double alpha_i = 1.0 + _prev_point[i]/_lambda;
+            if (alpha_i &amp;lt; 1.e-12)
+                alpha_i = 1.e-12;
+            forward_params[i] = alpha_i;
+            
+            // Draw ith gamma deviate
+            _curr_point[i] = 0.0;
+            if (alpha_i &amp;gt; 0.0)
+                _curr_point[i] = _lot-&amp;gt;gamma(alpha_i, 1.0);
+        }
+        
+        double sum_gamma_deviates     = std::accumulate(_curr_point.begin(), _curr_point.end(), 0.0);
+        double sum_forward_parameters = std::accumulate(forward_params.begin(), forward_params.end(), 0.0);
+
+        // Choose new state by sampling from forward proposal distribution.
+        // We've already stored gamma deviates in _curr_point, now just need to normalize them.
+        for (unsigned i = 0; i &amp;lt; dim; ++i) {
+            _curr_point[i] /= sum_gamma_deviates;
+        }
+        
+        // Determine probability density of the forward proposal
+        double log_forward_density = 0.0;
+        for (unsigned i = 0; i &amp;lt; dim; ++i) {
+            log_forward_density += (forward_params[i] - 1.0)*std::log(_prev_point[i]);
+            log_forward_density -= std::lgamma(forward_params[i]);
+        }
+        log_forward_density += std::lgamma(sum_forward_parameters);
+        
+        // Determine parameters of Dirichlet reverse proposal distribution
+        std::vector&amp;lt;double&amp;gt; reverse_params(dim, 0.0);
+        for (unsigned i = 0; i &amp;lt; dim; ++i) {
+            reverse_params[i] = 1.0 + _curr_point[i]/_lambda;
+        }
+        
+        double sum_reverse_parameters = std::accumulate(reverse_params.begin(), reverse_params.end(), 0.0);
+
+        // determine probability density of the reverse proposal
+        double log_reverse_density = 0.0;
+        for (unsigned i = 0; i &amp;lt; dim; ++i) {
+            log_reverse_density += (reverse_params[i] - 1.0)*std::log(_curr_point[i]);
+            log_reverse_density -= std::lgamma(reverse_params[i]);
+        }
+        log_reverse_density += std::lgamma(sum_reverse_parameters);
+        
+        // calculate the logarithm of the Hastings ratio
+        _log_hastings_ratio = log_reverse_density - log_forward_density;
+        
+        pushToModel();
+
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-revert-member-function">The revert member function</h2>
+
+<p>This function is called if the proposal is not accepted. It simply copies the <code class="highlighter-rouge">_prev_point</code> vector into the <code class="highlighter-rouge">_curr_point</code> vector. (The <code class="highlighter-rouge">_prev_point</code> vector was filled with the values from <code class="highlighter-rouge">_curr_point</code> at the beginning of the <code class="highlighter-rouge">proposeNewState</code> function before <code class="highlighter-rouge">_curr_point</code> was modified.)</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void DirichletUpdater::revert() {    
+        std::copy(_prev_point.begin(), _prev_point.end(), _curr_point.begin());
+        pushToModel();
+    }   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-16/00-updating-other-parameters.html">&lt;&nbsp;16.0</a> | 16.1 | <a href="/people/plewis/cpp//win//steps/step-16/02-statefrequpdater-class.html">16.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

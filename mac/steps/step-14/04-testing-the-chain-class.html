@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Testing the Chain Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">14.4 Testing the Chain Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="/people/plewis/cpp//mac//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Now all that is needed is to make some small changes to the <code class="highlighter-rouge">Node</code>, <code class="highlighter-rouge">Tree</code>, and <code class="highlighter-rouge">TreeManip</code> classes, and update the <code class="highlighter-rouge">Strom::run</code> function to set up <code class="highlighter-rouge">Chain</code> and run it. For this exercise we will use another variation on the rbcL data set used before.</p>
+
+<p>Download <a href="/people/plewis/cpp/assets/data/rbcl10.nex">rbcl10.nex</a> and <a href="/people/plewis/cpp/assets/data/rbcl10.tre">rbcl10.tre</a> to your working directory with the other downloaded data and tree files.</p>
+
+<p>Here are maximum likelihood estimates (using PAUP* Version 4.0a, build 159) of the GTR+G model parameters using the data stored in <em>rbcl10.nex</em> and the tree topology stored in <em>rbcl10.tre</em>. You can refer back to this table once your program begins estimating these parameters to see how the values compare. Remember, however, that your program is Bayesian and thus prior distributions will affect estimates, and the maximized log-likelihood computed by PAUP* will (almost surely) be higher than any log-likelihood you will see in your output. I have modified the output produced by PAUP* 
+below by adding a second column (values in parentheses) in which I provide:</p>
+
+<ul>
+  <li>
+    <p>a normalized version the GTR exchangeabilities (PAUP* sets GT to 1 and makes all other exchangeabilities relative to GT); and</p>
+  </li>
+  <li>
+    <p>the rate variance (1/shape) instead of the shape parameter reported by PAUP*</p>
+  </li>
+</ul>
+
+<p>In short, if all is working, we should see our MCMC analysis hovering (after a few iterations) around the rate variance 3.94 and a log-likelihood a little less than -6723.144.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>-ln L     6723.144
+Base frequencies:
+  A       0.294667
+  C       0.189172
+  G       0.206055
+  T       0.310106
+Rate matrix R:
+  AC       1.25798 (0.06082)
+  AG       5.76823 (0.27887)
+  AT       1.33643 (0.06461)
+  CG       1.29145 (0.06244)
+  CT      10.03035 (0.48492)
+  GT       1.00000 (0.04834)
+Shape     0.253596 (3.94322)
+</code></pre></div></div>
+
+<h2 id="making-updater-a-friend-of-node-and-tree">Making Updater a friend of Node and Tree</h2>
+
+<p>Edit <em>node.hpp</em> and <em>tree.hpp</em> and uncomment the <code class="highlighter-rouge">class Updater;</code> and <code class="highlighter-rouge">friend class Updater;</code> lines that are currently commented out.</p>
+
+<h2 id="modifying-the-model-class">Modifying the Model class</h2>
+<p>Make the following blue-highlighted additions to the <code class="highlighter-rouge">Model</code> class.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Model {   
+        
+        friend class Likelihood;
+
+        public:
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      asrv_vect_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   qmat_vect_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;             subset_sizes_t;
+            typedef std::vector&amp;lt;DataType&amp;gt;             subset_datatype_t;
+            typedef std::vector&amp;lt;double&amp;gt;               subset_relrate_vect_t;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   state_freq_params_t;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   exchangeability_params_t;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   omega_params_t;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      ratevar_params_t;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      pinvar_params_t;&lt;/strong&gt;&lt;/span&gt;
+            typedef boost::shared_ptr&amp;lt;Model&amp;gt;          SharedPtr;
+        
+                                        Model();
+                                        ~Model();
+
+            void                        activate();
+            void                        inactivate();
+            
+            std::string                 describeModel();
+
+            void                        setSubsetDataTypes(const subset_datatype_t &amp; datatype_vect);
+
+            void                        setSubsetRateVar(ASRV::ratevar_ptr_t ratevar, unsigned subset, bool fixed);
+            void                        setSubsetPinvar(ASRV::pinvar_ptr_t pinvar, unsigned subset, bool fixed);
+            void                        setSubsetExchangeabilities(QMatrix::freq_xchg_ptr_t exchangeabilities, unsigned subset, bool fixed);
+            void                        setSubsetStateFreqs(QMatrix::freq_xchg_ptr_t state_frequencies, unsigned subset, bool fixed);
+            void                        setSubsetOmega(QMatrix::omega_ptr_t omega, unsigned subset, bool fixed);
+
+            void                        setSubsetRelRates(subset_relrate_vect_t &amp; relrates, bool fixed);
+            subset_relrate_vect_t &amp;     getSubsetRelRates();
+            bool                        isFixedSubsetRelRates() const;
+            double                      calcNormalizingConstantForSubsetRelRates() const;
+
+            void                        setTreeIndex(unsigned i, bool fixed);
+            unsigned                    getTreeIndex() const;
+            bool                        isFixedTree() const;
+
+            unsigned                    getNumSubsets() const;
+            unsigned                    getNumSites() const;
+            unsigned                    getSubsetNumSites(unsigned subset) const;
+            const QMatrix &amp;             getQMatrix(unsigned subset) const;
+            const ASRV &amp;                getASRV(unsigned subset) const;
+
+            void                        setSubsetIsInvarModel(bool is_invar, unsigned subset);
+            bool                        getSubsetIsInvarModel(unsigned subset) const;
+
+            void                        setSubsetSizes(const subset_sizes_t nsites_vect);
+            subset_sizes_t &amp;            getSubsetSizes();
+
+            void                        setSubsetNumPatterns(const subset_sizes_t npatterns_vect);
+            unsigned                    getSubsetNumPatterns(unsigned subset) const;
+
+            void                        setSubsetNumCateg(unsigned ncateg, unsigned subset);
+            unsigned                    getSubsetNumCateg(unsigned subset) const;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;state_freq_params_t &amp;       getStateFreqParams();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;exchangeability_params_t &amp;  getExchangeabilityParams();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;omega_params_t &amp;            getOmegaParams();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;ratevar_params_t &amp;          getRateVarParams();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;pinvar_params_t &amp;           getPinvarParams();&lt;/strong&gt;&lt;/span&gt;
+        
+            int                         setBeagleEigenDecomposition(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleStateFrequencies(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationRates(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationProbs(int beagle_instance, unsigned subset, unsigned instance_subset);
+
+        private:
+        
+            void                        clear();
+        
+            unsigned                    _num_subsets;
+            unsigned                    _num_sites;
+            subset_sizes_t              _subset_sizes;
+            subset_sizes_t              _subset_npatterns;
+            subset_datatype_t           _subset_datatypes;
+            qmat_vect_t                 _qmatrix;
+            asrv_vect_t                 _asrv;
+        
+            bool                        _tree_index;
+            bool                        _tree_fixed;
+
+            bool                        _subset_relrates_fixed;
+            subset_relrate_vect_t       _subset_relrates;
+        
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;state_freq_params_t         _state_freq_params;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;exchangeability_params_t    _exchangeability_params;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;omega_params_t              _omega_params;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;ratevar_params_t            _ratevar_params;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;pinvar_params_t             _pinvar_params;&lt;/strong&gt;&lt;/span&gt;
+        };  
+
+</code></pre></div></div>
+
+<p>Add these 5 function bodies somewhere before the right curly bracket that closes the <code class="highlighter-rouge">strom</code> namespace in <em>model.hpp</em>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::state_freq_params_t &amp; Model::getStateFreqParams() {   
+        return _state_freq_params;
+    }  
+    
+    inline Model::exchangeability_params_t &amp; Model::getExchangeabilityParams() {  
+        return _exchangeability_params;
+    }  
+    
+    inline Model::omega_params_t &amp; Model::getOmegaParams() {  
+        return _omega_params;
+    }  
+    
+    inline Model::ratevar_params_t &amp; Model::getRateVarParams() {  
+        return _ratevar_params;
+    }  
+    
+    inline Model::pinvar_params_t &amp; Model::getPinvarParams() {  
+        return _pinvar_params;
+    }  
+
+</code></pre></div></div>
+
+<p>Make the following additions to the <code class="highlighter-rouge">describeModel</code> function in <em>model.hpp</em>. These additions specify which parameters are variable in the model and allow the <code class="highlighter-rouge">Chain</code> class to determine what specific parameter updaters are needed.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string Model::describeModel() { 
+        // Creates summary such as following and returns as a string:
+        //
+        // Partition information:
+        //
+        //          data subset           1           2           3
+        //    -----------------------------------------------------
+        //           num. sites          20          20          20
+        //        num. patterns           7           5          17
+        //          num. states           4           4           4
+        //      rate categories           4           1           4
+        //
+        // Parameter linkage:
+        //
+        //          data subset           1           2           3
+        //    -----------------------------------------------------
+        //          state freqs           1           1           1
+        //    exchangeabilities           1           1           2
+        //        rate variance           1           2           3
+        //               pinvar           1           2           -
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Start with empty parameter vectors&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_state_freq_params.clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_exchangeability_params.clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_omega_params.clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_ratevar_params.clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_pinvar_params.clear();&lt;/strong&gt;&lt;/span&gt;
+
+        // Sets used to determine which parameters are linked across subsets
+        std::set&amp;lt;double *&amp;gt; freqset;
+        std::set&amp;lt;double *&amp;gt; xchgset;
+        std::set&amp;lt;double *&amp;gt; omegaset;
+        std::set&amp;lt;double *&amp;gt; ratevarset;
+        std::set&amp;lt;double *&amp;gt; pinvarset;
+        std::set&amp;lt;double *&amp;gt; relrateset;
+
+        // Vectors of pointers to distinct parameters
+        std::vector&amp;lt;double *&amp;gt; unique_freq;
+        std::vector&amp;lt;double *&amp;gt; unique_xchg;
+        std::vector&amp;lt;double *&amp;gt; unique_omega;
+        std::vector&amp;lt;double *&amp;gt; unique_ratevar;
+        std::vector&amp;lt;double *&amp;gt; unique_pinvar;
+        std::vector&amp;lt;double *&amp;gt; unique_relrate;
+
+        // Map for storing strings that will contain the information for each row
+        std::map&amp;lt;std::string, std::string&amp;gt; ss = {
+            {"subset",    ""},
+            {"dashes",    ""},
+            {"freqs",     ""},
+            {"xchg",      ""},
+            {"omega",     ""},
+            {"ratevar",   ""},
+            {"pinvar",    ""},
+            {"ncateg",    ""},
+            {"nsites",    ""},
+            {"npatterns", ""},
+            {"nstates",   ""}
+        };
+
+        // Ensure that the subset relative rates are fixed if there is only one
+        // subset; otherwise the subset relative rates will be added to the list
+        // of free parameters that are updated, which makes no sense in this case
+        if (_num_subsets == 1)
+            _subset_relrates_fixed = true;
+
+        // Loop through subsets, building up rows as we go
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            // Ensure that for subsets in which the number of rate categories is 1 that
+            // the gamma rate variance is fixed; otherwise the gamma rate variance will
+            // be added to the list of free parameters that are updated, which makes
+            // no sense in this case
+            if (_asrv[i]-&amp;gt;getNumCateg() == 1) {
+                _asrv[i]-&amp;gt;fixRateVar(true);
+            }
+
+            unsigned index;
+            ss["subset"] += boost::str(boost::format("%12d") % (i+1));
+            ss["dashes"] += "------------";
+
+            // Determine whether state freqs are unique for this subset
+            QMatrix::freq_xchg_ptr_t pfreq = _qmatrix[i]-&amp;gt;getStateFreqsSharedPtr();
+            QMatrix::freq_xchg_t &amp; freq = *pfreq;
+            double * freq_addr = &amp;freq[0];
+            auto f = freqset.insert(freq_addr);
+            if (f.second) {
+                unique_freq.push_back(freq_addr);
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_qmatrix[i]-&amp;gt;isFixedStateFreqs())&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_state_freq_params.push_back(_qmatrix[i]);&lt;/strong&gt;&lt;/span&gt;
+                index = (unsigned)unique_freq.size();
+            }
+            else {
+                auto iter = std::find(unique_freq.begin(), unique_freq.end(), freq_addr);
+                index = (unsigned)std::distance(unique_freq.begin(), iter) + 1;
+            }
+            ss["freqs"] += boost::str(boost::format("%12d") % index);
+
+            // Determine whether exchangeabilities are unique for this subset
+            if (_subset_datatypes[i].isNucleotide()) {
+                QMatrix::freq_xchg_ptr_t pxchg = _qmatrix[i]-&amp;gt;getExchangeabilitiesSharedPtr();
+                QMatrix::freq_xchg_t &amp; xchg = *pxchg;
+                double * xchg_addr = &amp;xchg[0];
+                auto x = xchgset.insert(xchg_addr);
+                if (x.second) {
+                    unique_xchg.push_back(xchg_addr);
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_qmatrix[i]-&amp;gt;isFixedExchangeabilities())&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_exchangeability_params.push_back(_qmatrix[i]);&lt;/strong&gt;&lt;/span&gt;
+                    index = (unsigned)unique_xchg.size();
+                }
+                else {
+                    auto iter = std::find(unique_xchg.begin(), unique_xchg.end(), xchg_addr);
+                    index = (unsigned)std::distance(unique_xchg.begin(), iter) + 1;
+                }
+                ss["xchg"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["xchg"] += boost::str(boost::format("%12s") % "-");
+            }
+
+            // Determine whether omega is unique for this subset
+            if (_subset_datatypes[i].isCodon()) {
+                QMatrix::omega_ptr_t pomega = _qmatrix[i]-&amp;gt;getOmegaSharedPtr();
+                QMatrix::omega_t omegavalue = *pomega;
+                double * omega_addr = &amp;omegavalue;
+                auto o = omegaset.insert(omega_addr);
+                if (o.second) {
+                    unique_omega.push_back(omega_addr);
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_qmatrix[i]-&amp;gt;isFixedOmega())&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_omega_params.push_back(_qmatrix[i]);&lt;/strong&gt;&lt;/span&gt;
+                    index = (unsigned)unique_omega.size();
+                }
+                else {
+                    auto iter = std::find(unique_omega.begin(), unique_omega.end(), omega_addr);
+                    index = (unsigned)std::distance(unique_omega.begin(), iter) + 1;
+                }
+                ss["omega"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["omega"] += boost::str(boost::format("%12s") % "-");
+            }
+
+            // Determine whether rate variance is unique for this subset
+            ASRV::ratevar_ptr_t pratevar = _asrv[i]-&amp;gt;getRateVarSharedPtr();
+            double &amp; ratevar = *pratevar;
+            double * ratevar_addr = &amp;ratevar;
+            auto r = ratevarset.insert(ratevar_addr);
+            if (r.second) {
+                unique_ratevar.push_back(ratevar_addr);
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_asrv[i]-&amp;gt;isFixedRateVar())&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_ratevar_params.push_back(_asrv[i]);&lt;/strong&gt;&lt;/span&gt;
+                index = (unsigned)unique_ratevar.size();
+            }
+            else {
+                auto iter = std::find(unique_ratevar.begin(), unique_ratevar.end(), ratevar_addr);
+                index = (unsigned)std::distance(unique_ratevar.begin(), iter) + 1;
+            }
+            ss["ratevar"] += boost::str(boost::format("%12d") % index);
+
+            // Determine whether pinvar is unique for this subset
+            if (_asrv[i]-&amp;gt;getIsInvarModel()) {
+                ASRV::pinvar_ptr_t ppinvar = _asrv[i]-&amp;gt;getPinvarSharedPtr();
+                double &amp; pinvar = *ppinvar;
+                double * pinvar_addr = &amp;pinvar;
+                auto r = pinvarset.insert(pinvar_addr);
+                if (r.second) {
+                    unique_pinvar.push_back(pinvar_addr);
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_asrv[i]-&amp;gt;isFixedPinvar())&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_pinvar_params.push_back(_asrv[i]);&lt;/strong&gt;&lt;/span&gt;
+                    index = (unsigned)unique_pinvar.size();
+                }
+                else {
+                    auto iter = std::find(unique_pinvar.begin(), unique_pinvar.end(), pinvar_addr);
+                    index = (unsigned)std::distance(unique_pinvar.begin(), iter) + 1;
+                }
+                ss["pinvar"] += boost::str(boost::format("%12d") % index);
+            }
+            else {
+                ss["pinvar"] += boost::str(boost::format("%12s") % "-");
+            }
+
+            // Save number of rate categories for this subset
+            ss["ncateg"] += boost::str(boost::format("%12d") % _asrv[i]-&amp;gt;getNumCateg());
+
+            // Save number of sites for this subset
+            ss["nsites"] += boost::str(boost::format("%12d") % _subset_sizes[i]);
+
+            // Save number of patterns for this subset
+            ss["npatterns"] += boost::str(boost::format("%12d") % _subset_npatterns[i]);
+
+            // Save number of states for this subset
+            if (_subset_datatypes.size() == _num_subsets)
+                ss["nstates"] += boost::str(boost::format("%12d") % _subset_datatypes[i].getNumStates());
+            else
+                ss["nstates"] += boost::str(boost::format("%12s") % "?");
+
+        }
+        std::string s = "Partition information:\n\n";
+
+        s += boost::str(boost::format("%20s%s\n") % "data subset" % ss["subset"]);
+        s += boost::str(boost::format("%20s%s\n") % "-----------------" % ss["dashes"]);
+        s += boost::str(boost::format("%20s%s\n") % "num. sites" % ss["nsites"]);
+        s += boost::str(boost::format("%20s%s\n") % "num. patterns" % ss["npatterns"]);
+        s += boost::str(boost::format("%20s%s\n") % "num. states" % ss["nstates"]);
+        s += boost::str(boost::format("%20s%s\n") % "rate categories" % ss["ncateg"]);
+
+        s += "\nParameter linkage:\n\n";
+
+        s += boost::str(boost::format("%20s%s\n") % "data subset" % ss["subset"]);
+        s += boost::str(boost::format("%20s%s\n") % "-----------------" % ss["dashes"]);
+        s += boost::str(boost::format("%20s%s\n") % "state freqs" % ss["freqs"]);
+        s += boost::str(boost::format("%20s%s\n") % "exchangeabilities" % ss["xchg"]);
+        s += boost::str(boost::format("%20s%s\n") % "omega" % ss["omega"]);
+        s += boost::str(boost::format("%20s%s\n") % "rate variance" % ss["ratevar"]);
+        s += boost::str(boost::format("%20s%s\n") % "pinvar" % ss["pinvar"]);
+
+        s += "\nParameter values for each subset:\n";
+
+        s += "\n  relative rate:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            s += boost::str(boost::format("  %12d: %g\n") % (i+1) % _subset_relrates[i]);
+        }
+
+        s += "\n  state freqs:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            QMatrix::freq_xchg_t &amp; freqs = *(_qmatrix[i]-&amp;gt;getStateFreqsSharedPtr());
+            std::vector&amp;lt;std::string&amp;gt; freqs_as_strings(freqs.size());
+            std::transform(freqs.begin(), freqs.end(), freqs_as_strings.begin(), [](double freq) {return boost::str(boost::format("%g") % freq);});
+            std::string tmp = boost::algorithm::join(freqs_as_strings, ",");
+            s += boost::str(boost::format("  %12d: (%s)\n") % (i+1) % tmp);
+        }
+
+        s += "\n  exchangeabilities:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            if (_subset_datatypes[i].isNucleotide()) {
+                QMatrix::freq_xchg_t &amp; xchg = *(_qmatrix[i]-&amp;gt;getExchangeabilitiesSharedPtr());
+                std::vector&amp;lt;std::string&amp;gt; xchg_as_strings(xchg.size());
+                std::transform(xchg.begin(), xchg.end(), xchg_as_strings.begin(), [](double x) {return boost::str(boost::format("%g") % x);});
+                std::string tmp = boost::algorithm::join(xchg_as_strings, ",");
+                s += boost::str(boost::format("  %12d: (%s)\n") % (i+1) % tmp);
+            }
+            else {
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+            }
+        }
+
+        s += "\n  omega:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            if (_subset_datatypes[i].isCodon()) {
+                double omega = *(_qmatrix[i]-&amp;gt;getOmegaSharedPtr());
+                s += boost::str(boost::format("  %12d: %g\n") % (i+1) % omega);
+            }
+            else {
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+            }
+        }
+
+        s += "\n  rate variance:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            if (_asrv[i]-&amp;gt;getNumCateg() &amp;gt; 1) {
+                double ratevar = *(_asrv[i]-&amp;gt;getRateVarSharedPtr());
+                s += boost::str(boost::format("  %12d: %g\n") % (i+1) % ratevar);
+            }
+            else
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+        }
+
+        s += "\n  pinvar:\n";
+        for (unsigned i = 0; i &amp;lt; _num_subsets; i++) {
+            double pinvar = *(_asrv[i]-&amp;gt;getPinvarSharedPtr());
+            bool is_invar_model = _asrv[i]-&amp;gt;getIsInvarModel();
+            if (is_invar_model)
+                s += boost::str(boost::format("  %12d: %g\n") % (i+1) % pinvar);
+            else
+                s += boost::str(boost::format("  %12d: -\n") % (i+1));
+        }
+
+        return s;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-strom-class-declaration">Modifying the Strom class declaration</h2>
+
+<p>Modify <em>strom.hpp</em> by adding the bold, blue parts below to the <code class="highlighter-rouge">Strom</code> class declaration:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+#include "data.hpp"
+#include "likelihood.hpp"
+#include "tree_summary.hpp"
+#include "partition.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "lot.hpp"&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "chain.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+#include &amp;lt;boost/filesystem.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+            bool                                    processAssignmentString(const std::string &amp; which, const std::string &amp; definition);
+            void                                    handleAssignmentStrings(const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition);
+            bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);
+
+            double                                  _expected_log_likelihood;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            Model::SharedPtr                        _model;
+            Likelihood::SharedPtr                   _likelihood;
+            TreeSummary::SharedPtr                  _tree_summary;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Lot::SharedPtr                          _lot;&lt;/strong&gt;&lt;/span&gt;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                _random_seed;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                _num_iter;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                _print_freq;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                _sample_freq;&lt;/strong&gt;&lt;/span&gt;
+
+            bool                                    _use_gpu;
+            bool                                    _ambig_missing;
+            bool                                    _use_underflow_scaling;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+
+    };  
+
+</code></pre></div></div>
+
+<p>I’ve added several data members: <code class="highlighter-rouge">_lot</code> (the pseudorandom number generator), <code class="highlighter-rouge">_random_seed</code> (the starting seed for the pseudorandom number generator), <code class="highlighter-rouge">_num_iter</code> (the number of parameter updates that our Markov chain simulator will attempt, <code class="highlighter-rouge">_sample_freq</code> (the frequency with which parameter values will be saved), and <code class="highlighter-rouge">_print_freq</code> (the frequency with which a progress report will be issued to the console). The last one (<code class="highlighter-rouge">_print_freq</code>) will be ignored by our program for now; we will begin using it in the next step to control how much output appears on the screen as the program is running (we will not want a report after every iteration if we’ve asked for 10 million iterations!).</p>
+
+<h2 id="modifying-the-strom-clear-member-function">Modifying the Strom clear member function</h2>
+
+<p>Modify <em>strom.hpp</em> by adding the bold, blue parts below to the <code class="highlighter-rouge">clear</code> member function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name             = "";
+        _tree_file_name             = "";
+        _tree_summary               = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu                    = true;
+        _ambig_missing              = true;
+        _model.reset(new Model());
+        _expected_log_likelihood    = 0.0;
+        _use_underflow_scaling      = false;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_data                       = nullptr;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihood                 = nullptr;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_lot                        = nullptr;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_random_seed                = 1;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_num_iter                   = 1000;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_print_freq                 = 1;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_sample_freq                = 1;&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-strom-processcommandlineoptions-member-function">Modifying the Strom processCommandLineOptions member function</h2>
+
+<p>Continue modifying <em>strom.hpp</em> by adding the bold, blue parts below to the <code class="highlighter-rouge">Strom::processCommandLineOptions</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        std::vector&amp;lt;std::string&amp;gt; partition_statefreq;
+        std::vector&amp;lt;std::string&amp;gt; partition_rmatrix;
+        std::vector&amp;lt;std::string&amp;gt; partition_omega;
+        std::vector&amp;lt;std::string&amp;gt; partition_ratevar;
+        std::vector&amp;lt;std::string&amp;gt; partition_pinvar;
+        std::vector&amp;lt;std::string&amp;gt; partition_ncateg;
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        std::vector&amp;lt;std::string&amp;gt; partition_relrates;
+        std::vector&amp;lt;std::string&amp;gt; partition_tree;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("seed,z",        boost::program_options::value(&amp;_random_seed)-&amp;gt;default_value(1),   "pseudorandom number seed")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("niter,n",       boost::program_options::value(&amp;_num_iter)-&amp;gt;default_value(1000),   "number of MCMC iterations")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("printfreq",  boost::program_options::value(&amp;_print_freq)-&amp;gt;default_value(1),   "skip this many iterations before reporting progress")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("samplefreq",  boost::program_options::value(&amp;_sample_freq)-&amp;gt;default_value(1),   "skip this many iterations before sampling next")&lt;/strong&gt;&lt;/span&gt;
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            ("ncateg,c", boost::program_options::value(&amp;partition_ncateg), "number of categories in the discrete Gamma rate heterogeneity model")
+            ("statefreq", boost::program_options::value(&amp;partition_statefreq), "a string defining state frequencies for one or more data subsets, e.g. 'first,second:0.1,0.2,0.3,0.4'")
+            ("omega", boost::program_options::value(&amp;partition_omega), "a string defining the nonsynonymous/synonymous rate ratio omega for one or more data subsets, e.g. 'first,second:0.1'")
+            ("rmatrix", boost::program_options::value(&amp;partition_rmatrix), "a string defining the rmatrix for one or more data subsets, e.g. 'first,second:1,2,1,1,2,1'")
+            ("ratevar", boost::program_options::value(&amp;partition_ratevar), "a string defining the among-site rate variance for one or more data subsets, e.g. 'first,second:2.5'")
+            ("pinvar", boost::program_options::value(&amp;partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
+            ("relrate", boost::program_options::value(&amp;partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
+            ("tree", boost::program_options::value(&amp;partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
+            ("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")
+            ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
+            ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
+            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)") 
+        ;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        try {
+            const boost::program_options::parsed_options &amp; parsed = boost::program_options::parse_config_file&amp;lt; char &amp;gt;("strom.conf", desc, false);
+            boost::program_options::store(parsed, vm);
+        }
+        catch(boost::program_options::reading_file &amp; x) {
+            std::cout &amp;lt;&amp;lt; "Note: configuration file (strom.conf) not found" &amp;lt;&amp;lt; std::endl;
+        }
+        boost::program_options::notify(vm);
+
+        // If user specified --help on command line, output usage summary and quit
+        if (vm.count("help") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; desc &amp;lt;&amp;lt; "\n";
+            std::exit(1);
+        }
+
+        // If user specified --version on command line, output version and quit
+        if (vm.count("version") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) &amp;lt;&amp;lt; std::endl;
+            std::exit(1);
+        }
+    
+        // If user specified --subset on command line, break specified partition subset 
+        // definition into name and character set string and add to _partition
+        if (vm.count("subset") &amp;gt; 0) {
+            _partition.reset(new Partition());
+            for (auto s : partition_subsets) {
+                _partition-&amp;gt;parseSubsetDefinition(s);
+            }
+        }
+        
+        _model-&amp;gt;setSubsetDataTypes(_partition-&amp;gt;getSubsetDataTypes());
+        
+        handleAssignmentStrings(vm, "statefreq", partition_statefreq, "default:equal");
+        handleAssignmentStrings(vm, "rmatrix",   partition_rmatrix,   "default:equal");
+        handleAssignmentStrings(vm, "omega",     partition_omega,     "default:0.1"  );
+        handleAssignmentStrings(vm, "ncateg",    partition_ncateg,    "default:1"    );
+        handleAssignmentStrings(vm, "ratevar",   partition_ratevar,   "default:1.0"  );
+        handleAssignmentStrings(vm, "pinvar",    partition_pinvar,    "default:0.0"  );
+        handleAssignmentStrings(vm, "relrate",   partition_relrates,  "default:equal");
+        handleAssignmentStrings(vm, "tree",      partition_tree,      "default:1"    ); 
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-strom-run-member-function">Modifying the Strom run member function</h2>
+
+<p>Our final modifications to <em>strom.hpp</em> will be to add the bold, blue parts below to the <code class="highlighter-rouge">Strom::run</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            _data = Data::SharedPtr(new Data());
+            _data-&amp;gt;setPartition(_partition);
+            _data-&amp;gt;getDataFromFile(_data_file_name);
+            
+            _model-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            _model-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            _model-&amp;gt;activate();
+
+            // Report information about data partition subsets
+            unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+                }
+
+            std::cout &amp;lt;&amp;lt; "\n*** Resources available to BeagleLib " &amp;lt;&amp;lt; _likelihood-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; ":\n";
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Creating the likelihood calculator" &amp;lt;&amp;lt; std::endl;
+            _likelihood = Likelihood::SharedPtr(new Likelihood());
+            _likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            _likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            _likelihood-&amp;gt;setData(_data);
+            _likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);
+
+            std::cout &amp;lt;&amp;lt; "\n*** Model description" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; _model-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+            _likelihood-&amp;gt;setModel(_model);
+
+            _likelihood-&amp;gt;initBeagleLib();
+
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the first tree in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(0);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string newick = _tree_summary-&amp;gt;getNewick(0);&lt;/strong&gt;&lt;/span&gt;
+
+            if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+                throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+
+            std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
+            TreeManip tm(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
+            double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
+            tm.deselectAllPartials();
+            tm.deselectAllTMatrices();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+            
+            if (_expected_log_likelihood != 0.0) 
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("      (expecting %.3f)") % _expected_log_likelihood) &amp;lt;&amp;lt; std::endl;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Create a Lot object that generates (pseudo)random numbers&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_lot = Lot::SharedPtr(new Lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_lot-&amp;gt;setSeed(_random_seed);&lt;/strong&gt;&lt;/span&gt;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Create a Chain object and take _num_iter steps&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Chain chain;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned num_free_parameters = chain.createUpdaters(_model, _lot, _likelihood);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (num_free_parameters &amp;gt; 0) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;chain.setTreeFromNewick(newick);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;chain.start();&lt;/strong&gt;&lt;/span&gt;
+
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Output column headers and first line of output showing starting state (iteration 0)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; boost::str(boost::format("\n%12s %12s %12s %12s %12s %12s\n")&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "iteration"&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "lnLike"&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "lnPrior"&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "ratevar"&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "accept"&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "samples");&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;GammaRateVarUpdater::SharedPtr ratevar_updater = std::dynamic_pointer_cast&amp;lt;GammaRateVarUpdater&amp;gt; (chain.findUpdaterByName("Gamma Rate Variance"));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f %12d\n")&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% 0&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% chain.getLogLikelihood()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% chain.calcLogJointPrior()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getCurrentPoint()&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% 0&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% 0);&lt;/strong&gt;&lt;/span&gt;
+
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned iteration = 1; iteration &amp;lt;= _num_iter; ++iteration) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;chain.nextStep(iteration);&lt;/strong&gt;&lt;/span&gt;
+                    
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (iteration % _sample_freq == 0) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;GammaRateVarUpdater::SharedPtr ratevar_updater = std::dynamic_pointer_cast&amp;lt;GammaRateVarUpdater&amp;gt; (chain.findUpdaterByName("Gamma Rate Variance"));&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_prior = chain.calcLogJointPrior();&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (log_prior == Updater::getLogZero())&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d %12.5f %12s %12.5f %12.1f %12d\n")&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% iteration&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% chain.getLogLikelihood()&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% "-infinity"&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getCurrentPoint()&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getAcceptPct()&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getNumUpdates());&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12.1f %12d\n")&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% iteration&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% chain.getLogLikelihood()&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% log_prior&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getCurrentPoint()&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getAcceptPct()&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% ratevar_updater-&amp;gt;getNumUpdates());&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;chain.stop();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\nMCMC skipped because there are no free parameters in the model" &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="replacing-the-main-function">Replacing the main function</h2>
+
+<p>You will also need to return <em>main.cpp</em> to the way it was before we changed it to test the <code class="highlighter-rouge">Lot</code> class. Replace everything in <em>main.cpp</em> with the following:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;limits&amp;gt;   
+#include &amp;lt;iostream&amp;gt;
+#include "strom.hpp"
+
+using namespace strom;
+
+// static data member initializations
+std::string  Strom::_program_name        = "strom";
+unsigned     Strom::_major_version       = 1;
+unsigned     Strom::_minor_version       = 0;
+const double Node::_smallest_edge_length = 1.0e-12;
+const double Updater::_log_zero          = -std::numeric_limits&amp;lt;double&amp;gt;::max();
+GeneticCode::genetic_code_definitions_t GeneticCode::_definitions = { // codon order is alphabetical: i.e. AAA, AAC, AAG, AAT, ACA, ..., TTT
+    {"standard",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"},
+    {"vertmito",             "KNKNTTTT*S*SMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"yeastmito",            "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"moldmito",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"invertmito",           "KNKNTTTTSSSSMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"ciliate",              "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVVQYQYSSSS*CWCLFLF"},
+    {"echinomito",           "NNKNTTTTSSSSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"euplotid",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSCCWCLFLF"},
+    {"plantplastid",         "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"},
+    {"altyeast",             "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLSLEDEDAAAAGGGGVVVV*Y*YSSSS*CWCLFLF"},
+    {"ascidianmito",         "KNKNTTTTGSGSMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"altflatwormmito",      "NNKNTTTTSSSSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVVYY*YSSSSWCWCLFLF"},
+    {"blepharismamacro",     "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*YQYSSSS*CWCLFLF"},
+    {"chlorophyceanmito",    "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*YLYSSSS*CWCLFLF"},
+    {"trematodemito",        "NNKNTTTTSSSSMIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSSWCWCLFLF"},
+    {"scenedesmusmito",      "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*YLY*SSS*CWCLFLF"},
+    {"thraustochytriummito", "KNKNTTTTRSRSIIMIQHQHPPPPRRRRLLLLEDEDAAAAGGGGVVVV*Y*YSSSS*CWC*FLF"}
+};
+
+int main(int argc, const char * argv[]) {
+
+    Strom strom;
+    try {
+        strom.processCommandLineOptions(argc, argv);
+        strom.run();
+    }
+    catch(std::exception &amp; x) {
+        std::cerr &amp;lt;&amp;lt; "Exception: " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        std::cerr &amp;lt;&amp;lt; "Aborted." &amp;lt;&amp;lt; std::endl;
+    }
+    catch(...) {
+        std::cerr &amp;lt;&amp;lt; "Exception of unknown type!\n";
+    }
+
+    return 0;
+}   
+
+</code></pre></div></div>
+
+<h2 id="revising-your-stromconf-file">Revising your strom.conf file</h2>
+
+<p>Replace the contents of <em>strom.conf</em> with the following. This sets all of the model parameters to the values PAUP* estimated with the exception of ratevar, which we will start at 1.0 rather than 3.94280 so we can test whether our rate variance updater is working.</p>
+
+<p>We also set the number of rate categories to 4. This is necessary because, otherwise, the model would assume rate homogeneity and our one updatable parameter (gamma rate variance) would not be updated!</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile    = rbcl10.nex    
+treefile    = rbcl10.tre
+statefreq   = default:[0.294667,0.189172,0.206055,0.310106]
+rmatrix     = default:[0.06082,0.27887,0.06461,0.06244,0.48492,0.04834]
+ratevar     = default:1.0  # MLE = 3.94322 = 1./0.25360
+pinvar      = default:[0.0]
+ncateg      = default:4
+niter       = 1000
+samplefreq  = 1
+printfreq   = 1
+expectedLnL = -6897.492 
+
+</code></pre></div></div>
+
+<h2 id="expected-output">Expected output</h2>
+
+<p>You should see output from 1000 calls to the <code class="highlighter-rouge">nextStep</code> function of the <code class="highlighter-rouge">Chain</code> object: I’ve shown only the first 10 iterations (plus the very last iteration) of this output below</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>   iteration       lnLike      lnPrior      ratevar       accept      samples
+           0  -6897.49179     -1.00000      1.00000            0            0
+           1  -6801.53215     -1.64409      1.64409        100.0            1
+           2  -6801.53215     -1.64409      1.64409         50.0            2
+           3  -6736.42505     -2.79151      2.79151         66.7            3
+           4  -6736.42505     -2.79151      2.79151         50.0            4
+           5  -6736.42505     -2.79151      2.79151         40.0            5
+           6  -6736.42505     -2.79151      2.79151         33.3            6
+           7  -6723.15079     -3.97442      3.97442         42.9            7
+           8  -6723.15079     -3.97442      3.97442         37.5            8
+           9  -6723.15079     -3.97442      3.97442         33.3            9
+          10  -6723.15079     -3.97442      3.97442         30.0           10
+        1000  -6723.76450     -3.66414      3.66414         30.5         1000
+
+</code></pre></div></div>
+
+<p>Note that the acceptance percentage for our gamma rate variance updater quickly converges to 30%, which is the target we specified by default in the <code class="highlighter-rouge">Chain</code> constructor (actually, in <code class="highlighter-rouge">Chain::clear</code> function, which is called by the constructor). Right now, we are tuning throughout the MCMC run, but soon we will change things so that autotuning is done for our updaters only during the burn-in period.</p>
+
+<p>Also note that the likelihood improves as the gamma rate variance converges from the starting value of 1.0 to a value close to the maximum likelihood estimate (MLE) 3.94280, suggesting that our MCMC chain is converging on a region of parameter space having higher posterior probability density. The log-likelihood also approaches (but of course can never exceed) the maximum likleihood of -6723.144 as the chain runs.</p>
+
+<p>Finally, notice that the lnPrior column is always equal to -1 times the gamma rate variance value. This is because the prior is completely determined by the prior on the gamma rate variance parameter (our model currently only has one estimated parameter). This gamma rate variance prior is, by default, Gamma(1,1), which is specified in <code class="highlighter-rouge">Chain::clear</code>. The log of this probability density is <code class="highlighter-rouge">-log(1) – ratevar/1</code>, which just equals <code class="highlighter-rouge">-ratevar</code>.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="/people/plewis/cpp//mac//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test tree creation</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">3.2 Test tree creation</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-03/01-create-rooted-three-taxon-tree.html">&lt;&nbsp;3.1</a> | 3.2 | <a href="/people/plewis/cpp//linux//steps/step-04/00-tree-manipulator.html">4.0&nbsp;&gt;</a></h3>
+</div>
+
+<p>Try running the program again. You should get an error message that says something like cannot access private member declared in class <code class="highlighter-rouge">strom::Node</code>. This is because we are trying to change data members (such as <code class="highlighter-rouge">_left_child</code>) in <code class="highlighter-rouge">Node</code> objects from outside the <code class="highlighter-rouge">Node</code> class, and this is not allowed because those data members were declared in the private section of the <code class="highlighter-rouge">Node</code> class declaration.</p>
+
+<p>We could easily fix this by simply commenting out the <code class="highlighter-rouge">private:</code> statement in the <code class="highlighter-rouge">Node</code> class declaration, thus making all those previously private attributes public. This is not a very elegant way of dealing with the problem because it eliminates all the benefits of having private data members in the first place (i.e. it prevents you or other programmers using your code from unintentionally modifying these variables).</p>
+
+<p>Because <code class="highlighter-rouge">Tree</code> objects will legitimately need to make changes to their <code class="highlighter-rouge">Node</code> objects, we can make the <code class="highlighter-rouge">Tree</code> class a friend of the <code class="highlighter-rouge">Node</code> class. Friend classes are allowed to change the values of private data members. This effectively creates an exception to the privacy rules we established when creating the <code class="highlighter-rouge">Node</code> class.</p>
+
+<p>You need to uncomment two lines in <em>node.hpp</em> to make <code class="highlighter-rouge">Tree</code> a friend of <code class="highlighter-rouge">Node</code>. Uncomment the bold blue lines shown below by removing the <code class="highlighter-rouge">//</code> at the beginning of each line:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+//#include "split.hpp"
+
+namespace strom {
+
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class Tree;&lt;/strong&gt;&lt;/span&gt;
+    //class TreeManip;
+    //class Likelihood;
+    //class Updater;
+
+    class Node {
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class Tree;&lt;/strong&gt;&lt;/span&gt;
+            //friend class TreeManip;
+            //friend class Likelihood;
+            //friend class Updater;
+
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()     {return _parent;}
+                    Node *              getLeftChild()  {return _left_child;}
+                    Node *              getRightSib()   {return _right_sib;}
+                    int                 getNumber()     {return _number;}
+                    std::string         getName()       {return _name;}
+                    //Split               getSplit()      {return _split;}
+
+                    double              getEdgeLength() {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+
+        private:
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            //Split               _split;
+    };
+
+    inline Node::Node() {
+        std::cout &amp;lt;&amp;lt; "Creating Node object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }
+
+    inline Node::~Node() {
+        std::cout &amp;lt;&amp;lt; "Destroying Node object" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Node::clear() {
+        _left_child = 0;
+        _right_sib = 0;
+        _parent = 0;
+        _number = -1;
+        _name = "";
+        _edge_length = _smallest_edge_length;
+    }
+
+    inline void Node::setEdgeLength(double v) {
+        _edge_length = (v &amp;lt; _smallest_edge_length ? _smallest_edge_length : v);
+    }
+
+}	
+
+</code></pre></div></div>
+<p>The first line simply assures the compiler that a class named <code class="highlighter-rouge">Tree</code> exists. Note that we have not included the <em>tree.hpp</em> header file, so the compiler does not have any idea what a <code class="highlighter-rouge">Tree</code> object is at this point. The alternative to adding this line would be to include the file <em>tree.hpp</em>, but that is complicated by the fact that <em>tree.hpp</em> includes <em>node.hpp</em>! The declaration above solves this chicken-and-egg issue, specifying exactly what <code class="highlighter-rouge">Tree</code> is in a situation where the compiler does not need to know anything more about <code class="highlighter-rouge">Tree</code> than the fact that it is the name of a class defined somewhere.</p>
+
+<p>The second line tells the compiler that the class <code class="highlighter-rouge">Tree</code> is allowed to do whatever it likes with the private data members of <code class="highlighter-rouge">Node</code>.</p>
+
+<p>After uncommenting those two lines in <em>node.hpp</em>, running the program should now produce this output:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Starting...
+Constructing a Tree
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+Creating Node object
+
+Finished!
+Destroying a Tree
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+Destroying Node object
+</code></pre></div></div>
+
+<p>Note that 1 <code class="highlighter-rouge">Tree</code> object and 6 <code class="highlighter-rouge">Node</code> objects were created and 1 <code class="highlighter-rouge">Tree</code> object and 6 <code class="highlighter-rouge">Node</code> objects were destroyed when the program finished.</p>
+
+<h2 id="something-to-try">Something to try</h2>
+<p>Try changing the tree by adding a node <code class="highlighter-rouge">fourth_leaf</code> as sister to <code class="highlighter-rouge">third_leaf</code>.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-03/01-create-rooted-three-taxon-tree.html">&lt;&nbsp;3.1</a> | 3.2 | <a href="/people/plewis/cpp//linux//steps/step-04/00-tree-manipulator.html">4.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create the Data class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">9.3 Create the Data class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-09/02-create-the-partition-class.html">&lt;&nbsp;9.2</a> | 9.3 | <a href="/people/plewis/cpp//linux//steps/step-09/04-test-reading-and-storing-data.html">9.4&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Create a new C++ class named <code class="highlighter-rouge">Data</code> and add it to your project as the header file <em>data.hpp</em>. Below is the class declaration. The body of each member function will be described separately (you should add each of these member function bodies just above the right curly bracket that terminates the namespace block).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;fstream&amp;gt;
+#include &amp;lt;regex&amp;gt;
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include &amp;lt;numeric&amp;gt;
+#include &amp;lt;limits&amp;gt;
+#include &amp;lt;map&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "genetic_code.hpp"
+#include "datatype.hpp"
+#include "partition.hpp"
+#include "xstrom.hpp"
+#include "ncl/nxsmultiformat.h"
+#include &amp;lt;boost/algorithm/string/join.hpp&amp;gt;
+
+namespace strom {
+
+    class Data {
+        public:
+            typedef std::vector&amp;lt;std::string&amp;gt;            taxon_names_t;
+            typedef unsigned long long                  state_t;
+            typedef std::vector&amp;lt;state_t&amp;gt;                pattern_vect_t;
+            typedef std::vector&amp;lt;state_t&amp;gt;                monomorphic_vect_t;
+            typedef std::vector&amp;lt;int&amp;gt;                    partition_key_t;
+            typedef std::map&amp;lt;pattern_vect_t,unsigned&amp;gt;   pattern_map_t;
+            typedef std::vector&amp;lt;pattern_vect_t&amp;gt;         data_matrix_t;
+            typedef std::vector&amp;lt;pattern_map_t&amp;gt;          pattern_map_vect_t;
+            typedef std::vector&amp;lt;double&amp;gt;                 pattern_counts_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;               subset_end_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;               npatterns_vect_t;
+            typedef std::pair&amp;lt;unsigned, unsigned&amp;gt;       begin_end_pair_t;
+            typedef std::shared_ptr&amp;lt;Data&amp;gt;               SharedPtr;
+
+                                                        Data();
+                                                        ~Data();
+        
+            Partition::SharedPtr                        getPartition();
+            void                                        setPartition(Partition::SharedPtr partition);
+
+            void                                        getDataFromFile(const std::string filename);
+
+            unsigned                                    getNumSubsets() const;
+            std::string                                 getSubsetName(unsigned subset) const;
+
+            unsigned                                    getNumTaxa() const;
+            const taxon_names_t &amp;                       getTaxonNames() const;
+
+            unsigned                                    getNumPatterns() const;
+            npatterns_vect_t                            calcNumPatternsVect() const;
+            unsigned                                    getNumPatternsInSubset(unsigned subset) const;
+            unsigned                                    getNumStatesForSubset(unsigned subset) const;
+            unsigned                                    calcSeqLen() const;
+            unsigned                                    calcSeqLenInSubset(unsigned subset) const;
+            const data_matrix_t &amp;                       getDataMatrix() const;
+            begin_end_pair_t                            getSubsetBeginEnd(unsigned subset) const;
+            const pattern_counts_t &amp;                    getPatternCounts() const;
+            const monomorphic_vect_t &amp;                  getMonomorphic() const;
+            const partition_key_t &amp;                     getPartitionKey() const;
+
+
+            void                                        clear();
+
+        private:
+
+            unsigned                                    storeTaxonNames(NxsTaxaBlock * taxaBlock, unsigned taxa_block_index);
+            unsigned                                    storeData(unsigned ntax, unsigned nchar, NxsCharactersBlock * charBlock, NxsCharactersBlock::DataTypesEnum datatype);
+            unsigned                                    buildSubsetSpecificMaps(unsigned ntaxa, unsigned seqlen, unsigned nsubsets);
+            void                                        updatePatternMap(Data::pattern_vect_t &amp; pattern, unsigned subset);
+            void                                        compressPatterns();
+
+            Partition::SharedPtr                        _partition;
+            pattern_counts_t                            _pattern_counts;
+            monomorphic_vect_t                          _monomorphic;
+            partition_key_t                             _partition_key;
+            pattern_map_vect_t                          _pattern_map_vect;
+            taxon_names_t                               _taxon_names;
+            data_matrix_t                               _data_matrix;
+            subset_end_t                                _subset_end;
+    };
+
+    // Member function bodies go below here but above the right curly bracket that ends the namespace block
+    
+}   
+
+</code></pre></div></div>
+
+<p>The class declaration above defines a number of types that are introduced to simplify member function prototypes and data member definitions that follow:</p>
+<ul>
+  <li><code class="highlighter-rouge">taxon_names_t</code> is used for variables that store a vector of taxon names</li>
+  <li><code class="highlighter-rouge">state_t</code> is used for storing discrete character state codes</li>
+  <li><code class="highlighter-rouge">pattern_vect_t</code> is used for variables that store site patterns (vectors of state codes)</li>
+  <li><code class="highlighter-rouge">monomorphic_vect_t</code> is used for variables that store information about the state present at each constant site pattern</li>
+  <li><code class="highlighter-rouge">partition_key_t</code> is used for variables that map site patterns to partition subsets</li>
+  <li><code class="highlighter-rouge">pattern_map_t</code> is used for variables that map pattern counts to site patterns</li>
+  <li><code class="highlighter-rouge">data_matrix_t</code> is used for variables that store vectors of site patterns</li>
+  <li><code class="highlighter-rouge">pattern_map_vect_t</code> is used for a vector of pattern maps, one for each subset</li>
+  <li><code class="highlighter-rouge">pattern_counts_t</code> is used for variables that store the number of sites having each data pattern</li>
+  <li><code class="highlighter-rouge">subset_end_t</code> is used for a variable that stores (one past) the last pattern in each subset</li>
+  <li><code class="highlighter-rouge">npatterns_vect_t</code> is used to store a vector of counts of the number of distinct data patterns in each subset</li>
+  <li><code class="highlighter-rouge">begin_end_pair_t</code> is used to store a <code class="highlighter-rouge">std::pair</code> containing the beginning and ending pattern (index into the columns of <code class="highlighter-rouge">_data_matrix</code>) for a given subset</li>
+  <li><code class="highlighter-rouge">SharedPtr</code> is a shared pointer to an object of type <code class="highlighter-rouge">Data</code></li>
+</ul>
+
+<p>These type definitions make it simpler to define variables of these types and to pass such variables into functions. Most of these are used at the bottom of the class declaration to declare variables that will store information read from a data file (<code class="highlighter-rouge">_pattern_counts</code>, <code class="highlighter-rouge">_partition_key</code>, <code class="highlighter-rouge">_pattern_map_vect</code>, <code class="highlighter-rouge">_taxon_names</code>, <code class="highlighter-rouge">_data_matrix</code>, and <code class="highlighter-rouge">_subset_end</code>).</p>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+<p>Here are the bodies of the constructor and destructor. As usual, the only thing that we have these functions do is to report when an object of the <code class="highlighter-rouge">Data</code> class is created or destroyed, and these lines have been commented out (you can uncomment them at any time for debugging purposes).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Data::Data() {   
+        //std::cout &amp;lt;&amp;lt; "Creating a Data object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+    inline Data::~Data() {   
+        //std::cout &amp;lt;&amp;lt; "Destroying a Data object" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setpartition-member-function">The setPartition member function</h2>
+<p>The <code class="highlighter-rouge">Data</code> class needs access to the partition information that the user supplied in the <em>strom.conf</em> file. This information is stored in a <code class="highlighter-rouge">Partition</code> object, and this function provides a way to assign a <code class="highlighter-rouge">Partition</code> object to this <code class="highlighter-rouge">Data</code> object.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Data::setPartition(Partition::SharedPtr partition) {    
+        _partition = partition;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="obtaining-partition-information">Obtaining partition information</h2>
+<p>The next 3 member functions provide access: (1) to the <code class="highlighter-rouge">Partition</code> object (<code class="highlighter-rouge">getPartition</code>, through a shared pointer); (2) to the number of data subsets in the partition (<code class="highlighter-rouge">getNumSubsets</code>); and (3) to the names assigned to the data subsets by the user (<code class="highlighter-rouge">getSubsetName</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Partition::SharedPtr Data::getPartition() {    
+        return _partition;
+    }    
+
+    inline unsigned Data::getNumSubsets() const {    
+        return (_partition ? _partition-&amp;gt;getNumSubsets() : 1);
+    }    
+    
+    inline std::string Data::getSubsetName(unsigned subset) const {    
+        return _partition ? _partition-&amp;gt;getSubsetName(subset) : std::string("default");
+    }    
+
+</code></pre></div></div>
+
+<h2 id="accessors">Accessors</h2>
+<p>Next come 5 member functions (<code class="highlighter-rouge">getPartitionKey</code>, <code class="highlighter-rouge">getPatternCounts</code>, <code class="highlighter-rouge">getMonomorphic</code>, <code class="highlighter-rouge">getTaxonNames</code>, and <code class="highlighter-rouge">getDataMatrix</code>) that are all accessors.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const Data::partition_key_t &amp; Data::getPartitionKey() const {    
+        return _partition_key;
+    }    
+    
+    inline const Data::pattern_counts_t &amp; Data::getPatternCounts() const {    
+        return _pattern_counts;
+    }    
+    
+    inline const Data::monomorphic_vect_t &amp; Data::getMonomorphic() const {    
+        return _monomorphic;
+    }    
+
+    inline const Data::taxon_names_t &amp; Data::getTaxonNames() const {    
+        return _taxon_names;
+    }    
+
+    inline const Data::data_matrix_t &amp; Data::getDataMatrix() const {    
+        return _data_matrix;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-getsubsetbeginend-member-function">The getSubsetBeginEnd member function</h2>
+<p>The <code class="highlighter-rouge">getSubsetBeginEnd</code> function returns a <code class="highlighter-rouge">std::pair</code> in which the <code class="highlighter-rouge">first</code> and <code class="highlighter-rouge">second</code> elements are the beginning and ending pattern index in <code class="highlighter-rouge">_data_matrix</code> for the subset index supplied as an argument. The beginning index is the index to the first pattern in the focal subset, while the ending index is one <em>beyond</em> the last pattern in the subset (i.e. similar to C++ iterators).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Data::begin_end_pair_t Data::getSubsetBeginEnd(unsigned subset) const {    
+        assert(_subset_end.size() &amp;gt; subset);
+        if (subset == 0)
+            return std::make_pair(0, _subset_end[0]);
+        else
+            return std::make_pair(_subset_end[subset-1], _subset_end[subset]);
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+<p>Here is the body of the <code class="highlighter-rouge">clear</code> function, which simply empties data members that are vectors or maps.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Data::clear() {    
+        _partition_key.clear();
+        _pattern_counts.clear();
+        _monomorphic.clear();
+        _pattern_map_vect.clear();
+        _taxon_names.clear();
+        _data_matrix.clear();
+        _subset_end.clear();
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-getnumpatterns-member-function">The getNumPatterns member function</h2>
+<p>The function <code class="highlighter-rouge">getNumPatterns</code> returns the total number of patterns stored in all subsets (which is simply the length of any row of the <code class="highlighter-rouge">_data_matrix</code> vector after the data have been compressed into unique patterns and pattern counts).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::getNumPatterns() const {    
+        if (_data_matrix.size() &amp;gt; 0)
+            return (unsigned)_data_matrix[0].size();
+        else
+            return 0;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-calcnumpatternsvect-member-function">The calcNumPatternsVect member function</h2>
+<p>The  <code class="highlighter-rouge">calcNumPatternsVect</code> function returns a vector containing the number of patterns in each subset. The name begins with “calc” to indicate that the return value is a vector that is constructed on the fly (and thus involves more work than simply returning a stored value).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Data::npatterns_vect_t Data::calcNumPatternsVect() const {    
+        unsigned nsubsets = (unsigned)_subset_end.size();
+        std::vector&amp;lt;unsigned&amp;gt; num_patterns_vect(nsubsets, 0);
+        for (unsigned s = 0; s &amp;lt; nsubsets; s++)
+            num_patterns_vect[s] = getNumPatternsInSubset(s);
+        return num_patterns_vect;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-getnumstatesforsubset-member-function">The getNumStatesForSubset member function</h2>
+<p>The <code class="highlighter-rouge">getNumStatesForSubset</code> function returns the number of states characterizing a specified data subset (e.g. 4 for nucleotide data, 61 for codons using the standard code, 20 for protein data, etc.).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::getNumStatesForSubset(unsigned subset) const {    
+        DataType data_type = _partition-&amp;gt;getDataTypeForSubset(subset);
+        return data_type.getNumStates();
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-getnumpatternsinsubset-member-function">The getNumPatternsInSubset member function</h2>
+<p>The <code class="highlighter-rouge">getNumPatternsInSubset</code> function returns the number of distinct patterns stored in a specified subset.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::getNumPatternsInSubset(unsigned subset) const {    
+        assert(_subset_end.size() &amp;gt; subset);
+        return (unsigned)_subset_end[subset] - (subset == 0 ? 0 : _subset_end[subset-1]);
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-getnumtaxa-member-function">The getNumTaxa member function</h2>
+<p>The <code class="highlighter-rouge">getNumTaxa</code> function is an accessor that simply returns the number of taxa.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::getNumTaxa() const {    
+        return (unsigned)_taxon_names.size();
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-calcseqlen-member-function">The calcSeqLen member function</h2>
+<p>The function <code class="highlighter-rouge">calcSeqLen</code> returns the total number of sites stored, but it cannot simply return the number of elements in a row of the <code class="highlighter-rouge">_data_matrix</code> vector because that would equal the number of unique patterns, not the number of sites, assuming that <code class="highlighter-rouge">compressPatterns</code> has been called. The <code class="highlighter-rouge">std::accumulate</code> function sums the values in a vector between two elements delimited by the iterators provided in the first two arguments. The vector begin accumulated is <code class="highlighter-rouge">_pattern_counts</code>. The third argument supplies the initial value (zero in this case).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::calcSeqLen() const {    
+        return std::accumulate(_pattern_counts.begin(), _pattern_counts.end(), 0);
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-calcseqleninsubset-member-function">The calcSeqLenInSubset member function</h2>
+
+<p>The function <code class="highlighter-rouge">calcSeqLenInSubset</code> returns the number of sites stored in the subset whose index is provided. We again use the <code class="highlighter-rouge">std::accumulate</code> function, but need to provide it with the correct begin and end iterators. The indices representing the first and (one beyond the) last pattern in the  subset is returned as the <code class="highlighter-rouge">std::pair</code> <code class="highlighter-rouge">x</code> by <code class="highlighter-rouge">getSubsetBeginEnd</code>. The iterator to the beginning of the needed range is equal to <code class="highlighter-rouge">_pattern_counts.begin()</code> plus <code class="highlighter-rouge">x.first</code>. The end iterator is obtained by advancing <code class="highlighter-rouge">_pattern_counts.begin()</code> by <code class="highlighter-rouge">x.second</code> units.</p>
+
+<p>For example, if the first subset contains 5 patterns, then the first pattern in the second subset is obtained by moving an iterator 5 positions away from the iterator positioned at <code class="highlighter-rouge">_pattern_counts.begin()</code>. Note that <code class="highlighter-rouge">_pattern_counts.begin()</code> is not moved at all if the focal subset is the first subset.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::calcSeqLenInSubset(unsigned subset) const {    
+        begin_end_pair_t s = getSubsetBeginEnd(subset);
+        return std::accumulate(_pattern_counts.begin() + s.first, _pattern_counts.begin() + s.second, 0);
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-buildsubsetspecificmaps-member-function">The buildSubsetSpecificMaps member function</h2>
+<p>This function fills a map associating site patterns (keys) with counts (values). There is one such map constructed for each partition subset, and the data member <code class="highlighter-rouge">_pattern_map_vect</code> is a vector of such pattern maps. A <strong>site pattern</strong> is a vector of states present in all taxa. For example, if there were 4 taxa, then AAAA would be a common site pattern, as would CCCC, GGGG, and TTTT. These constant site patterns (same state present in all taxa) are more common in most data sets than variable site patterns such as AAGG or ACGT. Because the likelihood is identical for two instances of the exact same site pattern, it makes sense to just store such patterns once (and calculate the likelihood for them once) but keep track of how many instances there were of the pattern in the original data set. Such pooling cannot be done across partition subsets, however, because normally some component of the model differs among subsets and thus the likelihood must be computed separately for the same site pattern in different subsets. Hence, we compress each data subset into a pattern map and store a separate map for each subset in <code class="highlighter-rouge">_pattern_map_vect</code>.</p>
+
+<p>The <code class="highlighter-rouge">buildSubsetSpecificMaps</code> function first obtains the vector of site ranges from the <code class="highlighter-rouge">Partition</code> object and clears <code class="highlighter-rouge">_pattern_map_vect</code> in preparation for refilling it from scratch. Each tuple in the <code class="highlighter-rouge">tuples</code> vector specifies a range of sites along with the index of the subset to which that range of sites belongs. The <code class="highlighter-rouge">site</code> loop constructs a pattern (vector of <code class="highlighter-rouge">ntaxa</code> states) from each site in the range and adds that pattern to the map stored at <code class="highlighter-rouge">_pattern_map_vect[site_subset]</code>. The work of adding the pattern to the correct map is handle by the function <code class="highlighter-rouge">updatePatternMap</code> (see below).</p>
+
+<p>A final loop computes and stores the total number of site patterns across all data subsets in the variable <code class="highlighter-rouge">npatterns</code>, which is the returned value of this function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::buildSubsetSpecificMaps(unsigned ntaxa, unsigned seqlen, unsigned nsubsets) {    
+        pattern_vect_t pattern(ntaxa);
+
+        _pattern_map_vect.clear();
+        _pattern_map_vect.resize(nsubsets);
+        
+        const Partition::partition_t &amp; tuples = _partition-&amp;gt;getSubsetRangeVect();
+        for (auto &amp; t : tuples) {
+            unsigned site_begin  = std::get&amp;lt;0&amp;gt;(t);
+            unsigned site_end    = std::get&amp;lt;1&amp;gt;(t);
+            unsigned site_skip   = std::get&amp;lt;2&amp;gt;(t);
+            unsigned site_subset = std::get&amp;lt;3&amp;gt;(t);
+            for (unsigned site = site_begin; site &amp;lt;= site_end; site += site_skip) {
+                // Copy site into pattern
+                for (unsigned taxon = 0; taxon &amp;lt; ntaxa; ++taxon) {
+                    pattern[taxon] = _data_matrix[taxon][site-1];
+                }
+                
+                // Add this pattern to _pattern_map_vect element corresponding to subset site_subset
+                updatePatternMap(pattern, site_subset);
+            }
+        }
+        
+        // Tally total number of patterns across all subsets
+        unsigned npatterns = 0;
+        for (auto &amp; map : _pattern_map_vect) {
+            npatterns += (unsigned)map.size();
+        }
+        
+        return npatterns;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-updatepatternmap-member-function">The updatePatternMap member function</h2>
+<p>This private member function adds 1 to the count stored for the supplied pattern in the supplied partition subset in the <code class="highlighter-rouge">_pattern_map_vect</code> vector. The function first asks (using the <code class="highlighter-rouge">lower_bound</code> function of the standard <code class="highlighter-rouge">map</code> class) what is the first key that equals <code class="highlighter-rouge">pattern</code>? If there is no entry for the supplied <code class="highlighter-rouge">pattern</code>, the <code class="highlighter-rouge">lower_bound</code> function will return <code class="highlighter-rouge">_pattern_map_vect[subset].end()</code>, in which case <code class="highlighter-rouge">pattern</code> will be added as a key to <code class="highlighter-rouge">_pattern_map_vect[subset]</code> with the value initially set to 1 (because this is the first time this pattern has been seen in this subset). If the <code class="highlighter-rouge">lower_bound</code> function returns an iterator not equal to <code class="highlighter-rouge">_pattern_map_vect[subset].end()</code>, then the iterator is situated at an actual map item and the count associated with this key is incremented by 1.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Data::updatePatternMap(Data::pattern_vect_t &amp; pattern, unsigned subset) {    
+        // If pattern is not already in pattern_map, insert it and set value to 1.
+        // If it does exist, increment its current value.
+        // (see item 24, p. 110, in Meyers' Efficient STL for more info on the technique used here)
+        pattern_map_t::iterator lowb = _pattern_map_vect[subset].lower_bound(pattern);
+        if (lowb != _pattern_map_vect[subset].end() &amp;&amp; !(_pattern_map_vect[subset].key_comp()(pattern, lowb-&amp;gt;first))) {
+            // this pattern has already been seen
+            lowb-&amp;gt;second += 1;
+        }
+        else
+            {
+            // this pattern has not yet been seen
+            _pattern_map_vect[subset].insert(lowb, pattern_map_t::value_type(pattern, 1));
+        }
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-compresspatterns-member-function">The compressPatterns member function</h2>
+<p>The member function <code class="highlighter-rouge">compressPatterns</code> calls <code class="highlighter-rouge">buildSubsetSpecificMaps</code> to store all data currently in <code class="highlighter-rouge">_data_matrix</code> in <code class="highlighter-rouge">_pattern_map_vect</code>, then it replaces the contents of <code class="highlighter-rouge">_data_matrix</code> with just the unique patterns and stores the number of sites exhibiting each pattern in the <code class="highlighter-rouge">_pattern_counts</code> data member. Once all the data has been thus compressed into unique site patterns and their counts, the <code class="highlighter-rouge">_pattern_map_vect</code> is cleared as it is now storing redundant information.</p>
+
+<p>You will notice that before any real work is done, some sanity checks are performed. The first check is to make sure there is data stored (it makes no sense to compress an empty data matrix). Second, the number of stored sites is obtained and used to <em>finalize</em> the <code class="highlighter-rouge">Partition</code> object. The call to <code class="highlighter-rouge">Partition::finalize</code> performs other checks, such as confirming that the number of sites specified by the user-defined data partition is the same as the number of sites stored in <code class="highlighter-rouge">_data_matrix</code>, and that no sites have failed to be assigned to any partition subset.</p>
+
+<p>Some of the details (e.g. the determination of which patterns are constant) will be postponed until the way state codes are stored is explained.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Data::compressPatterns() {    
+        // Perform sanity checks
+        if (_data_matrix.empty())
+            throw XStrom("Attempted to compress an empty data matrix");
+        
+        unsigned ntaxa = (unsigned)_data_matrix.size();
+        unsigned seqlen = (unsigned)_data_matrix[0].size();
+        
+        // Finalize partition
+        unsigned nsubsets = getNumSubsets();
+        _subset_end.resize(nsubsets);
+        _partition-&amp;gt;finalize(seqlen);
+
+        // Compact the data, storing it in _pattern_map_vect
+        unsigned npatterns = buildSubsetSpecificMaps(ntaxa, seqlen, nsubsets);
+        _pattern_counts.assign(npatterns, 0);
+        _monomorphic.assign(npatterns, 0);
+        _partition_key.assign(npatterns, -1);
+
+        // Rebuild _data_matrix to hold compact data, storing counts in _pattern_counts
+        _data_matrix.resize(ntaxa);
+        for (auto &amp; row : _data_matrix) {
+            row.resize(npatterns);
+        }
+
+        unsigned p = 0; 
+        for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+            for (auto &amp; pc : _pattern_map_vect[subset]) {
+                _pattern_counts[p] = pc.second; // record how many sites have pattern p
+                _partition_key[p] = subset;     // record the subset to which pattern p belongs
+                
+                state_t constant_state = pc.first[0];
+                unsigned t = 0;
+                for (auto sc : pc.first) {
+                    assert(sc &amp;gt; 0);
+                    constant_state &amp;= sc;
+                    _data_matrix[t][p] = sc;
+                    ++t;
+                }
+                // constant_state equals 0 if polymorphic or state code of state present if monomorphic
+                _monomorphic[p] = constant_state;
+                ++p;
+            }   
+            
+            _subset_end[subset] = p;
+
+            // Everything for this subset has been transferred to _data_matrix and _pattern_counts,
+            // so we can now free this memory
+            _pattern_map_vect[subset].clear();
+        }
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-storetaxonnames-member-function">The storeTaxonNames member function</h2>
+<p>This is a helper function used by the <code class="highlighter-rouge">getDataFromFile</code> member function (discussed below). It stores the taxon labels found in a Nexus taxa block in the vector <code class="highlighter-rouge">_taxon_names</code>. It is possible for there to be more than one taxa block in a data file. If more than one taxa block is encountered, this function checks that the order and labels for taxa in the second and subsequent taxa blocks are identical to those stored from the first taxa block. If not, an <code class="highlighter-rouge">XStrom</code> exception is thrown.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::storeTaxonNames(NxsTaxaBlock * taxaBlock, unsigned taxa_block_index) {    
+        unsigned ntax = 0;
+        if (taxa_block_index == 0) {
+            // First taxa block encountered in the file
+            _taxon_names.clear();
+            for (auto s : taxaBlock-&amp;gt;GetAllLabels())
+                _taxon_names.push_back(s);
+            ntax = (unsigned)_taxon_names.size();
+            _data_matrix.resize(ntax);
+        }
+        else {
+            // Second (or later) taxa block encountered in the file
+            // Check to ensure taxa block is identical to the first one
+            for (auto s : taxaBlock-&amp;gt;GetAllLabels()) {
+                if (_taxon_names[ntax++] != s)
+                    throw XStrom(boost::format("Taxa block %d in data file is not identical to first taxa block read") % (taxa_block_index+1));
+            }
+        }
+        
+        return ntax;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-storedata-member-function">The storeData member function</h2>
+<p>This is a helper function used by the <code class="highlighter-rouge">getDataFromFile</code> member function (discussed below). It stores the data from a Nexus data or character block and ensures that the data type specified in any partition definition is consistent with the data type of the data/characters block. Details of how data is stored in <code class="highlighter-rouge">_data_matrix</code> are provided in the documentation for <code class="highlighter-rouge">getDataFromFile</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Data::storeData(unsigned ntax, unsigned nchar_before, NxsCharactersBlock * charBlock, NxsCharactersBlock::DataTypesEnum datatype) {    
+        unsigned seqlen = 0;
+        
+        // Find the data type for the partition subset containing the first site in this NxsCharactersBlock
+        // Assumes that all sites in any given NxsCharactersBlock have the same type (i.e. mixed not allowed)
+        assert(_partition);
+        unsigned subset_index = _partition-&amp;gt;findSubsetForSite(nchar_before + 1); // remember that sites begin at 1, not 0, in partition definitions
+        DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset_index);
+
+        // Determine number of states and bail out if data type not handled
+        // 1 = standard, 2 = dna, 3 = rna, 4 = nucleotide, 5 = protein, 6 = continuous, 7 = codon, 8 = mixed
+        NxsCharactersBlock * block = charBlock;
+        if (datatype == NxsCharactersBlock::dna || datatype == NxsCharactersBlock::rna || datatype == NxsCharactersBlock::nucleotide) {
+            if (dt.isCodon()) {
+                // Create a NxsCharactersBlock containing codons rather than nucleotides
+                block = NxsCharactersBlock::NewCodonsCharactersBlock(
+                    charBlock,
+                    true,   // map partial ambiguities to completely missing (note: false is not yet implemented in NCL)
+                    true,   // gaps to missing
+                    true,   // inactive characters treated as missing
+                    NULL,   // if non-NULL, specifies the indices of the positions in the gene
+                    NULL);  // if non-NULL, specifies a pointer to a NxsCharactersBlock that contains all non-coding positions in gene
+            }
+            else {
+                if (!dt.isNucleotide())
+                    throw XStrom(boost::format("Partition subset has data type \"%s\" but data read from file has data type \"nucleotide\"") % dt.getDataTypeAsString());
+            }
+        }
+        else if (datatype == NxsCharactersBlock::protein) {
+            if (!dt.isProtein())
+                throw XStrom(boost::format("Partition subset has data type \"%s\" but data read from file has data type \"protein\"") % dt.getDataTypeAsString());
+        }
+        else if (datatype == NxsCharactersBlock::standard) {
+            if (!dt.isStandard())
+                throw XStrom(boost::format("Partition subset has data type \"%s\" but data read from file has data type \"standard\"") % dt.getDataTypeAsString());
+            assert(charBlock-&amp;gt;GetSymbols());
+            std::string symbols = std::string(charBlock-&amp;gt;GetSymbols());
+            dt.setStandardNumStates((unsigned)symbols.size());
+        }
+        else {
+            // ignore block because data type is not one that is supported
+            return nchar_before;
+        }
+        
+        unsigned num_states = dt.getNumStates();
+        
+        // Make sure all states can be accommodated in a variable of type state_t   
+        unsigned bits_in_state_t = 8*sizeof(state_t);
+        if (num_states &amp;gt; bits_in_state_t)
+            throw XStrom(boost::format("This program can only process data types with fewer than %d states") % bits_in_state_t);   
+        
+        // Copy data matrix from NxsCharactersBlock object to _data_matrix
+        // Loop through all taxa, processing one row from block for each taxon
+        for (unsigned t = 0; t &amp;lt; ntax; ++t) {
+
+            const NxsDiscreteStateRow &amp; row = block-&amp;gt;GetDiscreteMatrixRow(t);
+            if (seqlen == 0)
+                seqlen = (unsigned)row.size();
+            _data_matrix[t].resize(nchar_before + seqlen);
+            
+            // Loop through all sites/characters in row corresponding to taxon t
+            unsigned k = nchar_before;
+            for (int raw_state_code : row) {
+                // For codon model, raw_state_code ranges from 0-63, but deletion of stop codons means fewer state codes
+                state_t state = std::numeric_limits&amp;lt;state_t&amp;gt;::max(); // complete ambiguity, all bits set
+                bool complete_ambiguity = (!dt.isCodon() &amp;&amp; raw_state_code == (int)num_states);
+                bool all_missing_or_gaps = (raw_state_code &amp;lt; 0);
+                if ((!complete_ambiguity) &amp;&amp; (!all_missing_or_gaps)) {
+                    int state_code = raw_state_code;
+                    if (dt.isCodon())
+                        state_code = dt.getGeneticCode()-&amp;gt;getStateCode(raw_state_code);
+
+                    if (state_code &amp;lt; (int)num_states) {
+                        state = (state_t)1 &amp;lt;&amp;lt; state_code;
+                    }
+                    else {
+                        // incomplete ambiguity (NCL state code &amp;gt; num_states)
+                        const NxsDiscreteDatatypeMapper      * mapper = block-&amp;gt;GetDatatypeMapperForChar(k - nchar_before);
+                        const std::set&amp;lt;NxsDiscreteStateCell&amp;gt; &amp; state_set = mapper-&amp;gt;GetStateSetForCode(raw_state_code);
+                        state = 0;
+                        for (auto s : state_set) {
+                             state |= (state_t)1 &amp;lt;&amp;lt; s;
+                        }
+                    }
+                }
+                _data_matrix[t][k++] = state;
+            }
+        }
+        
+        return seqlen;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-getdatafromfile-member-function">The getDataFromFile member function</h2>
+<p>This member function makes use of the NCL (Nexus Class Library) to read and parse the data file. The advantage of using the NCL is that we do not have to deal with all the vagaries in format that people (and programs) use when creating NEXUS-formatted data file. The comment at the beginning of the function provides the <a href="http://phylo.bio.ku.edu/ncldocs/v2.1/funcdocs/index.html">web address of the primary documentation for the NCL</a>. Please refer to this web site if you want a more complete explanation of the NCL functions used here. I will explain the salient features below the code block.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Data::getDataFromFile(const std::string filename) {    
+        // See http://phylo.bio.ku.edu/ncldocs/v2.1/funcdocs/index.html for documentation
+        //
+        // -1 means "process all blocks found" (this is a bit field and -1 fills the bit field with 1s)
+        // Here are the bits (and nexus blocks) that are defined:
+        //     enum NexusBlocksToRead
+        //     {
+        //         NEXUS_TAXA_BLOCK_BIT = 0x01,
+        //         NEXUS_TREES_BLOCK_BIT = 0x02,
+        //         NEXUS_CHARACTERS_BLOCK_BIT = 0x04,
+        //         NEXUS_ASSUMPTIONS_BLOCK_BIT = 0x08,
+        //         NEXUS_SETS_BLOCK_BIT = 0x10,
+        //         NEXUS_UNALIGNED_BLOCK_BIT = 0x20,
+        //         NEXUS_DISTANCES_BLOCK_BIT = 0x40,
+        //         NEXUS_UNKNOWN_BLOCK_BIT = 0x80
+        //     };
+        MultiFormatReader nexusReader(-1, NxsReader::WARNINGS_TO_STDERR);
+        try {
+            nexusReader.ReadFilepath(filename.c_str(), MultiFormatReader::NEXUS_FORMAT);
+        }
+        catch(...) {    
+            nexusReader.DeleteBlocksFromFactories();
+            throw;
+        }   
+
+        // Commit to storing new data
+        clear();
+
+        // Ensure that Data::setPartition was called before reading data
+        assert(_partition);
+
+        int numTaxaBlocks = nexusReader.GetNumTaxaBlocks();
+        if (numTaxaBlocks == 0)
+            throw XStrom("No taxa blocks were found in the data file");
+            
+        unsigned cum_nchar = 0; 
+        for (int i = 0; i &amp;lt; numTaxaBlocks; ++i) {
+            NxsTaxaBlock * taxaBlock = nexusReader.GetTaxaBlock(i);
+            unsigned ntax = storeTaxonNames(taxaBlock, i);
+            const unsigned numCharBlocks = nexusReader.GetNumCharactersBlocks(taxaBlock);
+            for (unsigned j = 0; j &amp;lt; numCharBlocks; ++j) {
+                NxsCharactersBlock * charBlock = nexusReader.GetCharactersBlock(taxaBlock, j);
+                NxsCharactersBlock::DataTypesEnum datatype = charBlock-&amp;gt;GetOriginalDataType();
+                cum_nchar += storeData(ntax, cum_nchar, charBlock, datatype);
+            }
+        }   
+
+        // No longer any need to store raw data from nexus file
+        nexusReader.DeleteBlocksFromFactories();
+
+        // Compress _data_matrix so that it holds only unique patterns (counts stored in _pattern_counts)
+        if (_data_matrix.empty()) {
+            std::cout &amp;lt;&amp;lt; "No data were stored from the file \"" &amp;lt;&amp;lt; filename &amp;lt;&amp;lt; "\"" &amp;lt;&amp;lt; std::endl;
+            clear();
+        }
+        else {
+            compressPatterns();
+        }
+    }    
+
+</code></pre></div></div>
+
+<p>We use the NCL’s <code class="highlighter-rouge">MultiFormatReader</code> class to create an object that can parse a NEXUS-formatted data file. <code class="highlighter-rouge">MultiFormatReader</code> is a class defined by the Nexus Class Library (NCL). Your program knows about it because of the <code class="highlighter-rouge">#include "ncl/nxsmultiformat.h"</code> at the top of the file.</p>
+
+<p>The actual code for the functions and classes provided by the NCL will not be stored in your program’s executable file; it will be loaded on demand from a separate Dynamic Link Library (provided by the file <em>libncl.so</em>) after your program begins to execute.</p>
+
+<p>The <code class="highlighter-rouge">ReadFilepath</code> function is used to read in the data file whose name is specified in the parameter <code class="highlighter-rouge">filename</code>. Note that we’ve supplied the argument <code class="highlighter-rouge">MultiFormatReader::NEXUS_FORMAT</code> to the <code class="highlighter-rouge">ReadFilepath</code> function: the NCL can read other common data file formats besides NEXUS, so you could modify your program to read (for example) FASTA-formatted data files by supplying a different argument (i.e. <code class="highlighter-rouge">MultiFormatReader::FASTA_DNA_FORMAT</code>). (A listing of supported formats may be found in the <em>nxsmultiformat.h</em> header file.)</p>
+
+<p>The catch block,</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        catch(...) {    
+            nexusReader.DeleteBlocksFromFactories();
+            throw;
+        }   
+
+</code></pre></div></div>
+<p>is executed only if the NCL encountered a problem reading the file. The ellipsis (…) indicates that any exception thrown by <code class="highlighter-rouge">ReadFilepath</code> will be caught here. The <code class="highlighter-rouge">catch</code> code deletes all data stored thus far by calling the <code class="highlighter-rouge">DeleteBlocksFromFactories()</code> function and then re-throws the exception so that your program can catch and report the problem.</p>
+
+<p>When the NCL reads a NEXUS data file, it looks for a DATA or CHARACTERS block and stores the data therein. If the creator of the data file has added a TAXA block, the NCL will associate the sequence data from the DATA or CHARACTERS block with the taxon names from that TAXA block. If no TAXA block was found in the file, the NCL will create a virtual TAXA block using the taxon names in the DATA or CHARACTERS block. In any case, our function first enumerates all TAXA blocks (real or vitual) found and then, for each TAXA block, we can enumerate all DATA or CHARACTER blocks stored under that TAXA block.</p>
+
+<p>The main loop is shown below:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        unsigned cum_nchar = 0; 
+        for (int i = 0; i &amp;lt; numTaxaBlocks; ++i) {
+            NxsTaxaBlock * taxaBlock = nexusReader.GetTaxaBlock(i);
+            unsigned ntax = storeTaxonNames(taxaBlock, i);
+            const unsigned numCharBlocks = nexusReader.GetNumCharactersBlocks(taxaBlock);
+            for (unsigned j = 0; j &amp;lt; numCharBlocks; ++j) {
+                NxsCharactersBlock * charBlock = nexusReader.GetCharactersBlock(taxaBlock, j);
+                NxsCharactersBlock::DataTypesEnum datatype = charBlock-&amp;gt;GetOriginalDataType();
+                cum_nchar += storeData(ntax, cum_nchar, charBlock, datatype);
+            }
+        }   
+
+</code></pre></div></div>
+
+<p>For the first TAXA block read, the taxon names are stored (by the <code class="highlighter-rouge">storeTaxonNames</code> member function) in the data member <code class="highlighter-rouge">_taxon_names</code>. For subsequent TAXA blocks, <code class="highlighter-rouge">storeTaxonNames</code> will simply check to make sure that taxon names are identical to those provided in the first TAXA block.</p>
+
+<p>For each CHARACTER block read (DATA blocks will also be returned by the <code class="highlighter-rouge">GetNumCharactersBlocks</code> function), the data in the matrix is stored in the data member <code class="highlighter-rouge">_data_matrix</code> by the member function <code class="highlighter-rouge">storeData</code>.</p>
+
+<h3 id="how-ncl-stores-data">How NCL stores data</h3>
+<p>The NCL stores DNA data not as <code class="highlighter-rouge">A</code>, <code class="highlighter-rouge">C</code>, <code class="highlighter-rouge">G</code>, and <code class="highlighter-rouge">T</code>, but instead as state codes: 0 for <code class="highlighter-rouge">A</code>, 1 for <code class="highlighter-rouge">C</code>, 2 for <code class="highlighter-rouge">G</code>, and 3 for <code class="highlighter-rouge">T</code>. An entry in the NEXUS data file that specifies complete ambiguity (e.g. <code class="highlighter-rouge">N</code> or <code class="highlighter-rouge">{ACGT}</code>) would be stored as 4. Missing data and gaps are stored as -1 and -2, respectively. Ambiguities that do not represent completely missing data are stored as a value larger than 4, and the function <code class="highlighter-rouge">NxsDiscreteDatatypeMapper::GetStateSetForCode</code> must be used to unpack this value into a set of states considered possible (see the code block for the <code class="highlighter-rouge">storeData</code> member function to see how this is done).</p>
+
+<h3 id="how-our-program-stores-data">How our program stores data</h3>
+<p>Our program stores the state for each taxon/site combination as a <strong>bit field</strong>. Consider storing the DNA states A, C, G, T, ? (completely missing), R (i.e. a purine, either A or G), and Y (a pyrimidine, either C or T). We need only 4 bits (each holding a 0 or 1) to store any possible DNA state.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>DNA  binary  decimal
+ A    0001      1
+ C    0010      2
+ G    0100      4
+ T    1000      8
+ ?    1111     15
+ R    0101      5
+ Y    1010     10
+</code></pre></div></div>
+<p>Thus, if NCL stores 3 (for T), we will store 8 instead. If NCL stores 4 (missing data), we will store 15 instead. This allows us to handle any type of ambiguity thrown at us. Keep in mind, however, that our state codes are different than NCL’s state codes.</p>
+
+<p>You will remember that our program allows a subset to contain codons rather than nucleotides. There are 64 possible codons, so in order to have a bit for each possible codon state, it is necessary to use a variable that occupies 64 bits of memory. For this reason, our program defines <code class="highlighter-rouge">state_t</code> to be unsigned long, which (conveniently) occupies 64 bits on at 64-bit computer. As a result, our program will only be able to accommodate data subsets of type codon if it is compiled on a 64-bit computer. The following lines inside <code class="highlighter-rouge">storeData</code> check to make sure that the number of states does not exceed the number of bits in a variable of type <code class="highlighter-rouge">state_t</code>. If so, an exception is thrown:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        // Make sure all states can be accommodated in a variable of type state_t   
+        unsigned bits_in_state_t = 8*sizeof(state_t);
+        if (num_states &amp;gt; bits_in_state_t)
+            throw XStrom(boost::format("This program can only process data types with fewer than %d states") % bits_in_state_t);   
+
+</code></pre></div></div>
+
+<h3 id="compressing-the-data">Compressing the data</h3>
+<p>The final statement in this function calls the <code class="highlighter-rouge">compressPatterns()</code> member function, which eliminates duplicate patterns from <code class="highlighter-rouge">_data_matrix</code> and stores the counts of each pattern in <code class="highlighter-rouge">_pattern_counts</code>. If each sequence has 1000 nucleotides in the data file, then, before calling <code class="highlighter-rouge">compressPatterns()</code>, each row of <code class="highlighter-rouge">_data_matrix</code> would be a vector containing 1000 state codes and <code class="highlighter-rouge">_pattern_counts</code> would be a vector containing 1000 elements each equalling 1. Suppose that there are only 180 distinct site patterns. After calling <code class="highlighter-rouge">compressPatterns()</code>, each row of <code class="highlighter-rouge">_data_matrix</code> would now have only 180 state codes and <code class="highlighter-rouge">_pattern_counts</code> would be 180 elements long (and now many of these numbers are greater than 1).</p>
+
+<p>Now that you understand how states are stored, this loop in the <code class="highlighter-rouge">compressPatterns</code> member function, which visits each state code (<code class="highlighter-rouge">sc</code>) in a given pattern (<code class="highlighter-rouge">pc.first</code>), can be explained:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        unsigned p = 0; 
+        for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+            for (auto &amp; pc : _pattern_map_vect[subset]) {
+                _pattern_counts[p] = pc.second; // record how many sites have pattern p
+                _partition_key[p] = subset;     // record the subset to which pattern p belongs
+                
+                state_t constant_state = pc.first[0];
+                unsigned t = 0;
+                for (auto sc : pc.first) {
+                    assert(sc &amp;gt; 0);
+                    constant_state &amp;= sc;
+                    _data_matrix[t][p] = sc;
+                    ++t;
+                }
+                // constant_state equals 0 if polymorphic or state code of state present if monomorphic
+                _monomorphic[p] = constant_state;
+                ++p;
+            }   
+
+</code></pre></div></div>
+
+<p>The local variable <code class="highlighter-rouge">p</code> keeps track of the pattern index over all subsets. Within each <code class="highlighter-rouge">subset</code>, <code class="highlighter-rouge">pc</code> is set in turn to each stored pair from <code class="highlighter-rouge">_pattern_map_vect[subset]</code>. The first member of each pair is a vector states representing the pattern itself; the second member of each pair is the count of the number of sites having that pattern.</p>
+
+<p>For each pattern, <code class="highlighter-rouge">sc</code> is set in turn to each state in the pattern and stored in _data_matrix row <code class="highlighter-rouge">t</code>, column <code class="highlighter-rouge">p</code>, where <code class="highlighter-rouge">t</code> is the index of the state within the pattern (<code class="highlighter-rouge">t</code> stands for “taxon” because a pattern is just the state possessed by each taxon for a particular site). Before this <code class="highlighter-rouge">sc</code> loop begins, the local variable <code class="highlighter-rouge">constant_state</code> is set equal to the first state in the pattern. For each subsequent state, <code class="highlighter-rouge">constant_state</code> is updated using a bitwise AND operation. If <code class="highlighter-rouge">constant_state</code> makes it through all states in the pattern and is still greater than 0, it means that the pattern is at least potentially constant (a constant or monomorphic pattern is one in which all taxa have the same state).</p>
+
+<p>For example, suppose the pattern for a 4-taxon problem is “AAAA”. Here is the succession of values possessed by <code class="highlighter-rouge">constant_state</code> (showing only the relevant 4 bits):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>A 0001
+A 0001 = 0001 &amp; 0001
+A 0001 = 0001 &amp; 0001
+A 0001 = 0001 &amp; 0001
+</code></pre></div></div>
+
+<p>Note that <code class="highlighter-rouge">constant_state</code> equals 1 in the end. Now consider a variable pattern, “AAGG”:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>A 0001
+A 0001 = 0001 &amp; 0001
+G 0000 = 0001 &amp; 0100
+G 0000 = 0000 &amp; 0100
+</code></pre></div></div>
+
+<p>Variable patterns set all bits to zero in <code class="highlighter-rouge">constant_state</code>. What about a pattern involving some missing data, “CC??”?</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C 0010
+C 0010 = 0010 &amp; 0010
+? 0010 = 0010 &amp; 1111
+? 0010 = 0010 &amp; 1111
+</code></pre></div></div>
+
+<p>This pattern is considered constant for state C because all the unambiguous states are C. Consider one final example, “RR??”:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>R 0101
+R 0101 = 0101 &amp; 0101
+? 0101 = 0101 &amp; 1111
+? 0101 = 0101 &amp; 1111
+</code></pre></div></div>
+
+<p>In this case, <code class="highlighter-rouge">constant_state</code> ends up being greater than 0, so it is not a variable site, yet there is no unambiguous state in the entire pattern. In this case, the pattern is consistant with a constant state containing all As or all Gs.</p>
+
+<p>The element of <code class="highlighter-rouge">_monomorphic</code> corresponding to pattern index <code class="highlighter-rouge">p</code> is set to the final value of <code class="highlighter-rouge">constant_state</code>. Thus <code class="highlighter-rouge">_monomorphic</code> can later used to determine for which states this pattern is potentially constant. This information will be used later to compute the likelihood for the invariable sites rate heterogeneity model.</p>
+
+<h3 id="releasing-memory">Releasing memory</h3>
+<p>The <code class="highlighter-rouge">_pattern_map_vect</code> data member is used by <code class="highlighter-rouge">compressPatterns()</code> but is cleared before that function returns. It serves as a temporary work space, and does not hold onto its contents once <code class="highlighter-rouge">_data_matrix</code> and <code class="highlighter-rouge">_pattern_counts</code> are rebuilt. For the same reason (we have all the data stored in our own data structures now), the function <code class="highlighter-rouge">MultiFormatReader::DeleteBlocksFromFactories</code> is called to delete data stored by NCL.</p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-09/02-create-the-partition-class.html">&lt;&nbsp;9.2</a> | 9.3 | <a href="/people/plewis/cpp//linux//steps/step-09/04-test-reading-and-storing-data.html">9.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

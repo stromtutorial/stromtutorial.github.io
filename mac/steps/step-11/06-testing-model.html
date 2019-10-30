@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test the Model class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home">
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">11.6 Test the Model class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection">
+<a href="/people/plewis/cpp//mac//steps/step-11/05-adding-model-to-likelihood.html">&lt; 11.5</a> | 11.6 | <a href="/people/plewis/cpp//mac//steps/step-12/00-the-large-tree-problem.html">12.0 &gt;</a>
+</h3>
+</div>
+
+
+<h2 id="install-the-eigen-library">Install the Eigen library</h2>
+
+<p>Download the latest stable release of <a href="eigen.tuxfamily.org">Eigen 3</a>.</p>
+
+<p>Unpack the downloaded zip or tar.gz file (e.g. <em>3.3.7.tar.gz</em>) to your <code class="highlighter-rouge">libraries</code> directory. For example, on my computer, I now have this directory path: <em>/Users/plewis/Documents/libraries/eigen-eigen-323c052e1731/Eigen</em>
+I will refer to the <em>eigen-eigen-323c052e1731</em> directory as <code class="highlighter-rouge">EIGEN_ROOT</code>. Inside <code class="highlighter-rouge">EIGEN_ROOT</code> is the directory named <code class="highlighter-rouge">Eigen</code> (starting with a capital E)</p>
+
+<p>You now need to tell Xcode where the installed Eigen header files are located.</p>
+
+<p>Choose <em>Xcode &gt; Preferences…</em> from the main Xcode window, then click the “Locations” tab, and, finally, “Custom Paths”.</p>
+
+<p>Click the <code class="highlighter-rouge">+</code> button and add name <code class="highlighter-rouge">EIGEN_ROOT</code>, Display Name <code class="highlighter-rouge">EIGEN_ROOT</code>, and, for Path, enter the full path to the directory you just created: for example, I entered this:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/Users/plewis/Documents/libraries/eigen-eigen-323c052e1731
+</code></pre></div></div>
+
+<p>This creates an alias that we can use in place of this path to specify where the NCL libraries and headers reside. You may remember that we already created an alias named <code class="highlighter-rouge">BOOST_ROOT</code> pointing to the Boost install directory and one named <code class="highlighter-rouge">NCL_ROOT</code> pointing to the Nexus Class Library install directory. Should we ever move the Eigen library, we need only update this “Custom Paths” path and would not have to modify the Xcode project.</p>
+
+<p>Click on the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20"> labeled strom at the top of the Project Navigator (not the yellow folder icon <img class="emoji" title=":yellowfolder:" alt=":yellowfolder:" src="/people/plewis/cpp/assets/img/emoji/yellowfolder.png" height="20" width="20"> also labeled strom), then click on the “Build Settings” tab. Type “header search” into the search box. In the “Header Search Paths” row, double-click on the cell in the column with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20">. Click the <code class="highlighter-rouge">+</code> symbol and add <code class="highlighter-rouge">$(EIGEN_ROOT)</code>, pressing the enter key when finished. This tells Xcode where to find Eigen header files.</p>
+
+<p>Because Eigen is a header-only library, we do not need to perform any other setup: it’s ready to go once Xcode knows where to find it!</p>
+
+<h2 id="modify-strom">Modify Strom</h2>
+
+<p>First, add a data member of type <code class="highlighter-rouge">Model</code> to the private section of the <code class="highlighter-rouge">Strom</code> class declaration (e.g. just below <code class="highlighter-rouge">Data::SharedPtr _data;</code>). Add another data member to hold the expected log-likelihood. The <code class="highlighter-rouge">_expected_log_likelihood</code> data member and the corresponding <code class="highlighter-rouge">expectedLnL</code> program option will help us in debugging but will be removed once our program is ready to be released. Finally, add declaration for 3 new private member functions, <code class="highlighter-rouge">processAssignmentString</code>, <code class="highlighter-rouge">handleAssignmentStrings</code>, and <code class="highlighter-rouge">splitAssignmentString</code>. The changes needed to the class declaration are highlighted below:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Strom {   
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    processAssignmentString(const std::string &amp; which, const std::string &amp; definition);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    handleAssignmentStrings(const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);&lt;/strong&gt;&lt;/span&gt;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _expected_log_likelihood;&lt;/strong&gt;&lt;/span&gt;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Model::SharedPtr                        _model;&lt;/strong&gt;&lt;/span&gt;
+            Likelihood::SharedPtr                   _likelihood;
+            TreeSummary::SharedPtr                  _tree_summary;
+
+            bool                                    _use_gpu;
+            bool                                    _ambig_missing;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+
+    };  
+
+</code></pre></div></div>
+
+<p>Initialize the new data members in the body of the <code class="highlighter-rouge">Strom::clear</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name = "";
+        _tree_file_name = "";
+        _tree_summary   = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu        = true;
+        _ambig_missing  = true;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_model.reset(new Model());&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_expected_log_likelihood = 0.0;&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+
+<h3 id="allow-user-to-set-model-parameter-values">Allow user to set model parameter values</h3>
+
+<p>Modify the <code class="highlighter-rouge">Strom::processCommandLineOptions</code> function (in the <em>strom.hpp</em> file) as follows to add options to allow the user to set various model parameters (as well as the expected log-likelihood).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_statefreq;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_rmatrix;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_omega;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_ratevar;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_pinvar;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_ncateg;&lt;/strong&gt;&lt;/span&gt;
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_relrates;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;std::string&amp;gt; partition_tree;&lt;/strong&gt;&lt;/span&gt;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("ncateg,c", boost::program_options::value(&amp;partition_ncateg), "number of categories in the discrete Gamma rate heterogeneity model")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("statefreq", boost::program_options::value(&amp;partition_statefreq), "a string defining state frequencies for one or more data subsets, e.g. 'first,second:0.1,0.2,0.3,0.4'")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("omega", boost::program_options::value(&amp;partition_omega), "a string defining the nonsynonymous/synonymous rate ratio omega for one or more data subsets, e.g. 'first,second:0.1'")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("rmatrix", boost::program_options::value(&amp;partition_rmatrix), "a string defining the rmatrix for one or more data subsets, e.g. 'first,second:1,2,1,1,2,1'")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("ratevar", boost::program_options::value(&amp;partition_ratevar), "a string defining the among-site rate variance for one or more data subsets, e.g. 'first,second:2.5'")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("pinvar", boost::program_options::value(&amp;partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("relrate", boost::program_options::value(&amp;partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("tree", boost::program_options::value(&amp;partition_tree), "the index of the tree in the tree file (first tree has index = 1)")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")&lt;/strong&gt;&lt;/span&gt;
+            ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
+            ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
+        ;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        try {
+            const boost::program_options::parsed_options &amp; parsed = boost::program_options::parse_config_file&amp;lt; char &amp;gt;("strom.conf", desc, false);
+            boost::program_options::store(parsed, vm);
+        }
+        catch(boost::program_options::reading_file &amp; x) {
+            std::cout &amp;lt;&amp;lt; "Note: configuration file (strom.conf) not found" &amp;lt;&amp;lt; std::endl;
+        }
+        boost::program_options::notify(vm);
+
+        // If user specified --help on command line, output usage summary and quit
+        if (vm.count("help") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; desc &amp;lt;&amp;lt; "\n";
+            std::exit(1);
+        }
+
+        // If user specified --version on command line, output version and quit
+        if (vm.count("version") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) &amp;lt;&amp;lt; std::endl;
+            std::exit(1);
+        }
+    
+        // If user specified --subset on command line, break specified partition subset 
+        // definition into name and character set string and add to _partition
+        if (vm.count("subset") &amp;gt; 0) {
+            _partition.reset(new Partition());
+            for (auto s : partition_subsets) {
+                _partition-&amp;gt;parseSubsetDefinition(s);
+            }
+        }
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_model-&amp;gt;setSubsetDataTypes(_partition-&amp;gt;getSubsetDataTypes());&lt;/strong&gt;&lt;/span&gt;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "statefreq", partition_statefreq, "default:equal");&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "rmatrix",   partition_rmatrix,   "default:equal");&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "omega",     partition_omega,     "default:0.1"  );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "ncateg",    partition_ncateg,    "default:1"    );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "ratevar",   partition_ratevar,   "default:1.0"  );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "pinvar",    partition_pinvar,    "default:0.0"  );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "relrate",   partition_relrates,  "default:equal");&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;handleAssignmentStrings(vm, "tree",      partition_tree,      "default:1"    );&lt;/strong&gt;&lt;/span&gt;
+    }  
+
+</code></pre></div></div>
+<p>You will note that I have introduced 8 local variables (<code class="highlighter-rouge">partition_statefreq</code>, <code class="highlighter-rouge">partition_rmatrix</code>, <code class="highlighter-rouge">partition_omega</code>, <code class="highlighter-rouge">partition_ratevar</code>, <code class="highlighter-rouge">partition_pinvar</code>, <code class="highlighter-rouge">partition_ncateg</code>, <code class="highlighter-rouge">partition_relrates</code>, and <code class="highlighter-rouge">partition_tree</code>) that serve to capture information provided by the user in the configuration file. As these bits of information are captured, they must be transfered to the model. The first thing we must tell the model is the number of partition subsets that the user defined and the data types of those subsets (using the <code class="highlighter-rouge">Model::setSubsetDataTypes</code> function). Following that line, there are 8 <code class="highlighter-rouge">handleAssignmentStrings</code> function calls, one for each of the new quantities that the user can potentially modify using the configuration file.</p>
+
+<h3 id="the-handleassignmentstrings-member-function">The handleAssignmentStrings member function</h3>
+<p>This function checks to see whether the user specified any option in the configuration file with a name equal to <code class="highlighter-rouge">label</code>. If so, it calls on processAssignmentString to do all the work of parsing the assignment of a parameter value to different subsets. It also checks whether the user specified a default parameter value to be applied to all subsets unless overridden by a later subset-specific assignment. If the user has supplied a default, it must come first in the config file, otherwise it would overwrite assignments already made to specific subsets. If the user did not specify any assignments using the name provided via <code class="highlighter-rouge">label</code>, then the supplied <code class="highlighter-rouge">default_definition</code> is applied.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::handleAssignmentStrings(const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition) { 
+        if (vm.count(label) &amp;gt; 0) {
+            bool first = true;
+            for (auto s : definitions) {
+                bool is_default = processAssignmentString(label, s);
+                if (is_default &amp;&amp; !first)
+                    throw XStrom(boost::format("default specification must be first %s encountered") % label);
+                first = false;
+            }
+        }
+        else {
+            processAssignmentString(label, default_definition);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h3 id="the-processassignmentstring-member-function">The processAssignmentString member function</h3>
+<p>This function handles parsing a particular parameter assignment (e.g. strings such as <code class="highlighter-rouge">rmatrix = first,second:1,1,1,1,1,1</code> or <code class="highlighter-rouge">statefreq = default:.1,.2,.3,.4</code>). Each of these assignment statements comprises a list of subsets (or the keyword <code class="highlighter-rouge">default</code>) and a parameter value (which may be multivariate), separated by a colon (<code class="highlighter-rouge">:</code>) character. The function <code class="highlighter-rouge">splitAssignmentString</code> is used to separate out the subsets into a vector of strings named <code class="highlighter-rouge">vector_of_subset_names</code> and a vector of doubles named <code class="highlighter-rouge">vector_of_values</code>.</p>
+
+<p>The remainder of the function is just a long nested conditional that calls the specific member function of <code class="highlighter-rouge">_model</code> responsible for handling each possible parameter assignment. In the case of model parameters that can be linked across data subsets (e.g. <code class="highlighter-rouge">statefreq</code>, <code class="highlighter-rouge">rmatrix</code>, <code class="highlighter-rouge">omega</code>, <code class="highlighter-rouge">pinvar</code>, <code class="highlighter-rouge">ratevar</code>, and <code class="highlighter-rouge">relrate</code>), the parameter value is made into a shared pointer and it is the shared pointer that is assigned to different subsets. In the case of fixed settings (e.g. <code class="highlighter-rouge">ncateg</code>), actual values are assigned to the specified subsets. If the first element of <code class="highlighter-rouge">vector_of_subset_names</code> is <code class="highlighter-rouge">default</code>, then the assignment is made to all subsets; otherwise, each subset listed by the user is looked up by name and the assignment is made to that particular set of data subsets.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Strom::processAssignmentString(const std::string &amp; which, const std::string &amp; definition) { 
+        unsigned num_subsets_defined = _partition-&amp;gt;getNumSubsets();
+        std::vector&amp;lt;std::string&amp;gt; vector_of_subset_names;
+        std::vector&amp;lt;double&amp;gt; vector_of_values;
+        bool fixed = splitAssignmentString(definition, vector_of_subset_names, vector_of_values);
+        
+        if (vector_of_values.size() == 1 &amp;&amp; vector_of_values[0] == -1 &amp;&amp; !(which == "statefreq" || which == "rmatrix" || which == "relrate"))
+            throw XStrom("Keyword equal is only allowed for statefreq, rmatrix, and relrate");
+
+        // Assign values to subsets in model
+        bool default_found = false;
+        if (which == "statefreq") {
+            QMatrix::freq_xchg_ptr_t freqs = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(vector_of_values);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    _model-&amp;gt;setSubsetStateFreqs(freqs, i, fixed);
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    _model-&amp;gt;setSubsetStateFreqs(freqs, _partition-&amp;gt;findSubsetByName(s), fixed);
+                }
+            }
+        }
+        else if (which == "rmatrix") {
+            QMatrix::freq_xchg_ptr_t xchg = std::make_shared&amp;lt;QMatrix::freq_xchg_t&amp;gt;(vector_of_values);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    _model-&amp;gt;setSubsetExchangeabilities(xchg, i, fixed);
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    _model-&amp;gt;setSubsetExchangeabilities(xchg, _partition-&amp;gt;findSubsetByName(s), fixed);
+                }
+            }
+        }
+        else if (which == "omega") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for omega, found %d values") % vector_of_values.size());
+            QMatrix::omega_ptr_t omega = std::make_shared&amp;lt;QMatrix::omega_t&amp;gt;(vector_of_values[0]);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    _model-&amp;gt;setSubsetOmega(omega, i, fixed);
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    _model-&amp;gt;setSubsetOmega(omega, _partition-&amp;gt;findSubsetByName(s), fixed);
+                }
+            }
+        }
+        else if (which == "pinvar") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for pinvar, found %d values") % vector_of_values.size());
+            ASRV::pinvar_ptr_t p = std::make_shared&amp;lt;double&amp;gt;(vector_of_values[0]);
+            bool invar_model = (*p &amp;gt; 0);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++) {
+                    _model-&amp;gt;setSubsetIsInvarModel(invar_model, i);
+                    _model-&amp;gt;setSubsetPinvar(p, i, fixed);
+                }
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    unsigned i = _partition-&amp;gt;findSubsetByName(s);
+                    _model-&amp;gt;setSubsetIsInvarModel(invar_model, i);
+                    _model-&amp;gt;setSubsetPinvar(p, i, fixed);
+                }
+            }
+        }
+        else if (which == "ratevar") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for ratevar, found %d values") % vector_of_values.size());
+            ASRV::ratevar_ptr_t rv = std::make_shared&amp;lt;double&amp;gt;(vector_of_values[0]);
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    _model-&amp;gt;setSubsetRateVar(rv, i, fixed);
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    _model-&amp;gt;setSubsetRateVar(rv, _partition-&amp;gt;findSubsetByName(s), fixed);
+                }
+            }
+        }
+        else if (which == "ncateg") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for ncateg, found %d values") % vector_of_values.size());
+            unsigned ncat = vector_of_values[0];
+            if (vector_of_subset_names[0] == "default") {
+                default_found = true;
+                for (unsigned i = 0; i &amp;lt; num_subsets_defined; i++)
+                    _model-&amp;gt;setSubsetNumCateg(ncat, i);
+            }
+            else {
+                for (auto s : vector_of_subset_names) {
+                    _model-&amp;gt;setSubsetNumCateg(ncat, _partition-&amp;gt;findSubsetByName(s));
+                }
+            }
+        }
+        else if (which == "tree") {
+            if (vector_of_values.size() &amp;gt; 1)
+                throw XStrom(boost::format("expecting 1 value for tree, found %d values") % vector_of_values.size());
+            unsigned tree_index = vector_of_values[0];
+            assert(tree_index &amp;gt; 0);
+            _model-&amp;gt;setTreeIndex(tree_index - 1, fixed);
+            if (vector_of_subset_names[0] != "default")
+                throw XStrom("tree must be assigned to default only");
+        }
+        else {
+            assert(which == "relrate");
+            if (vector_of_subset_names[0] != "default")
+                throw XStrom("relrate must be assigned to default only");
+            _model-&amp;gt;setSubsetRelRates(vector_of_values, fixed);
+        }
+
+        return default_found;
+    }   
+
+</code></pre></div></div>
+
+<h3 id="the-splitassignmentstring-member-function">The splitAssignmentString member function</h3>
+<p>The job of this function is to split a string such as <code class="highlighter-rouge">first,second:1,1,1,1,1,1</code>, <code class="highlighter-rouge">default:.1,.2,.3,.4</code>, or <code class="highlighter-rouge">first,third:4</code> into two vectors: a vector of strings named <code class="highlighter-rouge">vector_of_subset_names</code> storing the subset names (or just the keyword <code class="highlighter-rouge">default</code>); and a vector of doubles named <code class="highlighter-rouge">vector_of_values</code> storing the (possibly multivariate) parameter value. These two vectors are supplied by the calling function (<code class="highlighter-rouge">processAssignmentString</code>) and passed by reference so that they can be filled by <code class="highlighter-rouge">splitAssignmentString</code>. In the example given, <code class="highlighter-rouge">vector_of_subset_names</code> would end up containing two strings (<code class="highlighter-rouge">first</code> and <code class="highlighter-rouge">second</code>) and <code class="highlighter-rouge">vector_of_values</code> would contain 6 double values, all equal to 1.0.</p>
+
+<p>The splitting is accomplished using the <code class="highlighter-rouge">boost::split</code> function, which produces a vector (<code class="highlighter-rouge">twoparts</code>) containing 2 strings (<code class="highlighter-rouge">first,second</code> and <code class="highlighter-rouge">1,1,1,1,1,1</code>). The <code class="highlighter-rouge">first,second</code> string is assigned to the variable <code class="highlighter-rouge">comma_delimited_subset_names_string</code> and the <code class="highlighter-rouge">1,1,1,1,1,1</code> string is assigned to the variable <code class="highlighter-rouge">comma_delimited_value_string</code>.</p>
+
+<p>This section shown below checks to see if the parameter value in <code class="highlighter-rouge">comma_delimited_value_string</code> is enclosed in square brackets (using a regular expression). If so, then <code class="highlighter-rouge">comma_delimited_value_string</code> is assigned to the part inside the square brackets, and a boolean variable <code class="highlighter-rouge">fixed</code> is set to <code class="highlighter-rouge">true</code>, indicating that the user wishes for this parameter to have a fixed value (i.e. not updated during an MCMC analysis, for example).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        // Check for brackets indicating that parameter should be fixed     
+        // now see if before_colon contains a data type specification in square brackets
+        bool fixed = false;
+        const char * pattern_string = R"(\s*\[(.+?)\]\s*)";
+        std::regex re(pattern_string);
+        std::smatch match_obj;
+        bool matched = std::regex_match(comma_delimited_value_string, match_obj, re);
+        if (matched) {
+            comma_delimited_value_string = match_obj[1];
+            fixed = true;
+        }   
+
+</code></pre></div></div>
+
+<p>If <code class="highlighter-rouge">comma_delimited_value_string</code> is the string <code class="highlighter-rouge">equal</code>, then <code class="highlighter-rouge">vector_of_values</code> is assigned the single value -1.0, which will serve as a signal that <code class="highlighter-rouge">equal</code> was specified.</p>
+
+<p>Assuming <code class="highlighter-rouge">comma_delimited_value_string</code> does not containg the string <code class="highlighter-rouge">equal</code>, then <code class="highlighter-rouge">comma_delimited_value_string</code> is split, again using <code class="highlighter-rouge">boost::split</code>, at the commas to yield the returned <code class="highlighter-rouge">vector_of_strings</code> vector, which is then converted to the double vector <code class="highlighter-rouge">vector_of_values</code> using <code class="highlighter-rouge">std::transform</code>. The <code class="highlighter-rouge">std::transform</code> function transforms each individual string in <code class="highlighter-rouge">vector_of_strings</code> to a double value that is appended to <code class="highlighter-rouge">vector_of_values</code> by the anonymous lambda function provided. The lambda function takes a string argument <code class="highlighter-rouge">vstr</code> provided by <code class="highlighter-rouge">std::transform</code> and converts it to a double value using the <code class="highlighter-rouge">std::stod</code> function.</p>
+
+<p>The <code class="highlighter-rouge">comma_delimited_subset_names_string</code> is split to yield the returned <code class="highlighter-rouge">vector_of_subset_names</code> using <code class="highlighter-rouge">boost::split</code> once again.</p>
+
+<p>Finally, some sanity checks are performed:</p>
+<ul>
+  <li>there should be at least one subset name supplied (but that name could be <code class="highlighter-rouge">default</code>).</li>
+  <li>if no partition was defined, then <code class="highlighter-rouge">vector_of_subset_names</code> should consist of just one element, and that element should be the string <code class="highlighter-rouge">default</code>.</li>
+  <li>if <code class="highlighter-rouge">default</code> is among the subset names supplied, then it should be the only subset name supplied.</li>
+</ul>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Strom::splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values) {  
+        // Split subset names from definition
+        std::vector&amp;lt;std::string&amp;gt; twoparts;
+        boost::split(twoparts, definition, boost::is_any_of(":"));
+        if (twoparts.size() != 2)
+            throw XStrom("Expecting exactly one colon in assignment");
+        std::string comma_delimited_subset_names_string = twoparts[0];
+        std::string comma_delimited_value_string = twoparts[1];
+        boost::to_lower(comma_delimited_value_string);
+        
+        // Check for brackets indicating that parameter should be fixed     
+        // now see if before_colon contains a data type specification in square brackets
+        bool fixed = false;
+        const char * pattern_string = R"(\s*\[(.+?)\]\s*)";
+        std::regex re(pattern_string);
+        std::smatch match_obj;
+        bool matched = std::regex_match(comma_delimited_value_string, match_obj, re);
+        if (matched) {
+            comma_delimited_value_string = match_obj[1];
+            fixed = true;
+        }   
+        
+        if (comma_delimited_value_string == "equal") {
+            vector_of_values.resize(1);
+            vector_of_values[0] = -1;
+        }
+        else {
+            // Convert comma_delimited_value_string to vector_of_strings
+            std::vector&amp;lt;std::string&amp;gt; vector_of_strings;
+            boost::split(vector_of_strings, comma_delimited_value_string, boost::is_any_of(","));
+
+            // Convert vector_of_strings to vector_of_values (single values in case of ratevar, ncateg, and pinvar)
+            vector_of_values.resize(vector_of_strings.size());
+            std::transform(
+                vector_of_strings.begin(),      // start of source vector
+                vector_of_strings.end(),        // end of source vector
+                vector_of_values.begin(),       // start of destination vector
+                [](const std::string &amp; vstr) {  // anonymous function that translates
+                    return std::stod(vstr);     // each string element to a double
+                }
+            );
+            assert(vector_of_values.size() &amp;gt; 0);
+        }
+        
+        // Split comma_delimited_subset_names_string into vector_of_subset_names
+        boost::split(vector_of_subset_names, comma_delimited_subset_names_string, boost::is_any_of(","));
+        
+        // Sanity check: at least one subset name must be provided
+        if (vector_of_subset_names.size() == 0) {
+            XStrom("At least 1 subset must be provided in assignments (use \"default\" if not partitioning)");
+        }
+        
+        // Sanity check: if no partition was defined, then values should be assigned to "default" subset
+        // and if "default" is in the list of subset names, it should be the only thing in that list
+        unsigned num_subsets_defined = _partition-&amp;gt;getNumSubsets();
+        std::vector&amp;lt;std::string&amp;gt;::iterator default_iter = std::find(vector_of_subset_names.begin(), vector_of_subset_names.end(), std::string("default"));
+        bool default_found = (default_iter != vector_of_subset_names.end());
+        if (default_found) {
+            if (vector_of_subset_names.size() &amp;gt; 1)
+                throw XStrom("The \"default\" specification cannot be mixed with other subset-specific parameter specifications");
+        }
+        else if (num_subsets_defined == 0) {
+            throw XStrom("Must specify partition before assigning values to particular subsets (or assign to subset \"default\")");
+        }
+        return fixed;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="updating-the-run-function">Updating the run function</h2>
+<p>Change the <code class="highlighter-rouge">Strom::run</code> function in the <em>strom.hpp</em> file to accommodate the new lines in blue:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            _data = Data::SharedPtr(new Data());
+            _data-&amp;gt;setPartition(_partition);
+            _data-&amp;gt;getDataFromFile(_data_file_name);
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_model-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_model-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_model-&amp;gt;activate();&lt;/strong&gt;&lt;/span&gt;
+
+            // Report information about data partition subsets
+            unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+                }
+
+            std::cout &amp;lt;&amp;lt; "\n*** Resources available to BeagleLib " &amp;lt;&amp;lt; _likelihood-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; ":\n";
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Creating the likelihood calculator" &amp;lt;&amp;lt; std::endl;
+            _likelihood = Likelihood::SharedPtr(new Likelihood());
+            _likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            _likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            _likelihood-&amp;gt;setData(_data);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\n*** Model description" &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; _model-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihood-&amp;gt;setModel(_model);&lt;/strong&gt;&lt;/span&gt;
+
+            _likelihood-&amp;gt;initBeagleLib();
+
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the first tree in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(0);
+            
+            if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+                throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+
+            std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
+            TreeManip tm(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
+            double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
+            tm.deselectAllPartials();
+            tm.deselectAllTMatrices();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_expected_log_likelihood != 0.0)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; boost::str(boost::format("      (expecting %.3f)") % _expected_log_likelihood) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="run-the-program-using-the-new-model-class">Run the program using the new Model class</h2>
+
+<p>Run your program using the <code class="highlighter-rouge">strom.conf</code> file you created at the beginning of this step (at the end of the section <a href="Specifying%20a%20model">Specifying a model</a>).</p>
+
+<p>The addition of the <code class="highlighter-rouge">expectedLnL</code> line provides the log-likelihood we expect our program to compute. Running the program should produce the expected log-likelihood. Your program now has the capability to compute the likelihood under a model involving data partitioning.</p>
+
+<div class="titlebar">
+	<h3 class="subsection">
+<a href="/people/plewis/cpp//mac//steps/step-11/05-adding-model-to-likelihood.html">&lt; 11.5</a> | 11.6 | <a href="/people/plewis/cpp//mac//steps/step-12/00-the-large-tree-problem.html">12.0 &gt;</a>
+</h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

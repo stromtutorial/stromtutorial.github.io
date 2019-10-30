@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test Node and Tree</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">2.4 Test Node and Tree</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/03-create-main-function.html">&lt;&nbsp;2.3</a> | 2.4 | <a href="/people/plewis/cpp//win//steps/step-03/00-saving-trees.html">3.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>It is now time to test what we have done thus far.</p>
+
+<h2 id="compiling-and-running-strom">Compiling and running strom</h2>
+
+<p>In VSC19, click on the <em>Local Windows Debugger</em> button on the toolbar. VSC19 should rebuild your program and open it in a new console window. If there are errors reported, you will need to carefully compare the contents of the files we have created with the tutorial versions to find what is different. Note that you will not see the output that you expect in the output area of the IDE. This IDE pane shows only output related to building the executable, not the output of the program itself!</p>
+
+<h2 id="output">Output</h2>
+<p>The expected output of the program thus far is shown below:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Starting...
+Constructing a Tree
+
+Finished!
+Destroying a Tree
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">Starting...</code> and <code class="highlighter-rouge">Finished!</code> lines are created by the <code class="highlighter-rouge">main</code> function, while the other strings are output in the <code class="highlighter-rouge">Tree</code> constructor and destructor. Note that there is no output from the <code class="highlighter-rouge">Node</code> constructor or destructor. That is because, so far, no <code class="highlighter-rouge">Node</code> objects have been created: we have created a <code class="highlighter-rouge">Tree</code> with no nodes, not even a root node!</p>
+
+<h2 id="creating-a-release-version">Creating a release version</h2>
+
+<p>The program you just executed was the <strong>debug version</strong> of strom. The debug version runs slowly because it is not optimized. Not optimizing the program allows the IDE (VSC19) to let you run the program one line at a time and see the values of variables as the program executes. This is helpful when debugging, but ultimately we will want to create a <strong>release version</strong> that is fully optimized and as fast as possible.</p>
+
+<p>To create a release version, simply change <em>Debug</em> to <em>Release</em> in the Solution Configurations dropdown of VSC19, then choose <em>Build Solution</em> from the <em>Build</em> menu (or press <em>Control-Shift-b</em>).</p>
+
+<p>To run the release version outside of VSC19, open Windows Explorer, hold down the shift key while right-clicking the <em>Release</em> folder inside <code class="highlighter-rouge">PROJECT_DIR</code>, then choose <em>Open PowerShell window here</em> from the popup menu that appears. Type <code class="highlighter-rouge">.\strom</code> in the console window that appears. You should see the expected output when the program runs.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-02/03-create-main-function.html">&lt;&nbsp;2.3</a> | 2.4 | <a href="/people/plewis/cpp//win//steps/step-03/00-saving-trees.html">3.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

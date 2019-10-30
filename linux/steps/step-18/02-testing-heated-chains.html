@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Testing Heated Chains</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">18.2 Testing Heated Chains</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/people/plewis/cpp/linux/steps/">Table of Contents</a></h3>
+</div>
+
+
+<p>Run the program using the following <code class="highlighter-rouge">strom.conf</code> file:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile    = rbcl10.nex    
+treefile    = rbcl10.tre
+ncateg      = default:4
+pinvar      = default:0.1
+seed        = 13579
+usedata     = no
+nchains     = 4
+burnin      = 10000
+niter       = 100000
+printfreq   = 1000
+samplefreq  = 10    
+
+</code></pre></div></div>
+
+<p>Note that no data will be used for this run, so the MCMC analysis will explore the prior. You’ll remember that we did this in the previous step, but now there is a convenient program option to allow easy switching between using data and ignoring data.</p>
+
+<p>After the run has finished, load the resulting <em>params.txt</em> file into the program Tracer to summarize the results. You should find that the means and variances of all parameters are the same as in the previous step: adding multiple chains does not change the distribution being explored by the cold chain, it simply makes moving around that landscape more efficient.</p>
+
+<p>Note that chain summaries are provided for all four chains.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Chain 0 (power 1.00000)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4091
+             Exchangeabilities        1000.000           100.0            4077
+           Gamma Rate Variance          14.496            27.0            4152
+Proportion of Invariable Sites           1.000           100.0            4154
+         Tree and Edge Lengths           7.189            30.0           79353
+                   Tree Length          14.111            32.5            4173
+
+Chain 1 (power 0.66667)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4110
+             Exchangeabilities        1000.000           100.0            4250
+           Gamma Rate Variance          12.001            26.4            4318
+Proportion of Invariable Sites           1.000           100.0            4171
+         Tree and Edge Lengths           6.932            29.7           79013
+                   Tree Length           9.822            33.4            4138
+
+Chain 2 (power 0.50000)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4234
+             Exchangeabilities        1000.000           100.0            4152
+           Gamma Rate Variance          15.390            26.7            4203
+Proportion of Invariable Sites           1.000           100.0            4127
+         Tree and Edge Lengths           6.902            29.8           79094
+                   Tree Length          10.265            33.8            4190
+
+Chain 3 (power 0.40000)
+                       Updater   Tuning Param.        Accept %     No. Updates
+             State Frequencies        1000.000           100.0            4179
+             Exchangeabilities        1000.000           100.0            4149
+           Gamma Rate Variance          15.177            26.1            4195
+Proportion of Invariable Sites           1.000           100.0            4126
+         Tree and Edge Lengths           7.104            29.7           79189
+                   Tree Length          10.590            32.9            4162
+</code></pre></div></div>
+
+<p>The acceptance fractions are all near 30% (which is what we specified as the target acceptance percentage in the <code class="highlighter-rouge">Chain::createUpdaters</code> function) with the exception of State Frequencies, Exchangeabilities, and Pinvar. For the first two of these, the tuning parameter has maxed out at a boldness of 1000 and the acceptance percentages are both 100%. For Pinvar, the acceptance percentage is also 100% but the tuning parameter maxed out at 1.0 rather than 1000. Why is this? These three parameters are the only parameters with a truly flat prior, and under a flat prior, all possible combinations have equal probability density. Because there are no downhill moves when updating State Frequencies, Exchangeabilities, or Pinvar, all proposals are accepted. It is impossible to tune the samplers in this case because the proposal will be accepted regardless of how far away the proposed point is from the current point. You should not see this behavior when analyzing real data because sequence data contains information about these parameters that results in a posterior that is not perfectly flat. The fact that the Pinvar tuning parameter maxes out at 1 rather than 1000 is due to the highlighted lines at the beginning of the <code class="highlighter-rouge">PinvarUpdater::proposeNewState</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PinvarUpdater::proposeNewState() { 
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_lambda &amp;gt; 1.0)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_lambda = 1.0;&lt;/strong&gt;&lt;/span&gt;
+        
+        // Save copy of _curr_point in case revert is necessary.
+        _prev_point = getCurrentPoint();
+        
+        // Propose new value using uniform window of width _lambda centered over _prev_point
+        double p = (_prev_point - _lambda/2.0) + _lambda*_lot-&amp;gt;uniform();
+        if (p &amp;lt; 0.0)
+            p = -p;
+        else if (p &amp;gt; 1.0)
+            p = 1.0 - (p - 1.0);
+        _asrv-&amp;gt;setPinvar(p);
+        
+        _log_hastings_ratio = 0.0;  //symmetric proposal
+        
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+    } 
+
+</code></pre></div></div>
+<p>Because the proposal method used for pinvar is a window of width <code class="highlighter-rouge">_lambda</code>, it is prudent to limit <code class="highlighter-rouge">_lambda</code> to the maximum possible window width, namely 1.0. Allowing <code class="highlighter-rouge">_lambda</code> to get larger than 1.0 risks having to reflect multiple times if the proposed new state lies outside the valid inteval 0.0 to 1.0.</p>
+
+<p>The swap summary shows that more than 16000 swaps were attempted between each pair of chains, fewer swaps were successful between chains that differed substantially in their heating power. For example, 12934/16854 = 77% of swaps were accepted between the two hottest chains whereas only 4608/16789 = 27% were accepted between the cold chain and the hottest chain. This is explained by the fact that the hottest chain is often far away from a peak while the cold chain never strays far from a peak; the probability that the cold chain will accept a jump from the peak to the lowlands is small, so, despite the fact that the heated chain can accept the swap because it is uphill, fewer swaps succeed between the coldest and hottest chains than between chains visiting more similar landscapes. The reason that even 27% of such swaps succeed has a lot to do with the fact that the landscape is determined entirely by the prior in this case, so there is not a huge difference between the altitude of the peak compared to the lowlands.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
+                        0            1            2            3
+<span class="gd">----------------------------------------------------------------
+</span>           0          ---        16664        16427        16789
+           1        10631          ---        16524        16742
+           2         6831        12050          ---        16854
+           3         4608         8644        12934          ---
+<span class="gd">----------------------------------------------------------------
+</span></code></pre></div></div>
+
+<p>Feel free to run the program again, this time setting <code class="highlighter-rouge">usedata=yes</code> (or leaving out the <code class="highlighter-rouge">usedata</code> program altogether, which will default to using the data).</p>
+
+<h2 id="the-end">The End!</h2>
+
+<p>This is the end of the current version of the tutorial. You now have a program that can carry out a Bayesian phylogenetic analysis using either a GTR+I+G or a codon model, allowing data to be partitioned, and can use multiple chains during MCMC. With slight modification, your program can make use of the GPU version of BeagleLib when computing likelihoods, which greatly speeds up the codon model if GPUs are available.</p>
+
+<p>I plan to extend the tutorial in the next version to allow polytomous and/or rooted trees, and estimation of marginal likelihoods.</p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/people/plewis/cpp/linux/steps/">Table of Contents</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

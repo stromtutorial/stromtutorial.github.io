@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Test Likelihood</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">10.2 Test Likelihood</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-10/01-the-likelihood-class.html">&lt;&nbsp;10.1</a> | 10.2 | <a href="/people/plewis/cpp//win//steps/step-11/00-adding-the-model-class.html">11.0&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="create-a-tree-file">Create a tree file</h2>
+<p>To test the <code class="highlighter-rouge">Likelihood</code> class, we need both a data set and a tree. You have already created a data file named <em>rbcL.nex</em>. Here is a tree file containing the maximum likelihood tree for the data in <em>rbcL.nex</em>. The log-likelihood of this tree under the JC69 model is <code class="highlighter-rouge">-278.83767</code>.</p>
+
+<p>Create a file containing the text below inside your <code class="highlighter-rouge">Data Files</code> filter and name it <em>rbcLjc.tre</em>.</p>
+
+<p>Here are the contents of the file:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#nexus 
+
+begin trees;
+	translate
+		1 Atractomorpha_echinata,
+		2 Bracteacoccus_aerius,
+		3 Bracteacoccus_minor,
+		4 Chlorotetraedron_incus,
+		5 Chromochloris_zofingiensis,
+		6 Kirchneriella_aperta,
+		7 Mychonastes_homosphaera,
+		8 Neochloris_aquatica,
+		9 Ourococcus_multisporus,
+		10 Pediastrum_duplex,
+		11 Pseudomuriella_schumacherensis,
+		12 Rotundella_rotunda,
+		13 Scenedesmus_obliquus,
+		14 Stigeoclonium_helveticum
+		;
+tree 'maxlike' = [&amp;U] (1:0.052781,((((((((((2:0,3:0.051745):0.016986,5:0.070562):0.017071,(6:0.047517,11:0.067138):0.025270):0.016985,9:0):0.016955,4:0.034406):0.016955,7:0.051745):0,13:0):0.016955,12:0.016955):0.034406,8:0):0,10:0):0.052781,14:0.071604);
+end;
+
+</code></pre></div></div>
+
+<p>Be sure that the <em>rbcLjc.tre</em> file was saved in your project directory (i.e. the same directory in which you saved <em>rbcL.nex</em>).</p>
+
+<h2 id="specifying-the-data-and-tree-files">Specifying the data and tree files</h2>
+
+<p>You will need to specify the data file and tree file either on the command line (using <code class="highlighter-rouge">--datafile rbcL.nex --treefile rbcLjc.tre</code>) or create a text file named <em>strom.conf</em> containing these two lines:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile = rbcL.nex
+treefile = rbcLjc.tre
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-strom-class">Modifying the Strom class</h2>
+
+<p>Add the highlighted lines to the <code class="highlighter-rouge">Strom</code> class declaration in <em>strom.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+#include "data.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "likelihood.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include "tree_summary.hpp"
+#include "partition.hpp"
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+#include &amp;lt;boost/filesystem.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Data::SharedPtr                         _data;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Likelihood::SharedPtr                   _likelihood;&lt;/strong&gt;&lt;/span&gt;
+            TreeSummary::SharedPtr                  _tree_summary;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _use_gpu;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _ambig_missing;&lt;/strong&gt;&lt;/span&gt;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+
+    };
+    
+
+</code></pre></div></div>
+
+<p>Add the <code class="highlighter-rouge">required()</code> call in <code class="highlighter-rouge">Strom::processCommandLineOptions</code> to the <code class="highlighter-rouge">treefile</code> command line option and add options for <code class="highlighter-rouge">gpu</code> and <code class="highlighter-rouge">ambigmissing</code>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");    
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")&lt;/strong&gt;&lt;/span&gt;
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")&lt;/strong&gt;&lt;/span&gt;
+        ;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+        try {
+            const boost::program_options::parsed_options &amp; parsed = boost::program_options::parse_config_file&amp;lt; char &amp;gt;("strom.conf", desc, false);
+            boost::program_options::store(parsed, vm);
+        }
+        catch(boost::program_options::reading_file &amp; x) {
+            std::cout &amp;lt;&amp;lt; "Note: configuration file (strom.conf) not found" &amp;lt;&amp;lt; std::endl;
+        }
+        boost::program_options::notify(vm);
+
+        // If user specified --help on command line, output usage summary and quit
+        if (vm.count("help") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; desc &amp;lt;&amp;lt; "\n";
+            std::exit(1);
+        }
+
+        // If user specified --version on command line, output version and quit
+        if (vm.count("version") &amp;gt; 0) {
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("This is %s version %d.%d") % _program_name % _major_version % _minor_version) &amp;lt;&amp;lt; std::endl;
+            std::exit(1);
+        }
+    
+        // If user specified --subset on command line, break specified partition subset 
+        // definition into name and character set string and add to _partition
+        if (vm.count("subset") &amp;gt; 0) {
+            _partition.reset(new Partition());
+            for (auto s : partition_subsets) {
+                _partition-&amp;gt;parseSubsetDefinition(s);
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>You could remove the <code class="highlighter-rouge">required()</code> call from all command line options; I only use it here because this means <code class="highlighter-rouge">program_options</code> takes care of informing the user if they forget to specify a data or tree file on the command line or in the <em>strom.conf</em> file. Because the program, as currently configured, will only work if given both a data file and a tree file, it makes sense to require these options.</p>
+
+<p>Replace the body of the <code class="highlighter-rouge">Strom::run</code> function in the file <em>strom.hpp</em> with this revised version.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            _data = Data::SharedPtr(new Data());
+            _data-&amp;gt;setPartition(_partition);
+            _data-&amp;gt;getDataFromFile(_data_file_name);
+
+            // Report information about data partition subsets
+            unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+                }
+            
+            std::cout &amp;lt;&amp;lt; "\n*** Resources available to BeagleLib " &amp;lt;&amp;lt; _likelihood-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; ":\n";
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Creating the likelihood calculator" &amp;lt;&amp;lt; std::endl;
+            _likelihood = Likelihood::SharedPtr(new Likelihood());
+            _likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            _likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            _likelihood-&amp;gt;setData(_data);
+            _likelihood-&amp;gt;initBeagleLib();
+
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the first tree in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(0);
+
+            if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+                throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+
+            std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
+            TreeManip tm;
+            tm.setTree(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
+            double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
+            tm.deselectAllPartials();
+            tm.deselectAllTMatrices();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "      (expecting -278.83767)" &amp;lt;&amp;lt; std::endl;
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }    
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-node-class">Modifying the Node class</h2>
+
+<p>Add the highlighted lines to the <code class="highlighter-rouge">Node</code> class in <em>node.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+#include "split.hpp"
+
+namespace strom {
+
+    class Tree;
+    class TreeManip;
+    class Likelihood;   
+    //class Updater;
+
+    class Node {
+        friend class Tree;
+        friend class TreeManip;
+        friend class Likelihood;    
+        //friend class Updater;
+        
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()                 {return _parent;}
+                    Node *              getLeftChild()              {return _left_child;}
+                    Node *              getRightSib()               {return _right_sib;}
+                    int                 getNumber()                 {return _number;}
+                    std::string         getName()                   {return _name;}
+                    Split               getSplit()                  {return _split;}
+        
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isSelected()                {return _flags &amp; Flag::Selected;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                select()                    {_flags |= Flag::Selected;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                deselect()                  {_flags &amp;= ~Flag::Selected;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isSelPartial()              {return _flags &amp; Flag::SelPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                selectPartial()             {_flags |= Flag::SelPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                deselectPartial()           {_flags &amp;= ~Flag::SelPartial;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isSelTMatrix()              {return _flags &amp; Flag::SelTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                selectTMatrix()             {_flags |= Flag::SelTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                deselectTMatrix()           {_flags &amp;= ~Flag::SelTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isAltPartial()              {return _flags &amp; Flag::AltPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                setAltPartial()             {_flags |= Flag::AltPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                clearAltPartial()           {_flags &amp;= ~Flag::AltPartial;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isAltTMatrix()              {return _flags &amp; Flag::AltTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                clearAltTMatrix()           {_flags &amp;= ~Flag::AltTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+
+                    double              getEdgeLength()             {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+        
+        private:
+        
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;enum Flag {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Selected   = (1 &amp;lt;&amp;lt; 0),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;SelPartial = (1 &amp;lt;&amp;lt; 1),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;SelTMatrix = (1 &amp;lt;&amp;lt; 2),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;AltPartial = (1 &amp;lt;&amp;lt; 3),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;AltTMatrix = (1 &amp;lt;&amp;lt; 4)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;};&lt;/strong&gt;&lt;/span&gt;
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            Split               _split;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int                 _flags;&lt;/strong&gt;&lt;/span&gt;
+    };
+
+    inline Node::Node() {
+        //std::cout &amp;lt;&amp;lt; "Creating Node object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }
+
+    inline Node::~Node() {
+        //std::cout &amp;lt;&amp;lt; "Destroying Node object" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Node::clear() {
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_flags = 0;&lt;/strong&gt;&lt;/span&gt;
+        _left_child = 0;
+        _right_sib = 0;
+        _parent = 0;
+        _number = -1;
+        _name = "";
+        _edge_length = _smallest_edge_length;
+    }
+
+    inline void Node::setEdgeLength(double v) {
+        _edge_length = (v &amp;lt; _smallest_edge_length ? _smallest_edge_length : v);
+    }
+
+}
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-likelihood-class">Modifying the Likelihood class</h2>
+
+<p>Add the highlighted lines to the <code class="highlighter-rouge">Likelihood</code> class declaration in <em>likelihood.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Likelihood {  
+        public:
+                                                    Likelihood();
+                                                    ~Likelihood();
+
+            void                                    setRooted(bool is_rooted);
+            void                                    setPreferGPU(bool prefer_gpu);
+            void                                    setAmbiguityEqualsMissing(bool ambig_equals_missing);
+
+            bool                                    usingStoredData() const;
+            void                                    useStoredData(bool using_data);
+
+            std::string                             beagleLibVersion() const;
+            std::string                             availableResources() const;
+            std::string                             usedResources() const;
+
+            void                                    initBeagleLib();
+            void                                    finalizeBeagleLib(bool use_exceptions);
+
+            double                                  calcLogLikelihood(Tree::SharedPtr t);
+
+            Data::SharedPtr                         getData();
+            void                                    setData(Data::SharedPtr d);
+
+            void                                    clear();
+            
+            unsigned                                calcNumEdgesInFullyResolvedTree() const;
+            unsigned                                calcNumInternalsInFullyResolvedTree() const;
+
+        private:
+        
+            struct InstanceInfo {
+                int handle;
+                int resourcenumber;
+                std::string resourcename;
+                unsigned nstates;
+                unsigned nratecateg;
+                unsigned npatterns;
+                unsigned partial_offset;
+                unsigned tmatrix_offset;
+                std::vector&amp;lt;unsigned&amp;gt; subsets;
+                
+                InstanceInfo() : handle(-1), resourcenumber(-1), resourcename(""), nstates(0), nratecateg(0), npatterns(0), partial_offset(0), tmatrix_offset(0) {}
+            };
+
+            typedef std::pair&amp;lt;unsigned, int&amp;gt;        instance_pair_t;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                getPartialIndex(Node * nd, InstanceInfo &amp; info) const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const;&lt;/strong&gt;&lt;/span&gt;
+            void                                    updateInstanceMap(instance_pair_t &amp; p, unsigned subset);
+            void                                    newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices);
+            void                                    setTipStates();
+            void                                    setTipPartials();
+            void                                    setPatternPartitionAssignments();
+            void                                    setPatternWeights();
+            void                                    setAmongSiteRateHeterogenetity();
+            void                                    setModelRateMatrix();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);&lt;/strong&gt;&lt;/span&gt;
+            void                                    defineOperations(Tree::SharedPtr t);
+            void                                    updateTransitionMatrices();
+            void                                    calculatePartials();
+            double                                  calcInstanceLogLikelihood(InstanceInfo &amp; inst, Tree::SharedPtr t);
+
+
+            std::vector&amp;lt;InstanceInfo&amp;gt;               _instances;
+            std::map&amp;lt;int, std::string&amp;gt;              _beagle_error;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _operations;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _pmatrix_index;
+            std::map&amp;lt;int, std::vector&amp;lt;double&amp;gt; &amp;gt;     _edge_lengths;
+
+            std::vector&amp;lt;int&amp;gt;                        _subset_indices;
+            std::vector&amp;lt;int&amp;gt;                        _parent_indices;
+            std::vector&amp;lt;int&amp;gt;                        _child_indices;
+            std::vector&amp;lt;int&amp;gt;                        _tmatrix_indices;
+            std::vector&amp;lt;int&amp;gt;                        _weights_indices;
+            std::vector&amp;lt;int&amp;gt;                        _freqs_indices;
+            std::vector&amp;lt;int&amp;gt;                        _scaling_indices;
+        
+            Data::SharedPtr                         _data;
+            unsigned                                _ntaxa;
+            bool                                    _rooted;
+            bool                                    _prefer_gpu;
+            bool                                    _ambiguity_equals_missing;
+
+            bool                                    _using_data;
+
+        public:
+            typedef std::shared_ptr&amp;lt; Likelihood &amp;gt;   SharedPtr;
+    }; 
+
+    // member function bodies go here
+    
+
+</code></pre></div></div>
+
+<p>Add the bodies of these three <code class="highlighter-rouge">Likelihood</code> member functions somewhere before the terminating right curly bracket ending the <code class="highlighter-rouge">strom</code> namespace:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo &amp; info) const { 
+        unsigned pindex = nd-&amp;gt;_number;
+        // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
+        if (nd-&amp;gt;_parent &amp;&amp; nd-&amp;gt;_left_child) {
+            if (nd-&amp;gt;isAltPartial())
+                pindex += info.partial_offset;
+        }
+        return pindex;
+    }   
+    
+    inline unsigned Likelihood::getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const {  
+        unsigned tindex = 2*subset_index*info.tmatrix_offset + nd-&amp;gt;_number;
+        if (nd-&amp;gt;isAltTMatrix())
+            tindex += info.tmatrix_offset;
+        return tindex;
+    }   
+         
+    inline void Likelihood::addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) {
+        assert(nd);
+        assert(lchild);
+        assert(rchild);
+
+        // 1. destination partial to be calculated
+        int partial = getPartialIndex(nd, info);
+        _operations[info.handle].push_back(partial);
+
+        // 2. destination scaling buffer index to write to
+        _operations[info.handle].push_back(BEAGLE_OP_NONE);
+
+        // 3. destination scaling buffer index to read from
+        _operations[info.handle].push_back(BEAGLE_OP_NONE);
+
+        // 4. left child partial index
+        partial = getPartialIndex(lchild, info);
+        _operations[info.handle].push_back(partial);
+
+        // 5. left child transition matrix index
+        unsigned tindex = getTMatrixIndex(lchild, info, subset_index);
+        _operations[info.handle].push_back(tindex);
+
+        // 6. right child partial index
+        partial = getPartialIndex(rchild, info);
+        _operations[info.handle].push_back(partial);
+
+        // 7. right child transition matrix index
+        tindex = getTMatrixIndex(rchild, info, subset_index);
+        _operations[info.handle].push_back(tindex);
+
+        if (info.subsets.size() &amp;gt; 1) {
+            // 8. index of partition subset
+            _operations[info.handle].push_back(subset_index);
+            
+            // 9. cumulative scale index
+            _operations[info.handle].push_back(BEAGLE_OP_NONE);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-treemanip-class">Modifying the TreeManip class</h2>
+
+<p>Add the highlighted lines to the <code class="highlighter-rouge">TreeManip</code> class declaration in <em>tree_manip.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class TreeManip {   
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            std::string                 makeNewick(unsigned precision) const;
+
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);
+            void                        rerootAtNodeNumber(int node_number);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectAll();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        deselectAll();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectAllPartials();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        deselectAllPartials();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectAllTMatrices();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        deselectAllTMatrices();&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectPartialsHereToRoot(Node * a);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        flipPartialsAndTMatrices();&lt;/strong&gt;&lt;/span&gt;
+
+            void                        clear();
+
+        private:
+
+            void                        refreshPreorder();
+            void                        refreshLevelorder();
+            void                        renumberInternals();
+            void                        rerootAtNode(Node * prospective_root);
+            void                        extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used);
+            void                        extractEdgeLen(Node * nd, std::string edge_length_string);
+            unsigned                    countNewickLeaves(const std::string newick);
+            void                        stripOutNexusComments(std::string &amp; newick);
+            bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };   
+
+</code></pre></div></div>
+
+<p>Add the bodies of these <code class="highlighter-rouge">TreeManip</code> member functions just above the right curly bracket character that closes the <code class="highlighter-rouge">strom</code> namespace:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::selectAll() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.select();
+        }
+    }   
+
+    inline void TreeManip::deselectAll() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.deselect();
+        }
+    }   
+
+    inline void TreeManip::selectAllPartials() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes)
+            nd.selectPartial();
+    }   
+
+    inline void TreeManip::deselectAllPartials() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.deselectPartial();
+        }
+    }   
+
+    inline void TreeManip::selectAllTMatrices() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes)
+            nd.selectTMatrix();
+    }   
+
+    inline void TreeManip::deselectAllTMatrices() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.deselectTMatrix();
+        }
+    }   
+
+    inline void TreeManip::selectPartialsHereToRoot(Node * a) {    
+        a-&amp;gt;selectPartial();
+        while (a-&amp;gt;_parent) {
+            a = a-&amp;gt;_parent;
+            a-&amp;gt;selectPartial();
+        }
+    }   
+
+    inline void TreeManip::flipPartialsAndTMatrices() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            if (nd.isSelPartial()) {
+                if (nd.isAltPartial())
+                    nd.clearAltPartial();
+                else
+                    nd.setAltPartial();
+            }
+            
+            if (nd.isSelTMatrix()) {
+                if (nd.isAltTMatrix())
+                    nd.clearAltTMatrix();
+                else
+                    nd.setAltTMatrix();
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="installing-beaglelib">Installing BeagleLib</h2>
+<p>Our Likelihood class depends on BeagleLib to do all the heavy lifting with respect to calculating transition probabilities and the log-likelihood itself. Our next task is thus to install BeagleLib and tell our program where to find the shared library for linking and at run time.</p>
+
+<p>Start by downloading the file <em>beagle-lib-master.zip</em> from the <a href="https://github.com/beagle-dev/beagle-lib">BeagleLib GitHub site</a>. Unzip the library (using 7-zip) and move the resulting directory, <code class="highlighter-rouge">beagle-lib-master</code>, to your libraries directory (and delete the original zip file). The directory you just created will be referred to hereafter as <em>BEAGLELIB_ROOT</em>. On my computer, <em>BEAGLELIB_ROOT</em> corresponds to this directory:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\Users\Paul Lewis\Documents\libraries\beagle-lib-master
+</code></pre></div></div>
+
+<p>Navigate to <em>BEAGLELIB_ROOT</em> and open the <em>BEAGLELIB_ROOT\project\beagle-vs-2017\libhmsbeagle.sln</em> Visual Studio solution. Visual Studio Community (VSC19) will issues some warnings and will say “One or more projects in the solution were not loaded correctly…”, but then will give you the opportunity to upgrade, which you should do.</p>
+
+<p>Click on Solution Explorer tab on the left side of VSC19, then click once on the <em>libhsmbeagle</em> project to select it.</p>
+
+<p>Choose <em>Build libhmsbeagle</em> under the <em>Build</em> menu.</p>
+
+<p>The last line of the output window should say “Build: 2 succeeded, 0 failed, 0 up-to-date, 0 skipped”. If instead it says “Build: 1 succeeded, 1 failed, 0 up-to-date, 0 skipped”, it probably means that you do not have Java installed. In this case, you will need to prevent VSC19 from attempting to build the JNI part of the libhmsbeagle project. Expand (using the right-pointing triangle symbol) the <em>libhmsbeagle</em> project within the <em>libhmsbeagle</em> solution in the Solution Explorer. Within the <em>libhmsbeagle</em> project you should see a <em>libhmsbeagle</em> folder containing 2 subfolders named JNI and plugin, along with files named <em>beagle.cpp</em>, <em>beagle.h</em>, <em>BeagleImpl.h</em> and <em>platform.h</em>. Expand the JNI folder and for each of the 2 files inside (<em>beagle_BeagleJNIWrapper.cpp</em> and <em>beagle_BeagleJNIWrapper.h</em>), right-click the file, choose <em>Properties</em>, then choose the value <em>yes</em> for <em>Excluded From Build</em>. When you are done, both of these files will have a tiny red minus sign symbol beside their name in the Solution Explorer.</p>
+
+<p>Once compilation is completed, you should find a <em>BEAGLELIB_ROOT\project\beagle-vs-2017\x64\Debug</em> folder containing several files, including <em>libhmsbeagle.lib</em> <em>hmsbeagle64D.dll</em>, and <em>hmsbeagle-cpu64D-31.dll</em>. The two dynamic link library (dll) files contain code that is loaded when needed by the operating system (that is, most of the functionality in BeagleLib will not be in our program strom, but strom has access to it when it needs it). We will tell our strom project about the library (lib) file because it allows strom to know what functions are available to it in the DLLs.</p>
+
+<p>Before leaving the libhmsbeagle Solution, switch to <em>Release</em> using the Solution Configuration dropdown at the top and build again to create a <em>Release</em> folder and release versions of the library.</p>
+
+<p>Copy the debug versions of the dynamic link libraries (DLLs) to the location of your strom debug executable (and the release versions of the DLLs to the location of your strom release executable) so that they will be found at run time. The two debug-version DLLs that you need to copy are named <em>hmsbeagle64D.dll</em> and <em>hmsbeagle-cpu64D-31.dll</em> and are located in <em>BEAGLELIB_ROOT/project/beagle-vs-2017/x64/Debug</em>. Likewise, the two release-version DLLs that you need to copy are named <em>hmsbeagle64.dll</em> and <em>hmsbeagle-cpu64-31.dll</em> and are located in <em>BEAGLELIB_ROOT\project\beagle-vs-2017\x64\Release</em>.The places they should be copied to are the <em>x64\Debug</em> and <em>x64\Release</em> directories, respectively, inside your strom solution directory. For example, on my computer, this is what my strom Debug and Release directories look like after copying these files (note that I am only showing the directory paths and the two files added to each directory; there are many other files in each directory, including the strom executable):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\Users\Paul Lewis\source\repos\strom\x64\Debug
+    hmsbeagle64D.dll
+    hmsbeagle-cpu64D-31.dll
+C:\Users\Paul Lewis\source\repos\strom\x64\Release
+    hmsbeagle64.dll
+    hmsbeagle-cpu64-31.dll
+</code></pre></div></div>
+
+<p>You can now close the <em>BEAGLELIB_ROOT\project\beagle-vs-2017\libhmsbeagle.sln</em> solution and open the strom solution again.</p>
+
+<p>In the Solution Explorer within the <em>strom</em> solution, right-click on the <em>strom</em> project and choose <em>Properties</em>. In the <em>VC++ Directories</em> section, add <em>BEAGLELIB_ROOT</em> to <em>Include Directories</em> (remember that we are using <em>BEAGLELIB_ROOT</em> to stand for the full path to the directory containing the BeagleLib code, so you should not type the word <em>BEAGLELIB_ROOT</em> directly; instead, use the <em>…</em> button to locate the BeagleLib directory).</p>
+
+<p>While still in the <em>VC++ Directories</em> section, add <em>BEAGLELIB_ROOT\project\beagle-vs-2017\Debug</em> to <em>Library Directories</em>.</p>
+
+<p>In the <em>Linker &gt; Input</em> section, add <em>libhmsbeagle.lib</em> to <em>Additional Dependencies</em>.</p>
+
+<h2 id="run-strom">Run strom</h2>
+
+<p>Go ahead and run strom now. I’ll discuss the output a bit at a time in the sections below.</p>
+
+<h3 id="reading-and-storing-the-data">Reading and storing the data</h3>
+<p>The <code class="highlighter-rouge">run</code> function first creates a <code class="highlighter-rouge">Data</code> object and stores a shared pointer to it in the private data member <code class="highlighter-rouge">_data</code>. After informing the <code class="highlighter-rouge">Data</code> object about any partition that the user set up, the <code class="highlighter-rouge">run</code> function reads the file whose name is stored in <code class="highlighter-rouge">_data_file_name</code> (<em>rbcL.nex</em>) and spits out a summary of the data therein. We have not set up data partitioning so, this summary just reports a single data subset containing 60 sites compressed into 21 distinct site patterns:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*** Reading and storing the data in the file rbcL.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 14
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     60
+    patterns:  21
+</code></pre></div></div>
+
+<h3 id="creating-a-likelihood-calculator">Creating a likelihood calculator</h3>
+<p>The <code class="highlighter-rouge">run</code> function next creates a <code class="highlighter-rouge">Likelihood</code> object and stores a shared pointer to that object in the private data member <code class="highlighter-rouge">_likelihood</code>. It then calls the <code class="highlighter-rouge">Likelihood::beagleLibVersion</code> function to show which version of BeagleLib we’re using and the <code class="highlighter-rouge">Likelihood::availableResources</code> function to show a summary of resources available to BeagleLib, which on my laptop is just the default CPU plugin of BeagleLib. Next, the <code class="highlighter-rouge">Likelihood::setData</code> function is called to make the compressed data from the Data object available. Finally, the <code class="highlighter-rouge">Likelihood::initBeagleLib</code> function is called to construct the BeagleLib machinery needed to do the likelihood calculations:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*** Resources available to BeagleLib 3.1.2:
+0: CPU
+
+*** Creating the likelihood calculator
+Created BeagleLib instance 0 (4 states, 1 rate, 1 subset)
+</code></pre></div></div>
+
+<h3 id="reading-and-storing-a-tree">Reading and storing a tree</h3>
+<p>Next, a <code class="highlighter-rouge">TreeSummary</code> object is created and stored in the shared pointer private data member <code class="highlighter-rouge">_tree_summary</code> and its <code class="highlighter-rouge">readTreefile</code> function is called to read the tree file whose name is <code class="highlighter-rouge">_tree_file_name</code> (<em>rbcLjc.tre</em>), which you just created. A <code class="highlighter-rouge">Tree</code> shared pointer named <code class="highlighter-rouge">tree</code> is created and pointed to the first (and only) tree read from <em>rbcLjc.tre</em>. This results in the following output:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*** Reading and storing the first tree in the file rbcLjc.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 5, column (approximately) 1 (file position 33)
+storing implied block: TAXA
+storing read block: TREES
+</code></pre></div></div>
+
+<h3 id="taxa-block-warning">TAXA block warning</h3>
+<p>If the TAXA block warning produced by NCL bothers you, you have a couple of choices:</p>
+
+<ol>
+  <li>You can provide a TAXA block in your tree file <em>rbcLjc.tre</em></li>
+  <li>You can suppress warnings when you read the tree file.</li>
+</ol>
+
+<p>The first option has the advantage that it preserves the ability of NCL to warn you of possible problems, and is arguably the better solution. To take this route, add the following TAXA block to the <em>rbcLjc.tre</em> file between the opening <code class="highlighter-rouge">#nexus</code> line and the <code class="highlighter-rouge">begin trees;</code> statement:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>begin taxa;
+  dimensions ntax=14;
+  taxlabels
+		Atractomorpha_echinata
+		Bracteacoccus_aerius
+		Bracteacoccus_minor
+		Chlorotetraedron_incus
+		Chromochloris_zofingiensis
+		Kirchneriella_aperta
+		Mychonastes_homosphaera
+		Neochloris_aquatica
+		Ourococcus_multisporus
+		Pediastrum_duplex
+		Pseudomuriella_schumacherensis
+		Rotundella_rotunda
+		Scenedesmus_obliquus
+		Stigeoclonium_helveticum;
+end;
+</code></pre></div></div>
+
+<p>Implementing the second option involves changing this (highlighted) line in your <code class="highlighter-rouge">TreeSummary::readTreefile</code> function (file <em>tree_summary.hpp</em>):</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeSummary::readTreefile(const std::string filename, unsigned skip) {  
+        TreeManip tm;
+        Split::treeid_t splitset;
+
+        // See http://phylo.bio.ku.edu/ncldocs/v2.1/funcdocs/index.html for NCL documentation
+
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;MultiFormatReader nexusReader(-1, NxsReader::WARNINGS_TO_STDERR);&lt;/strong&gt;&lt;/span&gt;
+        try {
+            nexusReader.ReadFilepath(filename.c_str(), MultiFormatReader::NEXUS_FORMAT);
+        }
+        catch(...) {
+            nexusReader.DeleteBlocksFromFactories();
+            throw;
+        }   
+
+</code></pre></div></div>
+<p>Instead of specifying <code class="highlighter-rouge">NxsReader::WARNINGS_TO_STDERR</code> here, you can instead specify <code class="highlighter-rouge">NxsReader::IGNORE_WARNINGS</code>. The alternatives are specified in the <code class="highlighter-rouge">WarningHandlingMode</code> enum in <em>nxsreader.h</em> (a source file in the Nexus Class Library). The only two other possibilities are <code class="highlighter-rouge">NxsReader::WARNINGS_TO_STDOUT</code> and <code class="highlighter-rouge">NxsReader::WARNINGS_ARE_ERRORS</code> (not advisable because it will cause your program to abort at even the slightest warning).</p>
+
+<h3 id="calculating-the-likelihood-of-the-tree">Calculating the likelihood of the tree</h3>
+<p>Finally, the <code class="highlighter-rouge">calcLogLikelihood</code> function of the <code class="highlighter-rouge">Likelihood</code> object is called to obtain the log-likelihood. This is output along with a hard-coded statement of what the log-likelihood is expected to be so that it is easy to confirm that the program is working:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>*** Calculating the likelihood of the tree
+Instance 0
+logL for subset 1 is -278.83767
+log likelihood = -278.83767
+      (expecting -278.83767)
+</code></pre></div></div>
+<p>It is, admittedly, a little silly to let the user enter any data and tree file name on the command line (or <em>strom.conf</em> file) and then print out a pre-ordained expectation of the result; however, our only purpose here is to test whether the likelihood machinery we’ve set up is working: our program is not ready to be distributed for general use yet!</p>
+
+<h3 id="catching-exceptions">Catching exceptions</h3>
+<p>Most of the body of the <code class="highlighter-rouge">run</code> function is wrapped in a <code class="highlighter-rouge">try</code> block. If anything goes wrong and an <code class="highlighter-rouge">XStrom</code> exception is thrown, the program will jump immediately to the corresponding <code class="highlighter-rouge">catch</code> block and the message stored by the exception object will be displayed.</p>
+
+<h2 id="test-likelihood-calculation-on-partitioned-data">Test likelihood calculation on partitioned data</h2>
+<p>If we partition the data but use the same model for all subsets, we should get the same total log-likelihood. Add 3 lines to your <em>strom.conf</em> file to partition the data into 3 equal-sized subsets each containing sites corresponding to a different codon position:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile = rbcL.nex
+treefile = rbcLjc.tre
+subset = first:1-60\3
+subset = second:2-60\3
+subset = third:3-60\3
+
+</code></pre></div></div>
+<p>Now run your program again. You should see the following output, which lists details for the three subsets (note that there are more total site patterns now because site patterns cannot be combined if the same pattern is seen in different subsets). The log-likelihood is the same as for the unpartitioned case. We will need to add the ability to specify a substitution model (the next step in the tutorial) in order to apply different models to different subsets.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Partition subset first comprises sites 1-60\3 and has type nucleotide
+Partition subset second comprises sites 2-60\3 and has type nucleotide
+Partition subset third comprises sites 3-60\3 and has type nucleotide
+Starting...
+Current working directory: "/home/paul/Documents/strom/distr"
+
+*** Reading and storing the data in the file rbcL.nex
+storing implied block: TAXA
+storing read block: DATA
+
+Number of taxa: 14
+Number of partition subsets: 3
+  Subset 1 (first)
+    data type: nucleotide
+    sites:     20
+    patterns:  7
+  Subset 2 (second)
+    data type: nucleotide
+    sites:     20
+    patterns:  5
+  Subset 3 (third)
+    data type: nucleotide
+    sites:     20
+    patterns:  17
+
+*** Resources available to BeagleLib 3.1.2:
+0: CPU
+
+*** Creating the likelihood calculator
+Created BeagleLib instance 0 (4 states, 1 rate, 3 subsets)
+
+*** Reading and storing the first tree in the file rbcLjc.tre
+
+Warning:
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 5, column (approximately) 1 (file position 33)
+storing implied block: TAXA
+storing read block: TREES
+
+*** Calculating the likelihood of the tree
+logL for subset 1 (instance 0) is -57.11217
+logL for subset 2 (instance 0) is -49.30584
+logL for subset 3 (instance 0) is -172.41965
+log likelihood = -278.83767
+      (expecting -278.83767)
+
+Finished!
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-10/01-the-likelihood-class.html">&lt;&nbsp;10.1</a> | 10.2 | <a href="/people/plewis/cpp//win//steps/step-11/00-adding-the-model-class.html">11.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

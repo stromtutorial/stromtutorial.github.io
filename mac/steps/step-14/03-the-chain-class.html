@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Chain Class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">14.3 The Chain Class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-14/02-the-gammashapeupdater-class.html">&lt;&nbsp;14.2</a> | 14.3 | <a href="/people/plewis/cpp//mac//steps/step-14/04-testing-the-chain-class.html">14.4&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The <code class="highlighter-rouge">Chain</code> class encapsulates a Markov chain. In this first draft, it contains a <code class="highlighter-rouge">GammaRateVarUpdater</code> object that modifies only one parameter, but in future versions the <code class="highlighter-rouge">Chain</code> class will include additional updaters that have the ability to update the other model parameters as well as the tree topology and edge lengths.</p>
+
+<p>Create a file <em>chain.hpp</em> that contains the following code.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "lot.hpp"
+#include "data.hpp"
+#include "tree.hpp"
+#include "model.hpp"
+#include "likelihood.hpp"
+#include "tree_manip.hpp"
+#include "updater.hpp"
+#include "gamma_ratevar_updater.hpp"
+
+namespace strom {
+
+    class Chain {
+    
+        friend class Likelihood;
+
+        public:
+        
+            typedef std::vector&amp;lt;Updater::SharedPtr&amp;gt; updater_vect_t;
+            typedef std::shared_ptr&amp;lt;Chain&amp;gt;          SharedPtr;
+
+                                                    Chain();
+                                                    ~Chain();
+
+            void                                    clear();
+
+            void                                    startTuning();
+            void                                    stopTuning();
+
+            void                                    setTreeFromNewick(std::string &amp; newick);
+            unsigned                                createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood);
+
+            TreeManip::SharedPtr                    getTreeManip();
+            Model::SharedPtr                        getModel();
+            double                                  getLogLikelihood() const;
+
+
+            void                                    setHeatingPower(double p);
+            double                                  getHeatingPower() const;
+
+            void                                    setChainIndex(unsigned idx);
+            double                                  getChainIndex() const;
+
+            Updater::SharedPtr                      findUpdaterByName(std::string name);
+            std::vector&amp;lt;std::string&amp;gt;                getUpdaterNames() const;
+            std::vector&amp;lt;double&amp;gt;                     getAcceptPercentages() const;
+            std::vector&amp;lt;unsigned&amp;gt;                   getNumUpdates() const;
+            std::vector&amp;lt;double&amp;gt;                     getLambdas() const;
+            void                                    setLambdas(std::vector&amp;lt;double&amp;gt; &amp; v);
+
+            double                                  calcLogLikelihood() const;
+            double                                  calcLogJointPrior() const;
+
+            void                                    start();
+            void                                    stop();
+            void                                    nextStep(int iteration);
+
+        private:
+
+            Model::SharedPtr                        _model;
+            Lot::SharedPtr                          _lot;
+            TreeManip::SharedPtr                    _tree_manipulator;
+
+            updater_vect_t                          _updaters;
+
+            unsigned                                _chain_index;
+            double                                  _heating_power;
+            double                                  _log_likelihood;
+    };
+
+    // member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="constructor-and-destructor">Constructor and destructor</h2>
+
+<p>The constructor calls the <code class="highlighter-rouge">clear</code> function, which returns the <code class="highlighter-rouge">Chain</code> object to its just-constructed state. The destructor does nothing.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Chain::Chain() { 
+        //std::cout &amp;lt;&amp;lt; "Chain being created" &amp;lt;&amp;lt; std::endl;
+        clear();
+    } 
+
+    inline Chain::~Chain() { 
+        //std::cout &amp;lt;&amp;lt; "Chain being destroyed" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+
+<p>This function return the <code class="highlighter-rouge">Chain</code> object to its just-constructed state. It sets the chain index to 0 and the heating power to 1 (i.e. this is the “cold” chain by default) and calls <code class="highlighter-rouge">startTuning</code> to tell all updaters to begin automatic tuning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::clear() { 
+        _log_likelihood = 0.0;
+        _updaters.clear();
+        _chain_index = 0;
+        setHeatingPower(1.0);
+        startTuning();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-starttuning-and-stoptuning-member-functions">The startTuning and stopTuning member functions</h2>
+
+<p>Calling the <code class="highlighter-rouge">Chain</code> function <code class="highlighter-rouge">startTuning</code> calls, in turn, the <code class="highlighter-rouge">setTuning</code> function of all its component updaters, passing the value <code class="highlighter-rouge">true</code> to each. Similarly, the <code class="highlighter-rouge">stopTuning</code> function passes <code class="highlighter-rouge">false</code> to the <code class="highlighter-rouge">setTuning</code> function of all its component updaters.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::startTuning() { 
+        for (auto u : _updaters)
+            u-&amp;gt;setTuning(true);
+    } 
+
+    inline void Chain::stopTuning() { 
+        for (auto u : _updaters)
+            u-&amp;gt;setTuning(false);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-settreefromnewick-member-function">The setTreeFromNewick member function</h2>
+
+<p>This function provides a copy of the tree in the form of a Newick tree description string to the <code class="highlighter-rouge">Chain</code>. If <code class="highlighter-rouge">_tree_manipulator</code> does not currently exist, then a <code class="highlighter-rouge">TreeManip</code> object is created to hold the tree built from the supplied string.</p>
+
+<p>Our only current updater <code class="highlighter-rouge">GammaRateVarUpdater</code> does not modify tree topology or edge lengths, so it may be surprising that we call its <code class="highlighter-rouge">setTreeFromNewick</code> function here. The answer is that all updaters need to calculate the log likelihood (see <code class="highlighter-rouge">Chain::calcLogLikelihood</code> below), and a tree is required in order to calculate the likelihood.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::setTreeFromNewick(std::string &amp; newick) { 
+        assert(_updaters.size() &amp;gt; 0);
+        if (!_tree_manipulator)
+            _tree_manipulator.reset(new TreeManip);
+        _tree_manipulator-&amp;gt;buildFromNewick(newick, false, false);
+        for (auto u : _updaters)
+            u-&amp;gt;setTreeManip(_tree_manipulator);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-createupdaters-member-function">The createUpdaters member function</h2>
+
+<p>This function creates an updater for each independent model parameter that has not been fixed by the user and adds the updater to the <code class="highlighter-rouge">_updaters</code> vector. Each updater is provided with a copy of the <code class="highlighter-rouge">model</code>, the pseudorandom number generator (<code class="highlighter-rouge">lot</code>), and the <code class="highlighter-rouge">likelihood</code>. The updater’s <code class="highlighter-rouge">setWeight</code> function is called to set the updater’s <code class="highlighter-rouge">_weight</code> data member. The weight is used to determine the probability that an updater’s <code class="highlighter-rouge">update</code> function will be called in any given iteration. The sum of weights of all updaters is used to normalize the weights (done by calling each updater’s <code class="highlighter-rouge">calcProb</code> function).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { 
+        _model = model;
+        _lot = lot;
+        _updaters.clear();
+
+        double wstd             = 1.0;
+        double sum_weights      = 0.0;
+        
+        // Add rate variance parameter updater to _updaters
+        Model::ratevar_params_t &amp; ratevar_shptr_vect = _model-&amp;gt;getRateVarParams();
+        for (auto ratevar_shptr : ratevar_shptr_vect) {
+            Updater::SharedPtr u = GammaRateVarUpdater::SharedPtr(new GammaRateVarUpdater(ratevar_shptr));
+            u-&amp;gt;setLikelihood(likelihood);
+            u-&amp;gt;setLot(lot);
+            u-&amp;gt;setLambda(1.0);
+            u-&amp;gt;setTargetAcceptanceRate(0.3);
+            u-&amp;gt;setPriorParameters({1.0, 1.0});
+            u-&amp;gt;setWeight(wstd); sum_weights += wstd;
+            _updaters.push_back(u);
+        }
+
+        for (auto u : _updaters) {
+            u-&amp;gt;calcProb(sum_weights);
+        }
+
+        return (unsigned)_updaters.size();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-gettreemanip-member-function">The getTreeManip member function</h2>
+
+<p>This is an accessor for the <code class="highlighter-rouge">_tree_manipulator</code> data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline TreeManip::SharedPtr Chain::getTreeManip() { 
+        return _tree_manipulator;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getmodel-member-function">The getModel member function</h2>
+
+<p><code class="highlighter-rouge">Chain</code> does not need to have a data member to store the model because the <code class="highlighter-rouge">Likelihood</code> object already provides housing for the model (and also provides a convenient <code class="highlighter-rouge">getModel</code> accessor function that we can use here).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::SharedPtr Chain::getModel() { 
+        return _model;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getloglikelihood-member-function">The getLogLikelihood member function</h2>
+
+<p>This is an accessor for the <code class="highlighter-rouge">_log_likelihood</code> data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::getLogLikelihood() const {
+        return _log_likelihood;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getheatingpower-and-setheatingpower-member-functions">The getHeatingPower and setHeatingPower member functions</h2>
+
+<p>The <code class="highlighter-rouge">setHeatingPower</code> function is responsible for setting the heating power for all updaters. Right now, there is only one updater (<code class="highlighter-rouge">GammaRateVarUpdater</code>) but more lines will be uncommented as other updaters are created. The <code class="highlighter-rouge">getHeatingPower</code> accessor function may be used to query a <code class="highlighter-rouge">Chain</code> object to find out its current heating power. When two chains swap, it is easier to simply exchange heating powers rather than swap states (which would involve copying lots of parameter values as well as the tree topology and edge lengths). As a result, the <code class="highlighter-rouge">setHeatingPower</code> function gets called often during an MCMC analysis involving multiple chains.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::getHeatingPower() const { 
+        return _heating_power;
+    } 
+
+    inline void Chain::setHeatingPower(double p) { 
+        _heating_power = p;
+        for (auto u : _updaters)
+            u-&amp;gt;setHeatingPower(p);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getchainindex-and-setchainindex-member-functions">The getChainIndex and setChainIndex member functions</h2>
+
+<p>The <code class="highlighter-rouge">setChainIndex</code> function is responsible for setting the index of the chain (stored in the data member <code class="highlighter-rouge">_chain_index</code>). The chain index will become important when we begin to use heated chains; when two chains swap places, it is easier to simply swap their indices and chain powers rather than copy the entire state (tree topology, edge lengths, state frequencies, etc.).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::getChainIndex() const { 
+        return _chain_index;
+    } 
+
+    inline void Chain::setChainIndex(unsigned idx) { 
+        _chain_index = idx;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-findupdaterbyname-member-function">The findUpdaterByName member function</h2>
+
+<p>Loops through all updaters in the <code class="highlighter-rouge">_updaters</code> vector, returning the first one whose <code class="highlighter-rouge">getUpdaterName</code> function returns <code class="highlighter-rouge">name</code> (or <code class="highlighter-rouge">nullptr</code> if an updater named <code class="highlighter-rouge">name</code> is not found).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Updater::SharedPtr Chain::findUpdaterByName(std::string name) { 
+        Updater::SharedPtr retval = nullptr;
+        for (auto u : _updaters) {
+            if (u-&amp;gt;getUpdaterName() == name) {
+                retval = u;
+                break;
+            }
+        }
+        assert(retval != nullptr);
+        return retval;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getupdaternames-member-function">The getUpdaterNames member function</h2>
+
+<p>Part of the output generated will be a list of the tuning values for all updaters, so it is important to be able to get a list of the names of all updaters. This list may be obtained by calling the <code class="highlighter-rouge">getUpdaterNames</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::vector&amp;lt;std::string&amp;gt; Chain::getUpdaterNames() const { 
+        std::vector&amp;lt;std::string&amp;gt; v;
+        for (auto u : _updaters)
+            v.push_back(u-&amp;gt;getUpdaterName());
+        return v;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getacceptpercentages-member-function">The getAcceptPercentages member function</h2>
+
+<p>It is important to provide feedback to the user regarding the performance of each updater. To that end, this function returns a vector of the acceptance percentages for all updaters.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::vector&amp;lt;double&amp;gt; Chain::getAcceptPercentages() const { 
+        std::vector&amp;lt;double&amp;gt; v;
+        for (auto u : _updaters)
+            v.push_back(u-&amp;gt;getAcceptPct());
+        return v;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getnumupdates-member-function">The getNumUpdates member function</h2>
+
+<p>This function reports the number of attempts to update each parameter. Along with <code class="highlighter-rouge">getAcceptPercentages</code>, this provides feedback to the user regarding the performance of each updater.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::vector&amp;lt;unsigned&amp;gt; Chain::getNumUpdates() const { 
+        std::vector&amp;lt;unsigned&amp;gt; v;
+        for (auto u : _updaters)
+            v.push_back(u-&amp;gt;getNumUpdates());
+        return v;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getlambdas-and-setlambdas-member-functions">The getLambdas and setLambdas member functions</h2>
+
+<p>The <code class="highlighter-rouge">getLambdas</code> function returns a list of the values of the tuning parameters for all updaters. The values are returned in the same order as the names returned by <code class="highlighter-rouge">getLambdaNames</code>. The <code class="highlighter-rouge">setLambdas</code> function sets the tuning parameter values for all updaters. Right now, we have only one updater (and thus one tuning parameter value), but the <code class="highlighter-rouge">setLambdas</code> function accepts a vector argument so that all values may be specified at once. Currently, only the first value in the vector <code class="highlighter-rouge">v</code> is used.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::vector&amp;lt;double&amp;gt; Chain::getLambdas() const { 
+        std::vector&amp;lt;double&amp;gt; v;
+        for (auto u : _updaters)
+            v.push_back(u-&amp;gt;getLambda());
+        return v;
+    } 
+
+    inline void Chain::setLambdas(std::vector&amp;lt;double&amp;gt; &amp; v) { 
+        assert(v.size() == _updaters.size());
+        unsigned index = 0;
+        for (auto u : _updaters) {
+            u-&amp;gt;setLambda(v[index++]);
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-calcloglikelihood-member-function">The calcLogLikelihood member function</h2>
+
+<p>This function calculates the current log likelihood. Any updater can be used for this, as all have the capability of computing the likelihood. Here we call upon the <code class="highlighter-rouge">GammaRateVarUpdater</code> to help us out because it is currently the only updater we have.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::calcLogLikelihood() const { 
+        return _updaters[0]-&amp;gt;calcLogLikelihood();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-calclogjointprior-member-function">The calcLogJointPrior member function</h2>
+
+<p>Each updater (right now there is just one) is called upon to calculate the log prior for the model parameter that it is responsible for updating. The log priors for each parameter are added together to yield the log of the joint prior, which is returned.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::calcLogJointPrior() const { 
+        double lnP = 0.0;
+        for (auto u : _updaters) {
+            lnP += u-&amp;gt;calcLogPrior();
+        }
+        return lnP;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-start-and-stop-member-functions">The start and stop member functions</h2>
+
+<p>The <code class="highlighter-rouge">start</code> and <code class="highlighter-rouge">stop</code> functions are called before the <code class="highlighter-rouge">Chain</code> object begins simulating a Markov chain and after it finishes, respectively. The <code class="highlighter-rouge">stop</code> function is simply a placeholder for now, but the <code class="highlighter-rouge">start</code> function is responsible for spitting out the starting state of the chain to the output.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::start() { 
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+        _log_likelihood = calcLogLikelihood();
+        _tree_manipulator-&amp;gt;deselectAllPartials();
+        _tree_manipulator-&amp;gt;deselectAllTMatrices();
+    } 
+
+    inline void Chain::stop() { 
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-nextstep-member-function">The nextStep member function</h2>
+
+<p>Finally, we come to the <code class="highlighter-rouge">nextStep</code> function, whose job it is to take one step in the Markov chain. It calls the <code class="highlighter-rouge">update</code> function for each updater, then reports (every 100 iterations) the current state and saves parameter values (currently just the gamma rate variance) in the output every <code class="highlighter-rouge">sampling_freq</code> iterations.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::nextStep(int iteration) { 
+        assert(_lot);
+        double u = _lot-&amp;gt;uniform();
+        double cumprob = 0.0;
+        unsigned i = 0;
+        for (auto updater : _updaters) {
+            cumprob += updater-&amp;gt;_prob;
+            if (u &amp;lt;= cumprob)
+                break;
+            i++;
+        }
+        assert(i &amp;lt; _updaters.size());
+        _log_likelihood = _updaters[i]-&amp;gt;update(_log_likelihood);
+    } 
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-14/02-the-gammashapeupdater-class.html">&lt;&nbsp;14.2</a> | 14.3 | <a href="/people/plewis/cpp//mac//steps/step-14/04-testing-the-chain-class.html">14.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Large Tree Problem</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">12.0 The Large Tree Problem</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-11/00-adding-the-model-class.html">&lt;&nbsp;11.0</a> | 12.0 | <a href="/people/plewis/cpp//mac//steps/step-12/01-large-tree-likelihood-fail.html">12.1&nbsp;&gt;</a></h3>
+</div>
+
+<p>Here we explore the problem of underflow when computing likelihoods of large trees, and how to deal with this in BeagleLib.</p>
+
+<p>As trees get larger, the likelihood for an individual site becomes smaller, and, if the tree is large enough, the site likelihood will become, at least for some sites, too small to represent even as a double precision floating point number. You might suppose that this is not a problem because site likelihoods are stored as log(site likelihood) and are thus immune to underflow; however, due to the fact that unknown ancestral states must be integrated out, the site likelihood must first be computed before its log can be taken.</p>
+
+<p>There is an easy way to handle this: rescale the conditional likelihoods (or partials) at several points during the postorder traversal that culminates in the site likelihood so that, at each of these points, the largest partial likelihood for any given site is 1.0. For example, if the likelihood for a site conditional on an internal node having states A, C, G, and T is, respectively, 0.49, 0.01, 0.01, 0.01, divide all 4 values by the largest, 0.49, to yield 1.0, 0.0204, 0.0204, 0.0204. This procedure ensures that the most important partial will never become too small, and it is of no consequence if, in the process, the other partials become negligible relative to that largest value because in that case they would have no influence on the site likelihood anyway. The site likelihood calculated in this way will of course be incorrect due to these rescalings, but can be corrected by multiplying the final site likelihood by all of the scaling factors that were removed along the way. In practice, the sum of the log of all scaling factors removed is added to the log of the (scaled) site likelihood.</p>
+
+<p>A simple 4-taxon, 1-site example serves to illustrate the process, even though rescaling would never be necessary for a tree so small. Assuming the JC69 model and all edge lengths equal to 0.383119218 results in all transition probabilities equal to either 0.7 (if the state at the beginning and end of an edge are identical) or 0.1 (if the states are different), which makes hand calculation much easier. Further assume that at the site in focus, each of the four taxa has state A. The partials and final site likelihood calculation for this case without rescaling are shown below.</p>
+
+<p><img src="/people/plewis/cpp/assets/img/site-likelihood.png" alt="Site likelihoods without scaling" class="center-math-image" /></p>
+
+<p>Now consider factoring out a scaler at both node 4 and node 5.</p>
+
+<p><img src="/people/plewis/cpp/assets/img/site-likelihood-rescaled.png" alt="Site likelihoods with scaling" class="center-math-image" /></p>
+
+<p>As you can see, the site likelihood is the same, however using scalers we avoid underflow. Above, the site likelihood is shown as a product of 3 numbers: 2 scaling factors and the rescaled site likelihood. Taking the log of this product to obtain the log site likelihood would undo all the work that went into rescaling. In practice, BeagleLib adds the log of each scaling factor to a cumulative sum as soon as they are calculated, and once the rescaled site likelihood is computed (0.1768 in the example above), its log is added to the cumulative sum of log scaling factors to obtain the log site likelihood. Performing the final multiplication on the log scale is what allows us to avoid underflow.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="12-1">
+		<td>Step 12.1</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-12/01-large-tree-likelihood-fail.html">Large Tree Likelihood Fail</a></td>
+		<td><p>An illustration of underflow in calculation the likelihood of a large tree.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="12-2">
+		<td>Step 12.2</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-12/02-rescaling-in-beaglelib.html">Rescaling in BeagleLib</a></td>
+		<td><p>Set up rescaling in BeagleLib to deal with underflow.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-11/00-adding-the-model-class.html">&lt;&nbsp;11.0</a> | 12.0 | <a href="/people/plewis/cpp//mac//steps/step-12/01-large-tree-likelihood-fail.html">12.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

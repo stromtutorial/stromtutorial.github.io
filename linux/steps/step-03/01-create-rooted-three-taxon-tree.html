@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Create a rooted, 3-taxon tree</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">3.1 Create a rooted, 3-taxon tree</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-03/00-saving-trees.html">&lt;&nbsp;3.0</a> | 3.1 | <a href="/people/plewis/cpp//linux//steps/step-03/02-test-tree-creation.html">3.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>The next step is to add a function that creates a 3-taxon rooted tree. We will call this function from the <code class="highlighter-rouge">Tree</code> constructor in order to have a way to generate a test tree.</p>
+
+<p>This way of generating a tree is admittedly tedious, and we will soon abandon it for a more general method that automatically creates trees from newick tree descriptions</p>
+
+<h2 id="additions-to-treehpp">Additions to <em>tree.hpp</em></h2>
+<p>Most of the code below is already in your <em>tree.hpp</em> file. Just add the bold, blue text. Note that the <code class="highlighter-rouge">clear()</code> function call has been commented out in the Tree constructor.</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once	
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;iostream&amp;gt;
+#include "node.hpp"
+
+namespace strom {
+
+    //class TreeManip;
+    //class Likelihood;
+    //class Updater;
+
+    class Tree {
+
+            //friend class TreeManip;
+            //friend class Likelihood;
+            //friend class Updater;
+
+        public:
+
+                                        Tree();
+                                        ~Tree();
+
+            bool                        isRooted() const;
+            unsigned                    numLeaves() const;
+            unsigned                    numInternals() const;
+            unsigned                    numNodes() const;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        createTestTree();&lt;/strong&gt;&lt;/span&gt;
+
+        private:
+
+            void                        clear();
+
+            bool                        _is_rooted;
+            Node *                      _root;
+            unsigned                    _nleaves;
+            unsigned                    _ninternals;
+            Node::PtrVector             _preorder;
+            Node::PtrVector             _levelorder;
+            Node::Vector                _nodes;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt;Tree&amp;gt; SharedPtr;
+    };
+
+    inline Tree::Tree() {
+        std::cout &amp;lt;&amp;lt; "Constructing a Tree" &amp;lt;&amp;lt; std::endl;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;createTestTree();&lt;/strong&gt;&lt;/span&gt;
+    }
+
+    inline Tree::~Tree() {
+        std::cout &amp;lt;&amp;lt; "Destroying a Tree" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Tree::clear() {
+        _is_rooted = false;
+        _root = 0;
+        _nodes.clear();
+        _preorder.clear();
+        _levelorder.clear();
+    }
+
+    inline bool Tree::isRooted() const {
+        return _is_rooted;
+    }
+
+    inline unsigned Tree::numLeaves() const {
+        return _nleaves;
+    }
+
+    inline unsigned Tree::numInternals() const {
+        return _ninternals;
+    }
+
+    inline unsigned Tree::numNodes() const {
+        return (unsigned)_nodes.size();
+    }
+
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline void Tree::createTestTree() {&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_nodes.resize(6);&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * root_node       = &amp;_nodes[0];&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * first_internal  = &amp;_nodes[1];&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * second_internal = &amp;_nodes[2];&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * first_leaf      = &amp;_nodes[3];&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * second_leaf     = &amp;_nodes[4];&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * third_leaf      = &amp;_nodes[5];&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Here is the structure of the tree (numbers in&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// parentheses are node numbers, other numbers&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// are edge lengths):&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// first_leaf (0)   second_leaf (1)   third_leaf (2)&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//      \              /                  /&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//       \ 0.1        / 0.1              /&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//        \          /                  /&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//     second_internal (3)             / 0.2&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//             \                      /&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//              \ 0.1                /&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//               \                  /&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//                first_internal (4)&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//                        |&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//                        | 0.1&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//                        |&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//                    root_node (5)&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_node-&amp;gt;_parent            = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_node-&amp;gt;_left_child        = first_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_node-&amp;gt;_right_sib         = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_node-&amp;gt;_number            = 5;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_node-&amp;gt;_name              = "root node";&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_node-&amp;gt;_edge_length       = 0.0;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_internal-&amp;gt;_parent       = root_node;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_internal-&amp;gt;_left_child   = second_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_internal-&amp;gt;_right_sib    = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_internal-&amp;gt;_number       = 4;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_internal-&amp;gt;_name         = "first internal node";&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_internal-&amp;gt;_edge_length  = 0.1;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_internal-&amp;gt;_parent      = first_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_internal-&amp;gt;_left_child  = first_leaf;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_internal-&amp;gt;_right_sib   = third_leaf;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_internal-&amp;gt;_number      = 3;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_internal-&amp;gt;_name        = "second internal node";&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_internal-&amp;gt;_edge_length = 0.1;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_leaf-&amp;gt;_parent           = second_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_leaf-&amp;gt;_left_child       = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_leaf-&amp;gt;_right_sib        = second_leaf;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_leaf-&amp;gt;_number           = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_leaf-&amp;gt;_name             = "first leaf";&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;first_leaf-&amp;gt;_edge_length      = 0.1;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_leaf-&amp;gt;_parent          = second_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_leaf-&amp;gt;_left_child      = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_leaf-&amp;gt;_right_sib       = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_leaf-&amp;gt;_number          = 1;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_leaf-&amp;gt;_name            = "second leaf";&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;second_leaf-&amp;gt;_edge_length     = 0.1;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;third_leaf-&amp;gt;_parent           = first_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;third_leaf-&amp;gt;_left_child       = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;third_leaf-&amp;gt;_right_sib        = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;third_leaf-&amp;gt;_number           = 2;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;third_leaf-&amp;gt;_name             = "third leaf";&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;third_leaf-&amp;gt;_edge_length      = 0.2;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_is_rooted             = true;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_root                  = root_node;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_nleaves               = 3;&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Note that root node is not included in _preorder&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_preorder.push_back(first_internal);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_preorder.push_back(second_internal);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_preorder.push_back(first_leaf);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_preorder.push_back(second_leaf);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_preorder.push_back(third_leaf);&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_levelorder.push_back(first_internal);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_levelorder.push_back(second_internal);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_levelorder.push_back(third_leaf);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_levelorder.push_back(first_leaf);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_levelorder.push_back(second_leaf);&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+    
+}	
+
+</code></pre></div></div>
+
+<h2 id="explanation-of-createtesttree">Explanation of <code class="highlighter-rouge">createtesttree()</code></h2>
+
+<p>We’ve added a member function to the <code class="highlighter-rouge">Tree</code> class named <code class="highlighter-rouge">createTestTree()</code>, and this function is now called, instead of <code class="highlighter-rouge">clear()</code>, in the <code class="highlighter-rouge">Tree</code> constructor. Let’s go through this function to see how it creates a tree.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        _nodes.resize(6);	
+
+</code></pre></div></div>
+<p>This line sets the size of the <code class="highlighter-rouge">_nodes</code> vector to 6. The <code class="highlighter-rouge">Node</code> constructor will be called 6 times when this line is executed because 6 <code class="highlighter-rouge">Node</code> objects are created, one for each of the first 6 elements of the <code class="highlighter-rouge">_node</code>s vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        Node * root_node       = &amp;_nodes[0];	
+        Node * first_internal  = &amp;_nodes[1];
+        Node * second_internal = &amp;_nodes[2];
+        Node * first_leaf      = &amp;_nodes[3];
+        Node * second_leaf     = &amp;_nodes[4];
+        Node * third_leaf      = &amp;_nodes[5];	
+
+</code></pre></div></div>
+<p>These 6 lines create pointers to each of the 6 node objects stored in the <code class="highlighter-rouge">_nodes</code> vector. This will make it easier (and less error-prone) to hook up each node to its parent and children. Note the ampersand symbol (<code class="highlighter-rouge">&amp;</code>): in your mind, replace the <code class="highlighter-rouge">&amp;</code> symbol with the words <em>memory address of</em>. The asterisk symbol (<code class="highlighter-rouge">*</code>) means <em>pointer</em>, and <code class="highlighter-rouge">Node *</code> means <em>pointer to an object of type Node</em>. A pointer stores the memory address of an object. Thus, the pointer named <code class="highlighter-rouge">root_node</code> stores the memory address of the first element (element 0) of the <code class="highlighter-rouge">_nodes</code> vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        root_node-&amp;gt;_parent            = 0;					
+        root_node-&amp;gt;_left_child        = first_internal;
+        root_node-&amp;gt;_right_sib         = 0;
+        root_node-&amp;gt;_number            = 5;
+        root_node-&amp;gt;_name              = "root node";
+        root_node-&amp;gt;_edge_length       = 0.0;				
+
+</code></pre></div></div>
+<p>The lines above provide values for all the data members of the <code class="highlighter-rouge">Node</code> object pointed to by the <code class="highlighter-rouge">root_node</code> pointer. The  arrow symbol (<code class="highlighter-rouge">-&gt;</code>) is used to specify a data member or method of an object when a pointer is used to refer to the object, while a  dot (<code class="highlighter-rouge">.</code>) would be used if attributes are being set for the object directly. The root node has no parent and no right sibling, so we set these pointers to the value 0. The left child of the root node should point to the first internal node, and <code class="highlighter-rouge">first_internal</code> is a pointer to that node.</p>
+
+<p>The other nodes are set up similarly according to the tree diagram given in the comments.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        _is_rooted             = true;		
+        _root                  = root_node;
+        _nleaves               = 3;			
+
+</code></pre></div></div>
+<p>The above 3 lines set data members of the <code class="highlighter-rouge">Tree</code> class. We specify <code class="highlighter-rouge">true</code> for <code class="highlighter-rouge">_is_rooted</code> because we want this tree to be interpreted as a rooted tree (setting this to false would imply that the root node is really a leaf and observed data is associated with the root node).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        _preorder.push_back(first_internal);	
+        _preorder.push_back(second_internal);
+        _preorder.push_back(first_leaf);
+        _preorder.push_back(second_leaf);
+        _preorder.push_back(third_leaf);		
+
+</code></pre></div></div>
+<p>The 5 lines above build up the <code class="highlighter-rouge">_preorder</code> vector one element at a time. Each element is a pointer to a <code class="highlighter-rouge">Node</code> object already stored in the <code class="highlighter-rouge">_nodes</code> vector. The order in which we push pointers onto <code class="highlighter-rouge">_preorder</code> is important. It is called <code class="highlighter-rouge">_preorder</code> because it stores nodes in <strong>preorder sequence</strong> (ancestral nodes visited before their children). One could walk through all the nodes of the tree in preorder sequence by simply iterating through this vector. Iterating through <code class="highlighter-rouge">_preorder</code> in reverse would walk the tree in <strong>postorder sequence</strong> (child nodes visited before their parents).</p>
+
+<p>Important: note that the root node is not included in the <code class="highlighter-rouge">_preorder</code> vector. There are two reasons for this. First, we already have a pointer (<code class="highlighter-rouge">_root</code>) to the root node. Second, in most situations the root node either is ignored (rooted trees) or is treated specially (unrooted trees), so you will soon see that we almost always start iterating through nodes with the first (and only) child of the root node anyway: starting at the root node would only cause us to add extra lines to skip the root node.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        _levelorder.push_back(first_internal);	
+        _levelorder.push_back(second_internal);
+        _levelorder.push_back(third_leaf);
+        _levelorder.push_back(first_leaf);
+        _levelorder.push_back(second_leaf);		
+
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">_levelorder</code> vector also stores a list of node pointers, but this time in <strong>level-order sequence</strong> rather than preorder sequence. Level-order sequence involves visiting all children of the current level before moving closer to the root in the tree. The reason why this sequence needs to be stored will be explained later when likelihoods are calculated.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-03/00-saving-trees.html">&lt;&nbsp;3.0</a> | 3.1 | <a href="/people/plewis/cpp//linux//steps/step-03/02-test-tree-creation.html">3.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

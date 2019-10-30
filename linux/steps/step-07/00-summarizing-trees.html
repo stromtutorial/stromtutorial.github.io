@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Summarizing tree topologies</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">7.0 Summarizing tree topologies</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 7.0 | <a href="/people/plewis/cpp//linux//steps/step-07/01-split-class.html">7.1&nbsp;&gt;</a></h3>
+</div>
+
+<p>In this part, you will learn how to summarize trees in terms of their component splits. By the end of this section, your program will read a tree file and report all unique tree topologies and the number of trees having each topology. You will also install the Nexus Class Library in order to read NEXUS-formatted tree files.</p>
+
+<p>A <strong>split</strong> is a partition that divides the leaves of a tree into two subsets. There is one split associated with every edge in a tree: if that edge is cut, two subtrees are produced and the leaves in each of these subtrees represent the two subsets composing the split. In practice, we will think of a split as the set of leaves in the subtree distal from the root. Thus, splits are only useful if they are all defined using the same root position.</p>
+
+<p>A <code class="highlighter-rouge">Split</code> class will store the set of leaves that descend from a given node. A tree topology can be identified by the set of splits it contains. A <strong>tree ID</strong> is thus the set of splits in a tree. Because trees with identical tree IDs have identical topologies, we can use tree IDs to determine how many unique topologies there are for any set of trees having the same leaf set.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="7-1">
+		<td>Step 7.1</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-07/01-split-class.html">The Split class</a></td>
+		<td><p>The <code class="highlighter-rouge">Split</code> class provides an object that can store the set of taxa that represent descendants of a given <code class="highlighter-rouge">Node</code> object. We will provide a <code class="highlighter-rouge">Split</code> object for every <code class="highlighter-rouge">Node</code>.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="7-2">
+		<td>Step 7.2</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-07/02-adding-splits-to-node-and-treemanip.html">Adding splits to Node and TreeManip</a></td>
+		<td><p>Before we can do anything interesting with our <code class="highlighter-rouge">Split</code> class, we need to add a <code class="highlighter-rouge">Split</code> object to the <code class="highlighter-rouge">Node</code> class and a <code class="highlighter-rouge">storeSplits</code> member function to the <code class="highlighter-rouge">TreeManip</code> class.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="7-3">
+		<td>Step 7.3</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-07/03-tree-summary.html">The TreeSummary class</a></td>
+		<td><p>The <code class="highlighter-rouge">TreeSummary</code> class will read a tree file, keep track of the number of distinct tree topologies found therein, and count the number of trees having each unique topology.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="7-4">
+		<td>Step 7.4</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-07/04-test-tree-summary.html">Test the TreeSummary class</a></td>
+		<td><p>To test the <code class="highlighter-rouge">TreeSummary</code> class, we need for the <code class="highlighter-rouge">main</code> function to create a <code class="highlighter-rouge">TreeSummary</code> object and call its <code class="highlighter-rouge">readTreeFile</code> and <code class="highlighter-rouge">showSummary</code> functions. We also need a tree file to read, and need to link in the Nexus Class Library to do the work of parsing this tree file.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 7.0 | <a href="/people/plewis/cpp//linux//steps/step-07/01-split-class.html">7.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The TreeLengthUpdater class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">17.2 The TreeLengthUpdater class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-17/01-the-tree-updater-class.html">&lt;&nbsp;17.1</a> | 17.2 | <a href="/people/plewis/cpp//linux//steps/step-17/03-modify-chain.html">17.3&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The <code class="highlighter-rouge">TreeLengthUpdater</code> class encapsulates an <code class="highlighter-rouge">Updater</code> that can modify the length of all edges of the tree simultaneously, effectively rescaling the tree to make it larger or smaller. This updater is needed for good mixing because the only other updater that changes edge lengths (<code class="highlighter-rouge">TreeUpdater</code>) only changes 3 edges at a time.</p>
+
+<p>Create a new file named <em>tree_length_updater.hpp</em> and fill it with the following class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "updater.hpp"
+
+namespace strom {
+
+    class TreeLengthUpdater : public Updater {
+    
+        public:
+        
+            typedef std::shared_ptr&amp;lt; TreeLengthUpdater &amp;gt; SharedPtr;
+
+                                        TreeLengthUpdater();
+                                        ~TreeLengthUpdater();
+
+            virtual void                clear();
+            virtual void                proposeNewState();
+            virtual void                revert();
+
+            virtual double              calcLogPrior();
+
+            void                        pullFromModel();
+            void                        pushToModel() const;
+        
+        private:
+
+            double                      _prev_point;
+            double                      _curr_point;
+    };
+
+    // Member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="the-constructor-and-destructor">The constructor and destructor</h2>
+
+<p>The constructor calls clear to do all the work and then sets its name to “Tree Length”.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline TreeLengthUpdater::TreeLengthUpdater() { 
+        // std::cout &amp;lt;&amp;lt; "Creating a TreeLengthUpdater..." &amp;lt;&amp;lt; std::endl;
+        clear();
+        _name = "Tree Length";
+    }   
+
+    inline TreeLengthUpdater::~TreeLengthUpdater() {    
+        // std::cout &amp;lt;&amp;lt; "Destroying a TreeLengthUpdater..." &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-clear-member-function">The clear member function</h2>
+
+<p>This function returns this <code class="highlighter-rouge">TreeLengthUpdater</code> object to its just-constructed state.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::clear() {    
+        Updater::clear();
+        _prev_point     = 0.0;
+        _curr_point     = 0.0;
+        reset();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-calclogprior-member-function">The calcLogPrior member function</h2>
+
+<p>This overrides the base class version and calls the base class function <code class="highlighter-rouge">calcEdgeLengthPrior</code> to do the work. Edge lengths are the only parameters changed when this updater is invoked, so the only component of the prior that needs to be calculated is the joint edge length prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double TreeLengthUpdater::calcLogPrior() {   
+        return Updater::calcEdgeLengthPrior();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-pullfrommodel-and-pushtomodel-member-functions">The pullFromModel and pushToModel member functions</h2>
+
+<p>The <code class="highlighter-rouge">pullFromModel</code> function stores the current tree length in its <code class="highlighter-rouge">_curr_point</code> data member. The value of <code class="highlighter-rouge">_curr_point</code> changes when <code class="highlighter-rouge">proposeNewState</code> is called (after a copy is stored in <code class="highlighter-rouge">_prev_point</code>), and the function <code class="highlighter-rouge">pushToModel</code> rescales the tree based on the ratio of the new tree length (<code class="highlighter-rouge">_curr_point</code>) and the previous tree length (<code class="highlighter-rouge">_prev_point</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::pullFromModel() {    
+        _curr_point = _tree_manipulator-&amp;gt;calcTreeLength();
+    }   
+
+    inline void TreeLengthUpdater::pushToModel() const {    
+        double scaler = _curr_point/_prev_point;
+        _tree_manipulator-&amp;gt;scaleAllEdgeLengths(scaler);
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
+
+<p>This function proposes a new tree length by multiplying the old tree length by a factor that is either slightly greater than, or slightly less than, 1.0. with the magnitude of the factor determined by the <code class="highlighter-rouge">Updater</code> data member <code class="highlighter-rouge">_lambda</code>. This is the same technique we used in previous steps tp update omega and the rate variance.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::proposeNewState() {  
+        // Save copy of _curr_point in case revert is necessary.
+        pullFromModel();
+        _prev_point = _curr_point;
+
+        // Let _curr_point be proposed value
+        double m = exp(_lambda*(_lot-&amp;gt;uniform() - 0.5));
+        _curr_point = m*_prev_point;
+        pushToModel();
+
+        // calculate log of Hastings ratio under GammaDir parameterization
+        _log_hastings_ratio = log(m);
+
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator-&amp;gt;selectAllPartials();
+        _tree_manipulator-&amp;gt;selectAllTMatrices();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-revert-member-function">The revert member function</h2>
+
+<p>This function simply copies the old tree length (stored in <code class="highlighter-rouge">_prev_point</code>) into <code class="highlighter-rouge">_curr_point</code> so that when <code class="highlighter-rouge">pushToModel</code> is called no change will take place to edge lengths because the proposal was rejected.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::revert() {   
+        // swap _curr_point and _prev_point so that edge length scaler
+        // in pushCurrentStateToModel will be correctly calculated
+        double tmp = _curr_point;
+        _curr_point = _prev_point;
+        _prev_point = tmp;
+        pushToModel();
+    }   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-17/01-the-tree-updater-class.html">&lt;&nbsp;17.1</a> | 17.2 | <a href="/people/plewis/cpp//linux//steps/step-17/03-modify-chain.html">17.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

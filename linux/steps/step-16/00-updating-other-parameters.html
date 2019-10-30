@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Updating Other Parameters</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">16.0 Updating Other Parameters</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 16.0 | <a href="/people/plewis/cpp//linux//steps/step-16/01-dirichlet-updater-base-class.html">16.1&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>State frequencies (e.g. nucleotide equilibrium relative frequencies), exchangeabilities (the relative rates for different types of substitution in the GTR model), and subset relative rates differ from other parameters in being both multivariate and constrained (one cannot update them individually because a change to any one of them necessarily forces at least one other one to change).</p>
+
+<p>This part of the tutorial introduces a focussed Dirichlet approach to updating these kinds of model parameters. We will first create a base class (<code class="highlighter-rouge">DirichletUpdater</code>) and then create 3 derived classes (<code class="highlighter-rouge">StateFrequencyUpdater</code>, <code class="highlighter-rouge">GTRExchangeabilityUpdater</code>, and <code class="highlighter-rouge">SubsetRelRateUpdater</code>) that modify only the parts of the base class that are specific to the particular parameter that they manage.</p>
+
+<p>We also create <code class="highlighter-rouge">PinvarUpdater</code> and <code class="highlighter-rouge">OmegaUpdater</code> to handle univariate parameter updates of the proportion of invariable sites and the nonsynonymous-synonymous rate ratio, respectively.</p>
+
+<p>At the conclusion of this part, you will have a program that updates state frequencies, exchangeabilities, omega, pinvar, the gamma rate variance parameter, and subset relative rates as it carries out its Markov chain Monte Carlo simulation. The only remaining updaters needed will modify tree topology and edge lengths.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="16-1">
+		<td>Step 16.1</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-16/01-dirichlet-updater-base-class.html">The Dirichlet Updater Base Class</a></td>
+		<td><p>Create a base class for StateFreqUpdater, ExchangeabilityUpdater, and SubsetRelRateUpdater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="16-2">
+		<td>Step 16.2</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-16/02-statefrequpdater-class.html">The StateFreqUpdater Class</a></td>
+		<td><p>Create the derived class StateFreqUpdater from the base class DirichletUpdater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="16-3">
+		<td>Step 16.3</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-16/03-exchangeabilitiesupdater-class.html">The ExchangeabilityUpdater Class</a></td>
+		<td><p>Create the derived class ExchangeabilityUpdater from the base class DirichletUpdater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="16-4">
+		<td>Step 16.4</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-16/04-subsetrelrateupdater-class.html">The SubsetRelRateUpdater Class</a></td>
+		<td><p>Create the derived class SubsetRelRateUpdater from the base class DirichletUpdater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="16-5">
+		<td>Step 16.5</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-16/05-pinvar-omega-updater.html">The PinvarUpdater and OmegaUpdater Classes</a></td>
+		<td><p>Create the derived classes PinvarUpdater and OmegaUpdater from the base class Updater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="16-6">
+		<td>Step 16.6</td>
+		<td><a href="/people/plewis/cpp/linux/steps/step-16/06-test-updaters.html">Test the New Updaters</a></td>
+		<td><p>Perform MCMC analyses that test all of the new Updater-derived classes.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 16.0 | <a href="/people/plewis/cpp//linux//steps/step-16/01-dirichlet-updater-base-class.html">16.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

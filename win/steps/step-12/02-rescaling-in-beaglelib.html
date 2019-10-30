@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Rescaling in BeagleLib</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">12.2 Rescaling in BeagleLib</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-12/01-large-tree-likelihood-fail.html">&lt;&nbsp;12.1</a> | 12.2 | <a href="/people/plewis/cpp//win//steps/step-13/00-adding-pseudorandom-number-generator.html">13.0&nbsp;&gt;</a></h3>
+</div>
+
+<p>To add rescaling, we will need to modify several BeagleLib function calls inside our <code class="highlighter-rouge">Likelihood</code> class.</p>
+
+<h2 id="add-a-data-member-to-control-whether-scaling-occurs">Add a data member to control whether scaling occurs</h2>
+<p>Add new data member <code class="highlighter-rouge">_underflow_scaling</code> (and a new public member function (<code class="highlighter-rouge">useUnderflowScaling</code>) to set its value) to the class declaration .</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Likelihood {  
+        public:
+                                                    Likelihood();
+                                                    ~Likelihood();
+
+            void                                    setRooted(bool is_rooted);
+            void                                    setPreferGPU(bool prefer_gpu);
+            void                                    setAmbiguityEqualsMissing(bool ambig_equals_missing);
+        
+            bool                                    usingStoredData() const;
+            void                                    useStoredData(bool using_data);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    useUnderflowScaling(bool do_scaling);&lt;/strong&gt;&lt;/span&gt;
+
+            std::string                             beagleLibVersion() const;
+            std::string                             availableResources() const;
+            std::string                             usedResources() const;
+
+            void                                    initBeagleLib();
+            void                                    finalizeBeagleLib(bool use_exceptions);
+
+            double                                  calcLogLikelihood(Tree::SharedPtr t);
+
+            Data::SharedPtr                         getData();
+            void                                    setData(Data::SharedPtr d);
+
+            Model::SharedPtr                        getModel();
+            void                                    setModel(Model::SharedPtr m);
+
+            void                                    clear();
+            
+            unsigned                                calcNumEdgesInFullyResolvedTree() const;
+            unsigned                                calcNumInternalsInFullyResolvedTree() const;
+
+        private:
+        
+            struct InstanceInfo {
+                int handle;
+                int resourcenumber;
+                std::string resourcename;
+                unsigned nstates;
+                unsigned nratecateg;
+                unsigned npatterns;
+                unsigned partial_offset;
+                unsigned tmatrix_offset;
+                bool invarmodel;
+                std::vector&amp;lt;unsigned&amp;gt; subsets;
+                
+                InstanceInfo() : handle(-1), resourcenumber(-1), resourcename(""), nstates(0), nratecateg(0), npatterns(0), partial_offset(0), tmatrix_offset(0), invarmodel(false) {}
+            };
+
+            typedef std::pair&amp;lt;unsigned, int&amp;gt;        instance_pair_t;
+
+            unsigned                                getPartialIndex(Node * nd, InstanceInfo &amp; info) const;
+            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const;
+            void                                    updateInstanceMap(instance_pair_t &amp; p, unsigned subset);
+            void                                    newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices);
+            void                                    setTipStates();
+            void                                    setTipPartials();
+            void                                    setPatternPartitionAssignments();
+            void                                    setPatternWeights();
+            void                                    setAmongSiteRateHeterogenetity();
+            void                                    setModelRateMatrix();
+            void                                    addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
+            void                                    defineOperations(Tree::SharedPtr t);
+            void                                    updateTransitionMatrices();
+            void                                    calculatePartials();
+            double                                  calcInstanceLogLikelihood(InstanceInfo &amp; inst, Tree::SharedPtr t);
+
+
+            std::vector&amp;lt;InstanceInfo&amp;gt;               _instances;
+            std::map&amp;lt;int, std::string&amp;gt;              _beagle_error;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _operations;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _pmatrix_index;
+            std::map&amp;lt;int, std::vector&amp;lt;double&amp;gt; &amp;gt;     _edge_lengths;
+
+            std::vector&amp;lt;int&amp;gt;                        _subset_indices;
+            std::vector&amp;lt;int&amp;gt;                        _parent_indices;
+            std::vector&amp;lt;int&amp;gt;                        _child_indices;
+            std::vector&amp;lt;int&amp;gt;                        _tmatrix_indices;
+            std::vector&amp;lt;int&amp;gt;                        _weights_indices;
+            std::vector&amp;lt;int&amp;gt;                        _freqs_indices;
+            std::vector&amp;lt;int&amp;gt;                        _scaling_indices;
+        
+            Model::SharedPtr                        _model;
+
+            Data::SharedPtr                         _data;
+            unsigned                                _ntaxa;
+            bool                                    _rooted;
+            bool                                    _prefer_gpu;
+            bool                                    _ambiguity_equals_missing;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _underflow_scaling;&lt;/strong&gt;&lt;/span&gt;
+            bool                                    _using_data;
+
+        public:
+            typedef std::shared_ptr&amp;lt; Likelihood &amp;gt;   SharedPtr;
+    };
+    
+
+</code></pre></div></div>
+
+<p>Set the new data member to <code class="highlighter-rouge">false</code> in the clear function. We will turn scaling on or off using a program option, but the default will be to not scale.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::clear() { 
+        finalizeBeagleLib(true);
+        
+        _ntaxa                      = 0;
+        _rooted                     = false;
+        _prefer_gpu                 = false;
+        _ambiguity_equals_missing   = true;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_underflow_scaling          = false;&lt;/strong&gt;&lt;/span&gt;
+        _using_data                 = true;
+        _data                       = nullptr;
+        
+        _operations.clear();
+        _pmatrix_index.clear();
+        _edge_lengths.clear();
+        _subset_indices.assign(1, 0);
+        _parent_indices.assign(1, 0);
+        _child_indices.assign(1, 0);
+        _tmatrix_indices.assign(1, 0);
+        _weights_indices.assign(1, 0);
+        _freqs_indices.assign(1, 0);
+        _scaling_indices.assign(1, 0);
+        
+        _model = Model::SharedPtr(new Model());        
+
+        // Store BeagleLib error codes so that useful
+        // error messages may be provided to the user
+        _beagle_error.clear();
+        _beagle_error[0]  = std::string("success");
+        _beagle_error[-1] = std::string("unspecified error");
+        _beagle_error[-2] = std::string("not enough memory could be allocated");
+        _beagle_error[-3] = std::string("unspecified exception");
+        _beagle_error[-4] = std::string("the instance index is out of range, or the instance has not been created");
+        _beagle_error[-5] = std::string("one of the indices specified exceeded the range of the array");
+        _beagle_error[-6] = std::string("no resource matches requirements");
+        _beagle_error[-7] = std::string("no implementation matches requirements");
+        _beagle_error[-8] = std::string("floating-point range exceeded");
+    } 
+
+</code></pre></div></div>
+
+<p>Add the body of the new member function somewhere after the class declaration but before the namespace-closing right curly bracket.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::useUnderflowScaling(bool do_scaling) { 
+        _underflow_scaling = do_scaling;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="tell-beaglelib-to-create-scale-buffers">Tell BeagleLib to create scale buffers</h2>
+
+<p>In the <code class="highlighter-rouge">Likelihood::newInstance</code> function, add <code class="highlighter-rouge">BEAGLE_FLAG_SCALING_MANUAL</code> to the requirement flags and tell BeagleLib to create <code class="highlighter-rouge">num_internals + num_subsets</code> scaling buffers (i.e. arrays). Each scaling buffer has one element for each pattern in the data, plus an extra element for each data subset to store the cumulative scaling factors. If scaling is done at each internal node, there needs to be at least the same number of scaling buffers as there are internal nodes. The items to add or change are highlighted in blue.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices) { 
+        unsigned num_subsets = (unsigned)subset_indices.size();
+        
+        bool is_invar_model = (nrates &amp;lt; 0 ? true : false);
+        unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
+        
+        unsigned num_patterns = 0;
+        for (auto s : subset_indices) {
+            num_patterns += _data-&amp;gt;getNumPatternsInSubset(s);
+        }
+        
+        unsigned num_internals = calcNumInternalsInFullyResolvedTree();
+
+        // add 1 to num_edges so that subroot node will have a tmatrix, root tip's tmatrix is never used
+        unsigned num_edges = 1 + calcNumEdgesInFullyResolvedTree();
+        unsigned num_transition_probs = num_edges*num_subsets;
+        
+        long requirementFlags = 0;
+
+        long preferenceFlags = BEAGLE_FLAG_PRECISION_SINGLE | BEAGLE_FLAG_THREADING_CPP;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;preferenceFlags |= BEAGLE_FLAG_SCALING_MANUAL;&lt;/strong&gt;&lt;/span&gt;
+        if (_prefer_gpu)
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
+        else
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_CPU;
+        
+        BeagleInstanceDetails instance_details;
+        unsigned npartials = num_internals + _ntaxa;
+        unsigned nsequences = 0;
+        if (_ambiguity_equals_missing) {
+            npartials -= _ntaxa;
+            nsequences += _ntaxa;
+        }
+        
+        int inst = beagleCreateInstance(
+             _ntaxa,                        // tips
+             2*npartials,                   // partials
+             nsequences,                    // sequences
+             nstates,                       // states
+             num_patterns,                  // patterns (total across all subsets that use this instance)
+             num_subsets,                   // models (one for each distinct eigen decomposition)
+             2*num_subsets*num_transition_probs, // transition matrices (one for each edge in each subset)
+             ngammacat,                     // rate categories
+             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(_underflow_scaling ? num_internals + num_subsets : 0),    // scale buffers&lt;/strong&gt;&lt;/span&gt;
+             NULL,                          // resource restrictions
+             0,                             // length of resource list
+             preferenceFlags,               // preferred flags
+             requirementFlags,              // required flags
+             &amp;instance_details);            // pointer for details
+        
+        if (inst &amp;lt; 0) {
+            // beagleCreateInstance returns one of the following:
+            //   valid instance (0, 1, 2, ...)
+            //   error code (negative integer)
+            throw XStrom(boost::str(boost::format("Likelihood init function failed to create BeagleLib instance (BeagleLib error code was %d)") % _beagle_error[inst]));
+        }
+        
+        InstanceInfo info;
+        info.handle         = inst;
+        info.resourcenumber = instance_details.resourceNumber;
+        info.resourcename   = instance_details.resourceName;
+        info.nstates        = nstates;
+        info.nratecateg     = ngammacat;
+        info.invarmodel     = is_invar_model;
+        info.subsets        = subset_indices;
+        info.npatterns      = num_patterns;
+        info.partial_offset = num_internals;
+        info.tmatrix_offset = num_edges;
+        _instances.push_back(info);
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-scale-buffer-index-to-each-operation">Add the scale buffer index to each operation</h2>
+
+<p>Modify the <code class="highlighter-rouge">Likelihood::addOperation</code> function to tell BeagleLib which scaling buffer to use when computing the partials for a given internal node. We will reserve the first <code class="highlighter-rouge">num_subsets</code> scaling buffer elements to hold the cumulative sums of log scalers for each subset, and because internal nodes are numbered starting with <code class="highlighter-rouge">_ntaxa</code>, we need to subtract <code class="highlighter-rouge">_ntaxa</code> and add <code class="highlighter-rouge">num_subsets</code> from the internal node number to get the index of the scaler buffer to use.</p>
+
+<p>Elements 8 and 9 of each operation are only present if there is more than one subset, and element 9 determines which scale buffer element to use for the cumulative scaling factor. The variable <code class="highlighter-rouge">subset_index</code> keeps track of the <em>relative</em> subset index, which is what is needed here. The absolute subset index is not helpful, as it is always possible that some data subsets are being handled by other BeagleLib instances.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) { 
+        assert(nd);
+        assert(lchild);
+        assert(rchild);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned num_subsets = (unsigned)info.subsets.size();&lt;/strong&gt;&lt;/span&gt;
+
+        // 1. destination partial to be calculated
+        int partial = getPartialIndex(nd, info);
+        _operations[info.handle].push_back(partial);
+
+        // 2. destination scaling buffer index to write to
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_operations[info.handle].push_back(nd-&amp;gt;_number - _ntaxa + num_subsets);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+            _operations[info.handle].push_back(BEAGLE_OP_NONE);
+
+        // 3. destination scaling buffer index to read from
+        _operations[info.handle].push_back(BEAGLE_OP_NONE);
+
+        // 4. left child partial index
+        partial = getPartialIndex(lchild, info);
+        _operations[info.handle].push_back(partial);
+
+        // 5. left child transition matrix index
+        unsigned tindex = getTMatrixIndex(lchild, info, subset_index);
+        _operations[info.handle].push_back(tindex);
+
+        // 6. right child partial index
+        partial = getPartialIndex(rchild, info);
+        _operations[info.handle].push_back(partial);
+
+        // 7. right child transition matrix index
+        tindex = getTMatrixIndex(rchild, info, subset_index);
+        _operations[info.handle].push_back(tindex);
+
+        if (info.subsets.size() &amp;gt; 1) {
+            // 8. index of partition subset
+            _operations[info.handle].push_back(subset_index);
+            
+            // 9. cumulative scale index
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_operations[info.handle].push_back(subset_index);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+                _operations[info.handle].push_back(BEAGLE_OP_NONE);
+        }
+    }   
+
+</code></pre></div></div>
+<p>In our application, we need only specify scaling buffers for writing, not reading, so the 3rd element of each operation should be left as <code class="highlighter-rouge">BEAGLE_OP_NONE</code>.</p>
+
+<h2 id="specify-the-cumulative-scale-buffer-index-in-calculatepartials">Specify the cumulative scale buffer index in calculatePartials</h2>
+
+<p>The new code in blue below serves to initialize the scaling buffer element for each pattern to 0.0 before recalculating partial likelihood arrays.</p>
+
+<p>In the case of more than one subset, the cumulative scaling factor index is supplied as the final argument to <code class="highlighter-rouge">beagleResetScaleFactorsByPartition</code> (just the instance-relative subset index). The second argument is the relative subset index, which is the same numerical value. Note that <code class="highlighter-rouge">beagleUpdatePartialsByPartition</code> does not need to know this information because it is supplied as element 9 of each operation.</p>
+
+<p>In the case of an instance containing a single subset, the cumulative scaler index is simply 0, supplied as the last argument to <code class="highlighter-rouge">beagleUpdatePartials</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::calculatePartials() { 
+        assert(_instances.size() &amp;gt; 0);
+        if (_operations.size() == 0)
+            return;
+        int code = 0;
+        
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            unsigned nsubsets = (unsigned)info.subsets.size();
+
+            if (nsubsets &amp;gt; 1) {
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned s = 0; s &amp;lt; nsubsets; ++s) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleResetScaleFactorsByPartition(info.handle, s, s);&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                
+                code = beagleUpdatePartialsByPartition(
+                    info.handle,                                                    // Instance number
+                    (BeagleOperationByPartition *) &amp;_operations[info.handle][0],    // BeagleOperation list specifying operations
+                    (int)(_operations[info.handle].size()/9));                      // Number of operations
+            }
+            else {
+                // no partitioning, just one data subset
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleResetScaleFactors(info.handle, 0);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to reset scale factors in calculatePartials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                
+                code = beagleUpdatePartials(
+                    info.handle,                                        // Instance number
+                    (BeagleOperation *) &amp;_operations[info.handle][0],   // BeagleOperation list specifying operations
+                    (int)(_operations[info.handle].size()/7),           // Number of operations
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(_underflow_scaling ? 0 : BEAGLE_OP_NONE));         // Index number of scaleBuffer to store accumulated factors&lt;/strong&gt;&lt;/span&gt;
+            }
+            
+            if (code != 0) {
+                throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+            }
+        }
+    } 
+
+</code></pre></div></div>
+
+<h2 id="telling-beaglecalculateedgeloglikelihoods-the-cumulative-scale-buffer-index">Telling BeagleCalculateEdgeLogLikelihoods the cumulative scale buffer index</h2>
+
+<p>Finally, in the <code class="highlighter-rouge">calcInstanceLogLikelihood</code> member function, we need to provide the index of the scalar array holding cumulative sums of log scaling factors to the <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoods</code> (or <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoodsByPartition</code>) function, which is called in our <code class="highlighter-rouge">Likelihood::calcInstanceLogLikelihood</code> function.</p>
+
+<p>First, change <code class="highlighter-rouge">cumulativeScalingIndex</code> from <code class="highlighter-rouge">BEAGLE_OP_NONE</code> to 0 (this will be used in the single-subset case), and modify the <code class="highlighter-rouge">_scaling_indices</code> vector so that it provides the correct index to the cumulative scaling element for each subset (used only in the multi-subset case).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo &amp; info, Tree::SharedPtr t) { 
+        int code = 0;
+        unsigned nsubsets = (unsigned)info.subsets.size();
+        assert(nsubsets &amp;gt; 0);
+        //unsigned nedges = calcNumEdgesInFullyResolvedTree();                    //eliminate
+
+        // Assuming there are as many transition matrices as there are edge lengths
+        assert(_pmatrix_index[info.handle].size() == _edge_lengths[info.handle].size());
+
+        int stateFrequencyIndex    = 0;
+        int categoryWeightsIndex   = 0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int cumulativeScalingIndex = (_underflow_scaling ? 0 : BEAGLE_OP_NONE);&lt;/strong&gt;&lt;/span&gt;
+        int child_partials_index   = getPartialIndex(t-&amp;gt;_root, info);
+        int parent_partials_index  = getPartialIndex(t-&amp;gt;_preorder[0], info);
+        int parent_tmatrix_index   = getTMatrixIndex(t-&amp;gt;_preorder[0], info, 0);
+
+        // storage for results of the likelihood calculation
+        std::vector&amp;lt;double&amp;gt; subset_log_likelihoods(nsubsets, 0.0);
+        double log_likelihood = 0.0;
+
+        if (nsubsets &amp;gt; 1) {
+            _parent_indices.assign(nsubsets, parent_partials_index);
+            _child_indices.assign(nsubsets, child_partials_index);
+            _weights_indices.assign(nsubsets, categoryWeightsIndex);
+            _scaling_indices.resize(nsubsets);  
+            _subset_indices.resize(nsubsets);
+            _freqs_indices.resize(nsubsets);
+            _tmatrix_indices.resize(nsubsets);
+            for (unsigned s = 0; s &amp;lt; nsubsets; s++) {
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_scaling_indices[s]  = (_underflow_scaling ? s : BEAGLE_OP_NONE);&lt;/strong&gt;&lt;/span&gt;
+                _subset_indices[s]  = s;
+                _freqs_indices[s]   = s;
+                _tmatrix_indices[s] = getTMatrixIndex(t-&amp;gt;_preorder[0], info, s); //index_focal_child + s*tmatrix_skip;
+            }
+            code = beagleCalculateEdgeLogLikelihoodsByPartition(
+                info.handle,                 // instance number
+                &amp;_parent_indices[0],         // indices of parent partialsBuffers
+                &amp;_child_indices[0],          // indices of child partialsBuffers
+                &amp;_tmatrix_indices[0],        // transition probability matrices for this edge
+                NULL,                        // first derivative matrices
+                NULL,                        // second derivative matrices
+                &amp;_weights_indices[0],        // weights to apply to each partialsBuffer
+                &amp;_freqs_indices[0],          // state frequencies for each partialsBuffer
+                &amp;_scaling_indices[0],        // scaleBuffers containing accumulated factors
+                &amp;_subset_indices[0],         // indices of subsets
+                nsubsets,                    // partition subset count
+                1,                           // number of distinct eigen decompositions
+                &amp;subset_log_likelihoods[0],  // address of vector of log likelihoods (one for each subset)
+                &amp;log_likelihood,             // destination for resulting log likelihood
+                NULL,                        // destination for vector of first derivatives (one for each subset)
+                NULL,                        // destination for first derivative
+                NULL,                        // destination for vector of second derivatives (one for each subset)
+                NULL);                       // destination for second derivative
+        }
+        else {
+            code = beagleCalculateEdgeLogLikelihoods(
+                info.handle,                 // instance number
+                &amp;parent_partials_index,      // indices of parent partialsBuffers
+                &amp;child_partials_index,       // indices of child partialsBuffers
+                &amp;parent_tmatrix_index,       // transition probability matrices for this edge
+                NULL,                        // first derivative matrices
+                NULL,                        // second derivative matrices
+                &amp;categoryWeightsIndex,       // weights to apply to each partialsBuffer
+                &amp;stateFrequencyIndex,        // state frequencies for each partialsBuffer
+                &amp;cumulativeScalingIndex,     // scaleBuffers containing accumulated factors
+                1,                           // Number of partialsBuffer
+                &amp;log_likelihood,             // destination for log likelihood
+                NULL,                        // destination for first derivative
+                NULL);                       // destination for second derivative
+        }
+        
+        // ... 
+
+</code></pre></div></div>
+
+<h2 id="modify-strom-to-add-program-option-for-scaling">Modify Strom to add program option for scaling</h2>
+<p>Add a new data member to the <code class="highlighter-rouge">Strom</code> class named <code class="highlighter-rouge">_use_underflow_scaling</code>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Strom {   
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+            bool                                    processAssignmentString(const std::string &amp; which, const std::string &amp; definition);
+            void                                    handleAssignmentStrings(const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition);
+            bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);
+
+            double                                  _expected_log_likelihood;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            Model::SharedPtr                        _model;
+            Likelihood::SharedPtr                   _likelihood;
+            TreeSummary::SharedPtr                  _tree_summary;
+
+            bool                                    _use_gpu;
+            bool                                    _ambig_missing;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _use_underflow_scaling;&lt;/strong&gt;&lt;/span&gt;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+
+    };
+    
+
+</code></pre></div></div>
+
+<p>Initialize it to <code class="highlighter-rouge">false</code> in the <code class="highlighter-rouge">clear</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name             = "";
+        _tree_file_name             = "";
+        _tree_summary               = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu                    = true;
+        _ambig_missing              = true;
+        _model.reset(new Model());
+        _expected_log_likelihood    = 0.0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_use_underflow_scaling      = false;&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+
+<p>Add a program option to set it in <code class="highlighter-rouge">processCommandLineOptions</code>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        std::vector&amp;lt;std::string&amp;gt; partition_statefreq;
+        std::vector&amp;lt;std::string&amp;gt; partition_rmatrix;
+        std::vector&amp;lt;std::string&amp;gt; partition_omega;
+        std::vector&amp;lt;std::string&amp;gt; partition_ratevar;
+        std::vector&amp;lt;std::string&amp;gt; partition_pinvar;
+        std::vector&amp;lt;std::string&amp;gt; partition_ncateg;
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        std::vector&amp;lt;std::string&amp;gt; partition_relrates;
+        std::vector&amp;lt;std::string&amp;gt; partition_tree;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            ("ncateg,c", boost::program_options::value(&amp;partition_ncateg), "number of categories in the discrete Gamma rate heterogeneity model")
+            ("statefreq", boost::program_options::value(&amp;partition_statefreq), "a string defining state frequencies for one or more data subsets, e.g. 'first,second:0.1,0.2,0.3,0.4'")
+            ("omega", boost::program_options::value(&amp;partition_omega), "a string defining the nonsynonymous/synonymous rate ratio omega for one or more data subsets, e.g. 'first,second:0.1'")
+            ("rmatrix", boost::program_options::value(&amp;partition_rmatrix), "a string defining the rmatrix for one or more data subsets, e.g. 'first,second:1,2,1,1,2,1'")
+            ("ratevar", boost::program_options::value(&amp;partition_ratevar), "a string defining the among-site rate variance for one or more data subsets, e.g. 'first,second:2.5'")
+            ("pinvar", boost::program_options::value(&amp;partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
+            ("relrate", boost::program_options::value(&amp;partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
+            ("tree", boost::program_options::value(&amp;partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
+            ("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")
+            ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
+            ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")&lt;/strong&gt;&lt;/span&gt;
+        ;
+        // ... 
+
+</code></pre></div></div>
+
+<p>Finally, call the function <code class="highlighter-rouge">useUnderflowScaling</code> to tell the <code class="highlighter-rouge">Likelihood</code> object whether the user wishes to use scaling:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+
+        try {
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
+            _data = Data::SharedPtr(new Data());
+            _data-&amp;gt;setPartition(_partition);
+            _data-&amp;gt;getDataFromFile(_data_file_name);
+            
+            _model-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            _model-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            _model-&amp;gt;activate();
+
+            // Report information about data partition subsets
+            unsigned nsubsets = _data-&amp;gt;getNumSubsets();
+            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
+            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
+                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
+                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
+                }
+
+            std::cout &amp;lt;&amp;lt; "\n*** Resources available to BeagleLib " &amp;lt;&amp;lt; _likelihood-&amp;gt;beagleLibVersion() &amp;lt;&amp;lt; ":\n";
+            std::cout &amp;lt;&amp;lt; _likelihood-&amp;gt;availableResources() &amp;lt;&amp;lt; std::endl;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Creating the likelihood calculator" &amp;lt;&amp;lt; std::endl;
+            _likelihood = Likelihood::SharedPtr(new Likelihood());
+            _likelihood-&amp;gt;setPreferGPU(_use_gpu);
+            _likelihood-&amp;gt;setAmbiguityEqualsMissing(_ambig_missing);
+            _likelihood-&amp;gt;setData(_data);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);&lt;/strong&gt;&lt;/span&gt;
+
+            std::cout &amp;lt;&amp;lt; "\n*** Model description" &amp;lt;&amp;lt; std::endl;
+            std::cout &amp;lt;&amp;lt; _model-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+            _likelihood-&amp;gt;setModel(_model);
+
+            _likelihood-&amp;gt;initBeagleLib();
+
+            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the first tree in the file " &amp;lt;&amp;lt; _tree_file_name &amp;lt;&amp;lt; std::endl;
+            _tree_summary = TreeSummary::SharedPtr(new TreeSummary());
+            _tree_summary-&amp;gt;readTreefile(_tree_file_name, 0);
+            Tree::SharedPtr tree = _tree_summary-&amp;gt;getTree(0);
+            
+            if (tree-&amp;gt;numLeaves() != _data-&amp;gt;getNumTaxa())
+                throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
+
+            std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
+            TreeManip tm(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
+            double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
+            tm.deselectAllPartials();
+            tm.deselectAllTMatrices();
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
+            
+            if (_expected_log_likelihood != 0.0) 
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("      (expecting %.3f)") % _expected_log_likelihood) &amp;lt;&amp;lt; std::endl;
+            
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="run-the-program-again">Run the program again</h2>
+<p>If you now run your program using the <em>strom.conf</em> file below (which sets <code class="highlighter-rouge">underflowscaling</code> to <code class="highlighter-rouge">yes</code> to turn on scaling), you should find that it computes the log-likelihood correctly.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile         = rbcl738.nex
+treefile         = rbcl738nj.tre
+rmatrix          = default: 0.08394222, 0.34116704, 0.03603322, 0.15737940, 0.30297095, 0.07850717
+statefreq        = default: 0.309769, 0.163380, 0.121023, 0.405828
+ratevar          = default:1.933185251
+ncateg           = default:4
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;underflowscaling = yes&lt;/strong&gt;&lt;/span&gt;
+expectedLnL      = -144730.75
+
+</code></pre></div></div>
+
+<h2 id="tradeoffs">Tradeoffs</h2>
+
+<p>Adding rescaling has added an additional computational burden to our likelihood calculation. You can lessen the burden by not rescaling at every internal node. All that is needed to avoid rescaling for a particular internal node is to modify the operation association with that internal node, specifying <code class="highlighter-rouge">BEAGLE_OP_NONE</code> instead of the node number for the 3rd element of the operation. Skimping too much, however, runs the risk of overflow. For now, we will rescale at every internal node (if the user specifies that scaling is to be done) just to be safe.</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-12/01-large-tree-likelihood-fail.html">&lt;&nbsp;12.1</a> | 12.2 | <a href="/people/plewis/cpp//win//steps/step-13/00-adding-pseudorandom-number-generator.html">13.0&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

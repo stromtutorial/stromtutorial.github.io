@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Build a tree from a newick description</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">6.1 Build a tree from a newick description</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="/people/plewis/cpp//mac//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
+</div>
+
+<p>We not only need the ability to create descriptions of existing trees, we need to build trees from descriptions. In this section of the tutorial, we will ultimately create the function <code class="highlighter-rouge">buildFromNewick</code>, but first we need to create several helper functions that will be called from within <code class="highlighter-rouge">buildFromNewick</code>. For some of the functions, I depend on comments in the code itself to explain what is happening. So, if it feels that I’m not explaining things adequately, see if you can understand how the function works by reading the comments (lines starting with <code class="highlighter-rouge">//</code>) I’ve placed in the function body itself.</p>
+
+<h2 id="add-declarations-to-the-treemanip-class">Add declarations to the TreeManip class</h2>
+<p>Start by including header files and adding declarations for all the methods we will need to the <code class="highlighter-rouge">TreeManip</code> class declaration in the file <em>tree_manip.hpp</em>. New additions are in bold, blue text:</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;cassert&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;stack&amp;gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;queue&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;set&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;regex&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "tree.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "xstrom.hpp"&lt;/strong&gt;&lt;/span&gt;
+
+namespace strom {
+
+    class TreeManip {
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            std::string                 makeNewick(unsigned precision) const;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        rerootAtNodeNumber(int node_number);&lt;/strong&gt;&lt;/span&gt;
+
+            void                        clear();
+
+        private:
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        refreshPreorder();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        refreshLevelorder();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        renumberInternals();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        rerootAtNode(Node * prospective_root);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        extractEdgeLen(Node * nd, std::string edge_length_string);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                    countNewickLeaves(const std::string newick);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        stripOutNexusComments(std::string &amp; newick);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);&lt;/strong&gt;&lt;/span&gt;
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };
+    
+
+</code></pre></div></div>
+
+<h2 id="member-function-bodies">Member function bodies</h2>
+<p>The bodies of the 2 new public and 8 new private member functions are described and listed below. Each of these should be copied into <em>tree_manip.hpp</em> just above the right curly bracket (‘<code class="highlighter-rouge">}</code>’) that terminates the <code class="highlighter-rouge">namespace strom</code> code block (this curly bracket is the last non-whitespace character in the file). If you accidentally copy one of these functions below that terminating right curly bracket, then your function body will be outside the namespace and will not be recognized as being part of the class. Just giving you a little “heads up” because (as per Murphy’s Law) this will happen to you at some point during the tutorial. If you ever get hopelessly lost in trying to figure out what went wrong, note that the source code for this step is available in the <a href="https://github.com/stromtutorial/source/tree/master/steps/step-06/src">GitHub Strom repository</a>, as is the code for every step in the tutorial, so download and compare your version to my version to find the problem.</p>
+
+<h2 id="the-extractnodenumberfromname-member-function">The extractNodeNumberFromName member function</h2>
+
+<p>The program we are creating will only read newick tree descriptions in which taxa are represented by positive integers (normally representing their position in the data matrix, with the first taxon being 1). This private function converts the node name (a string representation of an integer greater than zero) into an unsigned integer. If the node name cannot be converted to a positive integer, an <code class="highlighter-rouge">XStrom</code> exception is thrown.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used) { 
+        assert(nd);
+        bool success = true;
+        unsigned x = 0;
+        try {
+            x = std::stoi(nd-&amp;gt;_name);
+        }
+        catch(std::invalid_argument &amp;) {
+            // node name could not be converted to an integer value
+            success = false;
+        }
+
+        if (success) {
+            // conversion succeeded
+            // attempt to insert x into the set of node numbers already used
+            std::pair&amp;lt;std::set&amp;lt;unsigned&amp;gt;::iterator, bool&amp;gt; insert_result = used.insert(x);
+            if (insert_result.second) {
+                // insertion was made, so x has NOT already been used
+                nd-&amp;gt;_number = x - 1;
+            }
+            else {
+                // insertion was not made, so set already contained x
+                throw XStrom(boost::str(boost::format("leaf number %d used more than once") % x));
+            }
+        }
+        else
+            throw XStrom(boost::str(boost::format("node name (%s) not interpretable as a positive integer") % nd-&amp;gt;_name));
+    }   
+
+</code></pre></div></div>
+<p>The function <code class="highlighter-rouge">std::stoi</code> is used to do the conversion of string to integer. The <code class="highlighter-rouge">std::stoi</code> function throws a <code class="highlighter-rouge">std::invalid_argument</code> exception if the string passed to it cannot be converted to an integer. This allows us to give the user an accurate error message if we ever encounter a node whose name is not integer-like.</p>
+
+<p>This function also adds tip node numbers to the set <code class="highlighter-rouge">used</code>. This allows us to provide important error information to the user if the same tip number is used more than once in the newick string. The more sanity checks you can put into your code, the less frustrated your users will be when they use your software. And remember, you yourself are probably going to be the most frequent user of your programs!</p>
+
+<h3 id="a-word-about-exceptions">A word about exceptions</h3>
+<p>This is our first use of throwing and catching <strong>exceptions</strong>. The <code class="highlighter-rouge">try</code> block encloses code that you think may suffer from problems beyond your control (i.e. problems generated by your user misunderstanding how to use your program). If a problem is indeed encountered during execution of the code within the try block, an exception object is thrown. An exception object is normally an object (instance) of a class and, as such, may have data (e.g. information about the problem encountered) and methods (e.g. a method that, for example, converts the on-board data into a meaningful error message). Often, the exception class name of the exception object itself carries information about the nature of the problem. Here, if <code class="highlighter-rouge">stoi</code> cannot convert a string to an integer, it throws an <code class="highlighter-rouge">invalid_argument</code> exception. The type name <code class="highlighter-rouge">invalid_argument</code> tells you pretty much all you need to know.</p>
+
+<p>The corresponding <code class="highlighter-rouge">catch</code> block contains code that is executed only if the type of exception for which the catch block is defined occurs. There can be multiple catch blocks, one for each possible type of exception, or one <code class="highlighter-rouge">catch(...)</code> block that covers all possible exceptions.</p>
+
+<h2 id="the-extractedgelen-member-function">The extractEdgeLen member function</h2>
+
+<p>This private function serves to convert a string representation of an edge length (taken from the newick tree description string) into an actual edge length (i.e. floating point value).</p>
+
+<p>The function <code class="highlighter-rouge">std::stod</code> is used to do the conversion of string to double. The <code class="highlighter-rouge">std::stod</code> function throws a <code class="highlighter-rouge">invalid_argument</code> exception if the string passed to it cannot be converted to a floating point number. This allows us to give the user an accurate error message if we ever encounter a string that cannot be converted to a valid edge length.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::extractEdgeLen(Node * nd, std::string edge_length_string) {  
+        assert(nd);
+        bool success = true;
+        double d = 0.0;
+        try {
+            d = std::stod(edge_length_string);
+        }
+        catch(std::invalid_argument &amp;) {
+            // edge_length_string could not be converted to a double value
+            success = false;
+        }
+
+        if (success) {
+            // conversion succeeded
+            nd-&amp;gt;setEdgeLength(d);
+        }
+        else
+            throw XStrom(boost::str(boost::format("%s is not interpretable as an edge length") % edge_length_string));
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-countnewickleaves-member-function">The countNewickLeaves member function</h2>
+
+<p>This private function counts the number of leaves (i.e. tip nodes) in the tree defined by a newick string. This makes use of the standard regular expression library, <code class="highlighter-rouge">std::regex</code>, which comes with C++11. The regular expression pattern (<code class="highlighter-rouge">taxonexpr</code>) identifies leaf nodes as integer values preceded by either a comma or a left parenthesis and followed by a comma, right parenthesis, or colon. It also allows non-integer taxon names, and even taxon names containing embedded spaces if they are surrounded by single quotes, even though such newick tree descriptions will ultimately be rejected (see section above on the <code class="highlighter-rouge">extractNodeNumberFromName</code> function).</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned TreeManip::countNewickLeaves(const std::string newick) {    
+        std::regex taxonexpr("[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])");
+        std::sregex_iterator m1(newick.begin(), newick.end(), taxonexpr);
+        std::sregex_iterator m2;
+        return (unsigned)std::distance(m1, m2);
+    }   
+
+</code></pre></div></div>
+
+<p>The way this function works is concise but admittedly rather opaque. If you are not familiar with how regular expression searches work, you probably should spend some time <a href="https://en.wikipedia.org/wiki/Regular_expression">reading about them</a> before trying to understand this function.</p>
+
+<p>Regular expressions in C++ are complicated by the fact that backslash characters in regular expression patterns must be repeated so that the backslash is interpreted as a literal backslash character and not as an escape character. For example, when the 2-character sequence <code class="highlighter-rouge">\n</code> appears in a string, it is interpreted not as 2 characters, but as a single (invisible) new line character: the <code class="highlighter-rouge">\</code> serves to <em>escape</em> the following character (<code class="highlighter-rouge">n</code>), which is jargon for treating the <code class="highlighter-rouge">n</code> as a special code for new line rather than treating it literally as a lower case version of the character <code class="highlighter-rouge">N</code>. A backslash followed by a second backslash yields an escaped backslash, which is just a single backslash! Hence there are many double backslashes (<code class="highlighter-rouge">\\</code>) appearing in the string stored as <code class="highlighter-rouge">taxonexpr</code>.</p>
+
+<p>It is possible to simplify the regular expression string by telling C++ that you do not want the string to be escaped. To do this, you precede the string with <code class="highlighter-rouge">R"(</code> and end the string with <code class="highlighter-rouge">)"</code>. This approach will be illustrated the next time we encounter regular expressions, in <a href="/people/plewis/cpp/steps/step-09/01-create-the-partition-class.html">Create the Partition class</a>. There are relatively few backslashes in this regular expression, and wrapping the regular expressions in <code class="highlighter-rouge">R"(...)"</code> adds its own complexities, so we will just use the double-slash approach for the present.</p>
+
+<p>Below is a blow-by-blow account of the regex pattern string <code class="highlighter-rouge">taxonexpr</code>. You may wish to consult the 
+<a href="https://docs.python.org/3/library/re.html#module-re">Python documentation of regular expression patterns</a> while reading through this explanation.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+^^^^ specifies either a left paren "(" or a comma ","
+ 
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+    ^^^^ specifies 0 or more ("*") whitespace characters "\\s"
+    
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+        ^^^^^^^^^^^^^^^^^^^^^^ specifies 3 possibilities (see below)
+        
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+         ^^^^ 1st possibility: 1 or more digits ("\\d+")
+
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+              ^^^^^ 2nd possibility: 1 or more non-greedy 
+                    darkspace characters ("\\S+?")
+              
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+                    ^^^^^^^^^ 3rd possibility: a single quote ("[']")
+                              followed by 1 or more non-greedy 
+                              characters of any kind (".+?") 
+                              followed by a single quote ("[']")
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+                              ^^^^ specifies 0 or more whitespace characters
+                              
+[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])
+                                  ^^^^^^^^^ look ahead but do not consume ("?=")
+                                            a comma, right paren, or colon 
+                                            character ("[,):]")
+</code></pre></div></div>
+
+<p>The variable <code class="highlighter-rouge">m1</code> iterates through all taxon names (i.e. matches to the pattern) in the supplied newick string, while <code class="highlighter-rouge">m2</code> is never initialized and thus represents the value that <code class="highlighter-rouge">m1</code> would take if it was iterated past the end of the string. The function <code class="highlighter-rouge">std::distance(m1, m2)</code> counts the number of times <code class="highlighter-rouge">m1</code> needs to be incremented until it equals <code class="highlighter-rouge">m2</code>, which is the number of taxa in the newick string.</p>
+
+<h2 id="the-stripoutnexuscomments-member-function">The stripOutNexusComments member function</h2>
+
+<p>This private function strips out comments from the newick string. Many programs place special comments inside newick strings that only they understand (e.g. <a href="http://beast.community/figtree">FigTree</a> stores color information about nodes in such comments). Comments in newick strings are delimited by square brackets, so this function uses the C++11 standard library’s <code class="highlighter-rouge">regex_replace</code> function to replace all such comments with the empty string. Note that the ampersand (<code class="highlighter-rouge">&amp;</code>) in the parameter list means that the newick string is supplied as a <strong>reference</strong> rather than as a copy. As a result, it is modified in place, which explains why this function does not return the modified string.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::stripOutNexusComments(std::string &amp; newick) {    
+        std::regex commentexpr("\\[.*?\\]");
+        newick = std::regex_replace(newick, commentexpr, std::string(""));
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-refreshpreorder-member-function">The refreshPreorder member function</h2>
+
+<p>This private function must be called whenever the structure of the tree changes. It rebuilds the <code class="highlighter-rouge">_preorder vector</code> by visiting nodes in preorder sequence and storing pointers to these nodes as it goes.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::refreshPreorder() {  
+        // Create vector of node pointers in preorder sequence
+        _tree-&amp;gt;_preorder.clear();
+        _tree-&amp;gt;_preorder.reserve(_tree-&amp;gt;_nodes.size() - 1); // _preorder does not include root node
+
+        if (!_tree-&amp;gt;_root)
+            return;
+
+        Node * first_preorder = _tree-&amp;gt;_root-&amp;gt;_left_child;
+
+        // sanity check: first preorder node should be the only child of the root node
+        assert(first_preorder-&amp;gt;_right_sib == 0);
+
+        Node * nd = first_preorder;
+        _tree-&amp;gt;_preorder.push_back(nd);
+
+        while (true) {
+            if (!nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
+                // nd has no children and no siblings, so next preorder is the right sibling of
+                // the first ancestral node that has a right sibling.
+                Node * anc = nd-&amp;gt;_parent;
+                while (anc &amp;&amp; !anc-&amp;gt;_right_sib)
+                    anc = anc-&amp;gt;_parent;
+                if (anc) {
+                    // We found an ancestor with a right sibling
+                    _tree-&amp;gt;_preorder.push_back(anc-&amp;gt;_right_sib);
+                    nd = anc-&amp;gt;_right_sib;
+                }
+                else {
+                    // nd is last preorder node in the tree
+                    break;
+                }
+            }
+            else if (nd-&amp;gt;_right_sib &amp;&amp; !nd-&amp;gt;_left_child) {
+                // nd has no children (it is a tip), but does have a sibling on its right
+                _tree-&amp;gt;_preorder.push_back(nd-&amp;gt;_right_sib);
+                nd = nd-&amp;gt;_right_sib;
+            }
+            else if (nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
+                // nd has children (it is an internal node) but no siblings on its right
+                _tree-&amp;gt;_preorder.push_back(nd-&amp;gt;_left_child);
+                nd = nd-&amp;gt;_left_child;
+            }
+            else {
+                // nd has both children and siblings on its right
+                _tree-&amp;gt;_preorder.push_back(nd-&amp;gt;_left_child);
+                nd = nd-&amp;gt;_left_child;
+            }
+        }   // end while loop
+    }   
+
+</code></pre></div></div>
+<p>The function first removes all elements from the tree’s <code class="highlighter-rouge">_preorder</code> vector and allocates enough memory to store pointers to all nodes except the root. It returns right away if the data member <code class="highlighter-rouge">_root</code> does not point to a node because this can only mean that no tree has yet been built.</p>
+
+<p>The <code class="highlighter-rouge">first_preorder</code> variable points to the only child of the root node. This will be the first node pointer added to the <code class="highlighter-rouge">_preorder</code> vector. The main while loop is then set to cycle forever (because the constant true is always true!), and only exits when the break keyword is encountered, which only happens after the last node in preorder sequence is visited. The comments inside the <code class="highlighter-rouge">while(true)</code> loop explain the decisions needed to determine which node should next be added to <code class="highlighter-rouge">_preorder</code>.</p>
+
+<p>The function concludes with a loop that visits each node in postorder sequence. The postorder sequence is simply the reverse of the preorder sequence, which explains the need for <code class="highlighter-rouge">boost::adaptors::reverse</code>, which causes the <code class="highlighter-rouge">_preorder</code> vector to be traversed in reverse order. The internal nodes are numbered sequentially starting with the number of leaves (<code class="highlighter-rouge">_nleaves</code>). This means that no internal node can have a <code class="highlighter-rouge">_number</code> equal to any tip node because tip nodes have node numbers ranging from 0 to <code class="highlighter-rouge">_nleaves</code>-1. Numbering internals in postorder sequence means that we can use the last number for the root node if the tree happens to be rooted. If the tree is unrooted, remember that the root node is actually a leaf (tip) and thus has a number less than <code class="highlighter-rouge">_nleaves</code>.</p>
+
+<p>Why do we even need to number the internal nodes? Later we will use the <code class="highlighter-rouge">_number</code> data member of each node as an index into arrays used by the BeagleLib library to compute likelihoods. Thus, it is important that all nodes be numbered and that the numbers are sequential with no gaps.</p>
+
+<h2 id="the-refreshlevelorder-member-function">The refreshLevelorder member function</h2>
+
+<p>This function, like <code class="highlighter-rouge">refreshPreorder</code>, fills a vector (<code class="highlighter-rouge">_levelorder</code>) with <code class="highlighter-rouge">Node</code> pointers. In this case the nodes are visited in <strong>level order</strong>
+ rather than preorder sequence. Level order dictates that all the nodes at a given level of the hierarchy defined by the tree are visited before any nodes at a higher level. In the example provided in the comment below, the first level considered has only one node, labeled 1. The second level has the immediate children of the single node at the first level, namely nodes 2 and 3. The third level has the immediate children of the nodes on the second level, namely nodes 4, 5, 6 and 7. Finally, the fourth level contains only nodes 8 and 9.</p>
+
+<p>We need a level-order vector when supplying nodes to the BeagleLib library for likelihood calculations. Calculation of partial likelihoods proceeds top-down: child nodes must be processed before their parents. By supplying nodes to BeagleLib in reverse level order, BeagleLib can be processing, in the example below, nodes 4 and 5 at the same time it is processing 6 and 7, thus increasing the efficiency of the overall calculation of partial likelihood vectors. If we were to use a postorder traversal, nodes 4 and 5 would have to wait until node 3 is done, which could not happen until after nodes 6 and 7 are finished.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::refreshLevelorder() {    
+        if (!_tree-&amp;gt;_root)
+            return;
+
+        // q is the buffer queue
+        std::queue&amp;lt;Node *&amp;gt; q;
+
+        // _tree-&amp;gt;_levelorder is the stack vector
+        _tree-&amp;gt;_levelorder.clear();
+        _tree-&amp;gt;_levelorder.reserve(_tree-&amp;gt;_nodes.size() - 1);
+
+        Node * nd = _tree-&amp;gt;_root-&amp;gt;_left_child;
+
+        // sanity check: first node should be the only child of the root node
+        assert(nd-&amp;gt;_right_sib == 0);
+
+        // Push nd onto back of queue
+        q.push(nd);
+
+        while (!q.empty()) {
+            // pop nd off front of queue
+            nd = q.front(); q.pop();
+
+            // and push it onto the stack
+            _tree-&amp;gt;_levelorder.push_back(nd);
+
+            // add all children of nd to back of queue
+            Node * child = nd-&amp;gt;_left_child;
+            if (child) {
+                q.push(child);
+                child = child-&amp;gt;_right_sib;
+                while (child) {
+                    q.push(child);
+                    child = child-&amp;gt;_right_sib;
+                }
+            }
+        }   // end while loop
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-renumberinternals-member-function">The renumberInternals member function</h2>
+
+<p>This function sets the <code class="highlighter-rouge">_number</code> data member of each internal <code class="highlighter-rouge">Node</code> object. This needs to be done only when the tree is first built. The internal nodes are numbered in postorder sequence starting with the number of leaves. Note that if the tree has one or more polytomies, not all nodes in the <code class="highlighter-rouge">Tree</code> objects <code class="highlighter-rouge">_nodes</code> vector will be numbered by a postorder traversal. The final loop takes care of this (in case any of the polytomies end up being resolved later, necessitating the use of these nodes).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::renumberInternals() {    
+        assert(_tree-&amp;gt;_preorder.size() &amp;gt; 0);
+        
+        // Renumber internal nodes in postorder sequence
+        int curr_internal = _tree-&amp;gt;_nleaves;
+        for (auto nd : boost::adaptors::reverse(_tree-&amp;gt;_preorder)) {
+            if (nd-&amp;gt;_left_child) {
+                // nd is an internal node
+                nd-&amp;gt;_number = curr_internal++;
+            }
+        }
+        
+        // Root node is not included in _tree-&amp;gt;_preorder, so if the root node
+        // is an internal node we need to number it here
+        if (_tree-&amp;gt;_is_rooted)
+            _tree-&amp;gt;_root-&amp;gt;_number = curr_internal++;
+            
+        _tree-&amp;gt;_ninternals = curr_internal - _tree-&amp;gt;_nleaves;
+            
+        // If the tree has polytomies, then there are Node objects stored in 
+        // the _tree-&amp;gt;_nodes vector that have not yet been numbered. These can
+        // be identified because their _number is currently equal to -1.
+        for (auto nd : _tree-&amp;gt;_nodes) {
+            if (nd._number == -1)
+                nd._number = curr_internal++;
+        } 
+    }    
+
+</code></pre></div></div>
+
+<h2 id="the-canhavesibling-member-function">The canHaveSibling member function</h2>
+
+<p>This function is used to check for polytomies (internal nodes with degree &gt; 3; <strong>degree</strong> means the number of edges radiating from a node). The function first asserts that <code class="highlighter-rouge">nd</code> points to something and that the caller is not trying to add a sibling to the root node, which should never have a sibling. If <code class="highlighter-rouge">allow_polytomies</code> is true, then <code class="highlighter-rouge">canHaveSibling</code> returns <code class="highlighter-rouge">true</code> immediately because there is no need to guard against polytomies in this case. Assuming <code class="highlighter-rouge">allow_polytomies</code> is false, <code class="highlighter-rouge">canHaveSibling</code> returns <code class="highlighter-rouge">true</code> if and only if adding a right sibling to <code class="highlighter-rouge">nd</code> is allowed (i.e. would not generate a polytomy).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool TreeManip::canHaveSibling(Node * nd, bool rooted, bool allow_polytomies) {  
+        assert(nd);
+        if (!nd-&amp;gt;_parent) {
+            // trying to give root node a sibling
+            return false;
+        }
+
+        if (allow_polytomies)
+            return true;
+
+        bool nd_can_have_sibling = true;
+        if (nd != nd-&amp;gt;_parent-&amp;gt;_left_child) {
+            if (nd-&amp;gt;_parent-&amp;gt;_parent) {
+                // trying to give a sibling to a sibling of nd, and nd's parent is not the root
+                nd_can_have_sibling = false;
+            }
+            else {
+                if (rooted) {
+                    // root node has exactly 2 children in rooted trees
+                    nd_can_have_sibling = false;
+                }
+                else if (nd != nd-&amp;gt;_parent-&amp;gt;_left_child-&amp;gt;_right_sib) {
+                    // trying to give root node more than 3 children
+                    nd_can_have_sibling = false;
+                }
+            }
+        }
+
+        return nd_can_have_sibling;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-rerootatnodenumber-member-function">The rerootAtNodeNumber member function</h2>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::rerootAtNodeNumber(int node_number) {    
+        // Locate node having _number equal to node_number
+        Node * nd = 0;
+        for (auto &amp; curr : _tree-&amp;gt;_nodes) {
+            if (curr._number == node_number) {
+                nd = &amp;curr;
+                break;
+            }
+        }
+
+        if (!nd)
+            throw XStrom(boost::str(boost::format("no node found with number equal to %d") % node_number));
+
+        if (nd != _tree-&amp;gt;_root) {
+            if (nd-&amp;gt;_left_child)
+                throw XStrom(boost::str(boost::format("cannot currently root trees at internal nodes (e.g. node %d)") % nd-&amp;gt;_number));
+            rerootAtNode(nd);
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>This private member function reroots the tree at the node whose number is supplied, and is intended to be called only in the case of unrooted trees in order to specify the tip node that should serve as the root. The specified node is assumed to exist in the tree and is assumed to be a leaf (it throws an <code class="highlighter-rouge">XStrom</code> exception if either of these assumptions turn out to be false). This function loops through all nodes in the tree, letting the temporary variable <code class="highlighter-rouge">curr</code> take on each node object in turn. If any node has a <code class="highlighter-rouge">_number</code> data member that matches the supplied <code class="highlighter-rouge">node_number</code>, the loop breaks and the local pointer <code class="highlighter-rouge">nd</code> is set to point to this node object.</p>
+
+<p>The function then tests whether <code class="highlighter-rouge">nd</code> points to anything , and if not throws an exception with the message “no node found with number equal to xx”, where xx is replaced by <code class="highlighter-rouge">node_number</code>.</p>
+
+<p>Finally, the function tests whether <code class="highlighter-rouge">nd</code> is actually already equal to the root node. If that is true, then no work needs to be done. If false, it checks to make sure <code class="highlighter-rouge">nd</code> is not pointing to an internal node. If so, it throws an exception. Assuming all is well, it calls the member function <code class="highlighter-rouge">rerootAtNode</code> to do the work.</p>
+
+<h2 id="the-rerootatnode-member-function">The rerootAtNode member function</h2>
+
+<p>The way this function works is to move the target node (the one having <code class="highlighter-rouge">_number</code> equal to <code class="highlighter-rouge">node_number</code>) down the tree one step at a time until it is at the root position. At each step, the nodes below it are moved up to maintain the branching structure of the tree.</p>
+
+<p>The figure below illustrates the process. (You may wish to print out the <a href="/people/plewis/cpp/assets/img/reroot.pdf">PDF version of this figure</a> for reference.)</p>
+
+<p><img src="/people/plewis/cpp/assets/img/reroot.png" alt="Diagram illustrating the rerootAtNode function" class="center-image" /></p>
+
+<p>In the figure, the center (second full) column shows the connections between nodes (and edge lengths) after completing the section beginning with the comment “Prune node a from b”. The third full column in the figure shows the connection between nodes after completing the section beginning with the comment “Graft node b onto node a (but don’t unhook node b from its parent just yet)”. The circles in the first full column hold the value currently stored in <code class="highlighter-rouge">prev_edgelen</code>. Finally, while advancing from one row of the figure to the next, we carry out the node reassignments in the section labeled with the comment “Rotate”.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::rerootAtNode(Node * prospective_root) {  
+        Node * a = prospective_root;
+        Node * b = prospective_root-&amp;gt;_parent;
+        Node * c = 0;
+        Node * d = 0;
+        Node * p = 0;
+        a-&amp;gt;_parent = 0;
+        double tmp_edgelen  = 0.0;
+        double prev_edgelen = a-&amp;gt;getEdgeLength();
+
+        while (b) {
+            // Prune node a from b
+            if (a == b-&amp;gt;_left_child) {
+                if (a-&amp;gt;_right_sib) {
+                    b-&amp;gt;_left_child = a-&amp;gt;_right_sib;
+                    a-&amp;gt;_right_sib = 0;
+                }
+                else {
+                    b-&amp;gt;_left_child = 0;
+                }
+            }
+            else {
+                c = b-&amp;gt;_left_child;
+                while (c-&amp;gt;_right_sib != a)
+                    c = c-&amp;gt;_right_sib;
+                d = a-&amp;gt;_right_sib;
+                c-&amp;gt;_right_sib = d;
+            }
+
+            // Graft node b onto node a (but don't unhook node b from its parent just yet)
+            if (a-&amp;gt;_left_child) {
+                c = a-&amp;gt;_left_child;
+                while (c-&amp;gt;_right_sib)
+                    c = c-&amp;gt;_right_sib;
+                c-&amp;gt;_right_sib = b;
+            }
+            else {
+                a-&amp;gt;_left_child = b;
+            }
+
+            // Rotate
+            p = a;
+            a = b;
+            b = b-&amp;gt;_parent;
+            a-&amp;gt;_parent = p;
+
+            // Swap nd's edge length with its new parent's edge length
+            tmp_edgelen = a-&amp;gt;getEdgeLength();
+            a-&amp;gt;setEdgeLength(prev_edgelen);
+            prev_edgelen = tmp_edgelen;
+        }
+        prospective_root-&amp;gt;setEdgeLength(0.0);
+        _tree-&amp;gt;_root = prospective_root;
+        refreshPreorder();
+        refreshLevelorder();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-buildfromnewick-member-function">The buildFromNewick member function</h2>
+
+<p>Now that all the helper functions are in place, it is time to define the body of the <code class="highlighter-rouge">buildFromNewick</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies) {  
+        _tree.reset(new Tree());
+        _tree-&amp;gt;_is_rooted = rooted;
+
+        std::set&amp;lt;unsigned&amp;gt; used; // used to ensure that no two leaf nodes have the same number
+        unsigned curr_leaf = 0;
+        unsigned num_edge_lengths = 0;
+        unsigned curr_node_index = 0;
+
+        // Remove comments from the supplied newick string
+        std::string commentless_newick = newick;
+        stripOutNexusComments(commentless_newick);
+
+        // Resize the _nodes vector
+        _tree-&amp;gt;_nleaves = countNewickLeaves(commentless_newick);
+        if (_tree-&amp;gt;_nleaves &amp;lt; 4)
+            throw XStrom("Expecting newick tree description to have at least 4 leaves");
+        unsigned max_nodes = 2*_tree-&amp;gt;_nleaves - (rooted ? 0 : 2);
+        _tree-&amp;gt;_nodes.resize(max_nodes);
+        for (auto &amp; nd : _tree-&amp;gt;_nodes )
+            nd._number = -1;
+
+        try {
+            // Root node
+            Node * nd = &amp;_tree-&amp;gt;_nodes[curr_node_index];
+            _tree-&amp;gt;_root = nd;
+
+            if (_tree-&amp;gt;_is_rooted) {
+                nd = &amp;_tree-&amp;gt;_nodes[++curr_node_index];
+                nd-&amp;gt;_parent = &amp;_tree-&amp;gt;_nodes[curr_node_index - 1];
+                nd-&amp;gt;_parent-&amp;gt;_left_child = nd;
+            }
+
+            // Some flags to keep track of what we did last
+            enum {
+                Prev_Tok_LParen		= 0x01,	// previous token was a left parenthesis ('(')
+                Prev_Tok_RParen		= 0x02,	// previous token was a right parenthesis (')')
+                Prev_Tok_Colon		= 0x04,	// previous token was a colon (':')
+                Prev_Tok_Comma		= 0x08,	// previous token was a comma (',')
+                Prev_Tok_Name		= 0x10,	// previous token was a node name (e.g. '2', 'P._articulata')
+                Prev_Tok_EdgeLen	= 0x20	// previous token was an edge length (e.g. '0.1', '1.7e-3')
+            };
+            unsigned previous = Prev_Tok_LParen;
+
+            // Some useful flag combinations
+            unsigned LParen_Valid = (Prev_Tok_LParen | Prev_Tok_Comma);
+            unsigned RParen_Valid = (Prev_Tok_RParen | Prev_Tok_Name | Prev_Tok_EdgeLen);
+            unsigned Comma_Valid  = (Prev_Tok_RParen | Prev_Tok_Name | Prev_Tok_EdgeLen);
+            unsigned Colon_Valid  = (Prev_Tok_RParen | Prev_Tok_Name);
+            unsigned Name_Valid   = (Prev_Tok_RParen | Prev_Tok_LParen | Prev_Tok_Comma);
+
+            // Set to true while reading an edge length
+            bool inside_edge_length = false;
+            std::string edge_length_str;
+            unsigned edge_length_position = 0;
+
+            // Set to true while reading a node name surrounded by (single) quotes
+            bool inside_quoted_name = false;
+
+            // Set to true while reading a node name not surrounded by (single) quotes
+            bool inside_unquoted_name = false;
+
+            // Set to start of each node name and used in case of error
+            unsigned node_name_position = 0;
+
+            // loop through the characters in newick, building up tree as we go
+            unsigned position_in_string = 0;
+            for (auto ch : commentless_newick) {    
+                position_in_string++;
+
+                if (inside_quoted_name) {
+                    if (ch == '\'') {
+                        inside_quoted_name = false;
+                        node_name_position = 0;
+                        if (!nd-&amp;gt;_left_child) {
+                            extractNodeNumberFromName(nd, used);
+                            curr_leaf++;
+                        }
+                        previous = Prev_Tok_Name;
+                    }
+                    else if (iswspace(ch))
+                        nd-&amp;gt;_name += ' ';
+                    else
+                        nd-&amp;gt;_name += ch;
+
+                    continue;
+                }
+                else if (inside_unquoted_name) {
+                    if (ch == '(')
+                        throw XStrom(boost::str(boost::format("Unexpected left parenthesis inside node name at position %d in tree description") % node_name_position));
+
+                    if (iswspace(ch) || ch == ':' || ch == ',' || ch == ')') {
+                        inside_unquoted_name = false;
+
+                        // Expect node name only after a left paren (child's name), a comma (sib's name) or a right paren (parent's name)
+                        if (!(previous &amp; Name_Valid))
+                            throw XStrom(boost::str(boost::format("Unexpected node name (%s) at position %d in tree description") % nd-&amp;gt;_name % node_name_position));
+
+                        if (!nd-&amp;gt;_left_child) {
+                            extractNodeNumberFromName(nd, used);
+                            curr_leaf++;
+                        }
+
+                        previous = Prev_Tok_Name;
+                    }
+                    else {
+                        nd-&amp;gt;_name += ch;
+                        continue;
+                    }
+                }
+                else if (inside_edge_length) {
+                    if (ch == ',' || ch == ')' || iswspace(ch)) {
+                        inside_edge_length = false;
+                        edge_length_position = 0;
+                        extractEdgeLen(nd, edge_length_str);
+                        ++num_edge_lengths;
+                        previous = Prev_Tok_EdgeLen;
+                    }
+                    else {
+                        bool valid = (ch =='e' || ch == 'E' || ch =='.' || ch == '-' || ch == '+' || isdigit(ch));
+                        if (!valid)
+                            throw XStrom(boost::str(boost::format("Invalid branch length character (%c) at position %d in tree description") % ch % position_in_string));
+                        edge_length_str += ch;
+                        continue;
+                    }
+                }
+
+                if (iswspace(ch))
+                    continue;
+
+                switch(ch) {
+                    case ';':
+                        break;
+
+                    case ')':
+                        // If nd is bottommost node, expecting left paren or semicolon, but not right paren
+                        if (!nd-&amp;gt;_parent)
+                            throw XStrom(boost::str(boost::format("Too many right parentheses at position %d in tree description") % position_in_string));
+
+                        // Expect right paren only after an edge length, a node name, or another right paren
+                        if (!(previous &amp; RParen_Valid))
+                            throw XStrom(boost::str(boost::format("Unexpected right parenthesisat position %d in tree description") % position_in_string));
+
+                        // Go down a level
+                        nd = nd-&amp;gt;_parent;
+                        if (!nd-&amp;gt;_left_child-&amp;gt;_right_sib)
+                            throw XStrom(boost::str(boost::format("Internal node has only one child at position %d in tree description") % position_in_string));
+                        previous = Prev_Tok_RParen;
+                        break;
+
+                    case ':':
+                        // Expect colon only after a node name or another right paren
+                        if (!(previous &amp; Colon_Valid))
+                            throw XStrom(boost::str(boost::format("Unexpected colon at position %d in tree description") % position_in_string));
+                        previous = Prev_Tok_Colon;
+                        break;
+
+                    case ',':
+                        // Expect comma only after an edge length, a node name, or a right paren
+                        if (!nd-&amp;gt;_parent || !(previous &amp; Comma_Valid))
+                            throw XStrom(boost::str(boost::format("Unexpected comma at position %d in tree description") % position_in_string));
+
+                        // Check for polytomies
+                        if (!canHaveSibling(nd, rooted, allow_polytomies)) {
+                            throw XStrom(boost::str(boost::format("Polytomy found in the following tree description but polytomies prohibited:\n%s") % newick));
+                        }
+
+                        // Create the sibling
+                        curr_node_index++;
+                        if (curr_node_index == _tree-&amp;gt;_nodes.size())
+                            throw XStrom(boost::str(boost::format("Too many nodes specified by tree description (%d nodes allocated for %d leaves)") % _tree-&amp;gt;_nodes.size() % _tree-&amp;gt;_nleaves));
+                        nd-&amp;gt;_right_sib = &amp;_tree-&amp;gt;_nodes[curr_node_index];
+                        nd-&amp;gt;_right_sib-&amp;gt;_parent = nd-&amp;gt;_parent;
+                        nd = nd-&amp;gt;_right_sib;
+                        previous = Prev_Tok_Comma;
+                        break;
+
+                    case '(':
+                        // Expect left paren only after a comma or another left paren
+                        if (!(previous &amp; LParen_Valid))
+                            throw XStrom(boost::str(boost::format("Not expecting left parenthesis at position %d in tree description") % position_in_string));
+
+                        // Create new node above and to the left of the current node
+                        assert(!nd-&amp;gt;_left_child);
+                        curr_node_index++;
+                        if (curr_node_index == _tree-&amp;gt;_nodes.size())
+                            throw XStrom(boost::str(boost::format("malformed tree description (more than %d nodes specified)") % _tree-&amp;gt;_nodes.size()));
+                        nd-&amp;gt;_left_child = &amp;_tree-&amp;gt;_nodes[curr_node_index];
+                        nd-&amp;gt;_left_child-&amp;gt;_parent = nd;
+                        nd = nd-&amp;gt;_left_child;
+                        previous = Prev_Tok_LParen;
+                        break;
+
+                    case '\'':
+                        // Encountered an apostrophe, which always indicates the start of a
+                        // node name (but note that node names do not have to be quoted)
+
+                        // Expect node name only after a left paren (child's name), a comma (sib's name)
+                        // or a right paren (parent's name)
+                        if (!(previous &amp; Name_Valid))
+                            throw XStrom(boost::str(boost::format("Not expecting node name at position %d in tree description") % position_in_string));
+
+                        // Get the rest of the name
+                        nd-&amp;gt;_name.clear();
+
+                        inside_quoted_name = true;
+                        node_name_position = position_in_string;
+
+                        break;
+
+                    default:
+                        // Get here if ch is not one of ();:,'
+
+                        // Expecting either an edge length or an unquoted node name
+                        if (previous == Prev_Tok_Colon) {
+                            // Edge length expected (e.g. "235", "0.12345", "1.7e-3")
+                            inside_edge_length = true;
+                            edge_length_position = position_in_string;
+                            edge_length_str = ch;
+                        }
+                        else {
+                            // Get the node name
+                            nd-&amp;gt;_name = ch;
+
+                            inside_unquoted_name = true;
+                            node_name_position = position_in_string;
+                        }
+                }   // end of switch statement
+            }   // loop over characters in newick string
+
+            if (inside_unquoted_name)
+                throw XStrom(boost::str(boost::format("Tree description ended before end of node name starting at position %d was found") % node_name_position));
+            if (inside_edge_length)
+                throw XStrom(boost::str(boost::format("Tree description ended before end of edge length starting at position %d was found") % edge_length_position));
+            if (inside_quoted_name)
+                throw XStrom(boost::str(boost::format("Expecting single quote to mark the end of node name at position %d in tree description") % node_name_position));
+
+            if (!_tree-&amp;gt;_is_rooted) {
+                // Root at leaf whose _number = 0
+                rerootAtNodeNumber(0);
+            }
+
+            refreshPreorder();
+            refreshLevelorder();
+            renumberInternals();
+        }
+        catch(XStrom x) {
+            clear();
+            throw x;
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>This function contains a preamble that sets up everything followed by a main loop that does the work of building the tree.</p>
+
+<h3 id="the-preamble">The preamble</h3>
+
+<p>The first lines reset the <code class="highlighter-rouge">_tree</code> shared pointer so that it points to a brand new <code class="highlighter-rouge">Tree</code> object. If <code class="highlighter-rouge">_tree</code> had been pointing to a <code class="highlighter-rouge">Tree</code> object before, and this was the last shared pointer pointing to that particular <code class="highlighter-rouge">Tree</code> object, then the <code class="highlighter-rouge">Tree</code> object formerly pointed to would be deleted and its destructor would report “Destroying a Tree” (assuming the output line in the <code class="highlighter-rouge">Tree</code> destructor has not been commented out or removed).</p>
+
+<p>Next, several variables used during the process are initialized. The most interesting of these is the <code class="highlighter-rouge">used</code> set, which keeps track of the node numbers assigned to leaf nodes. Leaves take their numbers from the values used as names in the newick string, and, in a valid newick tree description, no two leaf nodes will have the same number. It is not good to assume that the newick tree description will be valid, however, so this set is used to ensure that there are no duplicate leaf numbers.</p>
+
+<p>The <code class="highlighter-rouge">stripOutNexusComments</code> function is used to strip any comments from the supplied <code class="highlighter-rouge">newick</code> string. The resulting <code class="highlighter-rouge">commentless_newick</code> string is what will be used to build the tree.</p>
+
+<p>The <code class="highlighter-rouge">countNewickLeaves</code> function is used to count the number of leaf nodes in the newick string and and exception is thrown if there are not at least 4 leaf nodes found. The <code class="highlighter-rouge">_nodes</code> vector is resized so that it has length twice the number of leaf nodes. This is sufficient to store either a rooted or an unrooted tree. An unrooted tree actually requires 2 fewer nodes than a rooted one, but having the 2 extra nodes  means we can easily convert an unrooted tree to a rooted one without having to reallocate the <code class="highlighter-rouge">_nodes</code> vector. Note that the node number of all nodes is set to -1, which is not a valid node number; these node numbers will be replaced for each node later.</p>
+
+<p>The tree’s <code class="highlighter-rouge">_root</code> data member is set to point to the first node object in the <code class="highlighter-rouge">_nodes</code> vector. The local variable <code class="highlighter-rouge">curr_node_index</code> is used to store the index of the last <code class="highlighter-rouge">Node</code> object assigned in the <code class="highlighter-rouge">_nodes</code> vector. If the tree is rooted, a second node is used; this node is the only child of the root node and serves to connect the root node to the remainder of the tree. Thus, the root node is a fake leaf node that does not have any associated data but nevertheless is a node of degree 1 like other leaf nodes.</p>
+
+<p>The flags section is used to store bits that serve as indicators of the last character read from the <code class="highlighter-rouge">commentless_newick</code> string. Bits are used for these indicators because that allows for useful combinations created using the bitwise OR operator (<code class="highlighter-rouge">|</code>). For example, the variable <code class="highlighter-rouge">LParen_Valid</code> is true if either <code class="highlighter-rouge">Prev_Tok_LParen</code> or <code class="highlighter-rouge">Prev_Tok_Comma</code> are true. Here are the values of these three in binary, assuming an unsigned int is 4 bytes in size (4 bytes = 32 bits):</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Prev_Tok_LParen = 00000000000000000000000000000001
+Prev_Tok_Comma  = 00000000000000000000000000001000
+LParen_Valid    = 00000000000000000000000000001001
+</code></pre></div></div>
+<p>If the variable <code class="highlighter-rouge">previous</code> is set to the appropriate flag given the character just read from <code class="highlighter-rouge">commentless_newick</code> (e.g. <code class="highlighter-rouge">previous = Prev_Tok_Comma</code> if the character just read was a comma), then a bitwise AND operator (<code class="highlighter-rouge">&amp;</code>) can be used to determine whether it is valid that the next character is a left parenthesis:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>if (!(previous &amp; LParen_Valid))
+    throw XStrom("Not expecting left parenthesis at position in tree description");
+</code></pre></div></div>
+<p>Read more about <a href="https://en.wikipedia.org/wiki/Bitwise_operation">bitwise operations</a> if the previous explanation does not make sense to you.</p>
+
+<p>The remaining lines in the preamble create variables for recording whether we are currently reading a node name or an edge length.</p>
+
+<h3 id="the-main-loop">The main loop</h3>
+
+<p>The main loop begins with the line</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>            for (auto ch : commentless_newick) {    
+
+</code></pre></div></div>
+
+<p>The variable <code class="highlighter-rouge">ch</code> holds the current character, and various actions are taken depending on the value of <code class="highlighter-rouge">ch</code>. If we are currently reading a node name or an edge length, then <code class="highlighter-rouge">ch</code> is appended to the growing node name or edge length string. Assuming we are not reading a node name or edge length, and assuming <code class="highlighter-rouge">ch</code> is not whitespace, we enter a <code class="highlighter-rouge">switch</code> statement comprising cases for characters that may appear inside a newick string, such as a left parenthesis (which leads to creation of a left child), a comma (which leads to the addition of a right sibling), a right parenthesis (which causes us to fall back to the ancestor of the current node), a colon (which signals the beginning of an edge length), or a single or double quote (which signals the beginning of a node name containing embedded spaces or characters that have meaning inside a newick string).</p>
+
+<h3 id="after-the-main-loop">After the main loop</h3>
+
+<p>After the main loop has finished (because a terminating right parenthesis was encountered), unrooted trees are rooted arbitrarily at the leaf node whose number is 0. The functions <code class="highlighter-rouge">refreshPreorder</code> and <code class="highlighter-rouge">refreshLevelorder</code> are called to ensure that the tree can be navigated correctly using the <code class="highlighter-rouge">_preorder</code> and <code class="highlighter-rouge">_levelorder</code> vectors, respectively.</p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="/people/plewis/cpp//mac//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

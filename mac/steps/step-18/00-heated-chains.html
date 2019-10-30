@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Heated Chains</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">18.0 Heated Chains</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-17/00-updating-the-tree.html">&lt;&nbsp;17.0</a> | 18.0 | <a href="/people/plewis/cpp//mac//steps/step-18/01-modifying-strom-for-heated-chains.html">18.1&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>In this final part of the tutorial you will enable your program to run multiple Markov chains simultaneously. One of these (the cold chain) explores the posterior distribution while the other (heated) chains explore “melted-down” versions of the posterior in which the peaks are not as high and the valleys not as low being traversed by the cold chain. The melting is done by raising the the posterior kernel (the kernel is the unnormalized posterior density) by a power between 0 and 1. Values close to 1 melt the posterior only slightly, while a power equal to 0 would turn the posterior kernel into a constant, which would result in a perfectly flat landscape. Thus, 0 would not be a good power to use because a chain exploring a perfectly flat landscape would simply wander off and never come back. We would like the heated chains to hover around the same peaks as the cold chain, but because the heated landscapes are weathered and more gentle, these heated chains can easily wander across the valleys between peaks and thus do not get stuck on one peak like the cold chain.</p>
+
+<p>After each chain (cold chain and each heated chain) takes an ordinary step, two chains are chosen at random to attempt a swap. For the swap to be successful, both chains must be able to move to the point occupied by the other chain. One of the two chains will be uphill compared to the other, so that move is automatic, but the uphill chain must also be able to move to the point where the downhill chain is situated. Because both chains are normally close to a peak, it is often nearly as easy for the cold chain to jump directly to a different peak (occupied by its swap partner) as to take a step close to where it is currently located. As a result, the heated chains serve as scouts for the cold chain, proposing new places for the cold chain to go that may be quite distant from the places where its own proposals suggest. This serves to enhance mixing for posterior distributions that are multimodal or otherwise topographically complex.</p>
+
+<p>We will also use this opportunity to distinguish the burn-in period from the sampling period. During the burn-in (the length of which is specified by the user), autotuning is done and no samples are saved to the parameter or tree files. After the burn-in period, autotuning is turned off and sampling is done at regular intervals.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="18-1">
+		<td>Step 18.1</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-18/01-modifying-strom-for-heated-chains.html">Modify the Strom Class</a></td>
+		<td><p>Modifying the Strom class to implement multichain MCMC.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="18-2">
+		<td>Step 18.2</td>
+		<td><a href="/people/plewis/cpp/mac/steps/step-18/02-testing-heated-chains.html">Testing Heated Chains</a></td>
+		<td><p>Perform an MCMC analysis using one cold and three heated chains.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-17/00-updating-the-tree.html">&lt;&nbsp;17.0</a> | 18.0 | <a href="/people/plewis/cpp//mac//steps/step-18/01-modifying-strom-for-heated-chains.html">18.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

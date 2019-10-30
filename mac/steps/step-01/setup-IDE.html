@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Setting Up A Build System</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home">
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">1.0 Setting Up A Build System</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection">
+<a href="/people/plewis/cpp/mac/steps/">Table of Contents</a> | 1.0 | <a href="/people/plewis/cpp//mac//steps/step-02/00-node-and-tree-classes.html">2.0 &gt;</a>
+</h3>
+</div>
+
+
+<p>I am assuming you are using MacOS 10.14.6 (Mojave) or later and Xcode 10.3; these instructions have not been tested on earlier versions.</p>
+
+<h2 id="installing-xcode">Installing Xcode</h2>
+<p>Install <a href="https://developer.apple.com/xcode/">Xcode</a> if it is not already installed on your Mac. I will assume you are using Xcode version 10.3.</p>
+
+<p>After installing Xcode, you may also want to install the command line tools. To do this, go to <em>Xcode &gt; Open Developer Tool &gt; More Developer Tools…</em>, login using your existing Apple ID, then choose the latest Command Line Tools download.</p>
+
+<h2 id="creating-a-command-line-tool-xcode-project">Creating a command line tool Xcode project</h2>
+
+<p>In the <em>Welcome to Xcode</em> window, click on <em>Create a new Xcode project</em>, or choose <em>File &gt; New &gt; Project…</em> from the Xcode main menu.</p>
+
+<p>Under the MacOS tab, choose the <em>Command Line Tool</em> Application type and click the <em>Next</em> button.</p>
+
+<p>Here’s how I filled out the next dialog box (but you should feel free to enter whatever you like here):</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: right">Description</th>
+      <th style="text-align: left">Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: right">Product name:</td>
+      <td style="text-align: left">strom</td>
+    </tr>
+    <tr>
+      <td style="text-align: right">Team:</td>
+      <td style="text-align: left">None</td>
+    </tr>
+    <tr>
+      <td style="text-align: right">Organization Name:</td>
+      <td style="text-align: left">Paul O. Lewis</td>
+    </tr>
+    <tr>
+      <td style="text-align: right">Organization Identifier:</td>
+      <td style="text-align: left">edu.uconn.phylogeny</td>
+    </tr>
+    <tr>
+      <td style="text-align: right">Bundle Identifier:</td>
+      <td style="text-align: left">edu.uconn.phylogeny.strom</td>
+    </tr>
+    <tr>
+      <td style="text-align: right">Language:</td>
+      <td style="text-align: left">C++</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Next you will be asked to specify a directory in which to create the project. This location is entirely up to you. I chose <em>/Users/plewis/Documents</em>. For this choice of parent folder, Xcode created the following folder structure:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Users/
+    plewis/
+        Documents/
+            strom/
+                strom.xcodeproj
+                strom/
+                    main.cpp
+</code></pre></div></div>
+
+<h2 id="setting-up-xcode-to-use-the-c11-standard">Setting up Xcode to use the C++11 standard</h2>
+
+<p>We will use the <a href="https://en.wikipedia.org/wiki/C%2B%2B11">C++11</a> standard for this tutorial. As of this writing, C++17 is the latest C++ <em>dialect</em>. You are welcome to use the C++17 dialect, but because this tutorial does not use any C++ features that are not in the C++11 standard, I will show how to set up Xcode and external libraries to use C++11 so that third-party libraries will link correctly to the tutorial. If you decide to go with C++17, be sure to use C++17 when compiling every library or you will have difficult-to-diagnose errors at the link step.</p>
+
+<p>In the Xcode Project Navigator pane on the left, you should now see your strom project (beside a blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20">), and inside that you should see a strom folder (beside a yellow folder icon <img class="emoji" title=":yellowfolder:" alt=":yellowfolder:" src="/people/plewis/cpp/assets/img/emoji/yellowfolder.png" height="20" width="20">), and inside that you should see a file named <em>main.cpp</em>. (If you do not see anything like this, it may be because your Project Navigator pane is not visible. You can always get it back using <em>View &gt; Navigators &gt; Show Project Navigator</em> from the main menu.)</p>
+
+<p>Click once on the <em>strom</em> project (with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20">) in the Project Navigator, then select the <em>strom</em> TARGET within the project settings shown in the central pane. You should now see <em>General</em>, <em>Resource Tags</em>, <em>Build Settings</em>, <em>Build Phases</em>, and <em>Build Rules</em> across the top of the central pane.</p>
+
+<p>Click on <em>Build Settings</em>, <em>All</em> (not <em>Basic</em> or <em>Customized</em>), <em>Levels</em> (not <em>Combined</em>), and then type “C++ Language Dialect” into the <em>Search</em> box to filter out all build settings except the one we are interested in at the moment.</p>
+
+<p>In the “C++ Language Dialect” row, double-click on the column with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20"> (this is the column for the project settings, the other column labeled strom contains target-specific settings). This should allow you to choose <code class="highlighter-rouge">C++11 [-std=c++11]</code> as your C++ dialect.</p>
+
+<h2 id="running-the-default-hello-world-version-of-the-program">Running the default “Hello, World!” version of the program</h2>
+
+<p>Press the run button (<img class="emoji" title=":arrow_forward:" alt=":arrow_forward:" src="/people/plewis/cpp/assets/img/emoji/unicode/25b6.png" height="20" width="20">) in the tool bar and your minimal “Hello, World!” program should compile and run successfully.</p>
+
+<h2 id="setting-up-xcode-to-save-an-optimized-executable">Setting up Xcode to save an optimized executable</h2>
+
+<p>Throughout most of this tutorial (and especially for this first <em>Hello, World!</em> program), you will not need to optimize your executable for speed to run the examples, but you will want to create an optimized <strong>release version</strong> of your executable to use for real data examples, where the speed is essential. To create an optimized version, you need to select <em>Archive</em> from the <em>Product</em> main menu in Xcode. The optimized version will be stored in an out-of-the-way part of your hard drive where Xcode keeps its archived products (you can find where this is by going to the Xcode <em>Preferences…</em> menu item and clicking on the <em>Locations</em> tab). Xcode also stores this location in an environmental variable <code class="highlighter-rouge">$ARCHIVE_PRODUCTS_PATH</code>. It is a pain to extract your executable from this obscure location each time you need it (even though Xcode gives you a button to save it somewhere else), so let’s set up a <strong>post-action script</strong> to automatically copy the release version to a directory that is on your executable path and thus can be run from anywhere.</p>
+
+<p>Start by choosing the Xcode <em>Product</em> menu item <em>while holding down the Option key</em>, then selecting the <em>Archive…</em> menu item. (Note: if the menu item is <em>Archive</em> and not <em>Archive…</em>, then you failed to hold down the Option key while selecting the <em>Product</em> menu item). Another way to do this is to use the key combination <em>Command-Option-r</em> and then click on <em>Archive</em> in the left panel.</p>
+
+<p>Expand the <em>Archive</em> action by clicking on the triangular disclosure button on the left. This allows you to add a post-action. Add a New Run Script Action by pressing the + button at the bottom left of the post-action panel and replace <em># Type a script or drag a script file from your workspace to insert its path.</em> with the following small script:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>exec &gt; "/tmp/xcode_run_script.log" 2&gt;&amp;1
+cp "$ARCHIVE_PRODUCTS_PATH/usr/local/bin/strom" /Users/plewis/bin
+</code></pre></div></div>
+<p>You will, of course, need to change some parts of this, because you are not me, but the script is pretty simple. The first line uses the exec command to save all output to a temporary file named <em>/tmp/xcode_run_script.log</em>. This allows you to see what went wrong if anything does go wrong in the copying process. The second line simply copies the executable (named <em>strom</em>) from the Xcode archive location (<em>$ARCHIVE_PRODUCTS_PATH/usr/local/bin</em>) to a directory of your choice. I have used the <em>bin</em> directory inside my home directory <em>/Users/plewis</em>, which is a directory I created for storing programs that I want to be able to run from anywhere. I made this happen by adding this directory to my <code class="highlighter-rouge">PATH</code> environmental variable in my <em>$HOME/.bash_profile</em> file:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>export PATH="$HOME/bin:$PATH"
+</code></pre></div></div>
+<p>Be sure to specify <em>/bin/bash</em> as the Shell to use for interpreting your post-action script, then press the Archive button to create the release executable. From now on, whenever I ask you to create a release version of your program, you can simply choose <em>Archive</em> from the <em>Product</em> menu and your post-action script will automatically copy your program to the directory you specified!</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection">
+<a href="/people/plewis/cpp/mac/steps/">Table of Contents</a> | 1.0 | <a href="/people/plewis/cpp//mac//steps/step-02/00-node-and-tree-classes.html">2.0 &gt;</a>
+</h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

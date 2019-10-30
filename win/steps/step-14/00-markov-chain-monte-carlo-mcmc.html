@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/people/plewis/cpp/">
+    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Markov Chain Monte Carlo (MCMC)</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
+        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/people/plewis/cpp/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">14.0 Markov Chain Monte Carlo (MCMC)</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 14.0 | <a href="/people/plewis/cpp//win//steps/step-14/01-the-updater-class.html">14.1&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The next step is to create a <code class="highlighter-rouge">Chain</code> class that carries out a Markov chain Monte Carlo (MCMC) simulation for the purpose of sampling from a Bayesian posterior distribution. Our initial effort will update only the gamma shape parameter used to model among-site rate heterogeneity. Later we will add the ability to update other substitution model parameters (e.g. nucleotide state frequencies and GTR exchangeabilities) as well as the tree topology and edge lengths.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="14-1">
+		<td>Step 14.1</td>
+		<td><a href="/people/plewis/cpp/win/steps/step-14/01-the-updater-class.html">The Updater Class</a></td>
+		<td><p>Create the Updater class that will serve as the base class for classes that update model parameters</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="14-2">
+		<td>Step 14.2</td>
+		<td><a href="/people/plewis/cpp/win/steps/step-14/02-the-gammashapeupdater-class.html">The GammaRateVarUpdater Class</a></td>
+		<td><p>Create a class derived from Updater that can update the rate variance parameter governing the amount of among-site rate heterogeneity</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="14-3">
+		<td>Step 14.3</td>
+		<td><a href="/people/plewis/cpp/win/steps/step-14/03-the-chain-class.html">The Chain Class</a></td>
+		<td><p>Create a class that encapsulates a Markov chain that can carry out MCMC</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="14-4">
+		<td>Step 14.4</td>
+		<td><a href="/people/plewis/cpp/win/steps/step-14/04-testing-the-chain-class.html">Testing the Chain Class</a></td>
+		<td><p>Perform an MCMC analysis to test the new Chain class</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 14.0 | <a href="/people/plewis/cpp//win//steps/step-14/01-the-updater-class.html">14.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
+    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
+    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>
