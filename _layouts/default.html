@@ -8,7 +8,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="search-domain" value="{{ "/" | absolute_url }}">
-    <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}{% link assets/css/main.scss %}" />
+    <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/assets/css/main.css" />
     <title>{{ site.title }}{% if page.title %}: {{ page.title }}{% endif %}</title>
   </head>
   <body>
@@ -17,8 +17,8 @@
       {{content}}
       {% include footer.html %}
     </div>
-    <script src="{{ site.baseurl }}{% link assets/js/jquery.min.js %}"></script>
-    <script src="{{ site.baseurl }}{% link assets/js/highlight.js %}"></script>
-    <script src="{{ site.baseurl }}{% link assets/js/bootstrap.bundle.js %}"></script>
+    <script src="{{ site.baseurl }}/assets/js/jquery.min.js"></script>
+    <script src="{{ site.baseurl }}/assets/js/highlight.js"></script>
+    <script src="{{ site.baseurl }}/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

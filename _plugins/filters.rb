@@ -11,9 +11,11 @@ module CPPTutorial
       site = @context.registers[:site]
       matches = site.pages.find_all {|page| page.relative_path.match(Regexp.new(filename_regex_pattern)) }
 
+      #puts matches.size.to_i
+      
       if matches.size == 1
         return matches[0]
-      else
+      else 
         raise ArgumentError, "Multiple pages match '#{filename}'"
       end
     end

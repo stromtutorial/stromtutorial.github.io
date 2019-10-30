@@ -4,29 +4,7 @@ title: "Strom Phylogenetics C++ Tutorial"
 #plugins: ['jekyll/scholar', 'jemoji']
 plugins: ['jemoji']
 
-include: [.nojekyll]
-exclude:
-- README.md
-- home/launch.md
-- steps/step-01/test
-- steps/step-02/test
-- steps/step-03/test
-- steps/step-04/test
-- steps/step-05/test
-- steps/step-06/test
-- steps/step-07/test
-- steps/step-08/test
-- steps/step-09/test
-- steps/step-10/test
-- steps/step-11/test
-- steps/step-12/test
-- steps/step-13/test
-- steps/step-14/test
-- steps/step-15/test
-- steps/step-16/test
-- steps/step-17/test
-- steps/step-18/test
-- steps/step-19
+baseurl: '/people/plewis/cpp'
 
 defaults:
   - scope:

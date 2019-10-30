@@ -1,8 +1,45 @@
-baseurl: '/people/plewis/cpp/mac'
-
-operatingsystem: mac
+title: "Strom Phylogenetics C++ Tutorial"
+baseurl: '/people/plewis/cpp'
+operatingsystem: 'mac'
 doindex: false
 
-emoji:
-  src: '/mac/assets/img'
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+      code_layout: default
 
+plugins: ['jemoji']
+
+emoji:
+  src: '/people/plewis/cpp/assets/img'
+
+sass:
+  sass_dir: assets/_scss
+
+exclude:
+- assets/
+- home/404.md
+- home/mainindex.md
+- index.md
+- README.md
+- steps/step-01/test
+- steps/step-02/test
+- steps/step-03/test
+- steps/step-04/test
+- steps/step-05/test
+- steps/step-06/test
+- steps/step-07/test
+- steps/step-08/test
+- steps/step-09/test
+- steps/step-10/test
+- steps/step-11/test
+- steps/step-12/test
+- steps/step-13/test
+- steps/step-14/test
+- steps/step-15/test
+- steps/step-16/test
+- steps/step-17/test
+- steps/step-18/test
+- steps/step-19

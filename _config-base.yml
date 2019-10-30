@@ -1,6 +1,6 @@
 title: "Strom Phylogenetics C++ Tutorial"
 baseurl: '/people/plewis/cpp'
-operatingsystem: 'win'
+operatingsystem: 'none'
 doindex: false
 
 defaults:
@@ -12,17 +12,13 @@ defaults:
 
 plugins: ['jemoji']
 
-emoji:
-  src: '/people/plewis/cpp/assets/img'
-
 sass:
   sass_dir: assets/_scss
 
 exclude:
-- assets/
-- home/404.md
 - home/mainindex.md
-- index.md
+- home/steps.md
+- steps/
 - README.md
 - steps/step-01/test
 - steps/step-02/test

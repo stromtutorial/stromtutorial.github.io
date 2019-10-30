@@ -1,8 +1,7 @@
 ---
 layout: home
 title: Citation
-subtitle: Citing Strom
-permalink: /citation
+permalink: /citation/
 ---
 
 #### The recommended citation for the current version of the Strom tutorial is:

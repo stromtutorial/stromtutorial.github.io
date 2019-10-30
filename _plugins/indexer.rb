@@ -74,7 +74,15 @@ module Jekyll
             # Create a "page map" hash in which a key is the page's partnum.subpart
             # (e.g. 2.3) and the corresponding value is the page's URL. This will allow
             # us to create links for every page pointing to the previous and next step.
-            #os = payload.site["operatingsystem"]
+            os = payload.site["operatingsystem"]
+            if os == 'none'
+                os = ''
+            else
+                os += '/'
+            end
+            
+            puts '==> os = ' + os
+            
             if !payload.site.key? 'pagemap'
                 #puts 'Creating payload.site["pagemap"]...'
                 payload.site['pagemap'] = {}
@@ -83,8 +91,8 @@ module Jekyll
                     y = p.data['subpart']
                     if x and y
                         k = "#{x}.#{y}"
-                        #url = "/" + os + p.url
-                        url = "/" + p.url
+                        url = "/" + os + p.url
+                        #url = "/" + p.url
                         payload.site['pagemap'].store(k, url)
                     end
                 end
@@ -98,6 +106,13 @@ module Jekyll
             # so that we can do addition and subtraction.
             part = payload.page['partnum'].to_i
             subpart = payload.page['subpart'].to_i
+            
+            os = payload.site['operatingsystem']
+            if os == 'none'
+                os = ''
+            else
+                os = '/' + os
+            end
 
             # Create link to previous step or substep
             # Decrement subpart to see if there is previous subpart to the current step
@@ -113,7 +128,7 @@ module Jekyll
                     key = "#{prevpart}.#{prevsubpart}"
                     payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
                 else
-                    payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']}/steps/\">Table of Contents</a>"
+                    payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']+os}/steps/\">Table of Contents</a>"
                 end
             end
 
@@ -135,7 +150,7 @@ module Jekyll
                     payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
                 else
                     # No page having step number (part + 1).0 was found, so we must be at the end
-                    payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']}/steps/\">Table of Contents</a>"
+                    payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']+os}/steps/\">Table of Contents</a>"
                 end
             end
 

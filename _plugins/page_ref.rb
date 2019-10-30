@@ -14,8 +14,13 @@ module CPPTutorial
                 site = @context.registers[:site]
 
                 page = match_page(@markup.strip)
+                os = @context.registers[:site].config['operatingsystem']
+                if os == 'none'
+                    "<a href=\"#{site.baseurl+page.url}\">#{page['title']}</a>"
+                else
+                    "<a href=\"#{site.baseurl}\/#{os+page.url}\">#{page['title']}</a>"
+                end
 
-                "<a href=\"#{site.baseurl+page.url}\">#{page['title']}</a>"
             end
         end
 

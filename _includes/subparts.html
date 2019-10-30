@@ -1,10 +1,15 @@
 {% assign sections = site.pages | where:"layout","steps" | where:"partnum",page.partnum | where_exp:"item","item.subpart != 0" | sort: "subpart" %}
-
+{% assign os = site.operatingsystem %}
+{% if os == 'none' %}
+{%   assign os = '' %}
+{% else %}
+{%   capture os %}/{{ site.operatingsystem }}{% endcapture %}
+{% endif %}
 {% for section in sections %}
 	{% capture part %}
 		<tr class="part" id="{{ section.partnum }}-{{ section.subpart }}">
 		<td>Step {{ section.partnum }}.{{ section.subpart }}</td>
-		<td><a href="{{ site.baseurl }}{{ section.url }}">{{ section.title }}</a></td>
+		<td><a href="{{ site.baseurl }}{{ os }}{{ section.url }}">{{ section.title }}</a></td>
 		<td>{{ section.description | markdownify }}</td>
 		</tr>
 	{% endcapture %}

@@ -7,12 +7,17 @@ permalink: /steps/
 The steps below are designed to be visited in order.
 
 {% assign steps = site.pages | where:"layout","steps" | where:"subpart",0 | sort: "partnum" %}
-
+{% capture os %}
+/{{ site.operatingsystem }}
+{% endcapture %}
+{% if os == '/none' %}
+{%   assign os = '' %}
+{% endif %}
 {% for step in steps %}
 	{% capture part %}
 		<tr class="part" id="{{ step.partnum }}">
 		<td>Step {{ step.partnum }}</td>
-		<td><a href="{{ site.baseurl }}{{ step.url }}">{{ step.title }}</a></td>
+		<td><a href="{{ site.baseurl }}{{ os }}{{ step.url }}">{{ step.title }}</a></td>
 		<td>{{ step.description | markdownify }}</td>
 		</tr>
 	{% endcapture %}
