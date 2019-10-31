@@ -17,7 +17,6 @@ sass:
 
 exclude:
 - home/mainindex.md
-- home/acknowledgements.md
 - home/steps.md
 - steps/
 - README.md

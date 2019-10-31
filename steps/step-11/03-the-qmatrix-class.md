@@ -188,7 +188,7 @@ This function requires more explanation than any other, and I’ve broken down t
 
 The instantaneous rate matrix **Q** for the GTR model has 6 exchangeability parameters (_a_, _b_, _c_, _d_, _e_, and _f_) and 4 nucleotide frequencies (&pi;<sub>A</sub>, &pi;<sub>C</sub>, &pi;<sub>G</sub> and &pi;<sub>T</sub>). It is stored in the data member `_qmatrix`.
 
-![Q matrix for the GTR model](../../assets/img/Qgtr.png){:.center-math-image}
+![Q matrix for the GTR model]({{ /assets/img/Qgtr.png | relative_url }}){:.center-math-image}
 
 The rows represent the "from" state (in the order A, C, G, T, from top to bottom), while the columns represent the "to" state (also in the order A, C, G, T, from left to right). The diagonal elements of this matrix are negative and equal to the sum of the other elements in the same row because any change from state A, for example, to a different state must reduce the amount of A, hence the rate of change is negative. The row sums are zero because this model assumes that the sequence length neither shrinks nor grows, and thus any increase in C, G, or T must occur at the expense of A.
 

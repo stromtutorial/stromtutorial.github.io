@@ -21,7 +21,6 @@ sass:
 exclude:
 - assets/
 - home/404.md
-- home/acknowledgements.md
 - home/mainindex.md
 - index.md
 - README.md
