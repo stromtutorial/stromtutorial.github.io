@@ -1,5 +1,5 @@
 title: "Strom Phylogenetics C++ Tutorial"
-baseurl: '/people/plewis/cpp'
+baseurl: ""
 operatingsystem: 'none'
 doindex: false
 
@@ -17,25 +17,46 @@ sass:
 
 exclude:
 - home/mainindex.md
+- home/acknowledgements.md
 - home/steps.md
 - steps/
 - README.md
+- Gemfile
+- Gemfile.lock
 - steps/step-01/test
+- steps/step-01/src
 - steps/step-02/test
+- steps/step-02/src
 - steps/step-03/test
+- steps/step-03/src
 - steps/step-04/test
+- steps/step-04/src
 - steps/step-05/test
+- steps/step-05/src
 - steps/step-06/test
+- steps/step-06/src
 - steps/step-07/test
+- steps/step-07/src
 - steps/step-08/test
+- steps/step-08/src
 - steps/step-09/test
+- steps/step-09/src
 - steps/step-10/test
+- steps/step-10/src
 - steps/step-11/test
+- steps/step-11/src
 - steps/step-12/test
+- steps/step-12/src
 - steps/step-13/test
+- steps/step-13/src
 - steps/step-14/test
+- steps/step-14/src
 - steps/step-15/test
+- steps/step-15/src
 - steps/step-16/test
+- steps/step-16/src
 - steps/step-17/test
+- steps/step-17/src
 - steps/step-18/test
+- steps/step-18/src
 - steps/step-19

@@ -22,7 +22,7 @@ This is the third version of the tutorial. It differs from the second version in
 
 #### Author
 
-The tutorial was written by [Paul O. Lewis](http://phylogeny.uconn.edu). Please let [me](mailto:paul.lewis@uconn.edu) know if you find errors.
+The tutorial was written by [Paul O. Lewis](http://phylogeny.uconn.edu). Please write to me at [paul.lewis@uconn.edu](mailto:paul.lewis@uconn.edu) if you find errors.
 
 #### Funding
 This tutorial was developed as a broader impact project associated with National Science Foundation grant DEB-1354146 (Estimating the Bayesian phylogenetic information content of systematic data, PI Paul O. Lewis).
