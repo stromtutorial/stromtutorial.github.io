@@ -464,31 +464,31 @@ namespace strom {
 
 <p>Two important diagonal matrices are defined by the vector of nucleotide frequencies stored in <code class="highlighter-rouge">_state_freqs</code>. These are shown below and are stored in the data members <code class="highlighter-rouge">_sqrtPi</code> (top) and <code class="highlighter-rouge">_sqrtPiInv</code> (bottom).</p>
 
-<p><img src="/assets/img/sqrtPi.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+<p><img src="/assets/img/sqrtPi.png" alt="Square root and inverse square root of the diagonal state frequency matrix" class="center-math-image" /></p>
 
 <h3 id="diagonalization-of-the-rate-matrix">Diagonalization of the rate matrix</h3>
 
 <p>The rate matrix <strong>Q</strong> can be represented as the matrix product of the (right) eigenvector matrix <strong>V</strong>, the diagonal matrix of eigenvalues <strong>L</strong>, and the inverse eigenvector matrix <strong>V</strong><sup>-1</sup>.</p>
 
-<p><img src="/assets/img/Qdiagonalization.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+<p><img src="/assets/img/Qdiagonalization.png" alt="Diagonalized Q matrix" class="center-math-image" /></p>
 
 <h3 id="computing-the-transition-probability-matrix">Computing the transition probability matrix</h3>
 
 <p>The transition probability matrix <strong>P</strong> is obtained by exponentiating the product of <strong>Q</strong> and time <em>t</em>. The matrix <strong>Q</strong> is scaled so that time <em>t</em> can be measured in units of expected substitutions per site, which is why the rates in the <strong>Q</strong> matrix omit the overall rate of substitution and only include relative rate terms (the overall rate is subsumed in <em>t</em>). The calculation of <strong>P</strong> involves exponentiating only the middle matrix (diagonal matrix of eigenvalues multiplied by <em>t</em>).</p>
 
-<p><img src="/assets/img/Pdiagonalization.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+<p><img src="/assets/img/Pdiagonalization.png" alt="Diagonalized P matrix" class="center-math-image" /></p>
 
 <h3 id="scaling-the-rate-matrix">Scaling the rate matrix</h3>
 
 <p>The <strong>Q</strong> matrix must be scaled so that time <em>t</em> is measured in expected number of substitutions per site. If this scaling is not performed, the edge lengths lose their interpretation as expected number of substitutions per site. The scaling factor needed may be obtained by effectively performing the following matrix multiplication and afterwards summing the off-diagonal elements: dividing each element of <strong>Q</strong> by this sum yields the desired normalization.</p>
 
-<p><img src="/assets/img/Qscaling.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+<p><img src="/assets/img/Qscaling.png" alt="Q matrix scaling" class="center-math-image" /></p>
 
 <h3 id="symmetrizing-the-rate-matrix">Symmetrizing the rate matrix</h3>
 
 <p>Computing eigenvalues and eigenvectors of a symmetric matrix is simpler and more efficient than computing them for an asymmetric matrix. Hence, it is common to obtain eigenvalues and eigenvectors of a symmetrical matrix <strong>S</strong> derived from the <strong>Q</strong> matrix rather than for the <strong>Q</strong> matrix itself. The eigenvalues for <strong>S</strong> and <strong>Q</strong> are identical, and the eigenvector matrix <strong>W</strong> obtained from <strong>S</strong> may be easily converted into the desired matrix <strong>V</strong> containing the eigenvectors of <strong>Q</strong>. Note that <strong>V</strong> may be obtained by premultiplying <strong>W</strong> by the diagonal matrix of inverse square roots of nucleotide frequencies.</p>
 
-<p><img src="/assets/img/Sdiagonalization.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+<p><img src="/assets/img/Sdiagonalization.png" alt="Symmetrized Q matrix" class="center-math-image" /></p>
 
 <h2 id="the-recalcratematrix-function">The recalcRateMatrix function</h2>
 
