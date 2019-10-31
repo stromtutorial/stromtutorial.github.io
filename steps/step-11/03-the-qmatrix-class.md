@@ -196,31 +196,31 @@ The rows represent the "from" state (in the order A, C, G, T, from top to bottom
 
 Two important diagonal matrices are defined by the vector of nucleotide frequencies stored in `_state_freqs`. These are shown below and are stored in the data members `_sqrtPi` (top) and `_sqrtPiInv` (bottom).
 
-![Q matrix for the GTR model]({{ "/assets/img/sqrtPi.png" | relative_url }}){:.center-math-image}
+![Square root and inverse square root of the diagonal state frequency matrix]({{ "/assets/img/sqrtPi.png" | relative_url }}){:.center-math-image}
 
 ### Diagonalization of the rate matrix
 
 The rate matrix **Q** can be represented as the matrix product of the (right) eigenvector matrix **V**, the diagonal matrix of eigenvalues **L**, and the inverse eigenvector matrix **V**<sup>-1</sup>.
 
-![Q matrix for the GTR model]({{ "/assets/img/Qdiagonalization.png" | relative_url }}){:.center-math-image}
+![Diagonalized Q matrix]({{ "/assets/img/Qdiagonalization.png" | relative_url }}){:.center-math-image}
 
 ### Computing the transition probability matrix
 
 The transition probability matrix **P** is obtained by exponentiating the product of **Q** and time _t_. The matrix **Q** is scaled so that time _t_ can be measured in units of expected substitutions per site, which is why the rates in the **Q** matrix omit the overall rate of substitution and only include relative rate terms (the overall rate is subsumed in _t_). The calculation of **P** involves exponentiating only the middle matrix (diagonal matrix of eigenvalues multiplied by _t_).
 
-![Q matrix for the GTR model]({{ "/assets/img/Pdiagonalization.png" | relative_url }}){:.center-math-image}
+![Diagonalized P matrix]({{ "/assets/img/Pdiagonalization.png" | relative_url }}){:.center-math-image}
 
 ### Scaling the rate matrix
 
 The **Q** matrix must be scaled so that time _t_ is measured in expected number of substitutions per site. If this scaling is not performed, the edge lengths lose their interpretation as expected number of substitutions per site. The scaling factor needed may be obtained by effectively performing the following matrix multiplication and afterwards summing the off-diagonal elements: dividing each element of **Q** by this sum yields the desired normalization.
 
-![Q matrix for the GTR model]({{ "/assets/img/Qscaling.png" | relative_url }}){:.center-math-image}
+![Q matrix scaling]({{ "/assets/img/Qscaling.png" | relative_url }}){:.center-math-image}
 
 ### Symmetrizing the rate matrix
 
 Computing eigenvalues and eigenvectors of a symmetric matrix is simpler and more efficient than computing them for an asymmetric matrix. Hence, it is common to obtain eigenvalues and eigenvectors of a symmetrical matrix **S** derived from the **Q** matrix rather than for the **Q** matrix itself. The eigenvalues for **S** and **Q** are identical, and the eigenvector matrix **W** obtained from **S** may be easily converted into the desired matrix **V** containing the eigenvectors of **Q**. Note that **V** may be obtained by premultiplying **W** by the diagonal matrix of inverse square roots of nucleotide frequencies.
 
-![Q matrix for the GTR model]({{ "/assets/img/Sdiagonalization.png" | relative_url }}){:.center-math-image}
+![Symmetrized Q matrix]({{ "/assets/img/Sdiagonalization.png" | relative_url }}){:.center-math-image}
 
 ## The recalcRateMatrix function
 
