@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Testing Heated Chains</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+            <a href="/mac/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/people/plewis/cpp/mac/steps/">Table of Contents</a></h3>
+	<h3 class="subsection"><a href="//mac//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/mac/steps/">Table of Contents</a></h3>
 </div>
 
 
@@ -130,8 +130,8 @@ Proportion of Invariable Sites           1.000           100.0            4126
 <p>Because the proposal method used for pinvar is a window of width <code class="highlighter-rouge">_lambda</code>, it is prudent to limit <code class="highlighter-rouge">_lambda</code> to the maximum possible window width, namely 1.0. Allowing <code class="highlighter-rouge">_lambda</code> to get larger than 1.0 risks having to reflect multiple times if the proposed new state lies outside the valid inteval 0.0 to 1.0.</p>
 
 <p>The swap summary shows that more than 16000 swaps were attempted between each pair of chains, fewer swaps were successful between chains that differed substantially in their heating power. For example, 12934/16854 = 77% of swaps were accepted between the two hottest chains whereas only 4608/16789 = 27% were accepted between the cold chain and the hottest chain. This is explained by the fact that the hottest chain is often far away from a peak while the cold chain never strays far from a peak; the probability that the cold chain will accept a jump from the peak to the lowlands is small, so, despite the fact that the heated chain can accept the swap because it is uphill, fewer swaps succeed between the coldest and hottest chains than between chains visiting more similar landscapes. The reason that even 27% of such swaps succeed has a lot to do with the fact that the landscape is determined entirely by the prior in this case, so there is not a huge difference between the altitude of the peak compared to the lowlands.</p>
-<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
-                        0            1            2            3
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
+</span>                        0            1            2            3
 <span class="gd">----------------------------------------------------------------
 </span>           0          ---        16664        16427        16789
            1        10631          ---        16524        16742
@@ -149,7 +149,7 @@ Proportion of Invariable Sites           1.000           100.0            4126
 <p>I plan to extend the tutorial in the next version to allow polytomous and/or rooted trees, and estimation of marginal likelihoods.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/people/plewis/cpp/mac/steps/">Table of Contents</a></h3>
+	<h3 class="subsection"><a href="//mac//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/mac/steps/">Table of Contents</a></h3>
 </div>
 
 
@@ -158,7 +158,7 @@ Proportion of Invariable Sites           1.000           100.0            4126
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -166,8 +166,8 @@ Proportion of Invariable Sites           1.000           100.0            4126
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

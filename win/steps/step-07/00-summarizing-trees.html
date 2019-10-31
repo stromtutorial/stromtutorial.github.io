@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Summarizing tree topologies</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+            <a href="/win/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 7.0 | <a href="/people/plewis/cpp//win//steps/step-07/01-split-class.html">7.1&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//win//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 7.0 | <a href="//win//steps/step-07/01-split-class.html">7.1&nbsp;&gt;</a></h3>
 </div>
 
 <p>In this part, you will learn how to summarize trees in terms of their component splits. By the end of this section, your program will read a tree file and report all unique tree topologies and the number of trees having each topology. You will also install the Nexus Class Library in order to read NEXUS-formatted tree files.</p>
@@ -61,28 +61,28 @@
 
 		<tr class="part" id="7-1">
 		<td>Step 7.1</td>
-		<td><a href="/people/plewis/cpp/win/steps/step-07/01-split-class.html">The Split class</a></td>
+		<td><a href="/win/steps/step-07/01-split-class.html">The Split class</a></td>
 		<td><p>The <code class="highlighter-rouge">Split</code> class provides an object that can store the set of taxa that represent descendants of a given <code class="highlighter-rouge">Node</code> object. We will provide a <code class="highlighter-rouge">Split</code> object for every <code class="highlighter-rouge">Node</code>.</p>
 </td>
 		</tr>
 	
 		<tr class="part" id="7-2">
 		<td>Step 7.2</td>
-		<td><a href="/people/plewis/cpp/win/steps/step-07/02-adding-splits-to-node-and-treemanip.html">Adding splits to Node and TreeManip</a></td>
+		<td><a href="/win/steps/step-07/02-adding-splits-to-node-and-treemanip.html">Adding splits to Node and TreeManip</a></td>
 		<td><p>Before we can do anything interesting with our <code class="highlighter-rouge">Split</code> class, we need to add a <code class="highlighter-rouge">Split</code> object to the <code class="highlighter-rouge">Node</code> class and a <code class="highlighter-rouge">storeSplits</code> member function to the <code class="highlighter-rouge">TreeManip</code> class.</p>
 </td>
 		</tr>
 	
 		<tr class="part" id="7-3">
 		<td>Step 7.3</td>
-		<td><a href="/people/plewis/cpp/win/steps/step-07/03-tree-summary.html">The TreeSummary class</a></td>
+		<td><a href="/win/steps/step-07/03-tree-summary.html">The TreeSummary class</a></td>
 		<td><p>The <code class="highlighter-rouge">TreeSummary</code> class will read a tree file, keep track of the number of distinct tree topologies found therein, and count the number of trees having each unique topology.</p>
 </td>
 		</tr>
 	
 		<tr class="part" id="7-4">
 		<td>Step 7.4</td>
-		<td><a href="/people/plewis/cpp/win/steps/step-07/04-test-tree-summary.html">Test the TreeSummary class</a></td>
+		<td><a href="/win/steps/step-07/04-test-tree-summary.html">Test the TreeSummary class</a></td>
 		<td><p>To test the <code class="highlighter-rouge">TreeSummary</code> class, we need for the <code class="highlighter-rouge">main</code> function to create a <code class="highlighter-rouge">TreeSummary</code> object and call its <code class="highlighter-rouge">readTreeFile</code> and <code class="highlighter-rouge">showSummary</code> functions. We also need a tree file to read, and need to link in the Nexus Class Library to do the work of parsing this tree file.</p>
 </td>
 		</tr>
@@ -92,7 +92,7 @@
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 7.0 | <a href="/people/plewis/cpp//win//steps/step-07/01-split-class.html">7.1&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//win//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 7.0 | <a href="//win//steps/step-07/01-split-class.html">7.1&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -101,7 +101,7 @@
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -109,8 +109,8 @@
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

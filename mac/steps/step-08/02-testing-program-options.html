@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Testing program options</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home">
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+            <a href="/mac/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -43,7 +43,7 @@
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="/people/plewis/cpp//mac//steps/step-08/01-the-strom-class.html">&lt; 8.1</a> | 8.2 | <a href="/people/plewis/cpp//mac//steps/step-09/00-reading-and-storing-data.html">9.0 &gt;</a>
+<a href="//mac//steps/step-08/01-the-strom-class.html">&lt; 8.1</a> | 8.2 | <a href="//mac//steps/step-09/00-reading-and-storing-data.html">9.0 &gt;</a>
 </h3>
 </div>
 
@@ -123,7 +123,7 @@ The following directory should be added to linker library paths:
 
 <h3 id="tell-xcode-about-program-options">Tell Xcode about program options</h3>
 
-<p>In the Xcode main menu, choose <em>View</em> &gt; <em>Navigators</em> &gt; <em>Show Project Navigator</em>, then click on the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20"> labeled <em>strom</em> at the top of the Project Navigator. Click on the <em>Build Phases</em> tab. Click the <code class="highlighter-rouge">+</code> sign in <em>Link Binary With Libraries</em> and (after clicking the <em>Add Other…</em> button) navigate to the directory <em>~/lib/static</em> and select the <em>libboost_program_options.a</em>, <em>libboost_filesystem.a</em>, and <em>libboost_system.a</em> files. This informs Xcode where to find the compiled library code for purposes of linking the library into your program’s executable file.</p>
+<p>In the Xcode main menu, choose <em>View</em> &gt; <em>Navigators</em> &gt; <em>Show Project Navigator</em>, then click on the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/assets/img/emoji/blueproject.png" height="20" width="20"> labeled <em>strom</em> at the top of the Project Navigator. Click on the <em>Build Phases</em> tab. Click the <code class="highlighter-rouge">+</code> sign in <em>Link Binary With Libraries</em> and (after clicking the <em>Add Other…</em> button) navigate to the directory <em>~/lib/static</em> and select the <em>libboost_program_options.a</em>, <em>libboost_filesystem.a</em>, and <em>libboost_system.a</em> files. This informs Xcode where to find the compiled library code for purposes of linking the library into your program’s executable file.</p>
 
 <p>You have already specified the <code class="highlighter-rouge">$(BOOST_ROOT)</code> custom path in the “Header Search Paths” section of Build Settings, and you’ve specified <em>~/lib/static</em> in the Library Search Paths section of Build Settings, so there is nothing more that needs to be done.</p>
 
@@ -132,7 +132,7 @@ The following directory should be added to linker library paths:
 <h3 id="specifying-command-line-arguments">Specifying command line arguments</h3>
 <p>To specify command line arguments when your program is run inside the debugger, follow these steps:</p>
 
-<p>At the top of the Xcode window, to the right of the <img class="emoji" title=":arrow_forward:" alt=":arrow_forward:" src="/people/plewis/cpp/assets/img/emoji/unicode/25b6.png" height="20" width="20"> (run program in debugger) and <img class="emoji" title=":stop_button:" alt=":stop_button:" src="/people/plewis/cpp/assets/img/emoji/unicode/23f9.png" height="20" width="20"> (stop program running in debugger) buttons, click on the button labeled “strom” (attached to the button labeled “My Mac”).</p>
+<p>At the top of the Xcode window, to the right of the <img class="emoji" title=":arrow_forward:" alt=":arrow_forward:" src="/assets/img/emoji/unicode/25b6.png" height="20" width="20"> (run program in debugger) and <img class="emoji" title=":stop_button:" alt=":stop_button:" src="/assets/img/emoji/unicode/23f9.png" height="20" width="20"> (stop program running in debugger) buttons, click on the button labeled “strom” (attached to the button labeled “My Mac”).</p>
 
 <p>Choose “Edit Scheme…” from the popup menu, then choose the “Arguments” tab and click the <code class="highlighter-rouge">+</code> button under “Arguments Passed On Launch”.</p>
 
@@ -187,7 +187,7 @@ treefile = test.tre
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="/people/plewis/cpp//mac//steps/step-08/01-the-strom-class.html">&lt; 8.1</a> | 8.2 | <a href="/people/plewis/cpp//mac//steps/step-09/00-reading-and-storing-data.html">9.0 &gt;</a>
+<a href="//mac//steps/step-08/01-the-strom-class.html">&lt; 8.1</a> | 8.2 | <a href="//mac//steps/step-09/00-reading-and-storing-data.html">9.0 &gt;</a>
 </h3>
 </div>
 
@@ -197,7 +197,7 @@ treefile = test.tre
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -205,8 +205,8 @@ treefile = test.tre
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

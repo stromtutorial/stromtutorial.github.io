@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Build a tree from a newick description</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+            <a href="/mac/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="/people/plewis/cpp//mac//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//mac//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="//mac//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>We not only need the ability to create descriptions of existing trees, we need to build trees from descriptions. In this section of the tutorial, we will ultimately create the function <code class="highlighter-rouge">buildFromNewick</code>, but first we need to create several helper functions that will be called from within <code class="highlighter-rouge">buildFromNewick</code>. For some of the functions, I depend on comments in the code itself to explain what is happening. So, if it feels that I’m not explaining things adequately, see if you can understand how the function works by reading the comments (lines starting with <code class="highlighter-rouge">//</code>) I’ve placed in the function body itself.</p>
@@ -197,7 +197,7 @@ namespace strom {
 
 <p>Regular expressions in C++ are complicated by the fact that backslash characters in regular expression patterns must be repeated so that the backslash is interpreted as a literal backslash character and not as an escape character. For example, when the 2-character sequence <code class="highlighter-rouge">\n</code> appears in a string, it is interpreted not as 2 characters, but as a single (invisible) new line character: the <code class="highlighter-rouge">\</code> serves to <em>escape</em> the following character (<code class="highlighter-rouge">n</code>), which is jargon for treating the <code class="highlighter-rouge">n</code> as a special code for new line rather than treating it literally as a lower case version of the character <code class="highlighter-rouge">N</code>. A backslash followed by a second backslash yields an escaped backslash, which is just a single backslash! Hence there are many double backslashes (<code class="highlighter-rouge">\\</code>) appearing in the string stored as <code class="highlighter-rouge">taxonexpr</code>.</p>
 
-<p>It is possible to simplify the regular expression string by telling C++ that you do not want the string to be escaped. To do this, you precede the string with <code class="highlighter-rouge">R"(</code> and end the string with <code class="highlighter-rouge">)"</code>. This approach will be illustrated the next time we encounter regular expressions, in <a href="/people/plewis/cpp/steps/step-09/01-create-the-partition-class.html">Create the Partition class</a>. There are relatively few backslashes in this regular expression, and wrapping the regular expressions in <code class="highlighter-rouge">R"(...)"</code> adds its own complexities, so we will just use the double-slash approach for the present.</p>
+<p>It is possible to simplify the regular expression string by telling C++ that you do not want the string to be escaped. To do this, you precede the string with <code class="highlighter-rouge">R"(</code> and end the string with <code class="highlighter-rouge">)"</code>. This approach will be illustrated the next time we encounter regular expressions, in <a href="/steps/step-09/01-create-the-partition-class.html">Create the Partition class</a>. There are relatively few backslashes in this regular expression, and wrapping the regular expressions in <code class="highlighter-rouge">R"(...)"</code> adds its own complexities, so we will just use the double-slash approach for the present.</p>
 
 <p>Below is a blow-by-blow account of the regex pattern string <code class="highlighter-rouge">taxonexpr</code>. You may wish to consult the 
 <a href="https://docs.python.org/3/library/re.html#module-re">Python documentation of regular expression patterns</a> while reading through this explanation.</p>
@@ -455,9 +455,9 @@ namespace strom {
 
 <p>The way this function works is to move the target node (the one having <code class="highlighter-rouge">_number</code> equal to <code class="highlighter-rouge">node_number</code>) down the tree one step at a time until it is at the root position. At each step, the nodes below it are moved up to maintain the branching structure of the tree.</p>
 
-<p>The figure below illustrates the process. (You may wish to print out the <a href="/people/plewis/cpp/assets/img/reroot.pdf">PDF version of this figure</a> for reference.)</p>
+<p>The figure below illustrates the process. (You may wish to print out the <a href="/assets/img/reroot.pdf">PDF version of this figure</a> for reference.)</p>
 
-<p><img src="/people/plewis/cpp/assets/img/reroot.png" alt="Diagram illustrating the rerootAtNode function" class="center-image" /></p>
+<p><img src="/assets/img/reroot.png" alt="Diagram illustrating the rerootAtNode function" class="center-image" /></p>
 
 <p>In the figure, the center (second full) column shows the connections between nodes (and edge lengths) after completing the section beginning with the comment “Prune node a from b”. The third full column in the figure shows the connection between nodes after completing the section beginning with the comment “Graft node b onto node a (but don’t unhook node b from its parent just yet)”. The circles in the first full column hold the value currently stored in <code class="highlighter-rouge">prev_edgelen</code>. Finally, while advancing from one row of the figure to the next, we carry out the node reassignments in the section labeled with the comment “Rotate”.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::rerootAtNode(Node * prospective_root) {  
@@ -817,7 +817,7 @@ LParen_Valid    = 00000000000000000000000000001001
 <p>After the main loop has finished (because a terminating right parenthesis was encountered), unrooted trees are rooted arbitrarily at the leaf node whose number is 0. The functions <code class="highlighter-rouge">refreshPreorder</code> and <code class="highlighter-rouge">refreshLevelorder</code> are called to ensure that the tree can be navigated correctly using the <code class="highlighter-rouge">_preorder</code> and <code class="highlighter-rouge">_levelorder</code> vectors, respectively.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//mac//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="/people/plewis/cpp//mac//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//mac//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="//mac//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -826,7 +826,7 @@ LParen_Valid    = 00000000000000000000000000001001
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -834,8 +834,8 @@ LParen_Valid    = 00000000000000000000000000001001
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

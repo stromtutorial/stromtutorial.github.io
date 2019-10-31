@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Test building trees</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/win/steps/">Step-by-step instructions</a>
+            <a href="/win/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-06/02-xstrom-exception-class.html">&lt;&nbsp;6.2</a> | 6.3 | <a href="/people/plewis/cpp//win//steps/step-07/00-summarizing-trees.html">7.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//win//steps/step-06/02-xstrom-exception-class.html">&lt;&nbsp;6.2</a> | 6.3 | <a href="//win//steps/step-07/00-summarizing-trees.html">7.0&nbsp;&gt;</a></h3>
 </div>
 
 <p>To test both the <code class="highlighter-rouge">buildFromNewick</code> and the <code class="highlighter-rouge">makeNewick</code> function, change <em>main.cpp</em> to look like this:</p>
@@ -128,7 +128,7 @@ Destroying Node object
 
 <p>The fact that <code class="highlighter-rouge">assert</code> statements do not end up in the optimized (non-debug) version of your program means that you should use exceptions rather than asserts for assumptions you are making about the behavior of <em>users</em> of your program. Asserts help protect your program from yourself; exceptions help protect your program from your users.</p>
 
-<p>If your program trips the <code class="highlighter-rouge">assert(!nd-&gt;_left_child);</code> inside the <code class="highlighter-rouge">TreeManip::buildFromNewick</code> function, then almost certainly what has happened is that you’ve not removed all traces of <code class="highlighter-rouge">Tree::createTestTree()</code>, which you were instructed to do in the very last (“Before moving on…”) section of the page <a href="/people/plewis/cpp/steps/step-04/01-create-treemanip-class.html">Create the TreeManip class</a>. The problem is that your <code class="highlighter-rouge">Tree</code> constructor is building a default tree every time it is called, so you are never starting from a clean slate with respect to the tree that you are building. Thus, you must remove the call to <code class="highlighter-rouge">createTestTree()</code> in the <code class="highlighter-rouge">Tree::Tree</code> constructor and reinstate the <code class="highlighter-rouge">clear()</code> function there.</p>
+<p>If your program trips the <code class="highlighter-rouge">assert(!nd-&gt;_left_child);</code> inside the <code class="highlighter-rouge">TreeManip::buildFromNewick</code> function, then almost certainly what has happened is that you’ve not removed all traces of <code class="highlighter-rouge">Tree::createTestTree()</code>, which you were instructed to do in the very last (“Before moving on…”) section of the page <a href="/steps/step-04/01-create-treemanip-class.html">Create the TreeManip class</a>. The problem is that your <code class="highlighter-rouge">Tree</code> constructor is building a default tree every time it is called, so you are never starting from a clean slate with respect to the tree that you are building. Thus, you must remove the call to <code class="highlighter-rouge">createTestTree()</code> in the <code class="highlighter-rouge">Tree::Tree</code> constructor and reinstate the <code class="highlighter-rouge">clear()</code> function there.</p>
 
 <h2 id="handling-exceptions">Handling exceptions</h2>
 
@@ -142,7 +142,7 @@ Destroying Node object
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//win//steps/step-06/02-xstrom-exception-class.html">&lt;&nbsp;6.2</a> | 6.3 | <a href="/people/plewis/cpp//win//steps/step-07/00-summarizing-trees.html">7.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//win//steps/step-06/02-xstrom-exception-class.html">&lt;&nbsp;6.2</a> | 6.3 | <a href="//win//steps/step-07/00-summarizing-trees.html">7.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -151,7 +151,7 @@ Destroying Node object
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/win/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/win/license/">License</a> | <a href="/people/plewis/cpp/win/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -159,8 +159,8 @@ Destroying Node object
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

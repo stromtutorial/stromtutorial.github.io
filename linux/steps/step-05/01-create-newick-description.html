@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Create a Newick tree description</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+            <a href="/linux/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="/people/plewis/cpp//linux//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//linux//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="//linux//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>Our next goal is to create a newick string for the tree currently stored in a <code class="highlighter-rouge">TreeManip</code> object. Add the <code class="highlighter-rouge">makeNewick</code> function declaration in the public area of the <code class="highlighter-rouge">TreeManip</code> class declaration, and add the <code class="highlighter-rouge">makeNewick</code> function body just above the terminating curly bracket of the namespace (i.e. just before the end of the file):</p>
@@ -142,7 +142,7 @@ namespace strom {
 <p>In the code shown above, you may have noticed that I’ve also indicated in blue, bold text two new headers that have been included near the top of the file. The <code class="highlighter-rouge">&lt;stack&gt;</code> header allows us to use the standard <code class="highlighter-rouge">stack</code>  and the <code class="highlighter-rouge">&lt;boost/format.hpp&gt;</code> header allows us to use the Boost <code class="highlighter-rouge">format</code> function , which simplifies producing formatted strings.</p>
 
 <h2 id="explanation-of-the-makenewick-function">Explanation of the <code class="highlighter-rouge">makeNewick</code> function</h2>
-<p><img src="/people/plewis/cpp/assets/img/newick-rooted.png" alt="Four-taxon rooted tree showing corresponding newick string" class="right-image" />
+<p><img src="/assets/img/newick-rooted.png" alt="Four-taxon rooted tree showing corresponding newick string" class="right-image" />
 The goal of this function is to turn a tree in memory into a newick
  string representation using nested parentheses to indicate clades and subclades. Each left parenthesis encountered in the newick description signifies the start of a new clade (we are moving to the left child of the current node), each comma means we’re moving laterally to a sibling node, and a right parenthesis means we have reached the upper right node in a clade and are dropping back down to the parent of that node. The figure at right shows a newick description for 4-taxon rooted tree. The numbers at the nodes are the index of the node in the <code class="highlighter-rouge">_preorder</code> vector. Note that the root node is not included in <code class="highlighter-rouge">_preorder</code>, so there is no number shown in the figure for the root node.</p>
 
@@ -179,7 +179,7 @@ The goal of this function is to turn a tree in memory into a newick
 <p>Finally, note that we add a comma to the newick string if the last internal node popped off the stack has a right sibling. The comma always indicates a sibling relationship for a node whether the node is a tip node or an internal node.</p>
 
 <h2 id="the-special-case-of-the-root-node-in-unrooted-trees">The special case of the root node in unrooted trees</h2>
-<p><img src="/people/plewis/cpp/assets/img/newick-unrooted.png" alt="five-taxon unrooted tree showing corresponding newick string" class="right-image" /></p>
+<p><img src="/assets/img/newick-unrooted.png" alt="five-taxon unrooted tree showing corresponding newick string" class="right-image" /></p>
 
 <p>The figure of a 5-taxon unrooted tree on the right is subtly different from the figure above of a 4-taxon rooted tree. The root node in this case represents a tip (A), and this particular tip along with its edge length (which is really the <code class="highlighter-rouge">_edge_length</code> belonging to its only child (the node labeled 0 in the figure) is saved to the newick string as if it were the leftmost child of the first node in the <code class="highlighter-rouge">_preorder</code> vector. The part of the <code class="highlighter-rouge">makeNewick</code> function that accomplishes this is contained in the <code class="highlighter-rouge">if (root_tip) {...}</code> block of code. The variable <code class="highlighter-rouge">root_tip</code> is 0 if the tree is rooted, but points to the root node if the tree is unrooted, so the code inside the <code class="highlighter-rouge">if (root_node) {...}</code> conditional is only executed if <code class="highlighter-rouge">root_tip</code> actually points to the root node. This code adds the number of the root node and a comma immediately after the opening left parenthesis. It also sets root_tip to 0 so that this block of code is not executed again.</p>
 
@@ -190,7 +190,7 @@ The goal of this function is to turn a tree in memory into a newick
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="/people/plewis/cpp//linux//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//linux//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="//linux//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -199,7 +199,7 @@ The goal of this function is to turn a tree in memory into a newick
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -207,8 +207,8 @@ The goal of this function is to turn a tree in memory into a newick
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

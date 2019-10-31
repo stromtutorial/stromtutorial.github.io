@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Testing the Chain Class</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+            <a href="/linux/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,13 +42,13 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="/people/plewis/cpp//linux//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//linux//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="//linux//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
 </div>
 
 
 <p>Now all that is needed is to make some small changes to the <code class="highlighter-rouge">Node</code>, <code class="highlighter-rouge">Tree</code>, and <code class="highlighter-rouge">TreeManip</code> classes, and update the <code class="highlighter-rouge">Strom::run</code> function to set up <code class="highlighter-rouge">Chain</code> and run it. For this exercise we will use another variation on the rbcL data set used before.</p>
 
-<p>Download <a href="/people/plewis/cpp/assets/data/rbcl10.nex">rbcl10.nex</a> and <a href="/people/plewis/cpp/assets/data/rbcl10.tre">rbcl10.tre</a> to your working directory with the other downloaded data and tree files.</p>
+<p>Download <a href="/assets/data/rbcl10.nex">rbcl10.nex</a> and <a href="/assets/data/rbcl10.tre">rbcl10.tre</a> to your working directory with the other downloaded data and tree files.</p>
 
 <p>Here are maximum likelihood estimates (using PAUP* Version 4.0a, build 159) of the GTR+G model parameters using the data stored in <em>rbcl10.nex</em> and the tree topology stored in <em>rbcl10.tre</em>. You can refer back to this table once your program begins estimating these parameters to see how the values compare. Remember, however, that your program is Bayesian and thus prior distributions will affect estimates, and the maximized log-likelihood computed by PAUP* will (almost surely) be higher than any log-likelihood you will see in your output. I have modified the output produced by PAUP* 
 below by adding a second column (values in parentheses) in which I provide:</p>
@@ -923,7 +923,7 @@ install_data('datatest.nex', install_dir: '.')
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="/people/plewis/cpp//linux//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//linux//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="//linux//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -932,7 +932,7 @@ install_data('datatest.nex', install_dir: '.')
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -940,8 +940,8 @@ install_data('datatest.nex', install_dir: '.')
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

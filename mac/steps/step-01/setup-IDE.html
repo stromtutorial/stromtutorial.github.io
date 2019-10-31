@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: Setting Up A Build System</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home">
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/mac/steps/">Step-by-step instructions</a>
+            <a href="/mac/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -43,7 +43,7 @@
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="/people/plewis/cpp/mac/steps/">Table of Contents</a> | 1.0 | <a href="/people/plewis/cpp//mac//steps/step-02/00-node-and-tree-classes.html">2.0 &gt;</a>
+<a href="/mac/steps/">Table of Contents</a> | 1.0 | <a href="//mac//steps/step-02/00-node-and-tree-classes.html">2.0 &gt;</a>
 </h3>
 </div>
 
@@ -112,17 +112,17 @@
 
 <p>We will use the <a href="https://en.wikipedia.org/wiki/C%2B%2B11">C++11</a> standard for this tutorial. As of this writing, C++17 is the latest C++ <em>dialect</em>. You are welcome to use the C++17 dialect, but because this tutorial does not use any C++ features that are not in the C++11 standard, I will show how to set up Xcode and external libraries to use C++11 so that third-party libraries will link correctly to the tutorial. If you decide to go with C++17, be sure to use C++17 when compiling every library or you will have difficult-to-diagnose errors at the link step.</p>
 
-<p>In the Xcode Project Navigator pane on the left, you should now see your strom project (beside a blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20">), and inside that you should see a strom folder (beside a yellow folder icon <img class="emoji" title=":yellowfolder:" alt=":yellowfolder:" src="/people/plewis/cpp/assets/img/emoji/yellowfolder.png" height="20" width="20">), and inside that you should see a file named <em>main.cpp</em>. (If you do not see anything like this, it may be because your Project Navigator pane is not visible. You can always get it back using <em>View &gt; Navigators &gt; Show Project Navigator</em> from the main menu.)</p>
+<p>In the Xcode Project Navigator pane on the left, you should now see your strom project (beside a blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/assets/img/emoji/blueproject.png" height="20" width="20">), and inside that you should see a strom folder (beside a yellow folder icon <img class="emoji" title=":yellowfolder:" alt=":yellowfolder:" src="/assets/img/emoji/yellowfolder.png" height="20" width="20">), and inside that you should see a file named <em>main.cpp</em>. (If you do not see anything like this, it may be because your Project Navigator pane is not visible. You can always get it back using <em>View &gt; Navigators &gt; Show Project Navigator</em> from the main menu.)</p>
 
-<p>Click once on the <em>strom</em> project (with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20">) in the Project Navigator, then select the <em>strom</em> TARGET within the project settings shown in the central pane. You should now see <em>General</em>, <em>Resource Tags</em>, <em>Build Settings</em>, <em>Build Phases</em>, and <em>Build Rules</em> across the top of the central pane.</p>
+<p>Click once on the <em>strom</em> project (with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/assets/img/emoji/blueproject.png" height="20" width="20">) in the Project Navigator, then select the <em>strom</em> TARGET within the project settings shown in the central pane. You should now see <em>General</em>, <em>Resource Tags</em>, <em>Build Settings</em>, <em>Build Phases</em>, and <em>Build Rules</em> across the top of the central pane.</p>
 
 <p>Click on <em>Build Settings</em>, <em>All</em> (not <em>Basic</em> or <em>Customized</em>), <em>Levels</em> (not <em>Combined</em>), and then type “C++ Language Dialect” into the <em>Search</em> box to filter out all build settings except the one we are interested in at the moment.</p>
 
-<p>In the “C++ Language Dialect” row, double-click on the column with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/people/plewis/cpp/assets/img/emoji/blueproject.png" height="20" width="20"> (this is the column for the project settings, the other column labeled strom contains target-specific settings). This should allow you to choose <code class="highlighter-rouge">C++11 [-std=c++11]</code> as your C++ dialect.</p>
+<p>In the “C++ Language Dialect” row, double-click on the column with the blue project icon <img class="emoji" title=":blueproject:" alt=":blueproject:" src="/assets/img/emoji/blueproject.png" height="20" width="20"> (this is the column for the project settings, the other column labeled strom contains target-specific settings). This should allow you to choose <code class="highlighter-rouge">C++11 [-std=c++11]</code> as your C++ dialect.</p>
 
 <h2 id="running-the-default-hello-world-version-of-the-program">Running the default “Hello, World!” version of the program</h2>
 
-<p>Press the run button (<img class="emoji" title=":arrow_forward:" alt=":arrow_forward:" src="/people/plewis/cpp/assets/img/emoji/unicode/25b6.png" height="20" width="20">) in the tool bar and your minimal “Hello, World!” program should compile and run successfully.</p>
+<p>Press the run button (<img class="emoji" title=":arrow_forward:" alt=":arrow_forward:" src="/assets/img/emoji/unicode/25b6.png" height="20" width="20">) in the tool bar and your minimal “Hello, World!” program should compile and run successfully.</p>
 
 <h2 id="setting-up-xcode-to-save-an-optimized-executable">Setting up Xcode to save an optimized executable</h2>
 
@@ -142,7 +142,7 @@ cp "$ARCHIVE_PRODUCTS_PATH/usr/local/bin/strom" /Users/plewis/bin
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="/people/plewis/cpp/mac/steps/">Table of Contents</a> | 1.0 | <a href="/people/plewis/cpp//mac//steps/step-02/00-node-and-tree-classes.html">2.0 &gt;</a>
+<a href="/mac/steps/">Table of Contents</a> | 1.0 | <a href="//mac//steps/step-02/00-node-and-tree-classes.html">2.0 &gt;</a>
 </h3>
 </div>
 
@@ -152,7 +152,7 @@ cp "$ARCHIVE_PRODUCTS_PATH/usr/local/bin/strom" /Users/plewis/bin
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/mac/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/mac/license/">License</a> | <a href="/people/plewis/cpp/mac/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -160,8 +160,8 @@ cp "$ARCHIVE_PRODUCTS_PATH/usr/local/bin/strom" /Users/plewis/bin
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>

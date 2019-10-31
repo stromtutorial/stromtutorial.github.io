@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" type="image/png" href="/people/plewis/cpp/assets/img/favicon.png" >
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="search-domain" value="/people/plewis/cpp/">
-    <link rel="stylesheet" type="text/css" href="/people/plewis/cpp/assets/css/main.css" />
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <title>Strom Phylogenetics C++ Tutorial: The Large Tree Problem</title>
   </head>
   <body>
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
-      <a class="navbar-brand" href="/people/plewis/cpp/index.html">
-        <img class="navbar-logo" src="/people/plewis/cpp/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -22,11 +22,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
           <li class="nav-item"> 
-            <a href="/people/plewis/cpp/">Home</a>
+            <a href="/">Home</a>
           </li>
           
           <li class="nav-item">
-            <a href="/people/plewis/cpp/linux/steps/">Step-by-step instructions</a>
+            <a href="/linux/steps/">Step-by-step instructions</a>
           </li>
           
           
@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-11/00-adding-the-model-class.html">&lt;&nbsp;11.0</a> | 12.0 | <a href="/people/plewis/cpp//linux//steps/step-12/01-large-tree-likelihood-fail.html">12.1&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//linux//steps/step-11/00-adding-the-model-class.html">&lt;&nbsp;11.0</a> | 12.0 | <a href="//linux//steps/step-12/01-large-tree-likelihood-fail.html">12.1&nbsp;&gt;</a></h3>
 </div>
 
 <p>Here we explore the problem of underflow when computing likelihoods of large trees, and how to deal with this in BeagleLib.</p>
@@ -53,11 +53,11 @@
 
 <p>A simple 4-taxon, 1-site example serves to illustrate the process, even though rescaling would never be necessary for a tree so small. Assuming the JC69 model and all edge lengths equal to 0.383119218 results in all transition probabilities equal to either 0.7 (if the state at the beginning and end of an edge are identical) or 0.1 (if the states are different), which makes hand calculation much easier. Further assume that at the site in focus, each of the four taxa has state A. The partials and final site likelihood calculation for this case without rescaling are shown below.</p>
 
-<p><img src="/people/plewis/cpp/assets/img/site-likelihood.png" alt="Site likelihoods without scaling" class="center-math-image" /></p>
+<p><img src="/assets/img/site-likelihood.png" alt="Site likelihoods without scaling" class="center-math-image" /></p>
 
 <p>Now consider factoring out a scaler at both node 4 and node 5.</p>
 
-<p><img src="/people/plewis/cpp/assets/img/site-likelihood-rescaled.png" alt="Site likelihoods with scaling" class="center-math-image" /></p>
+<p><img src="/assets/img/site-likelihood-rescaled.png" alt="Site likelihoods with scaling" class="center-math-image" /></p>
 
 <p>As you can see, the site likelihood is the same, however using scalers we avoid underflow. Above, the site likelihood is shown as a product of 3 numbers: 2 scaling factors and the rescaled site likelihood. Taking the log of this product to obtain the log site likelihood would undo all the work that went into rescaling. In practice, BeagleLib adds the log of each scaling factor to a cumulative sum as soon as they are calculated, and once the rescaled site likelihood is computed (0.1768 in the example above), its log is added to the cumulative sum of log scaling factors to obtain the log site likelihood. Performing the final multiplication on the log scale is what allows us to avoid underflow.</p>
 
@@ -71,14 +71,14 @@
 
 		<tr class="part" id="12-1">
 		<td>Step 12.1</td>
-		<td><a href="/people/plewis/cpp/linux/steps/step-12/01-large-tree-likelihood-fail.html">Large Tree Likelihood Fail</a></td>
+		<td><a href="/linux/steps/step-12/01-large-tree-likelihood-fail.html">Large Tree Likelihood Fail</a></td>
 		<td><p>An illustration of underflow in calculation the likelihood of a large tree.</p>
 </td>
 		</tr>
 	
 		<tr class="part" id="12-2">
 		<td>Step 12.2</td>
-		<td><a href="/people/plewis/cpp/linux/steps/step-12/02-rescaling-in-beaglelib.html">Rescaling in BeagleLib</a></td>
+		<td><a href="/linux/steps/step-12/02-rescaling-in-beaglelib.html">Rescaling in BeagleLib</a></td>
 		<td><p>Set up rescaling in BeagleLib to deal with underflow.</p>
 </td>
 		</tr>
@@ -88,7 +88,7 @@
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/people/plewis/cpp//linux//steps/step-11/00-adding-the-model-class.html">&lt;&nbsp;11.0</a> | 12.0 | <a href="/people/plewis/cpp//linux//steps/step-12/01-large-tree-likelihood-fail.html">12.1&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="//linux//steps/step-11/00-adding-the-model-class.html">&lt;&nbsp;11.0</a> | 12.0 | <a href="//linux//steps/step-12/01-large-tree-likelihood-fail.html">12.1&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -97,7 +97,7 @@
   <div class="container">
   <div class="row">
     <div class="col-sm-12" align="center">
-      <a href="https://github.com/stromtutorial">GitHub</a> | <a href="/people/plewis/cpp/linux/acknowledgements/">Acknowledgements</a> | <a href="/people/plewis/cpp/linux/license/">License</a> | <a href="/people/plewis/cpp/linux/citation/">Citation</a>
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
     </div>
   </div>
   <br>
@@ -105,8 +105,8 @@
 </footer>
 
     </div>
-    <script src="/people/plewis/cpp/assets/js/jquery.min.js"></script>
-    <script src="/people/plewis/cpp/assets/js/highlight.js"></script>
-    <script src="/people/plewis/cpp/assets/js/bootstrap.bundle.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
   </body>
 </html>
