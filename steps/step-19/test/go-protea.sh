@@ -19,6 +19,10 @@ cp ../../../assets/data/protea9gene.nex .
 cp ../../../assets/data/protea9gene.tre .
 
 echo
+echo "Copying strom-protea.conf to strom.conf..."
+cp strom-protea.conf strom.conf
+
+echo
 echo "Running $STROM..."
 $STROM &>output.txt
 

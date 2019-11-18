@@ -11,7 +11,7 @@
 #include "model.hpp"
 #include "xstrom.hpp"
 
-#include "debug_stuff.hpp"  //POLTMP
+//#include "debug_stuff.hpp"  //POLTMP
 
 namespace strom {
 
@@ -394,8 +394,8 @@ namespace strom {
         info.tmatrix_offset = num_edges;
         _instances.push_back(info);
         
-        DebugStuff::_partial_offset = num_internals;    //POLTMP
-        DebugStuff::_tmatrix_offset = num_edges;        //POLTMP
+        //DebugStuff::_partial_offset = num_internals;    //POLTMP
+        //DebugStuff::_tmatrix_offset = num_edges;        //POLTMP
     }
 
     inline void Likelihood::setTipStates() {

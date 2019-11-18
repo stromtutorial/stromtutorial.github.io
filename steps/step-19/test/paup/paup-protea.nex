@@ -1,7 +1,7 @@
 #nexus
 
 begin paup;
-  log start replace file=pauplog.txt;
+  log start replace file=pauplog-protea.txt;
   exe ../protea9gene.nex;
   outgroup cynaroides scolopendr pruinosa cryophila;
   gettrees file=../protea9gene.tre;

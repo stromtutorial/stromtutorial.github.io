@@ -1,0 +1,35 @@
+#nexus
+
+begin taxa;
+  dimensions ntax=10;
+  taxlabels
+    Chlamydomonas_moewusii_M15842.1
+    Mnium_hornum_AF226820.1
+    Lycopodium_digitatum_L11055.1
+    Adiantum_capillus_veneris_AY178864.1
+    Gnetum_gnemon_L12680.2
+    Pinus_radiata_AY497250.1_Monterrey_Pine
+    Zea_mays_Z11973.1_Corn
+    Coffea_arabica_X83631.1_Coffee
+    Theobroma_cacao_AF022125.1_Chocolate
+    Acer_saccharum_L01881.2_Sugar_Maple
+    ;
+end;
+
+begin trees;
+  translate
+    1 Chlamydomonas_moewusii_M15842.1,
+    2 Mnium_hornum_AF226820.1,
+    3 Lycopodium_digitatum_L11055.1,
+    4 Adiantum_capillus_veneris_AY178864.1,
+    5 Gnetum_gnemon_L12680.2,
+    6 Pinus_radiata_AY497250.1_Monterrey_Pine,
+    7 Zea_mays_Z11973.1_Corn,
+    8 Coffea_arabica_X83631.1_Coffee,
+    9 Theobroma_cacao_AF022125.1_Chocolate,
+    10 Acer_saccharum_L01881.2_Sugar_Maple
+  ;
+
+  tree iter_0 = (1:0.59504,((2:0.14646,3:0.09980):0.02225,(5:0.13300,6:0.04835,(7:0.12608,(8:0.06339,9:0.02694,10:0.05015):0.06104):0.07705):0.04073):0.05407,4:0.20580);
+  tree iter_1 = (1:0.59504,((2:0.14646,3:0.09980):0.02225,(5:0.13300,6:0.04835,(7:0.12608,(8:0.06339,9:0.02694,10:0.05015):0.06104):0.07705):0.04073):0.05407,4:0.20580);
+end;

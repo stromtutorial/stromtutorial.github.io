@@ -6,7 +6,7 @@
 #include "xstrom.hpp"
 #include "likelihood.hpp"
 
-#include "debug_stuff.hpp"  //POLTMP
+//#include "debug_stuff.hpp"  //POLTMP
 
 namespace strom {
     class Chain;
@@ -212,9 +212,8 @@ namespace strom {
         // This allows us to easily revert to the previous values if the move is rejected
         _tree_manipulator->flipPartialsAndTMatrices();
 
-        DebugStuff::_tree_index++;
-        DebugStuff::debugSaveTree(boost::str(boost::format("iter-%d") % DebugStuff::_which_iter),
-            DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //POLTMP
+        //DebugStuff::_tree_index++;
+        //DebugStuff::debugSaveTree(boost::str(boost::format("iter-%d") % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //POLTMP
 
         // Calculate the log-likelihood and log-prior for the proposed state
         double log_likelihood = calcLogLikelihood();
@@ -241,9 +240,8 @@ namespace strom {
             _tree_manipulator->flipPartialsAndTMatrices();
             log_likelihood = prev_lnL;
 
-            DebugStuff::_tree_index++;
-            DebugStuff::debugSaveTree(boost::str(boost::format("revert-%d") % DebugStuff::_which_iter),
-                DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //POLTMP
+            //DebugStuff::_tree_index++;
+            //DebugStuff::debugSaveTree(boost::str(boost::format("revert-%d") % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //POLTMP
         }
 
         tune(accept);
