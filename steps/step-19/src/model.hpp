@@ -55,6 +55,7 @@ namespace strom {
             void                        setTreeIndex(unsigned i, bool fixed);
             unsigned                    getTreeIndex() const;
             bool                        isFixedTree() const;
+            bool                        isAllowPolytomies() const;
 
             unsigned                    getNumSubsets() const;
             unsigned                    getNumSites() const;
@@ -102,6 +103,7 @@ namespace strom {
         
             bool                        _tree_index;
             bool                        _tree_fixed;
+            bool                        _allow_polytomies;
 
             bool                        _subset_relrates_fixed;
             subset_relrate_vect_t       _subset_relrates;
@@ -129,6 +131,7 @@ namespace strom {
         _num_sites = 0;
         _tree_index = 0;
         _tree_fixed = false;
+        _allow_polytomies = true;
         _subset_relrates_fixed = false;
         _subset_relrates.clear();
         _subset_sizes.clear();
@@ -740,6 +743,10 @@ namespace strom {
     
     inline bool Model::isFixedTree() const {
         return _tree_fixed;
+    }
+
+    inline bool Model::isAllowPolytomies() const {
+        return _allow_polytomies;
     }
 
 }

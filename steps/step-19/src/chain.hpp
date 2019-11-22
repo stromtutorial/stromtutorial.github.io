@@ -16,6 +16,7 @@
 #include "exchangeability_updater.hpp"
 #include "subset_relrate_updater.hpp"
 #include "tree_updater.hpp"
+#include "polytomy_updater.hpp"
 #include "tree_length_updater.hpp"
 
 namespace strom {
@@ -111,7 +112,7 @@ namespace strom {
         assert(_updaters.size() > 0);
         if (!_tree_manipulator)
             _tree_manipulator.reset(new TreeManip);
-        _tree_manipulator->buildFromNewick(newick, false, true);   //POLTMP
+        _tree_manipulator->buildFromNewick(newick, false, true);   //POLTMP: second bool (allow_polytomies) set to true
         for (auto u : _updaters)
             u->setTreeManip(_tree_manipulator);
     } ///end_setTreeFromNewick
@@ -124,7 +125,13 @@ namespace strom {
         double wstd             = 1.0;
         double wtreelength      = 1.0;
         double wtreetopology    = 19.0;
+        double wpolytomy        = 0.0;
         double sum_weights      = 0.0;
+        
+        if (_model->isAllowPolytomies()) {
+            wtreetopology = 10.0;
+            wpolytomy     =  9.0;
+        }
         
         // Add state frequency parameter updaters to _updaters  ///!begin_StateFreqUpdater
         Model::state_freq_params_t & statefreq_shptr_vect = _model->getStateFreqParams();
@@ -208,7 +215,7 @@ namespace strom {
             double tree_length_shape = 1.0;
             double tree_length_scale = 10.0;
             double dirichlet_param   = 1.0;
-            
+                        
             Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater());
             u->setLikelihood(likelihood);
             u->setLot(lot);
@@ -217,6 +224,17 @@ namespace strom {
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
             u->setWeight(wtreetopology); sum_weights += wtreetopology;
             _updaters.push_back(u);
+
+            if (_model->isAllowPolytomies()) {
+                Updater::SharedPtr u = PolytomyUpdater::SharedPtr(new PolytomyUpdater());
+                u->setLikelihood(likelihood);
+                u->setLot(lot);
+                u->setLambda(0.05);
+                u->setTargetAcceptanceRate(0.3);
+                u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+                u->setWeight(wpolytomy); sum_weights += wpolytomy;
+                _updaters.push_back(u);
+            }
 
             u = TreeLengthUpdater::SharedPtr(new TreeLengthUpdater());
             u->setLikelihood(likelihood);
@@ -324,7 +342,7 @@ namespace strom {
     inline void Chain::start() { ///begin_start
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-        //DebugStuff::debugSaveTree("start", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //POLTMP
+        DebugStuff::debugSaveTree("start", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
@@ -334,7 +352,7 @@ namespace strom {
     } ///end_stop
 
     inline void Chain::nextStep(int iteration) { ///begin_nextStep
-        //DebugStuff::_which_iter = iteration;    //POLTMP
+        DebugStuff::_which_iter = iteration;    //DEBUGSTUFF
         
         assert(_lot);
         double u = _lot->uniform();

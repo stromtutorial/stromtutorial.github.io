@@ -11,7 +11,7 @@
 #include "model.hpp"
 #include "xstrom.hpp"
 
-//#include "debug_stuff.hpp"  //POLTMP
+#include "debug_stuff.hpp"  //DEBUGSTUFF
 
 namespace strom {
 
@@ -394,8 +394,8 @@ namespace strom {
         info.tmatrix_offset = num_edges;
         _instances.push_back(info);
         
-        //DebugStuff::_partial_offset = num_internals;    //POLTMP
-        //DebugStuff::_tmatrix_offset = num_edges;        //POLTMP
+        DebugStuff::_partial_offset = num_internals;    //DEBUGSTUFF
+        DebugStuff::_tmatrix_offset = num_edges;        //DEBUGSTUFF
     }
 
     inline void Likelihood::setTipStates() {
@@ -766,7 +766,8 @@ namespace strom {
                                 Node * b = a->_right_sib;
                                 Node * c = 0;
                                 for (unsigned k = 0; k < nchildren - 2; k++) {
-                                    c = t->getUnusedNode();
+                                    unsigned node_index = t->getUnusedNode();
+                                    c = t->getNodeWithIndex(node_index);
                                     c->_left_child = a;
                                     _polytomy_stack.push(c->_number);
 

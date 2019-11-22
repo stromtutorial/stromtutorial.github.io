@@ -12,7 +12,7 @@ namespace strom {
     class Likelihood;
     class Updater;
     
-    class DebugStuff;   //POLTMP
+    class DebugStuff;   //DEBUGSTUFF
 
     class Node {
         friend class Tree;
@@ -20,7 +20,7 @@ namespace strom {
         friend class Likelihood;
         friend class Updater;
         
-        friend class DebugStuff;   //POLTMP
+        friend class DebugStuff;   //DEBUGSTUFF
 
         public:
                                         Node();
@@ -61,6 +61,8 @@ namespace strom {
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
         
+            void                clearPointers();
+
         private:
         
             enum Flag {
@@ -92,11 +94,15 @@ namespace strom {
         //std::cout << "Destroying Node object" << std::endl;
     }
 
-    inline void Node::clear() {
-        _flags = 0;
+    inline void Node::clearPointers() {
         _left_child = 0;
         _right_sib = 0;
         _parent = 0;
+    }
+
+    inline void Node::clear() {
+        clearPointers();
+        _flags = 0;
         _number = -1;
         _name = "";
         _edge_length = _smallest_edge_length;

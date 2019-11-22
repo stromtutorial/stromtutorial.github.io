@@ -10,16 +10,18 @@ namespace strom {
     class TreeManip;
     class Likelihood;
     class Updater;
+    class PolytomyUpdater;
 
-    class DebugStuff;   //POLTMP
+    class DebugStuff;   //DEBUGSTUFF
 
     class Tree {
 
             friend class TreeManip;
             friend class Likelihood;
             friend class Updater;
+            friend class PolytomyUpdater;
 
-            friend class DebugStuff;   //POLTMP
+            friend class DebugStuff;   //DEBUGSTUFF
         
         public:
 
@@ -31,8 +33,10 @@ namespace strom {
             unsigned                    numInternals() const;
             unsigned                    numNodes() const;
         
-            Node *                      getUnusedNode();
-            void                        putUnusedNode(unsigned num);
+            Node *                      getNodeWithIndex(unsigned i);
+            unsigned                    getUnusedNode();
+            void                        putUnusedNodeIndex(unsigned num);
+            void                        putUnusedNodePtr(Node * nd);
 
         private:
 
@@ -85,14 +89,32 @@ namespace strom {
         return (unsigned)_nodes.size();
     }
     
-    inline Node * Tree::getUnusedNode() {
+    inline unsigned Tree::getUnusedNode() {
         unsigned i = _unused_nodes.top();
         _unused_nodes.pop();
-        return &_nodes[i];
+        _nodes[i].clearPointers();
+        return i;
     }
     
-    inline void Tree::putUnusedNode(unsigned num) {
+    inline void Tree::putUnusedNodeIndex(unsigned num) {
         _unused_nodes.push(num);
+    }
+    
+    inline void Tree::putUnusedNodePtr(Node * nd) {
+        unsigned i = 0;
+        for (i = 0; i < _nodes.size(); ++i) {
+            if (nd == &_nodes[i]) {
+                _unused_nodes.push(i);
+                break;
+            }
+        }
+        assert(i < _nodes.size());
+    }
+    
+    inline Node * Tree::getNodeWithIndex(unsigned i) {
+        assert(i < _nodes.size());
+        Node * nd = &_nodes[i];
+        return nd;
     }
     
 }

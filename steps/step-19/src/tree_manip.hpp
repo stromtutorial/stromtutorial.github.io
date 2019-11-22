@@ -37,8 +37,18 @@ namespace strom {
         
             void                        LargetSimonSwap(Node * a, Node * b);
             void                        nniNodeSwap(Node * a, Node * b);    ///!a
+            unsigned                    countChildren(Node * nd) const;
+            Node *                      findLeftSib(Node * nd);
+            Node *                      findNextPreorder(Node * nd);
             Node *                      randomInternalEdge(double uniform01);   ///!b
-        
+            Node *                      findRightmostChild(Node * nd);
+            Node *                      findLastPreorderInClade(Node * start);
+            void                        insertSubtreeOnLeft(Node * s, Node * u);
+            void                        insertSubtreeOnRight(Node * s, Node * u);
+            void                        detachSubtree(Node * s);
+            
+            void                        rectifyNumInternals(int incr);
+            
             void                        selectAll();
             void                        deselectAll();
             void                        selectAllPartials();
@@ -50,6 +60,8 @@ namespace strom {
             void                        flipPartialsAndTMatrices();
 
             void                        clear();
+            
+            void                        refreshNavigationPointers();
 
         private:
 
@@ -110,6 +122,17 @@ namespace strom {
 
     inline unsigned TreeManip::countEdges() const {
         return (unsigned)_tree->_preorder.size();
+    }
+
+    inline unsigned TreeManip::countChildren(Node * nd) const {
+        assert(nd);
+        unsigned nchildren = 0;
+        Node * child = nd->getLeftChild();
+        while (child) {
+            nchildren++;
+            child = child->getRightSib();
+        }
+        return nchildren;
     }
 
     inline void TreeManip::scaleAllEdgeLengths(double scaler) {
@@ -334,6 +357,13 @@ namespace strom {
         _tree->_preorder.push_back(nd);
 
         while (true) {
+#if 1
+            nd = findNextPreorder(nd);
+            if (nd)
+                _tree->_preorder.push_back(nd);
+            else
+                break;
+#else
             if (!nd->_left_child && !nd->_right_sib) {
                 // nd has no children and no siblings, so next preorder is the right sibling of
                 // the first ancestral node that has a right sibling.
@@ -365,6 +395,7 @@ namespace strom {
                 _tree->_preorder.push_back(nd->_left_child);
                 nd = nd->_left_child;
             }
+#endif
         }   // end while loop
     }
 
@@ -464,7 +495,7 @@ namespace strom {
         //POLTMP
         for (node_index = 0; node_index < _tree->_nodes.size(); node_index++) {
             assert(_tree->_nodes[node_index]._number > -1);
-            //DebugStuff::debugShowNodeSummary(&_tree->_nodes[node_index], "na");
+            //DebugStuff::debugShowNodeSummary(&_tree->_nodes[node_index], "na");   //DEBUGSTUFF
         }
     }   ///end_renumberInternals
     
@@ -1180,6 +1211,117 @@ namespace strom {
                     nd.setAltTMatrix();
             }
         }
+    }
+    
+    inline Node * TreeManip::findNextPreorder(Node * nd) {
+        assert(nd);
+        Node * next = 0;
+        if (!nd->_left_child && !nd->_right_sib) {
+            // nd has no children and no siblings, so next preorder is the right sibling of
+            // the first ancestral node that has a right sibling.
+            Node * anc = nd->_parent;
+            while (anc && !anc->_right_sib)
+                anc = anc->_parent;
+            if (anc) {
+                // We found an ancestor with a right sibling
+                next = anc->_right_sib;
+            }
+            else {
+                // nd is last preorder node in the tree
+                next = 0;
+            }
+        }
+        else if (nd->_right_sib && !nd->_left_child) {
+            // nd has no children (it is a tip), but does have a sibling on its right
+            next = nd->_right_sib;
+        }
+        else if (nd->_left_child && !nd->_right_sib) {
+            // nd has children (it is an internal node) but no siblings on its right
+            next = nd->_left_child;
+        }
+        else {
+            // nd has both children and siblings on its right
+            next = nd->_left_child;
+        }
+        return next;
+    }
+    
+    inline Node * TreeManip::findLeftSib(Node * nd) {
+        assert(nd);
+        assert(nd->_parent);
+        Node * child = nd->_parent->_left_child;
+        while (child && child->_right_sib != nd)
+            child = child->_right_sib;
+        return child;
+    }
+    
+    inline Node * TreeManip::findRightmostChild(Node * nd) {
+        assert(nd);
+        Node * child = nd->getLeftChild();
+        while (child->getRightSib())
+            child = child->getRightSib();
+        return child;
+    }
+    
+    inline Node * TreeManip::findLastPreorderInClade(Node * start) {
+        assert(start);
+        Node * curr = start;
+        Node * rchild = findRightmostChild(curr);
+        while (rchild) {
+            curr = rchild;
+            rchild = findRightmostChild(curr);
+        }
+        return curr;
+    }
+    
+    inline void TreeManip::insertSubtreeOnLeft(Node * s, Node * u) {
+        assert(u);
+        assert(s);
+        s->_right_sib  = u->_left_child;
+        s->_parent     = u;
+        u->_left_child = s;
+    }
+
+    inline void TreeManip::insertSubtreeOnRight(Node * s, Node * u) {
+        assert(u);
+        assert(s);
+
+        s->_right_sib = 0;
+        s->_parent    = u;
+        if (u->_left_child) {
+            Node * u_rchild = findRightmostChild(u);
+            u_rchild->_right_sib = s;
+        }
+        else
+            u->_left_child = s;
+    }
+    
+    inline void TreeManip::detachSubtree(Node * s) {
+        assert(s);
+        assert(s->_parent);
+        
+        // Save pointers to relevant nodes
+        Node * s_leftsib  = findLeftSib(s);
+        Node * s_rightsib = s->_right_sib;
+        Node * s_parent   = s->_parent;
+
+        // Completely detach s and seal up the wound
+        s->_parent = 0;
+        s->_right_sib = 0;
+        if (s_leftsib)
+            s_leftsib->_right_sib = s_rightsib;
+        else
+            s_parent->_left_child = s_rightsib;
+    }
+    
+    inline void TreeManip::rectifyNumInternals(int incr) {
+        assert(_tree->_nodes.size() == _tree->_unused_nodes.size() + _tree->_nleaves + _tree->_ninternals + incr);
+        _tree->_ninternals += incr;
+    }
+    
+    inline void TreeManip::refreshNavigationPointers() {
+        refreshPreorder();
+        refreshLevelorder();
     }
 
 }
