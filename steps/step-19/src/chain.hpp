@@ -58,6 +58,7 @@ namespace strom {
             std::vector<unsigned>                   getNumUpdates() const;
             std::vector<double>                     getLambdas() const;
             void                                    setLambdas(std::vector<double> & v);
+            void                                    setTopoPriorC(double c);
 
             double                                  calcLogLikelihood() const;
             double                                  calcLogJointPrior() const;
@@ -129,8 +130,8 @@ namespace strom {
         double sum_weights      = 0.0;
         
         if (_model->isAllowPolytomies()) {
-            wtreetopology = 10.0;
-            wpolytomy     =  9.0;
+            wtreetopology =  5.0;
+            wpolytomy     = 14.0;
         }
         
         // Add state frequency parameter updaters to _updaters  ///!begin_StateFreqUpdater
@@ -215,13 +216,14 @@ namespace strom {
             double tree_length_shape = 1.0;
             double tree_length_scale = 10.0;
             double dirichlet_param   = 1.0;
+            double new_edgelen_mean = 0.05;
                         
             Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater());
             u->setLikelihood(likelihood);
             u->setLot(lot);
             u->setLambda(0.5);
             u->setTargetAcceptanceRate(0.3);
-            u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+            u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param, new_edgelen_mean});   //POLTMP: new_edgelen_mean doesn't belong here
             u->setWeight(wtreetopology); sum_weights += wtreetopology;
             _updaters.push_back(u);
 
@@ -231,7 +233,7 @@ namespace strom {
                 u->setLot(lot);
                 u->setLambda(0.05);
                 u->setTargetAcceptanceRate(0.3);
-                u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+                u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param, new_edgelen_mean});
                 u->setWeight(wpolytomy); sum_weights += wpolytomy;
                 _updaters.push_back(u);
             }
@@ -241,7 +243,7 @@ namespace strom {
             u->setLot(lot);
             u->setLambda(0.2);
             u->setTargetAcceptanceRate(0.3);
-            u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+            u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param, new_edgelen_mean});   //POLTMP: new_edgelen_mean doesn't belong here
             u->setWeight(wtreelength); sum_weights += wtreelength;
             _updaters.push_back(u);
         }   ///!end_tree_updaters
@@ -327,14 +329,22 @@ namespace strom {
         }
     } ///end_setLambdas
 
+    inline void Chain::setTopoPriorC(double c) { ///begin_setTopoPriorC
+        assert(c > 0.0);
+        for (auto u : _updaters) {
+            u->setTopoPriorC(c);
+        }
+    } ///end_setTopoPriorC
+
     inline double Chain::calcLogLikelihood() const { ///begin_calcLogLikelihood
         return _updaters[0]->calcLogLikelihood();
     } ///end_calcLogLikelihood
 
     inline double Chain::calcLogJointPrior() const { ///begin_calcLogJointPrior
         double lnP = 0.0;
+        int checklist = 0; // keeps track of which priors have been computed already to avoid duplication
         for (auto u : _updaters) {
-            lnP += u->calcLogPrior();
+            lnP += u->calcLogPrior(checklist);
         }
         return lnP;
     } ///end_calcLogJointPrior
@@ -343,6 +353,7 @@ namespace strom {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
         DebugStuff::debugSaveTree("start", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
+        //std::cerr << "DebugStuff::debugSaveTree: start" << std::endl; //POLTMP
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();

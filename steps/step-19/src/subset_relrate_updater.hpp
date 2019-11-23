@@ -11,7 +11,7 @@ namespace strom {
                                             SubsetRelRateUpdater(Model::SharedPtr model);
                                             ~SubsetRelRateUpdater();
         
-            double                          calcLogPrior();
+            virtual double                  calcLogPrior(int & checklist);
 
         private:
         
@@ -34,11 +34,15 @@ namespace strom {
         //std::cout << "Destroying a SubsetRelRateUpdater" << std::endl;
     }   ///end_destructor
 
-    inline double SubsetRelRateUpdater::calcLogPrior() {  ///begin_calcLogPrior
+    inline double SubsetRelRateUpdater::calcLogPrior(int & checklist) {  ///begin_calcLogPrior
+        if (checklist & Model::SubsetRelRates)
+            return 0.0;
+        checklist |= Model::SubsetRelRates;
+
         Model::subset_sizes_t & subset_sizes = _model->getSubsetSizes();
         double log_num_sites = std::log(_model->getNumSites());
         unsigned num_subsets = _model->getNumSubsets();
-        double log_prior = DirichletUpdater::calcLogPrior();
+        double log_prior = DirichletUpdater::calcLogPrior(checklist);
         for (unsigned i = 0; i < num_subsets-1; i++) {
             log_prior += std::log(subset_sizes[i]) - log_num_sites;
         }

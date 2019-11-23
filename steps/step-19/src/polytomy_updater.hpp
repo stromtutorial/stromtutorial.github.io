@@ -19,8 +19,8 @@ namespace strom {
                                                 PolytomyUpdater();
                                                 ~PolytomyUpdater();
 
-            virtual double                      calcLogPrior();
-            double                              calcLogTopologyPrior() const;
+            virtual double                      calcLogPrior(int & checklist);
+            //double                              calcLogTopologyPrior() const;
 
         private:
 
@@ -69,20 +69,22 @@ namespace strom {
         //TODO
     }   ///end_reset
 
-    inline double PolytomyUpdater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
-        typename Tree::SharedPtr tree = _tree_manipulator->getTree();
-        assert(tree);
-        double n = tree->numLeaves();
-        if (tree->isRooted())
-            n += 1.0;
-        double log_num_topologies = std::lgamma(2.0*n - 5.0 + 1.0) - (n - 3.0)*std::log(2.0) - std::lgamma(n - 3.0 + 1.0);
-        return -log_num_topologies;
-    }   ///end_calcLogTopologyPrior
-
-    inline double PolytomyUpdater::calcLogPrior() {   ///begin_calcLogPrior
-        double log_topology_prior = calcLogTopologyPrior();
-        double log_edge_length_prior = Updater::calcEdgeLengthPrior();
-        return log_topology_prior + log_edge_length_prior;
+    inline double PolytomyUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
+        double log_prior = 0.0;
+        
+        bool tree_topology_prior_calculated = (checklist & Model::TreeTopology);
+        if (!tree_topology_prior_calculated) {
+            log_prior += calcLogTopologyPrior();
+            checklist |= Model::TreeTopology;
+        }
+            
+        bool edge_lengths_prior_calculated  = (checklist & Model::EdgeLengths);
+        if (!edge_lengths_prior_calculated) {
+            log_prior += Updater::calcLogEdgeLengthPrior();
+            checklist |= Model::EdgeLengths;
+        }
+            
+        return log_prior;
     }   ///end_calcLogPrior
 
     inline void PolytomyUpdater::computePolytomyDistribution(unsigned nspokes) {    ///begin_computePolytomyDistribution
@@ -164,7 +166,8 @@ namespace strom {
             _polytomy_size = 1 + _tree_manipulator->countChildren(nd);
 
             DebugStuff::debugSaveTree("pre-addedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            
+            //std::cerr << "DebugStuff::debugSaveTree: pre-addedge" << std::endl; //POLTMP
+
             // Add an edge to split up polytomy at nd, moving a random subset
             // of the spokes to the (new) left child of nd
             proposeAddEdgeMove(nd);
@@ -195,10 +198,12 @@ namespace strom {
 
             _tree_manipulator->refreshNavigationPointers();
             DebugStuff::debugSaveTree("post-addedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
+            //std::cerr << "DebugStuff::debugSaveTree: post-addedge" << std::endl; //POLTMP
         }
         else {
             DebugStuff::debugSaveTree("pre-deleteedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            
+            //std::cerr << "DebugStuff::debugSaveTree: pre-deleteedge" << std::endl; //POLTMP
+
             // Choose an internal edge at random and delete it to create a polytomy
             // (or a bigger polytomy if there is already a polytomy)
             nd = _tree_manipulator->randomInternalEdge(_lot->uniform());
@@ -231,7 +236,8 @@ namespace strom {
 
             _tree_manipulator->refreshNavigationPointers();
             DebugStuff::debugSaveTree("post-deleteedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-        }
+            //std::cerr << "DebugStuff::debugSaveTree: post-deleteedge" << std::endl; //POLTMP
+}
     }   ///end_proposeNewState
     
     inline void PolytomyUpdater::proposeAddEdgeMove(Node * u) {    ///begin_proposeAddEdgeMove
@@ -262,11 +268,11 @@ namespace strom {
         assert(x < _polytomy_size - 1);
 
         // Create the new node that will receive the x randomly-chosen spokes
+        //std::cerr << "*** ADD EDGE ***" << std::endl;  //POLTMP
+        Node * v = _tree_manipulator->getUnusedNode();
         _new_edgelen = sampleEdgeLength();
-        _added_node_index = tree->getUnusedNode();
-        Node * v = tree->getNodeWithIndex(_added_node_index);
         v->setEdgeLength(_new_edgelen);
-        _tree_manipulator->rectifyNumInternals(1);
+        _tree_manipulator->rectifyNumInternals(+1);
         _tree_manipulator->insertSubtreeOnLeft(v, u);
         assert(u->getLeftChild() == v);
 
@@ -379,14 +385,15 @@ namespace strom {
             _tree_manipulator->insertSubtreeOnRight(_orig_rchild, _orig_par);
         }
 
+        //std::cerr << "*** DELETE EDGE ***" << std::endl;  //POLTMP
         _tree_manipulator->detachSubtree(u);
-        Tree::SharedPtr tree = _tree_manipulator->getTree();
-        tree->putUnusedNodePtr(u);
+        //Tree::SharedPtr tree = _tree_manipulator->getTree();
+        _tree_manipulator->putUnusedNode(u);
         _tree_manipulator->rectifyNumInternals(-1);
     }   ///end_proposeDeleteEdgeMove
     
     inline void PolytomyUpdater::revert() { ///begin_revert
-        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        //Tree::SharedPtr tree = _tree_manipulator->getTree();
         if (_add_edge_proposed) {
             // Return all of _orig_lchild's child nodes to _orig_par, then return orig_lchild to storage
             Node * child = _orig_lchild->getLeftChild();
@@ -397,21 +404,30 @@ namespace strom {
                 child = rsib;
             }
             _tree_manipulator->detachSubtree(_orig_lchild);
-            tree->putUnusedNodeIndex(_added_node_index);
+            //std::cerr << "*** REVERT ADD EDGE ***" << std::endl;  //POLTMP
+            _tree_manipulator->putUnusedNode(_orig_lchild);
             _tree_manipulator->rectifyNumInternals(-1);
 
             _tree_manipulator->refreshNavigationPointers();
             DebugStuff::debugSaveTree("revert-addedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
+            //std::cerr << "DebugStuff::debugSaveTree: revert-addedge" << std::endl; //POLTMP
         }
         else {
-            _added_node_index = tree->getUnusedNode();
-            Node * v = tree->getNodeWithIndex(_added_node_index);
+            //std::cerr << "*** REVERT DELETE EDGE ***" << std::endl;  //POLTMP
+            Node * v = _tree_manipulator->getUnusedNode();
+            _tree_manipulator->rectifyNumInternals(+1);
             v->setEdgeLength(_orig_edgelen);
-            for (Node * child = _orig_lchild; child; child = child->getRightSib()) {
+            for (Node * child = _orig_lchild; child;) {
+                Node * child_rsib = child->getRightSib();
                 _tree_manipulator->detachSubtree(child);
                 _tree_manipulator->insertSubtreeOnRight(child, v);
+                child = child_rsib;
             }
             _tree_manipulator->insertSubtreeOnRight(v, _orig_par);
+
+            _tree_manipulator->refreshNavigationPointers();
+            DebugStuff::debugSaveTree("revert-deleteedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
+            //std::cerr << "DebugStuff::debugSaveTree: revert-deleteedge" << std::endl; //POLTMP
         }
     }   ///end_revert
 

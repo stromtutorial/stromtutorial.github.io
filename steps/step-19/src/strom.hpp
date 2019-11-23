@@ -46,6 +46,8 @@ namespace strom {
             void                                    showChainTuningInfo() const;    ///!d
 
             double                                  _expected_log_likelihood;
+            
+            double                                  _topo_prior_C;
 
             std::string                             _data_file_name;
             std::string                             _tree_file_name;
@@ -110,6 +112,8 @@ namespace strom {
         _print_freq                 = 1;
         _sample_freq                = 1;
         _output_manager             = nullptr;
+        
+        _topo_prior_C               = 1.0;
 
         _using_stored_data          = true;
         _likelihoods.clear();
@@ -151,6 +155,7 @@ namespace strom {
             ("pinvar", boost::program_options::value(&partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
             ("relrate", boost::program_options::value(&partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
             ("tree", boost::program_options::value(&partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
+            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(0.0), "topology prior C: tree (or resolution class) with m-1 internal nodes has probability C time greater than tree (or resolution class) with m internal nodes.")
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
             ("nchains",       boost::program_options::value(&_num_chains)->default_value(1),                "number of chains") ///!a
             ("heatfactor",    boost::program_options::value(&_heating_lambda)->default_value(0.5),          "determines how hot the heated chains are")
@@ -434,6 +439,7 @@ namespace strom {
             double logLike = chain.getLogLikelihood();
             double logPrior = chain.calcLogJointPrior();
             double TL = chain.getTreeManip()->calcTreeLength();
+            unsigned m = chain.getTreeManip()->calcResolutionClass();
             if (time_to_report) {
                 if (logPrior == Updater::getLogZero())
                     _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
@@ -442,7 +448,7 @@ namespace strom {
             }
             if (time_to_sample) {
                 _output_manager->outputTree(iteration, chain.getTreeManip());
-                _output_manager->outputParameters(iteration, logLike, logPrior, TL, chain.getModel());
+                _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());
             }
         }
     }   ///end_sample
@@ -659,6 +665,9 @@ namespace strom {
             // Set heating power to precalculated value
             c.setChainIndex(chain_index);
             c.setHeatingPower(_heating_powers[chain_index]);
+            
+            // Set topology prior parameter C
+            c.setTopoPriorC(_topo_prior_C);
             
             // Give the chain a starting tree
             std::string newick = _tree_summary->getNewick(m->getTreeIndex());

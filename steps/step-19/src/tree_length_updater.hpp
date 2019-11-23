@@ -17,7 +17,7 @@ namespace strom {
             virtual void                proposeNewState();
             virtual void                revert();
 
-            virtual double              calcLogPrior();
+            virtual double              calcLogPrior(int & checklist);
 
             void                        pullFromModel();
             void                        pushToModel() const;
@@ -75,8 +75,12 @@ namespace strom {
         pushToModel();
     }   ///end_revert
 
-    inline double TreeLengthUpdater::calcLogPrior() {   ///begin_calcLogPrior
-        return Updater::calcEdgeLengthPrior();
+    inline double TreeLengthUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
+        if (checklist & Model::EdgeLengths)
+            return 0.0;
+        checklist |= Model::EdgeLengths;
+
+        return Updater::calcLogEdgeLengthPrior();
     }   ///end_calcLogPrior
 
     inline void TreeLengthUpdater::pullFromModel() {    ///begin_pullFromModel

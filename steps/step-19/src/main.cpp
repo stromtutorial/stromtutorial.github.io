@@ -7,10 +7,11 @@
 using namespace strom;
 
 // static data member initializations
-unsigned DebugStuff::_partial_offset = 0;   //DEBUGSTUFF
-unsigned DebugStuff::_tmatrix_offset = 0;   //DEBUGSTUFF
-unsigned DebugStuff::_which_iter     = 0;   //DEBUGSTUFF
-unsigned DebugStuff::_tree_index     = 0;   //DEBUGSTUFF
+bool     DebugStuff::_ignore         = true;    //DEBUGSTUFF
+unsigned DebugStuff::_partial_offset = 0;       //DEBUGSTUFF
+unsigned DebugStuff::_tmatrix_offset = 0;       //DEBUGSTUFF
+unsigned DebugStuff::_which_iter     = 0;       //DEBUGSTUFF
+unsigned DebugStuff::_tree_index     = 0;       //DEBUGSTUFF
 
 std::string  Strom::_program_name        = "strom";
 unsigned     Strom::_major_version       = 1;

@@ -7,6 +7,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include "libhmsbeagle/beagle.h"
 #include "tree.hpp"
+#include "tree_manip.hpp"
 #include "data.hpp"
 #include "model.hpp"
 #include "xstrom.hpp"
@@ -110,7 +111,7 @@ namespace strom {
             bool                                    _underflow_scaling;
             bool                                    _using_data;
         
-            std::stack<unsigned>                    _polytomy_stack;
+            std::stack<Node *>                      _polytomy_stack;
             std::vector<double>                     _identity_matrix;
 
         public:
@@ -717,6 +718,7 @@ namespace strom {
     }
     
     inline void Likelihood::defineOperations(Tree::SharedPtr t) {
+        //std::cerr << "*** Likelihood::defineOperations ***" << std::endl;  //POLTMP
         assert(_instances.size() > 0);
         assert(t);
         assert(t->isRooted() == _rooted);
@@ -761,15 +763,15 @@ namespace strom {
                         if (nd->isSelPartial()) {
                             if (isPolytomy(nd)) {
                                 // Internal node is a polytomy
+                                TreeManip tm(t);
                                 unsigned nchildren = countChildren(nd);
                                 Node * a = nd->_left_child;
                                 Node * b = a->_right_sib;
                                 Node * c = 0;
                                 for (unsigned k = 0; k < nchildren - 2; k++) {
-                                    unsigned node_index = t->getUnusedNode();
-                                    c = t->getNodeWithIndex(node_index);
+                                    c = tm.getUnusedNode();
                                     c->_left_child = a;
-                                    _polytomy_stack.push(c->_number);
+                                    _polytomy_stack.push(c);
 
                                     // Set the transition matrix equal to the identity matrix
                                     unsigned tindex = getTMatrixIndex(c, info, instance_specific_subset_index);
@@ -1078,8 +1080,10 @@ namespace strom {
         calculatePartials();
         
         // We no longer need fake internal nodes used to compute partials for polytomies
+        //std::cerr << "*** Likelihood::calcLogLikelihood ***" << std::endl;  //POLTMP
+        TreeManip tm(t);
         while (!_polytomy_stack.empty()) {
-            t->_unused_nodes.push(_polytomy_stack.top());
+            tm.putUnusedNode(_polytomy_stack.top());
             _polytomy_stack.pop();
         }
 

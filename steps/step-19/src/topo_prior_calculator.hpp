@@ -3,13 +3,16 @@
 //#include <stack>
 //#include <memory>
 //#include <iostream>
-//#include "node.hpp"
+#include "tree.hpp"
+#include "lot.hpp"
 
 namespace strom {
 
     class PolytomyTopoPriorCalculator {
     
         public:
+            typedef std::shared_ptr<PolytomyTopoPriorCalculator> SharedPtr;
+                                            
                                             PolytomyTopoPriorCalculator();
                                             ~PolytomyTopoPriorCalculator();
 
@@ -25,10 +28,10 @@ namespace strom {
             void                            chooseRooted();
             void                            chooseUnrooted();
 
-            double                          getLnCount(unsigned n, unsigned m);
-            double                          getLnSaturatedCount(unsigned n);
-            double                          getLnTotalCount(unsigned n);
-            std::vector<double>             getLnCounts();
+            double                          getLogCount(unsigned n, unsigned m);
+            double                          getLogSaturatedCount(unsigned n);
+            double                          getLogTotalCount(unsigned n);
+            std::vector<double>             getLogCounts();
 
             std::vector<double>             getCountsVect();
             std::vector<int>                getNFactorsVect();
@@ -39,19 +42,19 @@ namespace strom {
             void                            setC(double c);
             double                          getC() const;
 
-            void                            setLnScalingFactor(double lnf);
-            double                          getLnScalingFactor() const;
+            void                            setLogScalingFactor(double lnf);
+            double                          getLogScalingFactor() const;
 
-            virtual double                  getLnTopoProb(TreeShPtr t);
+            virtual double                  getLogTopoProb(Tree::SharedPtr t);
 
-            double                          getLnTopologyPrior(unsigned m);
-            double                          getLnNormalizedTopologyPrior(unsigned m);
-            double                          getLnNormConstant();
+            double                          getLogTopologyPrior(unsigned m);
+            double                          getLogNormalizedTopologyPrior(unsigned m);
+            double                          getLogNormConstant();
 
             std::vector<double>             getTopoPriorVect();
             std::vector<double>             getRealizedResClassPriorsVect();
 
-            unsigned                        sample(LotShPtr rng);
+            unsigned                        sample(Lot::SharedPtr rng);
 
             void                            reset();
 
@@ -146,7 +149,7 @@ void PolytomyTopoPriorCalculator::recalcCountsAndPriorsImpl(unsigned n) {
                 if (log_factor >= max_log_double) {
                     std::cerr << "Oops! log_factor >= max_log_double" << std::endl;
                 }
-                PHYCAS_ASSERT(log_factor < max_log_double);
+                assert(log_factor < max_log_double);
                 a = b*exp(log_factor);
                 b = _counts[m];
                 c = a*((double)(z + num_internal_nodes - 1));
@@ -172,7 +175,7 @@ void PolytomyTopoPriorCalculator::recalcCountsAndPriorsImpl(unsigned n) {
         // to avoid overflow)
         std::vector<double> v;
         unsigned sz = (unsigned)_nfactors.size();
-        PHYCAS_ASSERT(sz == _counts.size());
+        assert(sz == _counts.size());
         double max_log_count = 0.0;
         for (unsigned i = 0; i < sz; ++i) {
             double num_factors = (double)_nfactors[i];
@@ -190,7 +193,7 @@ void PolytomyTopoPriorCalculator::recalcCountsAndPriorsImpl(unsigned n) {
             double diff = (*it) - max_log_count;
             sum += exp(diff);
         }
-        PHYCAS_ASSERT(sum > 0.0);
+        assert(sum > 0.0);
         _log_total_count = log(sum) + max_log_count;
         _counts_dirty = false;
     }
@@ -254,7 +257,7 @@ void PolytomyTopoPriorCalculator::recalcPriorsImpl() {
 
     if (_is_resolution_class_prior) {
         // _counts vector should have length equal to maxm if everything is ok
-        PHYCAS_ASSERT(maxm == (unsigned)_counts.size());
+        assert(maxm == (unsigned)_counts.size());
 
         double total = 0.0;
         double logC = std::log(_C);
@@ -285,8 +288,8 @@ void PolytomyTopoPriorCalculator::recalcPriorsImpl() {
 |   function if `n' is not equal to `_ntax'. Assumes `m' is greater than 0. If `_is_rooted' is true, assumes `m' is less
 |   than `_ntax'. If `_is_rooted' is false, assumes `m' less than `_ntax' - 1.
 */
-double PolytomyTopoPriorCalculator::getLnCount(unsigned n, unsigned m) {
-    PHYCAS_ASSERT((_is_rooted && (m < n)) || (!_is_rooted && (m < n - 1)));
+double PolytomyTopoPriorCalculator::getLogCount(unsigned n, unsigned m) {
+    assert((_is_rooted && (m < n)) || (!_is_rooted && (m < n - 1)));
     if (n != _ntax)
         setNTax(n);
     if (_counts_dirty)
@@ -300,7 +303,7 @@ double PolytomyTopoPriorCalculator::getLnCount(unsigned n, unsigned m) {
 |    Returns the number of saturated (i.e. fully-resolved and thus having as many internal nodes as possible) trees
 |    of `n' taxa. Calls RecalcCountsAndPriors function if `n' is not equal to `_ntax'.
 */
-double PolytomyTopoPriorCalculator::getLnSaturatedCount(unsigned n) {
+double PolytomyTopoPriorCalculator::getLogSaturatedCount(unsigned n) {
     if (n != _ntax)
         setNTax(n);
     if (_counts_dirty)
@@ -316,7 +319,7 @@ double PolytomyTopoPriorCalculator::getLnSaturatedCount(unsigned n) {
 |   tree to fully resolved (saturated) trees. Calls RecalcCountsAndPriors function if `n' is not equal to `_ntax' or if
 |   not using the resolution class prior (in which case _counts have not been calculated).
 */
-double PolytomyTopoPriorCalculator::getLnTotalCount(unsigned n) {
+double PolytomyTopoPriorCalculator::getLogTotalCount(unsigned n) {
     if (n != _ntax)
         setNTax(n);
     if (_counts_dirty)
@@ -375,7 +378,7 @@ std::vector<double> PolytomyTopoPriorCalculator::getRealizedResClassPriorsVect()
 |   the `_counts' vectors first. The 0th element of the returned vector holds the natural log of the total number of tree
 |   topologies (log of the sum of all other elements).
 */
-std::vector<double> PolytomyTopoPriorCalculator::getLnCounts() {
+std::vector<double> PolytomyTopoPriorCalculator::getLogCounts() {
     if (_is_resolution_class_prior)
         _counts_dirty = true;
     if (_counts_dirty)
@@ -400,38 +403,19 @@ std::vector<double> PolytomyTopoPriorCalculator::getLnCounts() {
 |   function is not very efficient because it calls PolytomyTopoPriorCalculator::getRealizedResClassPriorsVect, resulting in an
 |   unnecessary vector copy operation.
 */
-unsigned PolytomyTopoPriorCalculator::sample(LotShPtr rng) {
+unsigned PolytomyTopoPriorCalculator::sample(Lot::SharedPtr rng) {
     std::vector<double> v = getRealizedResClassPriorsVect();
-#if 0
-    // Geez, what was I thinking when I wrote this?!
-    double u = rng->Uniform();
-    double logu = (u > 0.0 ? log(u) : -DBL_MAX);
-    double log_x = logu + v[0];
-    double cum = 0.0;
-    for (unsigned i = 1; i < v.size(); ++i) {
-        cum += v[1];
-        if (log_x <= cum)
-            return i;
-    }
-#else
-    double u = rng->Uniform();
-    //std::cerr << "PolytomyTopoPriorCalculator::sample: seed = " << rng->GetSeed() << ", u = " << u << std::endl;
-    //std::cerr << "v[0]  = " << v[0] << std::endl;
+    double u = rng->uniform();
     double z = v[0];
     double cum = 0.0;
     for (unsigned i = 1; i < v.size(); ++i) {
-        //std::cerr << "v[" << i << "]  = " << v[i] << std::endl;
         cum += exp(v[i] - z);
         if (u <= cum)
             return i;
     }
-#endif
-    PHYCAS_ASSERT(0);
+    assert(0);
     return (unsigned)(v.size() - 1);
 }
-
-
-// methods below here were formerly in topo_prior_calculator.inl
 
 /*----------------------------------------------------------------------------------------------------------------------
 |    Constructor sets `_is_rooted' to false, `_is_resolution_class_prior' to true, `_C' to 1.0, `_ntax' to 4, and
@@ -464,7 +448,7 @@ PolytomyTopoPriorCalculator::~PolytomyTopoPriorCalculator() {
 void PolytomyTopoPriorCalculator::setNTax(unsigned new_ntax) {
     if (_ntax != new_ntax) {
         // Set _ntax to the new value
-        PHYCAS_ASSERT(new_ntax > (unsigned)(_is_rooted ? 1 : 2));
+        assert(new_ntax > (unsigned)(_is_rooted ? 1 : 2));
         _ntax = new_ntax;
 
         _counts_dirty = true;
@@ -558,7 +542,7 @@ void PolytomyTopoPriorCalculator::choosePolytomyPrior() {
 |    Sets `_C' data member to `c'. Assumes `c' is greater than 0.0.
 */
 void PolytomyTopoPriorCalculator::setC(double c) {
-    PHYCAS_ASSERT(c > 0.0);
+    assert(c > 0.0);
     if (c != _C) {
         _C = c;
         _topo_priors_dirty = true;
@@ -575,8 +559,8 @@ double PolytomyTopoPriorCalculator::getC() const {
 /*----------------------------------------------------------------------------------------------------------------------
 |    Sets `_log_scaling_factor' data member to the supplied value `lnf'.
 */
-void PolytomyTopoPriorCalculator::setLnScalingFactor(double lnf) {
-    PHYCAS_ASSERT(lnf > 0.0);
+void PolytomyTopoPriorCalculator::setLogScalingFactor(double lnf) {
+    assert(lnf > 0.0);
     if (lnf != _log_scaling_factor) {
         _log_scaling_factor = lnf;
         _counts_dirty = true;
@@ -587,7 +571,7 @@ void PolytomyTopoPriorCalculator::setLnScalingFactor(double lnf) {
 /*----------------------------------------------------------------------------------------------------------------------
 |    Returns current value of the `_log_scaling_factor' data member.
 */
-double PolytomyTopoPriorCalculator::getLnScalingFactor() const {
+double PolytomyTopoPriorCalculator::getLogScalingFactor() const {
     return _log_scaling_factor;
 }
 
@@ -603,16 +587,16 @@ std::vector<double> PolytomyTopoPriorCalculator::getTopoPriorVect() {
 }
 
 /*----------------------------------------------------------------------------------------------------------------------
-|   Returns result of call to getLnTopologyPrior(m), where m is the number of internal nodes in `t'.
+|   Returns result of call to getLogTopologyPrior(m), where m is the number of internal nodes in `t'.
 */
-double PolytomyTopoPriorCalculator::getLnTopoProb(TreeShPtr t) {
+double PolytomyTopoPriorCalculator::getLogTopoProb(Tree::SharedPtr t) {
     //std::cerr << ">>>>>>>> in PolytomyTopoPriorCalculator::getLnTopoProb" << std::endl;  //POL_BOOKMARK 13-July-2017
-    unsigned n = t->GetNTips();
-    PHYCAS_ASSERT(n > 3);
+    unsigned n = t->numLeaves();
+    assert(n > 3);
     if (n != getNTax())
         setNTax(n);
-    unsigned m = t->GetNInternals();
-    double topo_prior = getLnTopologyPrior(m);
+    unsigned m = t->numInternals();
+    double topo_prior = getLogTopologyPrior(m);
     return topo_prior;
 }
 
@@ -621,10 +605,10 @@ double PolytomyTopoPriorCalculator::getLnTopoProb(TreeShPtr t) {
 |    `_is_resolution_class_prior' is true, otherwise it represents the polytomy prior. Assumes `m' is less than the
 |    length of the _topology_prior vector.
 */
-double PolytomyTopoPriorCalculator::getLnTopologyPrior(unsigned m) {
+double PolytomyTopoPriorCalculator::getLogTopologyPrior(unsigned m) {
     if (_topo_priors_dirty)
         reset();
-    PHYCAS_ASSERT(m < _topology_prior.size());
+    assert(m < _topology_prior.size());
     return _topology_prior[m];
 }
 
@@ -634,10 +618,10 @@ double PolytomyTopoPriorCalculator::getLnTopologyPrior(unsigned m) {
 |    of the _topology_prior vector. The log of the normalized topology prior is obtained as _topology_prior[m] minus
 |    _topology_prior[0] (the 0th element of _topology_prior holds the log of the normalization constant).
 */
-double PolytomyTopoPriorCalculator::getLnNormalizedTopologyPrior(unsigned m) {
+double PolytomyTopoPriorCalculator::getLogNormalizedTopologyPrior(unsigned m) {
     if (_topo_priors_dirty)
         reset();
-    PHYCAS_ASSERT(m < _topology_prior.size());
+    assert(m < _topology_prior.size());
     return (_topology_prior[m] - _topology_prior[0]);
 }
 
@@ -645,7 +629,7 @@ double PolytomyTopoPriorCalculator::getLnNormalizedTopologyPrior(unsigned m) {
 |    Returns the natural logarithm of the normalizing constant for the topology prior. This value is stored in
 |    _topology_prior[0].
 */
-double PolytomyTopoPriorCalculator::getLnNormConstant() {
+double PolytomyTopoPriorCalculator::getLogNormConstant() {
     if (_topo_priors_dirty)
         reset();
     return _topology_prior[0];

@@ -89,6 +89,17 @@ namespace strom {
             std::string                 paramNamesAsString(std::string sep) const;
             std::string                 paramValuesAsString(std::string sep) const;
 
+            enum PriorComponent {
+                EdgeLengths       = (1 << 0),
+                TreeTopology      = (1 << 1),
+                StateFreqs        = (1 << 2),
+                Exchangeabilities = (1 << 3),
+                Omega             = (1 << 4),
+                RateVar           = (1 << 5),
+                ProportionInvar   = (1 << 6),
+                SubsetRelRates    = (1 << 7)
+            };
+
         private:
         
             void                        clear();

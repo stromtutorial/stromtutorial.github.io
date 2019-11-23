@@ -25,6 +25,7 @@ namespace strom {
             Tree::SharedPtr             getTree();
 
             double                      calcTreeLength() const;
+            unsigned                    calcResolutionClass() const;
             unsigned                    countEdges() const;
             void                        scaleAllEdgeLengths(double scaler);
 
@@ -62,6 +63,9 @@ namespace strom {
             void                        clear();
             
             void                        refreshNavigationPointers();
+
+            Node *                      getUnusedNode();
+            void                        putUnusedNode(Node * nd);
 
         private:
 
@@ -118,6 +122,10 @@ namespace strom {
             TL += nd->_edge_length;
         }
         return TL;
+    }
+
+    inline unsigned TreeManip::calcResolutionClass() const {
+        return _tree->_ninternals;
     }
 
     inline unsigned TreeManip::countEdges() const {
@@ -483,17 +491,19 @@ namespace strom {
         _tree->_ninternals = curr_internal - _tree->_nleaves;
         
         //POLTMP - this has changed since step 18
-        unsigned node_index = curr_internal;
-        while (!_tree->_unused_nodes.empty())
-            _tree->_unused_nodes.pop();
+        //std::cerr << "*** TreeManip::renumberInternals ***" << std::endl;  //POLTMP
+        assert(_tree->_unused_nodes.empty());
+        //while (!_tree->_unused_nodes.empty())
+        //    _tree->_unused_nodes.pop();
         for (; curr_internal < _tree->_nodes.size(); curr_internal++) {
-            _tree->_unused_nodes.push(curr_internal);
-            assert(_tree->_nodes[node_index]._number == -1);
-            _tree->_nodes[node_index++]._number = curr_internal;
+            Node * curr = &_tree->_nodes[curr_internal];
+            putUnusedNode(curr);
+            assert(curr->_number == -1);
+            curr->_number = curr_internal;
         }
         
         //POLTMP
-        for (node_index = 0; node_index < _tree->_nodes.size(); node_index++) {
+        for (unsigned node_index = 0; node_index < _tree->_nodes.size(); node_index++) {
             assert(_tree->_nodes[node_index]._number > -1);
             //DebugStuff::debugShowNodeSummary(&_tree->_nodes[node_index], "na");   //DEBUGSTUFF
         }
@@ -909,8 +919,11 @@ namespace strom {
         // Note: _preorder is actually a vector of T *, but is shown here as a
         // vector of integers solely to illustrate the algorithm below
         
-        //unsigned num_internal_edges = _tree->_nleaves - 2 - (_tree->_is_rooted ? 0 : 1);
-        unsigned num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 0 : 1);
+        int num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 0 : 1);
+        if (num_internal_edges < 0) {
+            // Star tree: return hub node, which is the first node in the preorder sequence
+            return _tree->_preorder[0];
+        }
 
         // Add one to skip first node in _preorder vector, which is an internal node whose edge
         // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
@@ -1315,6 +1328,13 @@ namespace strom {
     }
     
     inline void TreeManip::rectifyNumInternals(int incr) {
+        unsigned a = (unsigned)_tree->_nodes.size();
+        unsigned b = (unsigned)_tree->_unused_nodes.size();
+        unsigned c = _tree->_nleaves;
+        unsigned d = _tree->_ninternals;
+        unsigned e = incr;
+        if (a != b+c+d+e)
+            std::cerr << boost::str(boost::format("%3d = _nodes\n%3d = _unused_nodes\n%3d = _nleaves\n%3d = _ninternals\n%3d = incr") % a % b % c % d % e) << std::endl;
         assert(_tree->_nodes.size() == _tree->_unused_nodes.size() + _tree->_nleaves + _tree->_ninternals + incr);
         _tree->_ninternals += incr;
     }
@@ -1323,5 +1343,19 @@ namespace strom {
         refreshPreorder();
         refreshLevelorder();
     }
-
+    
+    inline Node * TreeManip::getUnusedNode() {
+        assert(_tree->_unused_nodes.size() > 0);
+        Node * nd = _tree->_unused_nodes.top();
+        _tree->_unused_nodes.pop();
+        nd->clearPointers();
+        //std::cerr << "***    getUnusedNode: contains " << _tree->_unused_nodes.size() << " now ***" << std::endl;  //POLTMP
+        return nd;
+    }
+    
+    inline void TreeManip::putUnusedNode(Node * nd) {
+        _tree->_unused_nodes.push(nd);
+        //std::cerr << "***    putUnusedNode: contains " << _tree->_unused_nodes.size() << " now ***" << std::endl;  //POLTMP
+    }
+    
 }

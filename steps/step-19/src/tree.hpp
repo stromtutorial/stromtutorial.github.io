@@ -33,10 +33,10 @@ namespace strom {
             unsigned                    numInternals() const;
             unsigned                    numNodes() const;
         
-            Node *                      getNodeWithIndex(unsigned i);
-            unsigned                    getUnusedNode();
-            void                        putUnusedNodeIndex(unsigned num);
-            void                        putUnusedNodePtr(Node * nd);
+            //Node *                      getNodeWithIndex(unsigned i);
+            //unsigned                    getUnusedNode();
+            //void                        putUnusedNodeIndex(unsigned num);
+            //void                        putUnusedNodePtr(Node * nd);
 
         private:
 
@@ -49,7 +49,7 @@ namespace strom {
             Node::PtrVector             _preorder;
             Node::PtrVector             _levelorder;
             Node::Vector                _nodes;
-            std::stack<unsigned>        _unused_nodes;
+            std::stack<Node *>          _unused_nodes;
 
         public:
 
@@ -88,33 +88,5 @@ namespace strom {
     inline unsigned Tree::numNodes() const {
         return (unsigned)_nodes.size();
     }
-    
-    inline unsigned Tree::getUnusedNode() {
-        unsigned i = _unused_nodes.top();
-        _unused_nodes.pop();
-        _nodes[i].clearPointers();
-        return i;
-    }
-    
-    inline void Tree::putUnusedNodeIndex(unsigned num) {
-        _unused_nodes.push(num);
-    }
-    
-    inline void Tree::putUnusedNodePtr(Node * nd) {
-        unsigned i = 0;
-        for (i = 0; i < _nodes.size(); ++i) {
-            if (nd == &_nodes[i]) {
-                _unused_nodes.push(i);
-                break;
-            }
-        }
-        assert(i < _nodes.size());
-    }
-    
-    inline Node * Tree::getNodeWithIndex(unsigned i) {
-        assert(i < _nodes.size());
-        Node * nd = &_nodes[i];
-        return nd;
-    }
-    
+
 }

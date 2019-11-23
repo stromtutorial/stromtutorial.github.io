@@ -18,7 +18,7 @@ namespace strom {
             virtual                             ~DirichletUpdater();
         
             void                                clear();
-            virtual double                      calcLogPrior();
+            virtual double                      calcLogPrior(int & checklist);
         
         protected:
         
@@ -48,7 +48,8 @@ namespace strom {
         _prev_point.clear();
     }   ///end_clear
     
-    inline double DirichletUpdater::calcLogPrior() {  ///begin_calcLogPrior
+    inline double DirichletUpdater::calcLogPrior(int & checklist) {  ///begin_calcLogPrior
+        // base class does not consult checklist
         pullFromModel();
         assert(_curr_point.size() > 0);
         assert(_curr_point.size() == _prior_parameters.size());

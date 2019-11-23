@@ -8,6 +8,7 @@
 namespace strom {
 
     struct DebugStuff {
+            static bool        _ignore;
             static unsigned    _partial_offset;
             static unsigned    _tmatrix_offset;
             static unsigned    _which_iter;
@@ -20,26 +21,35 @@ namespace strom {
     };
 
     inline void DebugStuff::debugOpenTreeFile() {
-        std::ofstream treef("newicks.js");
-        treef << "var newicks = [" << std::endl;
-        treef.close();
+        if (!_ignore) {
+            std::ofstream treef("newicks.js");
+            treef << "var newicks = [" << std::endl;
+            treef.close();
+        }
     }
     
     inline void DebugStuff::debugCloseTreeFile() {
-        std::ofstream treef("newicks.js", std::ios::out | std::ios::app);
-        treef << "]" << std::endl;
-        treef.close();
+        if (!_ignore) {
+            std::ofstream treef("newicks.js", std::ios::out | std::ios::app);
+            treef << "]" << std::endl;
+            treef.close();
+        }
     }
     
     inline void DebugStuff::debugSaveTree(std::string treename, std::string description) {
-        std::ofstream treef("newicks.js", std::ios::out | std::ios::app);
-        treef << boost::str(boost::format("     {name:\"%s_%d\", relrate:1.0, newick:\"%s\"},") % treename % _tree_index % description) << std::endl;
-        treef.close();
-        _tree_index++;
+        if (!_ignore) {
+            std::ofstream treef("newicks.js", std::ios::out | std::ios::app);
+            treef << boost::str(boost::format("     {name:\"%s_%d\", relrate:1.0, newick:\"%s\"},") % treename % _tree_index % description) << std::endl;
+            treef.close();
+            _tree_index++;
+        }
     }
     
     inline std::string DebugStuff::debugMakeNewick(Tree::SharedPtr tree, unsigned precision) {
         std::string newick;
+        if (_ignore)
+            return newick;
+            
         const boost::format tip_node_format( boost::str(boost::format("{%%s}:%%.%df") % precision) );
         const boost::format internal_node_format( boost::str(boost::format("){%%s}:%%.%df") % precision) );
         std::stack<Node *> node_stack;
@@ -94,22 +104,24 @@ namespace strom {
     }
     
     inline void DebugStuff::debugShowNodeSummary(Node * a, std::string label) {
-        std::cerr << boost::str(boost::format("Node %d (\"%s\")") % a->getNumber() % label) << std::endl;
+        if (!_ignore) {
+            std::cerr << boost::str(boost::format("Node %d (\"%s\")") % a->getNumber() % label) << std::endl;
 
-        if (a->getLeftChild())
-            std::cerr << boost::str(boost::format("--- lchild = %d") % a->getLeftChild()->getNumber()) << std::endl;
-        else
-            std::cerr << boost::str(boost::format("--- lchild = %s") % "NULL") << std::endl;
-        
-        if (a->getRightSib())
-            std::cerr << boost::str(boost::format("--- rsib   = %d") % a->getRightSib()->getNumber()) << std::endl;
-        else
-            std::cerr << boost::str(boost::format("--- rsib   = %s") % "NULL") << std::endl;
-        
-        if (a->getParent())
-            std::cerr << boost::str(boost::format("--- parent = %d") % a->getParent()->getNumber()) << std::endl;
-        else
-            std::cerr << boost::str(boost::format("--- parent = %s") % "NULL") << std::endl;
+            if (a->getLeftChild())
+                std::cerr << boost::str(boost::format("--- lchild = %d") % a->getLeftChild()->getNumber()) << std::endl;
+            else
+                std::cerr << boost::str(boost::format("--- lchild = %s") % "NULL") << std::endl;
+            
+            if (a->getRightSib())
+                std::cerr << boost::str(boost::format("--- rsib   = %d") % a->getRightSib()->getNumber()) << std::endl;
+            else
+                std::cerr << boost::str(boost::format("--- rsib   = %s") % "NULL") << std::endl;
+            
+            if (a->getParent())
+                std::cerr << boost::str(boost::format("--- parent = %d") % a->getParent()->getNumber()) << std::endl;
+            else
+                std::cerr << boost::str(boost::format("--- parent = %s") % "NULL") << std::endl;
+        }
     }
 
 }

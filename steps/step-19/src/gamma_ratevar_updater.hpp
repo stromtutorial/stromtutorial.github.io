@@ -18,7 +18,7 @@ namespace strom {
             double                      getCurrentPoint() const;
 
             // mandatory overrides of pure virtual functions
-            virtual double              calcLogPrior();
+            virtual double              calcLogPrior(int & checklist);
             virtual void                revert();
             virtual void                proposeNewState();
         
@@ -54,7 +54,11 @@ namespace strom {
         return *(_asrv->getRateVarSharedPtr());
     } ///end_getCurrentPoint
     
-    inline double GammaRateVarUpdater::calcLogPrior() { ///begin_calcLogPrior
+    inline double GammaRateVarUpdater::calcLogPrior(int & checklist) { ///begin_calcLogPrior
+        if (checklist & Model::RateVar)
+            return 0.0;
+        checklist |= Model::RateVar;
+
         // Assumes Gamma(a,b) prior with mean a*b and variance a*b^2
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];
