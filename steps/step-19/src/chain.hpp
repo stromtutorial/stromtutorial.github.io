@@ -130,8 +130,15 @@ namespace strom {
         double sum_weights      = 0.0;
         
         if (_model->isAllowPolytomies()) {
+#if 1   //POLTMP
             wtreetopology =  5.0;
             wpolytomy     = 14.0;
+#else
+            wstd             = 0.0;
+            wtreelength      = 0.0;
+            wtreetopology    = 0.0;
+            wpolytomy        = 1.0;
+#endif
         }
         
         // Add state frequency parameter updaters to _updaters  ///!begin_StateFreqUpdater

@@ -432,7 +432,26 @@ namespace strom {
     inline void Strom::sample(unsigned iteration, Chain & chain) {  ///begin_sample
         if (chain.getHeatingPower() < 1.0)
             return;
-        
+            
+        //POLTMP
+#if 0
+        // Determine whether tree is fully resolved or the star tree
+        Tree::SharedPtr tree = chain.getTreeManip()->getTree();
+        // Compute number of internal nodes in a fully resolved tree
+        unsigned num_internals_in_fully_resolved_tree = 0;
+        if (tree->isRooted())
+            num_internals_in_fully_resolved_tree = tree->numLeaves();
+        else
+            num_internals_in_fully_resolved_tree = tree->numLeaves() - 2;
+        unsigned num_internals_before = tree->numInternals();
+        bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
+        bool star_tree_before = (tree->numInternals() == 1);
+        if (star_tree_before)
+            DebugStuff::m1++;
+        if (fully_resolved_before)
+            DebugStuff::m2++;
+#endif
+
         bool time_to_sample = (bool)(iteration % _sample_freq == 0);
         bool time_to_report = (bool)(iteration % _print_freq == 0);
         if (time_to_sample || time_to_report) {
@@ -443,8 +462,10 @@ namespace strom {
             if (time_to_report) {
                 if (logPrior == Updater::getLogZero())
                     _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
+                    //POLTMP _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f %12d %12d") % iteration % logLike % "-infinity" % TL % DebugStuff::m1 % DebugStuff::m2));
                 else
                     _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+                    //POLTMP _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12d %12d") % iteration % logLike % logPrior % TL % DebugStuff::m1 % DebugStuff::m2));
             }
             if (time_to_sample) {
                 _output_manager->outputTree(iteration, chain.getTreeManip());
@@ -750,7 +771,11 @@ namespace strom {
     inline void Strom::run() {  ///begin_run
         std::cout << "Starting..." << std::endl;
         std::cout << "Current working directory: " << boost::filesystem::current_path() << std::endl;
-
+        
+        //POLTMP
+        //DebugStuff::m1 = 0;
+        //DebugStuff::m2 = 0;
+        
         try {
             readData();
             readTrees();
@@ -769,6 +794,7 @@ namespace strom {
             // Create an output manager and open output files
             _output_manager.reset(new OutputManager);
             _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
+            //POLTMP _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL" % "m=1" % "m=2"));
             _output_manager->openTreeFile("trees.tre", _data);
             _output_manager->openParameterFile("params.txt", _chains[0].getModel());
             sample(0, _chains[0]);

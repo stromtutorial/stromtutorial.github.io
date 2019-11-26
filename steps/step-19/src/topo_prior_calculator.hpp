@@ -236,16 +236,27 @@ void PolytomyTopoPriorCalculator::recalcCountsAndPriorsImpl(unsigned n) {
 |>
 |    If instead `_is_resolution_class_prior' is true, we have:
 |>
-|                  unnormalized
-|                  resolution
-|    m    _counts   class prior        _C = 2
-|    ---------------------------------------------
-|    1         1     (_C^3)/1         8/1   = 8.000   _topology_prior[1] = ln(8.000) =  2.079
-|    2        25     (_C^2)/25        4/25  = 0.160   _topology_prior[2] = ln(0.160) = -1.833
-|    3       105     (_C^1)/105       2/105 = 0.019   _topology_prior[3] = ln(0.019) = -3.963
-|    4       105     (_C^0)/105       1/105 = 0.010   _topology_prior[4] = ln(0.010) = -4.605
-|    ---------------------------------------------
-|                (no easy formula)           8.189   _topology_prior[0] = ln(8.189) =  2.103
+|                   unnormalized
+|                    resolution
+|    m    _counts   class prior     _C = 2
+|    -------------------------------------------------------------------------------------------------
+|    1         1     (_C^3)/1         8/1   = 8.000   0.97697 _topology_prior[1] = log(8.000) =  2.079
+|    2        25     (_C^2)/25        4/25  = 0.160   0.01954 _topology_prior[2] = log(0.160) = -1.833
+|    3       105     (_C^1)/105       2/105 = 0.019   0.00233 _topology_prior[3] = log(0.019) = -3.963
+|    4       105     (_C^0)/105       1/105 = 0.010   0.00116 _topology_prior[4] = log(0.010) = -4.605
+|    -------------------------------------------------------------------------------------------------
+|                (no easy formula)            8.189          _topology_prior[0] = log(8.189) =  2.103
+|
+|                   unnormalized           normalized
+|                    resolution            resolution
+|    m    _counts   class prior            class prior
+|    -------------------------------------------------------------------------------------------------
+|    1         1     (_C^3)/1         (8/15)/1   = 0.533333 _topology_prior[1] = log(8/1)   =  2.079
+|    2        25     (_C^2)/25        (4/15)/25  = 0.010666 _topology_prior[2] = log(4/25)  = -1.833
+|    3       105     (_C^1)/105       (2/15)/105 = 0.001269 _topology_prior[3] = log(2/105) = -3.961
+|    4       105     (_C^0)/105       (1/15)/105 = 0.000634 _topology_prior[4] = log(1/105) = -4.654
+|    -------------------------------------------------------------------------------------------------
+|     _C = 2   1 + 2 + 4 + 8 = 15 <-- normalizing constant  _topology_prior[0] = log(15)    =  2.708
 |>
 */
 void PolytomyTopoPriorCalculator::recalcPriorsImpl() {
@@ -259,17 +270,28 @@ void PolytomyTopoPriorCalculator::recalcPriorsImpl() {
         // _counts vector should have length equal to maxm if everything is ok
         assert(maxm == (unsigned)_counts.size());
 
-        double total = 0.0;
         double logC = std::log(_C);
-        for (unsigned m = 1; m <= maxm; ++m)
-            {
+        double log_normalization_constant = 0.0;
+        if (_C == 1.0)
+            log_normalization_constant = std::log(maxm);
+        else if (_C > 1.0) {
+            // factor out largest value to avoid overflow
+            double term1  = logC*maxm;
+            double term2a = std::exp(-logC*maxm);
+            double term2b = std::log(1.0 - term2a);
+            double term3  = std::log(_C - 1.0);
+            log_normalization_constant = term1 + term2b + term3;
+        }
+        else {
+            log_normalization_constant = std::log(1.0 - std::exp(logC*maxm)) - std::log(1.0 - _C);
+        }
+        _topology_prior[0] = log_normalization_constant;
+        for (unsigned m = 1; m <= maxm; ++m) {
             double logCterm = (double)(maxm - m)*logC;
             double log_count_m = std::log(_counts[m - 1]) + _log_scaling_factor*(double)_nfactors[m - 1];
             double log_v = logCterm - log_count_m;
-            total += std::exp(log_v);
             _topology_prior.push_back(log_v);
         }
-        _topology_prior[0] = std::log(total);
     }
     else {
         double total = 0.0;

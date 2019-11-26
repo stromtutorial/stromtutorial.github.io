@@ -69,6 +69,7 @@ namespace strom {
             double                                  _prob;
             double                                  _lambda;
             double                                  _log_hastings_ratio;
+            double                                  _log_jacobian;
             double                                  _target_acceptance;
             unsigned                                _naccepts;
             unsigned                                _nattempts;
@@ -111,6 +112,7 @@ namespace strom {
 
     inline void Updater::reset() { ///begin_reset
         _log_hastings_ratio = 0.0;
+        _log_jacobian       = 0.0;
     } ///end_reset
 
     inline void Updater::setLikelihood(Likelihood::SharedPtr likelihood) { ///begin_setLikelihood
@@ -237,11 +239,27 @@ namespace strom {
         // Decide whether to accept or reject the proposed state
         bool accept = true;
         if (log_prior > _log_zero) {
-            double log_diff = _log_hastings_ratio;
-            log_diff += _heating_power*((log_likelihood + log_prior) - (prev_lnL + prev_log_prior));
-
+            double log_R = 0.0;
+            log_R += _heating_power*(log_likelihood - prev_lnL);
+            log_R += _heating_power*(log_prior - prev_log_prior);
+            log_R += _log_hastings_ratio;
+            log_R += _log_jacobian;
+            
             double logu = _lot->logUniform();
-            if (logu > log_diff)
+
+#if 0  //POLTMP //POLY
+            std::cerr << "\nUpdate information:" << std::endl;
+            std::cerr << "  log likelihood ratio: " << (log_likelihood - prev_lnL) << std::endl;
+            std::cerr << "  log prior ratio:      " << (log_prior - prev_log_prior) << std::endl;
+            std::cerr << "  log Hastings ratio:   " << _log_hastings_ratio << std::endl;
+            std::cerr << "  log Jacobian:         " << _log_jacobian << std::endl;
+            std::cerr << "  log R:                " << log_R << std::endl;
+            std::cerr << "  log u:                " << logu << std::endl;
+            std::cerr << "  accept:               " << (logu <= log_R ? "yes" : "no") << std::endl;
+            std::cerr << std::endl;
+#endif
+
+            if (logu > log_R)
                 accept = false;
         }
         else
@@ -277,64 +295,72 @@ namespace strom {
         _topo_prior_calculator.setNTax(tree->numLeaves());
         _topo_prior_calculator.setC(_topo_prior_C);
         unsigned m = tree->numInternals();
-        double log_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
+        
+        //POLTMP count internals as sanity check
+        //unsigned mchk = _tree_manipulator->countInternals();
+        //assert(m == mchk);
+        
+        double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
+#if 0  //POLTMP //POLY
+        std::cerr << boost::str(boost::format("\nlog_topology_prior = %.5f (m = %d)") % log_topology_prior % m) << std::endl;
+#endif
 
-        //double logc1 = _topo_prior_calculator.getLogCount(10,1) + _topo_prior_calculator.getLogNormalizedTopologyPrior(1);
-        //double logc2 = _topo_prior_calculator.getLogCount(10,2) + _topo_prior_calculator.getLogNormalizedTopologyPrior(2);
-        //double logc3 = _topo_prior_calculator.getLogCount(10,3) + _topo_prior_calculator.getLogNormalizedTopologyPrior(3);
-        //double logc4 = _topo_prior_calculator.getLogCount(10,4) + _topo_prior_calculator.getLogNormalizedTopologyPrior(4);
-        //double logc5 = _topo_prior_calculator.getLogCount(10,5) + _topo_prior_calculator.getLogNormalizedTopologyPrior(5);
-        //double logc6 = _topo_prior_calculator.getLogCount(10,6) + _topo_prior_calculator.getLogNormalizedTopologyPrior(6);
-        //double logc7 = _topo_prior_calculator.getLogCount(10,7) + _topo_prior_calculator.getLogNormalizedTopologyPrior(7);
-        //double logc8 = _topo_prior_calculator.getLogCount(10,8) + _topo_prior_calculator.getLogNormalizedTopologyPrior(8);
-        //std::cerr << boost::str(boost::format("m=1 log count=%.5f") % exp(logc1)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=2 prob=%.5f") % exp(logc2)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=3 prob=%.5f") % exp(logc3)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=4 prob=%.5f") % exp(logc4)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=5 prob=%.5f") % exp(logc5)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=6 prob=%.5f") % exp(logc6)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=7 prob=%.5f") % exp(logc7)) << std::endl;
-        //std::cerr << boost::str(boost::format("m=8 prob=%.5f") % exp(logc8)) << std::endl;
-        //std::cerr << std::endl;
-        //std::cerr << boost::str(boost::format("m=1 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,1))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=2 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,2))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=3 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,3))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=4 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,4))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=5 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,5))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=6 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,6))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=7 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,7))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=7 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,8))) << std::endl;
-        //float total_count = exp(_topo_prior_calculator.getLogCount(10,1));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,2));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,3));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,4));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,5));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,6));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,7));
-        //total_count += exp(_topo_prior_calculator.getLogCount(10,8));
-        //std::cerr << boost::str(boost::format("total count=%.0f") % total_count) << std::endl;
-        //std::cerr << std::endl;
-        //std::cerr << boost::str(boost::format("m=0 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(0))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=1 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(1))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=2 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(2))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=3 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(3))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=4 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(4))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=5 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(5))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=6 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(6))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=7 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(7))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=8 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(8))) << std::endl;
-        //std::cerr << std::endl;
-        //std::cerr << boost::str(boost::format("m=0 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(0))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=1 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(1))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=2 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(2))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=3 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(3))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=4 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(4))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=5 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(5))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=6 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(6))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=7 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(7))) << std::endl;
-        //std::cerr << boost::str(boost::format("m=8 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(8))) << std::endl;
+//        double logc1 = _topo_prior_calculator.getLogCount(10,1) + _topo_prior_calculator.getLogNormalizedTopologyPrior(1);
+//        double logc2 = _topo_prior_calculator.getLogCount(10,2) + _topo_prior_calculator.getLogNormalizedTopologyPrior(2);
+//        double logc3 = _topo_prior_calculator.getLogCount(10,3) + _topo_prior_calculator.getLogNormalizedTopologyPrior(3);
+//        double logc4 = _topo_prior_calculator.getLogCount(10,4) + _topo_prior_calculator.getLogNormalizedTopologyPrior(4);
+//        double logc5 = _topo_prior_calculator.getLogCount(10,5) + _topo_prior_calculator.getLogNormalizedTopologyPrior(5);
+//        double logc6 = _topo_prior_calculator.getLogCount(10,6) + _topo_prior_calculator.getLogNormalizedTopologyPrior(6);
+//        double logc7 = _topo_prior_calculator.getLogCount(10,7) + _topo_prior_calculator.getLogNormalizedTopologyPrior(7);
+//        double logc8 = _topo_prior_calculator.getLogCount(10,8) + _topo_prior_calculator.getLogNormalizedTopologyPrior(8);
+//        std::cerr << boost::str(boost::format("m=1 prob=%.5f") % exp(logc1)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=2 prob=%.5f") % exp(logc2)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=3 prob=%.5f") % exp(logc3)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=4 prob=%.5f") % exp(logc4)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=5 prob=%.5f") % exp(logc5)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=6 prob=%.5f") % exp(logc6)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=7 prob=%.5f") % exp(logc7)) << std::endl;
+//        std::cerr << boost::str(boost::format("m=8 prob=%.5f") % exp(logc8)) << std::endl;
+//        std::cerr << std::endl;
+//        std::cerr << boost::str(boost::format("m=1 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,1))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=2 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,2))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=3 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,3))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=4 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,4))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=5 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,5))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=6 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,6))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=7 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,7))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=7 count=%.0f") % exp(_topo_prior_calculator.getLogCount(10,8))) << std::endl;
+//        float total_count = exp(_topo_prior_calculator.getLogCount(10,1));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,2));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,3));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,4));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,5));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,6));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,7));
+//        total_count += exp(_topo_prior_calculator.getLogCount(10,8));
+//        std::cerr << boost::str(boost::format("total count=%.0f") % total_count) << std::endl;
+//        std::cerr << std::endl;
+//        std::cerr << boost::str(boost::format("m=0 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(0))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=1 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(1))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=2 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(2))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=3 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(3))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=4 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(4))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=5 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(5))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=6 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(6))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=7 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(7))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=8 prob=%.12f") % exp(_topo_prior_calculator.getLogNormalizedTopologyPrior(8))) << std::endl;
+//        std::cerr << std::endl;
+//        std::cerr << boost::str(boost::format("m=0 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(0))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=1 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(1))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=2 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(2))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=3 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(3))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=4 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(4))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=5 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(5))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=6 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(6))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=7 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(7))) << std::endl;
+//        std::cerr << boost::str(boost::format("m=8 prob=%.12f") % exp(_topo_prior_calculator.getLogTopologyPrior(8))) << std::endl;
 
-        return log_prior;
+        return log_topology_prior;
         
         //double n = tree->numLeaves();
         //if (tree->isRooted())
@@ -347,14 +373,22 @@ namespace strom {
         double log_prior = 0.0;
         Tree::SharedPtr tree = _tree_manipulator->getTree();
 #if 1 //POLTMP
+#   if 0 //POLY
+        std::cerr << "\nEdge length prior:" << std::endl; //POLTMP
+#endif
         // standard exponential edge length prior (for debugging)
         double new_edgelen_mean = _prior_parameters[3];
         double exp_lambda = 1.0/new_edgelen_mean;
         double log_exp_lambda = std::log(exp_lambda);
+        unsigned i = 1;
         for (auto nd : tree->_preorder) {
             double v = nd->_edge_length;
             double log_prob = log_exp_lambda - exp_lambda*v;
+#           if 0 //POLY
+                std::cerr << boost::str(boost::format("%12d %12.5f %12.5f") % i % v % log_prob) << std::endl; //POLTMP
+#           endif
             log_prior += log_prob;
+            i++;
         }
 #else
         assert(tree);
@@ -363,7 +397,7 @@ namespace strom {
         //double n = tree->numLeaves();
         double num_edges = _tree_manipulator->countEdges();
 
-        assert(_prior_parameters.size() == 3);
+        assert(_prior_parameters.size() == 4);  //POLTMP: return to 3 when done playing
         double a = _prior_parameters[0];    // shape of Gamma prior on TL
         double b = _prior_parameters[1];    // scale of Gamma prior on TL
         double c = _prior_parameters[2];    // parameter of Dirichlet prior on edge length proportions

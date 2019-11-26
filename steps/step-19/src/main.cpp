@@ -6,6 +6,10 @@
 
 using namespace strom;
 
+//POLTMP
+//unsigned DebugStuff::m1 = 0;
+//unsigned DebugStuff::m2 = 1;
+
 // static data member initializations
 bool     DebugStuff::_ignore         = true;    //DEBUGSTUFF
 unsigned DebugStuff::_partial_offset = 0;       //DEBUGSTUFF

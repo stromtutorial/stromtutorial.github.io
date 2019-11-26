@@ -39,17 +39,17 @@ namespace strom {
             _polytomy_vect_t                    _poly_distr;
             _polytomy_vect_t                    _polytomies;
             
-            unsigned                            _added_node_index;
+            //unsigned                            _added_node_index;
             Node *                              _orig_par;
             Node *                              _orig_lchild;
-            Node *                              _orig_rchild;
+            //Node *                              _orig_rchild;
 
             bool                                _add_edge_proposed;
             double                              _new_edgelen;
             unsigned                            _polytomy_size;
             unsigned                            _num_polytomies;
             double                              _orig_edgelen;
-            double                              _log_jacobian;
+            double                              _new_edgelen_mean;
     };
 
     // Member function bodies go here
@@ -66,7 +66,15 @@ namespace strom {
     }   ///end_destructor
     
     inline void PolytomyUpdater::reset() {  ///begin_reset
-        //TODO
+        _new_edgelen_mean  = 0.05;
+        _orig_par          = 0;
+        _orig_lchild       = 0;
+        _new_edgelen       = 0.0;
+        _polytomy_size     = 0;
+        _num_polytomies    = 0;
+        _orig_edgelen      = 0.0;
+        _add_edge_proposed = false;
+        _polytomies.clear();
     }   ///end_reset
 
     inline double PolytomyUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
@@ -116,11 +124,10 @@ namespace strom {
         auto i = _poly_prob.find(nspokes);
         if (i == _poly_prob.end()) {
             // There is no existing probability distribution vector corresponding to nspokes
-            double ln_nfact = std::lgamma(nspokes + 1);
-            double ln_denom = std::log(2)*nspokes + std::log(1 - std::exp(std::log(2.0*nspokes + 2.0) - std::log(2)*nspokes));
+            double ln_denom = std::log(pow(2.0,nspokes) - 2.0*nspokes - 2.0); //std::log(2)*nspokes + std::log(1 - std::exp(std::log(nspokes + 1) - std::log(2)*(nspokes-1)));
             std::vector<double> v(nspokes - 3);
             for (unsigned x = 2; x <= nspokes - 2; ++x) {
-                double ln_numer = ln_nfact - std::lgamma(x + 1) - std::lgamma(nspokes - x + 1);
+                double ln_numer = std::lgamma(nspokes + 1) - std::lgamma(x + 1) - std::lgamma(nspokes - x + 1);
                 double prob_x = exp(ln_numer - ln_denom);
                 if (prob_x > 1.0)
                     prob_x = 1.0;
@@ -157,6 +164,16 @@ namespace strom {
             _add_edge_proposed = false;
         else
             _add_edge_proposed = (_lot->uniform() < 0.5);
+            
+#if 0 //POLTMP //POLY
+        if (_add_edge_proposed)
+            std::cerr << "\n**** add edge *****" << std::endl;
+        else
+            std::cerr << "\n**** delete edge *****" << std::endl;
+#endif
+
+        //POLTMP
+        //double fudge_factor = 0.455;
 
         Node * nd = 0;
         if (_add_edge_proposed) {
@@ -174,23 +191,27 @@ namespace strom {
             Node * new_nd = nd->getLeftChild();
             
             // Compute the log of the Hastings ratio
-            _log_hastings_ratio = std::log(_num_polytomies);
+            _log_hastings_ratio  = 0.0;
+            //_log_hastings_ratio += std::log(2.0);
+            //_log_hastings_ratio += std::log(fudge_factor); //POLTMP
+            _log_hastings_ratio += std::log(_num_polytomies);
             _log_hastings_ratio += std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
             _log_hastings_ratio -= std::log(num_internal_edges_before + 1);
             
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
-            unsigned ninternals = tree->numInternals();
-            const bool fully_resolved_after = (ninternals == num_internals_in_fully_resolved_tree);
+            unsigned num_internals_after = tree->numInternals();
+            const bool fully_resolved_after = (num_internals_after == num_internals_in_fully_resolved_tree);
             if (star_tree_before && !fully_resolved_after)
                 _log_hastings_ratio -= log(2.0);
             else if (fully_resolved_after && !star_tree_before)
                 _log_hastings_ratio += log(2.0);
                 
             // Compute the log of the Jacobian
-            _log_jacobian = log(_lambda) + _new_edgelen/_lambda;
+            double new_edgelen_rate = 1.0/_new_edgelen_mean;
+            _log_jacobian = -std::log(new_edgelen_rate) + new_edgelen_rate*_new_edgelen;
             
             // Fold Jacobian into Hastings ratio
-            _log_hastings_ratio += _log_jacobian;
+            //_log_hastings_ratio += _log_jacobian;
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(new_nd);
@@ -210,14 +231,17 @@ namespace strom {
             proposeDeleteEdgeMove(nd);
 
             // Compute the log of the Hastings ratio
-            _log_hastings_ratio = std::log(num_internal_edges_before);
+            _log_hastings_ratio  = 0.0;
+            //_log_hastings_ratio -= std::log(2.0);
+            //_log_hastings_ratio -= std::log(fudge_factor); //POLTMP
+            _log_hastings_ratio += std::log(num_internal_edges_before);
             _log_hastings_ratio -= std::log(_num_polytomies);
             _log_hastings_ratio -= std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
 
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
             // Now multiply by the value of the quantity labeled gamma_d in the paper
-            unsigned ninternals = tree->numInternals();
-            const bool star_tree_after = (ninternals == (tree->isRooted() ? 2 : 1));
+            unsigned ninternals_after = tree->numInternals();
+            const bool star_tree_after = (ninternals_after == (tree->isRooted() ? 2 : 1));
             if (fully_resolved_before && !star_tree_after) {
                 _log_hastings_ratio -= log(2.0);
             }
@@ -226,10 +250,11 @@ namespace strom {
             }
             
             // Compute the log Jacobian
-            _log_jacobian = -_orig_edgelen/_lambda - log(_lambda);
+            unsigned new_edgelen_rate = 1.0/_new_edgelen_mean;
+            _log_jacobian = log(new_edgelen_rate) -_orig_edgelen*new_edgelen_rate;
             
             // Fold Jacobian into Hastings ratio
-            _log_hastings_ratio += _log_jacobian;
+            //_log_hastings_ratio += _log_jacobian;
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(nd);
@@ -253,22 +278,20 @@ namespace strom {
         const std::vector<double> & prob_n = _poly_prob[_polytomy_size];
 
         // Select number of spokes to move over to new node
-        // Note that 0, 1 and _polytomy_size-1, _polytomy_size-2 are not allowed
+        // Note that 0, 1 and _polytomy_size, _polytomy_size-1 are not allowed
         // because any of these would leave the tree in an incorrect state
-        unsigned x = 2;
         double p = _lot->uniform();
         double cum = 0.0;
-        for (unsigned k = 0; k <= _polytomy_size - 4; ++k) {
-            x = k + 2;
-            double prob_k_given_n = prob_n[k];
+        unsigned k = 2;
+        for (; k <= _polytomy_size - 2; ++k) {
+            double prob_k_given_n = prob_n[k-2];
             cum += prob_k_given_n;
             if (p < cum)
                 break;
         }
-        assert(x < _polytomy_size - 1);
+        assert(k < _polytomy_size - 1);
 
         // Create the new node that will receive the x randomly-chosen spokes
-        //std::cerr << "*** ADD EDGE ***" << std::endl;  //POLTMP
         Node * v = _tree_manipulator->getUnusedNode();
         _new_edgelen = sampleEdgeLength();
         v->setEdgeLength(_new_edgelen);
@@ -281,14 +304,14 @@ namespace strom {
         _orig_par    = u;
         _orig_lchild = v;
 
-        // After the move, either v or u should have x spokes and the
-        // other node _polytomy_size - x spokes (u and v will each
+        // After the move, either v should have k spokes and the
+        // other node _polytomy_size - k spokes (u and v will each
         // have 1 additional connector spoke).
         //
-        // Choose x spokes randomly out of the _polytomy_size available.
-        // If u->par is included, let u retain the x spokes and move
-        // _polytomy_size - x spokes to v. Otherwise, move the
-        // x spokes to v leaving _polytomy_size - x spokes behind.
+        // Choose k spokes randomly out of the _polytomy_size available.
+        // If u->par is included, let u retain the k spokes and move
+        // _polytomy_size - k spokes to v. Otherwise, move the
+        // k spokes to v leaving _polytomy_size - k spokes behind.
         
         // Create vector of valid spokes (parent and all children of u except v)
         std::vector<Node *> uspokes;
@@ -302,7 +325,7 @@ namespace strom {
         bool reverse_polarity = false;
         std::vector<Node *> vspokes;
         typedef std::vector<Node *>::iterator::difference_type vec_it_diff;
-        for (unsigned k = 0; k < x; ++k) {
+        for (unsigned i = 0; i < k; ++i) {
             unsigned num_u_spokes = (unsigned)uspokes.size();
             assert(num_u_spokes > 0);
             unsigned j = _lot->randint(0, num_u_spokes-1);
@@ -380,9 +403,9 @@ namespace strom {
         // Make all of u's children left siblings (i.e. children of u->par)
         _orig_lchild = u->getLeftChild();
         while (u->getLeftChild() != NULL) {
-            _orig_rchild = u->getLeftChild();
-            _tree_manipulator->detachSubtree(_orig_rchild);
-            _tree_manipulator->insertSubtreeOnRight(_orig_rchild, _orig_par);
+            Node * tmp = u->getLeftChild();
+            _tree_manipulator->detachSubtree(tmp);
+            _tree_manipulator->insertSubtreeOnRight(tmp, _orig_par);
         }
 
         //std::cerr << "*** DELETE EDGE ***" << std::endl;  //POLTMP
@@ -442,7 +465,7 @@ namespace strom {
     }   ///end_refreshPolytomies
 
     inline double PolytomyUpdater::sampleEdgeLength() const {  ///begin_sampleEdgeLength
-        return -_lambda*std::log(1.0 - _lot->uniform());
+        return -_new_edgelen_mean*std::log(1.0 - _lot->uniform());
     }   ///end_sampleEdgeLength
 
 }   ///end
