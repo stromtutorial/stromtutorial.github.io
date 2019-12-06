@@ -97,7 +97,7 @@ namespace strom {
         
         bool tree_topology_prior_calculated = (checklist & Model::TreeTopology);
         if (!tree_topology_prior_calculated) {
-            log_prior += calcLogTopologyPrior();
+            log_prior += Updater::calcLogTopologyPrior();
             checklist |= Model::TreeTopology;
         }
             
@@ -168,7 +168,7 @@ namespace strom {
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_bottom)/TL;
-        _log_hastings_ratio = 2.0*log(m) - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
+        _log_hastings_ratio = 2.0*log(m); //POLTMP - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
         
         // Change edge lengths and flag partials and transition matrices for recalculation
         _tree_manipulator->selectPartialsHereToRoot(_x);
@@ -249,7 +249,7 @@ namespace strom {
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom)/TL;
-        _log_hastings_ratio = 3.0*log(m) - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
+        _log_hastings_ratio = 3.0*log(m); //POLTMP - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
 
         _new_edgelen_top    = m*_orig_edgelen_top;
         _new_edgelen_middle = m*_orig_edgelen_middle;

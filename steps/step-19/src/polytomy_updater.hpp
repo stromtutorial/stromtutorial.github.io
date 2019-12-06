@@ -14,13 +14,13 @@ namespace strom {
 
             typedef std::map<unsigned, std::vector<double> >    _polytomy_distr_map_t;
             typedef std::vector<Node *>                         _polytomy_vect_t;
+            typedef std::vector<double>                         _move_prob_vect_t;
             typedef std::shared_ptr< PolytomyUpdater >          SharedPtr;
 
                                                 PolytomyUpdater();
                                                 ~PolytomyUpdater();
 
             virtual double                      calcLogPrior(int & checklist);
-            //double                              calcLogTopologyPrior() const;
 
         private:
 
@@ -33,6 +33,7 @@ namespace strom {
             
             void                                computePolytomyDistribution(unsigned nspokes);
             void                                refreshPolytomies();
+            void                                refreshBirthDeathMoveProbs(unsigned num_taxa, unsigned num_internals_in_fully_resolved_tree);
             double                              sampleEdgeLength() const;
             
             _polytomy_distr_map_t               _poly_prob;
@@ -50,6 +51,8 @@ namespace strom {
             unsigned                            _num_polytomies;
             double                              _orig_edgelen;
             double                              _new_edgelen_mean;
+            _move_prob_vect_t                   _b;
+            _move_prob_vect_t                   _d;
     };
 
     // Member function bodies go here
@@ -66,7 +69,7 @@ namespace strom {
     }   ///end_destructor
     
     inline void PolytomyUpdater::reset() {  ///begin_reset
-        _new_edgelen_mean  = 0.05;
+        _new_edgelen_mean  = 0.01;
         _orig_par          = 0;
         _orig_lchild       = 0;
         _new_edgelen       = 0.0;
@@ -75,6 +78,8 @@ namespace strom {
         _orig_edgelen      = 0.0;
         _add_edge_proposed = false;
         _polytomies.clear();
+        _b.clear();
+        _d.clear();
     }   ///end_reset
 
     inline double PolytomyUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
@@ -156,6 +161,8 @@ namespace strom {
         // Rebuild _polytomies vector, which is a vector of pointers to Node objects having more than 2 children
         refreshPolytomies();
         _num_polytomies = (unsigned)_polytomies.size();
+        
+        //refreshBirthDeathMoveProbs(tree->numLeaves(), num_internals_in_fully_resolved_tree);
 
         // Determine whether an add edge move is proposed (alternative is a delete edge move)
         if (star_tree_before)
@@ -163,17 +170,24 @@ namespace strom {
         else if (fully_resolved_before)
             _add_edge_proposed = false;
         else
+            //_add_edge_proposed = (_lot->uniform() < _b[num_internal_edges_before]);
             _add_edge_proposed = (_lot->uniform() < 0.5);
             
-#if 0 //POLTMP //POLY
-        if (_add_edge_proposed)
+#if DEBUG_POLY //POLTMP //POLY
+        if (_add_edge_proposed) {
             std::cerr << "\n**** add edge *****" << std::endl;
-        else
+            DebugStuff::_debug_add_tries++;
+            DebugStuff::_debug_add_accepts++;
+        }
+        else {
             std::cerr << "\n**** delete edge *****" << std::endl;
+            DebugStuff::_debug_del_tries++;
+            DebugStuff::_debug_del_accepts++;
+        }
 #endif
 
         //POLTMP
-        //double fudge_factor = 0.455;
+        double fudge_factor = 1.0; //-1.098612289; //= log(3)
 
         Node * nd = 0;
         if (_add_edge_proposed) {
@@ -189,22 +203,32 @@ namespace strom {
             // of the spokes to the (new) left child of nd
             proposeAddEdgeMove(nd);
             Node * new_nd = nd->getLeftChild();
-            
+
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
             //_log_hastings_ratio += std::log(2.0);
-            //_log_hastings_ratio += std::log(fudge_factor); //POLTMP
+            _log_hastings_ratio += std::log(fudge_factor); //POLTMP
             _log_hastings_ratio += std::log(_num_polytomies);
             _log_hastings_ratio += std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
             _log_hastings_ratio -= std::log(num_internal_edges_before + 1);
             
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
             unsigned num_internals_after = tree->numInternals();
+            assert(num_internals_after == num_internals_before + 1);
+#if 0
+            _log_hastings_ratio += std::log(_d[num_internals_after]);
+            _log_hastings_ratio -= std::log(_b[num_internals_before]);
+            //if (num_internals_before == 1)
+            //    std::cerr << "star tree before add edge move" << std::endl;
+            //else if (num_internals_after == num_internals_in_fully_resolved_tree)
+            //    std::cerr << "resolved tree after add edge move" << std::endl;
+#else
             const bool fully_resolved_after = (num_internals_after == num_internals_in_fully_resolved_tree);
             if (star_tree_before && !fully_resolved_after)
                 _log_hastings_ratio -= log(2.0);
             else if (fully_resolved_after && !star_tree_before)
                 _log_hastings_ratio += log(2.0);
+#endif
                 
             // Compute the log of the Jacobian
             double new_edgelen_rate = 1.0/_new_edgelen_mean;
@@ -233,22 +257,33 @@ namespace strom {
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
             //_log_hastings_ratio -= std::log(2.0);
-            //_log_hastings_ratio -= std::log(fudge_factor); //POLTMP
+            _log_hastings_ratio -= std::log(fudge_factor); //POLTMP
             _log_hastings_ratio += std::log(num_internal_edges_before);
             _log_hastings_ratio -= std::log(_num_polytomies);
             _log_hastings_ratio -= std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
 
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
             // Now multiply by the value of the quantity labeled gamma_d in the paper
-            unsigned ninternals_after = tree->numInternals();
-            const bool star_tree_after = (ninternals_after == (tree->isRooted() ? 2 : 1));
+            unsigned num_internals_after = tree->numInternals();
+            assert(num_internals_after == num_internals_before - 1);
+#if 0
+            _log_hastings_ratio += std::log(_b[num_internals_after]);
+            _log_hastings_ratio -= std::log(_d[num_internals_before]);
+            //if (num_internals_after == 1)
+            //    std::cerr << "star tree after delete edge move" << std::endl;
+            //else if (num_internals_before == num_internals_in_fully_resolved_tree)
+            //    std::cerr << "resolved tree before delete edge move" << std::endl;
+
+#else
+            const bool star_tree_after = (num_internals_after == (tree->isRooted() ? 2 : 1));
             if (fully_resolved_before && !star_tree_after) {
                 _log_hastings_ratio -= log(2.0);
             }
             else if (star_tree_after && !fully_resolved_before) {
                 _log_hastings_ratio += log(2.0);
             }
-            
+#endif
+
             // Compute the log Jacobian
             unsigned new_edgelen_rate = 1.0/_new_edgelen_mean;
             _log_jacobian = log(new_edgelen_rate) -_orig_edgelen*new_edgelen_rate;
@@ -417,6 +452,12 @@ namespace strom {
     
     inline void PolytomyUpdater::revert() { ///begin_revert
         //Tree::SharedPtr tree = _tree_manipulator->getTree();
+#if DEBUG_POLY //POLTMP //POLY
+        if (_add_edge_proposed)
+            DebugStuff::_debug_add_accepts--;
+        else
+            DebugStuff::_debug_del_accepts--;
+#endif
         if (_add_edge_proposed) {
             // Return all of _orig_lchild's child nodes to _orig_par, then return orig_lchild to storage
             Node * child = _orig_lchild->getLeftChild();
@@ -464,8 +505,57 @@ namespace strom {
         }
     }   ///end_refreshPolytomies
 
+    inline void PolytomyUpdater::refreshBirthDeathMoveProbs(unsigned num_taxa, unsigned num_internals_in_fully_resolved_tree) {  ///begin_refreshPolytomies
+        // This funtion is currently unused: probs turned out to be not that different from 50:50 when not at the ends
+        //
+        //  m        count    log(prob)         b[m]         d[m]         c[m]
+        //  1            1     -2.07944      1.00000      0.00000      0.00200
+        //  2          500     -8.29605      0.02138      0.97862      1.02184
+        //  3        22935    -12.11986      0.07037      0.92963      1.07569
+        //  4       302994    -14.70091      0.15621      0.84379      1.18513
+        //  5      1636634    -16.38759      0.28534      0.71466      1.39927
+        //  6      4099094    -17.30572      0.46429      0.53571      1.86667
+        //  7      4729725    -17.44882      0.50000      0.50000      2.00000
+        //  8      2027024    -16.60152      0.00000      1.00000      0.42857
+
+        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        //double total_count = _topo_prior_calculator.getLogTotalCount(num_taxa);
+        _b.resize(num_internals_in_fully_resolved_tree+1, 0.0);
+        _d.resize(num_internals_in_fully_resolved_tree+1, 0.0);
+        std::vector<double> c(num_internals_in_fully_resolved_tree+1, 1.0);
+        _d[1] = 0.0;
+        _b[num_internals_in_fully_resolved_tree] = 0.0;
+        unsigned m = 1;
+        for (; m < num_internals_in_fully_resolved_tree; m++) {
+            double pm  = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
+            double pm1 = _topo_prior_calculator.getLogNormalizedTopologyPrior(m+1);
+            if (pm1 > pm) {
+                _b[m] = 1.0;
+                _d[m+1] = std::exp(pm - pm1);
+            }
+            else {
+                _b[m] = std::exp(pm1 - pm);
+                _d[m+1] = 1.0;
+            }
+            c[m] = _b[m] + _d[m];
+        }
+        c[m] = _b[m] + _d[m];
+        //std::cerr << boost::str(boost::format("%6s %12s %12s %12s %12s %12s") % "m" % "count" % "log(prob)" % "b[m]" % "d[m]" % "c[m]") << std::endl;
+        for (m = 1; m <= num_internals_in_fully_resolved_tree; m++) {
+            _b[m] /= c[m];
+            _d[m] /= c[m];
+            //std::cerr << boost::str(boost::format("%6d %12d %12.5f %12.5f %12.5f %12.5f")
+            //    % m
+            //    % int(std::exp(_topo_prior_calculator.getLogCount(num_taxa,m)))
+            //    % _topo_prior_calculator.getLogNormalizedTopologyPrior(m)
+            //    % _b[m]  % _d[m] % c[m]) << std::endl;
+        }
+        //std::cerr << std::endl;
+        }   ///end_refreshPolytomies
+
     inline double PolytomyUpdater::sampleEdgeLength() const {  ///begin_sampleEdgeLength
-        return -_new_edgelen_mean*std::log(1.0 - _lot->uniform());
+        double new_edgelen = -_new_edgelen_mean*std::log(1.0 - _lot->uniform());
+        return new_edgelen;
     }   ///end_sampleEdgeLength
 
 }   ///end

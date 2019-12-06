@@ -59,7 +59,8 @@ namespace strom {
         pushToModel();
 
         // calculate log of Hastings ratio under GammaDir parameterization
-        _log_hastings_ratio = log(m);
+        double num_edges = _tree_manipulator->countEdges(); //POLTMP
+        _log_hastings_ratio = log(m)*num_edges; //POLTMP (remove *num_edges when you go back to GammaDir parameterization)
 
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();

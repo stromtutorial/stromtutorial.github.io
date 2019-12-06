@@ -446,10 +446,6 @@ namespace strom {
         unsigned num_internals_before = tree->numInternals();
         bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
         bool star_tree_before = (tree->numInternals() == 1);
-        if (star_tree_before)
-            DebugStuff::m1++;
-        if (fully_resolved_before)
-            DebugStuff::m2++;
 #endif
 
         bool time_to_sample = (bool)(iteration % _sample_freq == 0);
@@ -771,10 +767,6 @@ namespace strom {
     inline void Strom::run() {  ///begin_run
         std::cout << "Starting..." << std::endl;
         std::cout << "Current working directory: " << boost::filesystem::current_path() << std::endl;
-        
-        //POLTMP
-        //DebugStuff::m1 = 0;
-        //DebugStuff::m2 = 0;
         
         try {
             readData();

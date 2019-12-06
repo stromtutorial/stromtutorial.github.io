@@ -130,14 +130,14 @@ namespace strom {
         double sum_weights      = 0.0;
         
         if (_model->isAllowPolytomies()) {
-#if 1   //POLTMP
-            wtreetopology =  5.0;
-            wpolytomy     = 14.0;
+#if 0   //POLTMP
+            wtreetopology =  14.0;
+            wpolytomy     =   5.0;
 #else
-            wstd             = 0.0;
-            wtreelength      = 0.0;
-            wtreetopology    = 0.0;
-            wpolytomy        = 1.0;
+            wstd             = 1.0;
+            wtreelength      = 2.0;
+            wtreetopology    = 10.0;
+            wpolytomy        = 5.0;
 #endif
         }
         
@@ -223,12 +223,12 @@ namespace strom {
             double tree_length_shape = 1.0;
             double tree_length_scale = 10.0;
             double dirichlet_param   = 1.0;
-            double new_edgelen_mean = 0.05;
+            double new_edgelen_mean = 0.10;
                         
             Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater());
             u->setLikelihood(likelihood);
             u->setLot(lot);
-            u->setLambda(0.5);
+            u->setLambda(2.0);    //POLTMP
             u->setTargetAcceptanceRate(0.3);
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param, new_edgelen_mean});   //POLTMP: new_edgelen_mean doesn't belong here
             u->setWeight(wtreetopology); sum_weights += wtreetopology;

@@ -8,6 +8,7 @@
 #include "topo_prior_calculator.hpp"
 
 #include "debug_stuff.hpp"  //DEBUGSTUFF
+#define DEBUG_POLY 0
 
 namespace strom {
     class Chain;
@@ -218,10 +219,18 @@ namespace strom {
         // whose partials and/or transition probabilities need to be recalculated
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
+        
+#if DEBUG_POLY //POLTMP //POLY
+        std::cerr << "tree before proposeNewState:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5) << std::endl;
+#endif
 
         // Set model to proposed state and calculate _log_hastings_ratio
         proposeNewState();
         
+#if DEBUG_POLY //POLTMP //POLY
+        std::cerr << "tree after proposeNewState:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5) << std::endl;
+#endif
+
         // Use alternative partials and transition probability buffer for any selected nodes
         // This allows us to easily revert to the previous values if the move is rejected
         _tree_manipulator->flipPartialsAndTMatrices();
@@ -247,7 +256,7 @@ namespace strom {
             
             double logu = _lot->logUniform();
 
-#if 0  //POLTMP //POLY
+#if DEBUG_POLY //POLTMP //POLY
             std::cerr << "\nUpdate information:" << std::endl;
             std::cerr << "  log likelihood ratio: " << (log_likelihood - prev_lnL) << std::endl;
             std::cerr << "  log prior ratio:      " << (log_prior - prev_log_prior) << std::endl;
@@ -301,7 +310,7 @@ namespace strom {
         //assert(m == mchk);
         
         double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
-#if 0  //POLTMP //POLY
+#if DEBUG_POLY  //POLTMP //POLY
         std::cerr << boost::str(boost::format("\nlog_topology_prior = %.5f (m = %d)") % log_topology_prior % m) << std::endl;
 #endif
 
@@ -373,9 +382,10 @@ namespace strom {
         double log_prior = 0.0;
         Tree::SharedPtr tree = _tree_manipulator->getTree();
 #if 1 //POLTMP
-#   if 0 //POLY
+#   if DEBUG_POLY //POLY
+        double TL = 0.0;
         std::cerr << "\nEdge length prior:" << std::endl; //POLTMP
-#endif
+#   endif
         // standard exponential edge length prior (for debugging)
         double new_edgelen_mean = _prior_parameters[3];
         double exp_lambda = 1.0/new_edgelen_mean;
@@ -384,12 +394,16 @@ namespace strom {
         for (auto nd : tree->_preorder) {
             double v = nd->_edge_length;
             double log_prob = log_exp_lambda - exp_lambda*v;
-#           if 0 //POLY
+#           if DEBUG_POLY //POLY
+                TL += v;
                 std::cerr << boost::str(boost::format("%12d %12.5f %12.5f") % i % v % log_prob) << std::endl; //POLTMP
 #           endif
             log_prior += log_prob;
             i++;
         }
+#       if DEBUG_POLY //POLY
+        std::cerr << boost::str(boost::format("%12s %12.5f %12.5f\n") % "total" % TL % log_prior) << std::endl; //POLTMP
+#       endif
 #else
         assert(tree);
 
