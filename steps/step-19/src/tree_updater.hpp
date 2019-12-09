@@ -142,7 +142,12 @@ namespace strom {
 
     inline void TreeUpdater::starTreeMove() {    ///begin_starTreeMove
         // Choose expansion/contraction factor
+#if 1   //POLTMP
+        // try not having a Hastings ratio
+        _log_hastings_ratio = 0.0;
+#else
         double m = exp(_lambda*(_lot->uniform() - 0.5));
+#endif
 
         // Choose focal 2-edge segment to shrink or grow (middle edge constrained to equal zero in star tree)
         _orig_edgelen_middle = 0.0;
@@ -160,16 +165,26 @@ namespace strom {
         _orig_edgelen_bottom = _b->getEdgeLength();
 
         // Note that what (_a or _b) we're calling top and what we're calling bottom is arbitrary
+#if 1   //POLTMP
+        // try not having a Hastings ratio
+        double u = _lot->uniform();
+        _new_edgelen_top    = u*_orig_edgelen_top;
+        double remainder = _orig_edgelen_top - _new_edgelen_top;
+        _new_edgelen_middle = 0.0;
+        _new_edgelen_bottom = _orig_edgelen_bottom + remainder;
+#else
         _new_edgelen_top    = m*_orig_edgelen_top;
         _new_edgelen_middle = 0.0;
         _new_edgelen_bottom = m*_orig_edgelen_bottom;
-        
+#endif
+
         // Calculate Hastings ratio under GammaDir parameterization
+#if 0
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_bottom)/TL;
         _log_hastings_ratio = 2.0*log(m); //POLTMP - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
-        
+#endif
         // Change edge lengths and flag partials and transition matrices for recalculation
         _tree_manipulator->selectPartialsHereToRoot(_x);
         _a->setEdgeLength(_new_edgelen_top);
@@ -243,13 +258,69 @@ namespace strom {
         }
         
         // Choose expansion/contraction factor
+#if 1   //POLTMP
+        // try not having a Hastings ratio
+        double m = 1.0; // no shrinkage or expansion
+        _log_hastings_ratio = 0.0;
+#else
         double m = exp(_lambda*(_lot->uniform() - 0.5));
+#endif
 
         // Calculate Hastings ratio under GammaDir parameterization
+#if 0   //original version
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom)/TL;
         _log_hastings_ratio = 3.0*log(m); //POLTMP - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
+#endif
+
+#if 0   //POLTMP
+        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        std::vector<double> nonfocal_edgelens;
+        std::vector<double> focal_edgelens;
+        for (auto nd : tree->_preorder) {
+            //std::cerr << "nd = " << nd << std::endl;
+            double edgelen = nd->getEdgeLength();
+            if (b_is_child_of_y) {
+                if (nd == _a || nd == _x || nd == _b)
+                    focal_edgelens.push_back(edgelen);
+                else
+                    nonfocal_edgelens.push_back(edgelen);
+            }
+            else {
+                if (nd == _a || nd == _x || nd == _y)
+                    focal_edgelens.push_back(edgelen);
+                else
+                    nonfocal_edgelens.push_back(edgelen);
+            }
+        }
+        
+        unsigned num_edges = (unsigned)focal_edgelens.size() + (unsigned)nonfocal_edgelens.size();
+        if (num_edges != _tree_manipulator->countEdges()) {
+            std::cerr << "oops: num_edges = " << num_edges << ", should be " << (_tree_manipulator->countEdges()) << std::endl;
+            assert(false);
+        }
+
+        double sum_focal = std::accumulate(focal_edgelens.begin(),focal_edgelens.end(), 0.0);
+//        if (std::fabs(sum_focal - _orig_edgelen_top - _orig_edgelen_middle - _orig_edgelen_bottom) > 1.e-8) {
+//            std::cerr << "oops: sum_focal = " << sum_focal << ", should be " << (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom) << std::endl;
+//            assert(false);
+//        }
+        double sum_nonfocal = std::accumulate(nonfocal_edgelens.begin(),nonfocal_edgelens.end(), 0.0);
+        double TL = sum_focal + sum_nonfocal;
+//        if (std::fabs(TL - _tree_manipulator->calcTreeLength()) > 1.e-8) {
+//            std::cerr << "oops: TL = " << TL << ", should be " << _tree_manipulator->calcTreeLength() << std::endl;
+//            assert(false);
+//        }
+        double beta = (sum_focal*m + sum_nonfocal)/TL;
+        double phi = sum_focal;
+        std::transform(nonfocal_edgelens.begin(), nonfocal_edgelens.end(), nonfocal_edgelens.begin(), [](double x) -> double { return std::log(x); });
+        double log_pi = std::accumulate(nonfocal_edgelens.begin(), nonfocal_edgelens.end(), 0.0);
+        double pi = std::exp(log_pi);
+        _log_hastings_ratio = 3.0*std::log(m) - log(beta)*(2.0*num_edges-2.0);
+        double term = (1.0 - m)*( pi*m*(1-m)*phi - pi*beta*(1+m)-m*beta*phi*(1-phi) );
+        _log_hastings_ratio += std::log(term);
+#endif
 
         _new_edgelen_top    = m*_orig_edgelen_top;
         _new_edgelen_middle = m*_orig_edgelen_middle;

@@ -13,7 +13,11 @@ unsigned DebugStuff::_debug_del_tries   = 0;  //POLTMP
 unsigned DebugStuff::_debug_del_accepts = 0;  //POLTMP
 
 // static data member initializations
+#if DEBUG_POLY  //POLY //POLTMP
+bool     DebugStuff::_ignore         = false;    //DEBUGSTUFF
+#else
 bool     DebugStuff::_ignore         = true;    //DEBUGSTUFF
+#endif
 unsigned DebugStuff::_partial_offset = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_tmatrix_offset = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_which_iter     = 0;       //DEBUGSTUFF

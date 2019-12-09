@@ -2,6 +2,8 @@
 
 #include "updater.hpp"
 
+#define DEBUG_SEPARATE_EDGELEN_PARAMS 0 //POLTMP
+
 namespace strom {
 
     class TreeLengthUpdater : public Updater {
@@ -60,7 +62,11 @@ namespace strom {
 
         // calculate log of Hastings ratio under GammaDir parameterization
         double num_edges = _tree_manipulator->countEdges(); //POLTMP
-        _log_hastings_ratio = log(m)*num_edges; //POLTMP (remove *num_edges when you go back to GammaDir parameterization)
+#if DEBUG_SEPARATE_EDGELEN_PARAMS
+        _log_hastings_ratio = log(m)*num_edges;
+#else
+        _log_hastings_ratio = log(m);
+#endif
 
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();

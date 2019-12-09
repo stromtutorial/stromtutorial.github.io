@@ -143,15 +143,17 @@ namespace strom {
         
         _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
         _orig_edgelen_middle = _x->getEdgeLength();
+        //std::cerr << "_x = " << _x << std::endl;
 
         _y = _x->getParent();
 
         // Choose focal 3-edge segment to shrink or grow
         // Begin by randomy choosing one child of x to be node a
-        _a = chooseRandomChild(_x, 0, false);
+        _a = chooseRandomChild(_x, 0, false);   // false = parent excluded
+        //std::cerr << "_a = " << _a << std::endl;
         _orig_edgelen_top = _a->getEdgeLength();
 
-        _b = chooseRandomChild(_y, _x, true);
+        _b = chooseRandomChild(_y, _x, true);   // true = parent included
         bool b_is_child_of_y;
         if (_b) {
             b_is_child_of_y = true;
@@ -163,14 +165,73 @@ namespace strom {
             _orig_edgelen_bottom = _y->getEdgeLength();
         }
         
+        //if (b_is_child_of_y)
+        //    std::cerr << "_b = " << _b << std::endl;
+        //else
+        //    std::cerr << "_y = " << _y << std::endl;
+
         // Choose expansion/contraction factor
+#if 0
         double m = exp(_lambda*(_lot->uniform() - 0.5));
+#else
+        _log_hastings_ratio = 0.0;
+        double m = 1.0;
+#endif
 
         // Calculate Hastings ratio under GammaDir parameterization
+#if 0
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom)/TL;
         _log_hastings_ratio = 3.0*log(m) - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
+#endif
+
+#if 0  //POLTMP
+        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        std::vector<double> nonfocal_edgelens;
+        std::vector<double> focal_edgelens;
+        for (auto nd : tree->_preorder) {
+            //std::cerr << "nd = " << nd << std::endl;
+            if (b_is_child_of_y) {
+                if (nd == _a || nd == _x || nd == _b)
+                    focal_edgelens.push_back(nd->getEdgeLength());
+                else
+                    nonfocal_edgelens.push_back(nd->getEdgeLength());
+            }
+            else {
+                if (nd == _a || nd == _x || nd == _y)
+                    focal_edgelens.push_back(nd->getEdgeLength());
+                else
+                    nonfocal_edgelens.push_back(nd->getEdgeLength());
+            }
+        }
+        
+        unsigned num_edges = (unsigned)focal_edgelens.size() + (unsigned)nonfocal_edgelens.size();
+        if (num_edges != _tree_manipulator->countEdges()) {
+            std::cerr << "oops: num_edges = " << num_edges << ", should be " << (_tree_manipulator->countEdges()) << std::endl;
+            assert(false);
+        }
+
+        double sum_focal = std::accumulate(focal_edgelens.begin(),focal_edgelens.end(), 0.0);
+        if (std::fabs(sum_focal - _orig_edgelen_top - _orig_edgelen_middle - _orig_edgelen_bottom) > 1.e-8) {
+            std::cerr << "oops: sum_focal = " << sum_focal << ", should be " << (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom) << std::endl;
+            assert(false);
+        }
+        double sum_nonfocal = std::accumulate(nonfocal_edgelens.begin(),nonfocal_edgelens.end(), 0.0);
+        double TL = sum_focal + sum_nonfocal;
+        if (std::fabs(TL - _tree_manipulator->calcTreeLength()) > 1.e-8) {
+            std::cerr << "oops: TL = " << TL << ", should be " << _tree_manipulator->calcTreeLength() << std::endl;
+            assert(false);
+        }
+        double beta = (sum_focal*m + sum_nonfocal)/TL;
+        _log_hastings_ratio = 3.0*std::log(m) - log(beta)*num_edges;
+        for (double v : focal_edgelens) {
+            _log_hastings_ratio += std::log(1.0 - m*(v/TL)/beta);
+        }
+        for (double v : nonfocal_edgelens) {
+            _log_hastings_ratio += std::log(1.0 - (v/TL)/beta);
+        }
+#endif
 
         _new_edgelen_top    = m*_orig_edgelen_top;
         _new_edgelen_middle = m*_orig_edgelen_middle;

@@ -10,6 +10,7 @@ namespace strom {
     class TreeManip;
     class Likelihood;
     class Updater;
+    class TreeUpdater;
     class PolytomyUpdater;
 
     class DebugStuff;   //DEBUGSTUFF
@@ -19,6 +20,7 @@ namespace strom {
             friend class TreeManip;
             friend class Likelihood;
             friend class Updater;
+            friend class TreeUpdater;
             friend class PolytomyUpdater;
 
             friend class DebugStuff;   //DEBUGSTUFF

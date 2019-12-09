@@ -152,9 +152,14 @@ namespace strom {
         else
             num_internals_in_fully_resolved_tree = tree->numLeaves() - 2;
             
+        // Compute tree length before proposed move
+        double tree_length_before = _tree_manipulator->calcTreeLength();
+            
         // Determine whether starting tree is fully resolved or the star tree
         unsigned num_internals_before = tree->numInternals();
+        unsigned num_leaves_before = tree->numLeaves();
         unsigned num_internal_edges_before = num_internals_before - (tree->isRooted() ? 2 : 1);
+        unsigned total_edges_before = num_leaves_before + num_internal_edges_before;
         bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
         bool star_tree_before = (tree->numInternals() == 1);
         
@@ -186,9 +191,6 @@ namespace strom {
         }
 #endif
 
-        //POLTMP
-        double fudge_factor = 1.0; //-1.098612289; //= log(3)
-
         Node * nd = 0;
         if (_add_edge_proposed) {
             // Choose a polytomy at random to split
@@ -206,8 +208,6 @@ namespace strom {
 
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
-            //_log_hastings_ratio += std::log(2.0);
-            _log_hastings_ratio += std::log(fudge_factor); //POLTMP
             _log_hastings_ratio += std::log(_num_polytomies);
             _log_hastings_ratio += std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
             _log_hastings_ratio -= std::log(num_internal_edges_before + 1);
@@ -231,11 +231,11 @@ namespace strom {
 #endif
                 
             // Compute the log of the Jacobian
-            double new_edgelen_rate = 1.0/_new_edgelen_mean;
-            _log_jacobian = -std::log(new_edgelen_rate) + new_edgelen_rate*_new_edgelen;
-            
-            // Fold Jacobian into Hastings ratio
-            //_log_hastings_ratio += _log_jacobian;
+            _log_jacobian = 0.0;
+            _log_jacobian += std::log(_new_edgelen_mean);
+            _log_jacobian += total_edges_before*std::log(tree_length_before);
+            _log_jacobian += _new_edgelen/_new_edgelen_mean;
+            _log_jacobian -= (total_edges_before + 1)*std::log(tree_length_before + _new_edgelen);
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(new_nd);
@@ -256,8 +256,6 @@ namespace strom {
 
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
-            //_log_hastings_ratio -= std::log(2.0);
-            _log_hastings_ratio -= std::log(fudge_factor); //POLTMP
             _log_hastings_ratio += std::log(num_internal_edges_before);
             _log_hastings_ratio -= std::log(_num_polytomies);
             _log_hastings_ratio -= std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
@@ -285,11 +283,11 @@ namespace strom {
 #endif
 
             // Compute the log Jacobian
-            unsigned new_edgelen_rate = 1.0/_new_edgelen_mean;
-            _log_jacobian = log(new_edgelen_rate) -_orig_edgelen*new_edgelen_rate;
-            
-            // Fold Jacobian into Hastings ratio
-            //_log_hastings_ratio += _log_jacobian;
+            _log_jacobian = 0.0;
+            _log_jacobian -= std::log(_new_edgelen_mean);
+            _log_jacobian -= (total_edges_before - 1)*std::log(tree_length_before - _orig_edgelen);
+            _log_jacobian -= _orig_edgelen/_new_edgelen_mean;
+            _log_jacobian += total_edges_before*std::log(tree_length_before);
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(nd);
@@ -554,7 +552,7 @@ namespace strom {
         }   ///end_refreshPolytomies
 
     inline double PolytomyUpdater::sampleEdgeLength() const {  ///begin_sampleEdgeLength
-        double new_edgelen = -_new_edgelen_mean*std::log(1.0 - _lot->uniform());
+        double new_edgelen = -_new_edgelen_mean*std::log(_lot->uniform());
         return new_edgelen;
     }   ///end_sampleEdgeLength
 

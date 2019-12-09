@@ -9,6 +9,7 @@
 
 #include "debug_stuff.hpp"  //DEBUGSTUFF
 #define DEBUG_POLY 0
+#define DEBUG_SEPARATE_EDGELEN_PARAMS 0
 
 namespace strom {
     class Chain;
@@ -381,7 +382,7 @@ namespace strom {
     inline double Updater::calcLogEdgeLengthPrior() const { ///begin_calcLogEdgeLengthPrior
         double log_prior = 0.0;
         Tree::SharedPtr tree = _tree_manipulator->getTree();
-#if 1 //POLTMP
+#if DEBUG_SEPARATE_EDGELEN_PARAMS //POLTMP
 #   if DEBUG_POLY //POLY
         double TL = 0.0;
         std::cerr << "\nEdge length prior:" << std::endl; //POLTMP
