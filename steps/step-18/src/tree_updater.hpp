@@ -33,10 +33,6 @@ namespace strom {
             double                              _orig_edgelen_middle;
             double                              _orig_edgelen_bottom;
 
-            double                              _new_edgelen_top;
-            double                              _new_edgelen_middle;
-            double                              _new_edgelen_bottom;
-
             unsigned                            _case;
             bool                                _topology_changed;
             Node *                              _x;
@@ -50,7 +46,7 @@ namespace strom {
     inline TreeUpdater::TreeUpdater() { ///begin_constructor
         // std::cout << "Creating a TreeUpdater" << std::endl;
         Updater::clear();
-        _name = "Tree and Edge Lengths";
+        _name = "Tree Topology and Edge Proportions";
         reset();
     }   ///end_constructor
 
@@ -63,9 +59,6 @@ namespace strom {
         _orig_edgelen_top       = 0.0;
         _orig_edgelen_middle    = 0.0;
         _orig_edgelen_bottom    = 0.0;
-        _new_edgelen_top        = 0.0;
-        _new_edgelen_middle     = 0.0;
-        _new_edgelen_bottom     = 0.0;
         _log_hastings_ratio     = 0.0;
         _case                   = 0;
         _x                      = 0;
@@ -143,17 +136,16 @@ namespace strom {
         
         _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
         _orig_edgelen_middle = _x->getEdgeLength();
-        //std::cerr << "_x = " << _x << std::endl;
 
         _y = _x->getParent();
 
-        // Choose focal 3-edge segment to shrink or grow
-        // Begin by randomy choosing one child of x to be node a
-        _a = chooseRandomChild(_x, 0, false);   // false = parent excluded
-        //std::cerr << "_a = " << _a << std::endl;
+        // Choose focal 3-edge segment to modify
+        // Begin by randomly choosing one child of x to be node _a
+        _a = chooseRandomChild(_x, 0, false);
         _orig_edgelen_top = _a->getEdgeLength();
 
-        _b = chooseRandomChild(_y, _x, true);   // true = parent included
+        // Now choose a different child of x (or the parent) to be node _b
+        _b = chooseRandomChild(_y, _x, true);
         bool b_is_child_of_y;
         if (_b) {
             b_is_child_of_y = true;
@@ -165,80 +157,11 @@ namespace strom {
             _orig_edgelen_bottom = _y->getEdgeLength();
         }
         
-        //if (b_is_child_of_y)
-        //    std::cerr << "_b = " << _b << std::endl;
-        //else
-        //    std::cerr << "_y = " << _y << std::endl;
-
-        // Choose expansion/contraction factor
-#if 0
-        double m = exp(_lambda*(_lot->uniform() - 0.5));
-#else
+        // Symmetric move, Hastings ratio = 1
         _log_hastings_ratio = 0.0;
-        double m = 1.0;
-#endif
-
-        // Calculate Hastings ratio under GammaDir parameterization
-#if 0
-        double num_edges = (double)(_tree_manipulator->countEdges());
-        double TL = _tree_manipulator->calcTreeLength();
-        double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom)/TL;
-        _log_hastings_ratio = 3.0*log(m) - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
-#endif
-
-#if 0  //POLTMP
-        Tree::SharedPtr tree = _tree_manipulator->getTree();
-        std::vector<double> nonfocal_edgelens;
-        std::vector<double> focal_edgelens;
-        for (auto nd : tree->_preorder) {
-            //std::cerr << "nd = " << nd << std::endl;
-            if (b_is_child_of_y) {
-                if (nd == _a || nd == _x || nd == _b)
-                    focal_edgelens.push_back(nd->getEdgeLength());
-                else
-                    nonfocal_edgelens.push_back(nd->getEdgeLength());
-            }
-            else {
-                if (nd == _a || nd == _x || nd == _y)
-                    focal_edgelens.push_back(nd->getEdgeLength());
-                else
-                    nonfocal_edgelens.push_back(nd->getEdgeLength());
-            }
-        }
-        
-        unsigned num_edges = (unsigned)focal_edgelens.size() + (unsigned)nonfocal_edgelens.size();
-        if (num_edges != _tree_manipulator->countEdges()) {
-            std::cerr << "oops: num_edges = " << num_edges << ", should be " << (_tree_manipulator->countEdges()) << std::endl;
-            assert(false);
-        }
-
-        double sum_focal = std::accumulate(focal_edgelens.begin(),focal_edgelens.end(), 0.0);
-        if (std::fabs(sum_focal - _orig_edgelen_top - _orig_edgelen_middle - _orig_edgelen_bottom) > 1.e-8) {
-            std::cerr << "oops: sum_focal = " << sum_focal << ", should be " << (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom) << std::endl;
-            assert(false);
-        }
-        double sum_nonfocal = std::accumulate(nonfocal_edgelens.begin(),nonfocal_edgelens.end(), 0.0);
-        double TL = sum_focal + sum_nonfocal;
-        if (std::fabs(TL - _tree_manipulator->calcTreeLength()) > 1.e-8) {
-            std::cerr << "oops: TL = " << TL << ", should be " << _tree_manipulator->calcTreeLength() << std::endl;
-            assert(false);
-        }
-        double beta = (sum_focal*m + sum_nonfocal)/TL;
-        _log_hastings_ratio = 3.0*std::log(m) - log(beta)*num_edges;
-        for (double v : focal_edgelens) {
-            _log_hastings_ratio += std::log(1.0 - m*(v/TL)/beta);
-        }
-        for (double v : nonfocal_edgelens) {
-            _log_hastings_ratio += std::log(1.0 - (v/TL)/beta);
-        }
-#endif
-
-        _new_edgelen_top    = m*_orig_edgelen_top;
-        _new_edgelen_middle = m*_orig_edgelen_middle;
-        _new_edgelen_bottom = m*_orig_edgelen_bottom;
 
         // Decide where along focal path (starting from top) to place moved node
-        double new_focal_path_length = _new_edgelen_top + _new_edgelen_middle + _new_edgelen_bottom;
+        double new_focal_path_length = _orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom;
         double u = _lot->uniform();
         double new_attachment_point = u*new_focal_path_length;
         if (new_attachment_point <= Node::_smallest_edge_length)
@@ -251,53 +174,53 @@ namespace strom {
         bool x_node_slides = (bool)(u < 0.5);
         if (x_node_slides) {
             // _x slides toward _y
-            _topology_changed = (new_attachment_point > _new_edgelen_top + _new_edgelen_middle);
+            _topology_changed = (new_attachment_point > _orig_edgelen_top + _orig_edgelen_middle);
             if (_topology_changed) {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
                     _a->setEdgeLength(new_focal_path_length - new_attachment_point);
-                    _x->setEdgeLength(new_attachment_point - _new_edgelen_top - _new_edgelen_middle);
-                    _b->setEdgeLength(_new_edgelen_top + _new_edgelen_middle);
+                    _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
+                    _b->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
                     _case = 1;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
-                    _a->setEdgeLength(_new_edgelen_top + _new_edgelen_middle);
-                    _x->setEdgeLength(new_attachment_point - _new_edgelen_top - _new_edgelen_middle);
+                    _a->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
+                    _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
                     _y->setEdgeLength(new_focal_path_length - new_attachment_point);
                     _case = 2;                }
             } else {
                 _a->setEdgeLength(new_attachment_point);
-                _x->setEdgeLength(_new_edgelen_top + _new_edgelen_middle - new_attachment_point);
+                _x->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle - new_attachment_point);
                 if (b_is_child_of_y) {
-                    _b->setEdgeLength(_new_edgelen_bottom);
+                    _b->setEdgeLength(_orig_edgelen_bottom);
                     _case = 3;
                 } else {
-                    _y->setEdgeLength(_new_edgelen_bottom);
+                    _y->setEdgeLength(_orig_edgelen_bottom);
                     _case = 4;
                 }
             }
         } else {
             // _y slides toward _x
-            _topology_changed = (new_attachment_point < _new_edgelen_top);
+            _topology_changed = (new_attachment_point < _orig_edgelen_top);
             if (_topology_changed) {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-                    _a->setEdgeLength(_new_edgelen_middle + _new_edgelen_bottom);
-                    _x->setEdgeLength(_new_edgelen_top - new_attachment_point);
+                    _a->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
+                    _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
                     _b->setEdgeLength(new_attachment_point);
                     _case = 5;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
                     _a->setEdgeLength(new_attachment_point);
-                    _x->setEdgeLength(_new_edgelen_top - new_attachment_point);
-                    _y->setEdgeLength(_new_edgelen_middle + _new_edgelen_bottom);
+                    _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
+                    _y->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
                     _case = 6;
                 }
             } else {
-                _a->setEdgeLength(_new_edgelen_top);
-                _x->setEdgeLength(new_attachment_point - _new_edgelen_top);
+                _a->setEdgeLength(_orig_edgelen_top);
+                _x->setEdgeLength(new_attachment_point - _orig_edgelen_top);
                 if (b_is_child_of_y) {
                     _b->setEdgeLength(new_focal_path_length - new_attachment_point);
                     _case = 7;

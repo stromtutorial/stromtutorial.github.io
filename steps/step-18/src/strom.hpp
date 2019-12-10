@@ -472,9 +472,9 @@ namespace strom {
                     std::vector<double> accepts    = c.getAcceptPercentages();
                     std::vector<unsigned> nupdates = c.getNumUpdates();
                     unsigned n = (unsigned)names.size();
-                    _output_manager->outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
+                    _output_manager->outputConsole(boost::str(boost::format("%35s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
                     for (unsigned i = 0; i < n; ++i) {
-                        _output_manager->outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
+                        _output_manager->outputConsole(boost::str(boost::format("%35s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
                     }
                 }
             }
