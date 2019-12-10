@@ -1,9 +1,9 @@
 ---
 layout: steps
-title: Testing Polytomies
+title: Modifying the Strom and Chain classes
 partnum: 19
-subpart: 2
-description: Perform an MCMC analysis using polytomous trees.
+subpart: 4
+description: Deploy PolytomyUpdater and add prior options to Strom.
 ---
 {% comment %}
 {{ page.description | markdownify }}
@@ -13,7 +13,7 @@ description: Perform an MCMC analysis using polytomous trees.
 
 Run the program using the following `strom.conf` file:
 ~~~~~~
-{{ "steps/step-18/src/strom.conf" | polcodesnippet:"start-end","" }}
+{{ "steps/step-19/test/strom.conf" | polcodesnippet:"","" }}
 ~~~~~~
 {:.cpp}
 

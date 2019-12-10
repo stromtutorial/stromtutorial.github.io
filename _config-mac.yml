@@ -62,4 +62,5 @@ exclude:
 - steps/step-17/src
 - steps/step-18/test
 - steps/step-18/src
-- steps/step-19
+- steps/step-19/test
+- steps/step-19/src
