@@ -203,22 +203,22 @@ namespace strom {
             _updaters.push_back(u);
         }   ///!end_SubsetRelRateUpdater
         
-        // Add tree updater and tree length updater to _updaters  ///!begin_tree_updaters
+        // Add tree updater and tree length updater to _updaters ///!e
         if (!_model->isFixedTree()) {
             double tree_length_shape = 1.0;
             double tree_length_scale = 10.0;
-            double dirichlet_param   = 1.0;
+            double dirichlet_param   = 1.0; ///!f
             
-            Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater());
+            Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater()); ///!g
             u->setLikelihood(likelihood);
             u->setLot(lot);
             u->setLambda(0.5);
             u->setTargetAcceptanceRate(0.3);
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
             u->setWeight(wtreetopology); sum_weights += wtreetopology;
-            _updaters.push_back(u);
+            _updaters.push_back(u); ///!h
 
-            u = TreeLengthUpdater::SharedPtr(new TreeLengthUpdater());
+            u = TreeLengthUpdater::SharedPtr(new TreeLengthUpdater()); ///!i
             u->setLikelihood(likelihood);
             u->setLot(lot);
             u->setLambda(0.2);
@@ -226,7 +226,7 @@ namespace strom {
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
             u->setWeight(wtreelength); sum_weights += wtreelength;
             _updaters.push_back(u);
-        }   ///!end_tree_updaters
+        } ///!j
         
         for (auto u : _updaters) {
             u->calcProb(sum_weights);
@@ -316,7 +316,8 @@ namespace strom {
     inline double Chain::calcLogJointPrior() const { ///begin_calcLogJointPrior
         double lnP = 0.0;
         for (auto u : _updaters) {
-            lnP += u->calcLogPrior();
+            if (u->_name != "Tree Length")  ///!k
+                lnP += u->calcLogPrior();
         }
         return lnP;
     } ///end_calcLogJointPrior

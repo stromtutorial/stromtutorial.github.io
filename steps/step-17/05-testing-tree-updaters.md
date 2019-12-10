@@ -94,6 +94,6 @@ _likelihood->useStoredData(true);
 {:.cpp}
 {% endcomment %}
 
-## On to the final step!
+## On to heated chains
 
-The final step of the tutorial will introduce multiple chains (Metropolis coupling) to the MCMC analysis to improve mixing. We will also add a program option (`usedata`) to make ignoring data (exploring the prior) easy.
+The next step of the tutorial will introduce multiple chains (Metropolis coupling) to the MCMC analysis to improve mixing. We will also add a program option (`usedata`) to make ignoring data (exploring the prior) easy.
