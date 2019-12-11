@@ -89,6 +89,7 @@ namespace strom {
             std::string                 paramNamesAsString(std::string sep) const;
             std::string                 paramValuesAsString(std::string sep) const;
 
+#if 0
             enum PriorComponent {
                 EdgeLengths       = (1 << 0),
                 TreeTopology      = (1 << 1),
@@ -99,6 +100,7 @@ namespace strom {
                 ProportionInvar   = (1 << 6),
                 SubsetRelRates    = (1 << 7)
             };
+#endif
 
         private:
         
@@ -142,7 +144,7 @@ namespace strom {
         _num_sites = 0;
         _tree_index = 0;
         _tree_fixed = false;
-        _allow_polytomies = true;
+        _allow_polytomies = true; 
         _subset_relrates_fixed = false;
         _subset_relrates.clear();
         _subset_sizes.clear();

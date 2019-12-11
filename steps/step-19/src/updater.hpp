@@ -8,7 +8,7 @@
 #include "topo_prior_calculator.hpp"
 
 #include "debug_stuff.hpp"  //DEBUGSTUFF
-#define DEBUG_POLY 0
+#define DEBUG_POLY 1
 #define DEBUG_SEPARATE_EDGELEN_PARAMS 0
 
 namespace strom {
@@ -47,7 +47,7 @@ namespace strom {
 
             virtual void                            clear();
 
-            virtual double                          calcLogPrior(int & checklist) = 0;
+            virtual double                          calcLogPrior() = 0;
             double                                  calcLogTopologyPrior() const;
             double                                  calcLogEdgeLengthPrior() const;
             double                                  calcLogLikelihood() const;
@@ -213,8 +213,7 @@ namespace strom {
     } ///end_calcLogLikelihood
 
     inline double Updater::update(double prev_lnL) { ///begin_update
-        int checklist = 0;
-        double prev_log_prior = calcLogPrior(checklist);    // passing 0 for checklist ensures that all relevant priors will be calculated
+        double prev_log_prior = calcLogPrior();
 
         // Clear any nodes previously selected so that we can detect those nodes
         // whose partials and/or transition probabilities need to be recalculated
@@ -222,14 +221,14 @@ namespace strom {
         _tree_manipulator->deselectAllTMatrices();
         
 #if DEBUG_POLY //POLTMP //POLY
-        std::cerr << "tree before proposeNewState:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5) << std::endl;
+        std::cerr << "tree before proposeNewState:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5, false) << std::endl;
 #endif
 
         // Set model to proposed state and calculate _log_hastings_ratio
         proposeNewState();
         
 #if DEBUG_POLY //POLTMP //POLY
-        std::cerr << "tree after proposeNewState:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5) << std::endl;
+        std::cerr << "tree after proposeNewState:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5, false) << std::endl;
 #endif
 
         // Use alternative partials and transition probability buffer for any selected nodes
@@ -243,8 +242,7 @@ namespace strom {
         // Calculate the log-likelihood and log-prior for the proposed state
         double log_likelihood = calcLogLikelihood();
 
-        checklist = 0;
-        double log_prior = calcLogPrior(checklist);
+        double log_prior = calcLogPrior();
         
         // Decide whether to accept or reject the proposed state
         bool accept = true;
@@ -258,7 +256,7 @@ namespace strom {
             double logu = _lot->logUniform();
 
 #if DEBUG_POLY //POLTMP //POLY
-            std::cerr << "\nUpdate information:" << std::endl;
+            std::cerr << "\nUpdate information (\"" << _name << "\"):" << std::endl;
             std::cerr << "  log likelihood ratio: " << (log_likelihood - prev_lnL) << std::endl;
             std::cerr << "  log prior ratio:      " << (log_prior - prev_log_prior) << std::endl;
             std::cerr << "  log Hastings ratio:   " << _log_hastings_ratio << std::endl;
@@ -388,13 +386,13 @@ namespace strom {
         std::cerr << "\nEdge length prior:" << std::endl; //POLTMP
 #   endif
         // standard exponential edge length prior (for debugging)
-        double new_edgelen_mean = _prior_parameters[3];
-        double exp_lambda = 1.0/new_edgelen_mean;
-        double log_exp_lambda = std::log(exp_lambda);
+        double prior_edgelen_mean = _prior_parameters[3];
+        double prior_rate = 1.0/prior_edgelen_mean;
+        double log_exp_lambda = std::log(prior_rate);
         unsigned i = 1;
         for (auto nd : tree->_preorder) {
             double v = nd->_edge_length;
-            double log_prob = log_exp_lambda - exp_lambda*v;
+            double log_prob = log_exp_lambda - prior_rate*v;
 #           if DEBUG_POLY //POLY
                 TL += v;
                 std::cerr << boost::str(boost::format("%12d %12.5f %12.5f") % i % v % log_prob) << std::endl; //POLTMP
@@ -426,7 +424,7 @@ namespace strom {
         //
         // p1^{c-1} p2^{c-1} ... pn^{c-1}
         // ------------------------------
-        //    n*Gamma(c) / Gamma(n*c)
+        //    Gamma(c)^n / Gamma(n*c)
         //
         // where n = num_edges, pk = edge length k / TL and Gamma is the Gamma function.
         // If c == 1, then both numerator and denominator equal 1, so it is pointless

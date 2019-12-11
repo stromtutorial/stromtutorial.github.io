@@ -11,7 +11,7 @@ namespace strom {
                                             ExchangeabilityUpdater(QMatrix::SharedPtr qmatrix);
                                             ~ExchangeabilityUpdater();
                                         
-            virtual double                  calcLogPrior(int & checklist);
+            virtual double                  calcLogPrior();
 
         private:
         
@@ -35,12 +35,8 @@ namespace strom {
         // std::cout << "Destroying an ExchangeabilityUpdater" << std::endl;
     }   ///end_destructor
     
-    inline double ExchangeabilityUpdater::calcLogPrior(int & checklist) {  ///begin_calcLogPrior
-        if (checklist & Model::Exchangeabilities)
-            return 0.0;
-        checklist |= Model::Exchangeabilities;
-        
-        return DirichletUpdater::calcLogPrior(checklist);
+    inline double ExchangeabilityUpdater::calcLogPrior() {  ///begin_calcLogPrior
+        return DirichletUpdater::calcLogPrior();
     }  ///end_calcLogPrior
     
     inline void ExchangeabilityUpdater::pullFromModel() {  ///begin_pullFromModel

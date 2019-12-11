@@ -21,7 +21,7 @@ namespace strom {
             static void        debugOpenTreeFile();
             static void        debugCloseTreeFile();
             static void        debugSaveTree(std::string treename, std::string description);
-            static std::string debugMakeNewick(Tree::SharedPtr tree, unsigned precision);
+            static std::string debugMakeNewick(Tree::SharedPtr tree, unsigned precision, bool js = true);
             static void        debugShowNodeSummary(Node * a, std::string label);
     };
 
@@ -50,13 +50,20 @@ namespace strom {
         }
     }
     
-    inline std::string DebugStuff::debugMakeNewick(Tree::SharedPtr tree, unsigned precision) {
+    inline std::string DebugStuff::debugMakeNewick(Tree::SharedPtr tree, unsigned precision, bool js) {
         std::string newick;
         if (_ignore)
             return newick;
             
+#if 0
         const boost::format tip_node_format( boost::str(boost::format("{%%s}:%%.%df") % precision) );
         const boost::format internal_node_format( boost::str(boost::format("){%%s}:%%.%df") % precision) );
+#else
+        const boost::format js_tip_node_format( boost::str(boost::format("{%%s}:%%.%df") % precision) );
+        const boost::format js_internal_node_format( boost::str(boost::format("){%%s}:%%.%df") % precision) );
+        const boost::format plain_tip_node_format( boost::str(boost::format("%%s:%%.%df") % precision) );
+        const boost::format plain_internal_node_format( boost::str(boost::format(")%%s:%%.%df") % precision) );
+#endif
         std::stack<Node *> node_stack;
 
         //Node * root_tip = (tree->_is_rooted ? 0 : tree->_root);
@@ -73,8 +80,19 @@ namespace strom {
                 unsigned tmatrix = node_number + (nd->isAltTMatrix() ? DebugStuff::_tmatrix_offset : 0);
                 unsigned pselected = nd->isSelPartial() ? 1 : 0;
                 unsigned tselected = nd->isSelTMatrix() ? 1 : 0;
+#if 0
                 std::string infostr = boost::str(boost::format("%d,null,%d,%d,%d") % node_number % pselected % tmatrix % tselected);
                 newick += boost::str(boost::format(tip_node_format) % infostr % nd->_edge_length);
+#else
+                if (js) {
+                    std::string infostr = boost::str(boost::format("%d,null,%d,%d,%d") % node_number % pselected % tmatrix % tselected);
+                    newick += boost::str(boost::format(js_tip_node_format) % infostr % nd->_edge_length);
+                }
+                else {
+                    std::string infostr = boost::str(boost::format("%d") % node_number);
+                    newick += boost::str(boost::format(plain_tip_node_format) % infostr % nd->_edge_length);
+                }
+#endif
                 if (nd->_right_sib)
                     newick += ",";
                 else {
@@ -86,8 +104,19 @@ namespace strom {
                         unsigned tmatrix = node_number + (popped->isAltTMatrix() ? DebugStuff::_tmatrix_offset : 0);
                         unsigned pselected = popped->isSelPartial() ? 1 : 0;
                         unsigned tselected = popped->isSelTMatrix() ? 1 : 0;
+#if 0
                         std::string infostr = boost::str(boost::format("%d,%d,%d,%d,%d") % node_number % partial % pselected % tmatrix % tselected);
                         newick += boost::str(boost::format(internal_node_format) % infostr % popped->_edge_length);
+#else
+                        if (js) {
+                            std::string infostr = boost::str(boost::format("%d,%d,%d,%d,%d") % node_number % partial % pselected % tmatrix % tselected);
+                            newick += boost::str(boost::format(js_internal_node_format) % infostr % popped->_edge_length);
+                        }
+                        else {
+                            std::string infostr = boost::str(boost::format("%d") % node_number);
+                            newick += boost::str(boost::format(plain_internal_node_format) % infostr % popped->_edge_length);
+                        }
+#endif
                         popped = (node_stack.empty() ? 0 : node_stack.top());
                     }
                     if (popped && popped->_right_sib) {
@@ -97,8 +126,19 @@ namespace strom {
                         unsigned tmatrix = node_number + (popped->isAltTMatrix() ? DebugStuff::_tmatrix_offset : 0);
                         unsigned pselected = popped->isSelPartial() ? 1 : 0;
                         unsigned tselected = popped->isSelTMatrix() ? 1 : 0;
+#if 0
                         std::string infostr = boost::str(boost::format("%d,%d,%d,%d,%d") % node_number % partial % pselected % tmatrix % tselected);
                         newick += boost::str(boost::format(internal_node_format) % infostr % popped->_edge_length);
+#else
+                        if (js) {
+                            std::string infostr = boost::str(boost::format("%d,%d,%d,%d,%d") % node_number % partial % pselected % tmatrix % tselected);
+                            newick += boost::str(boost::format(js_internal_node_format) % infostr % popped->_edge_length);
+                        }
+                        else {
+                            std::string infostr = boost::str(boost::format("%d") % node_number);
+                            newick += boost::str(boost::format(plain_internal_node_format) % infostr % popped->_edge_length);
+                        }
+#endif
                         newick += ",";
                     }
                 }

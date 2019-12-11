@@ -349,9 +349,9 @@ namespace strom {
 
     inline double Chain::calcLogJointPrior() const { ///begin_calcLogJointPrior
         double lnP = 0.0;
-        int checklist = 0; // keeps track of which priors have been computed already to avoid duplication
         for (auto u : _updaters) {
-            lnP += u->calcLogPrior(checklist);
+            if (u->_name != "Tree Length" && u->_name != "Polytomies" )
+                lnP += u->calcLogPrior();
         }
         return lnP;
     } ///end_calcLogJointPrior

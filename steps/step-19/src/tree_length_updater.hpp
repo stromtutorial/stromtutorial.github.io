@@ -2,8 +2,6 @@
 
 #include "updater.hpp"
 
-#define DEBUG_SEPARATE_EDGELEN_PARAMS 0 //POLTMP
-
 namespace strom {
 
     class TreeLengthUpdater : public Updater {
@@ -19,7 +17,7 @@ namespace strom {
             virtual void                proposeNewState();
             virtual void                revert();
 
-            virtual double              calcLogPrior(int & checklist);
+            virtual double              calcLogPrior();
 
             void                        pullFromModel();
             void                        pushToModel() const;
@@ -61,12 +59,13 @@ namespace strom {
         pushToModel();
 
         // calculate log of Hastings ratio under GammaDir parameterization
-        double num_edges = _tree_manipulator->countEdges(); //POLTMP
 #if DEBUG_SEPARATE_EDGELEN_PARAMS
+        double num_edges = _tree_manipulator->countEdges(); //POLTMP
         _log_hastings_ratio = log(m)*num_edges;
 #else
         _log_hastings_ratio = log(m);
 #endif
+        _log_jacobian = 0.0;
 
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
@@ -82,11 +81,7 @@ namespace strom {
         pushToModel();
     }   ///end_revert
 
-    inline double TreeLengthUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
-        if (checklist & Model::EdgeLengths)
-            return 0.0;
-        checklist |= Model::EdgeLengths;
-
+    inline double TreeLengthUpdater::calcLogPrior() {   ///begin_calcLogPrior
         return Updater::calcLogEdgeLengthPrior();
     }   ///end_calcLogPrior
 

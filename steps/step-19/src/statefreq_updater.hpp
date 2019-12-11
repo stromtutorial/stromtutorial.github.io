@@ -11,7 +11,7 @@ namespace strom {
                                             StateFreqUpdater(QMatrix::SharedPtr qmatrix);
                                             ~StateFreqUpdater();
                                             
-            virtual double                  calcLogPrior(int & checklist);
+            virtual double                  calcLogPrior();
 
         private:
         
@@ -35,12 +35,8 @@ namespace strom {
         //std::cout << "Destroying a StateFreqUpdater" << std::endl;
     }   ///end_destructor
 
-    inline double StateFreqUpdater::calcLogPrior(int & checklist) {  ///begin_calcLogPrior
-        if (checklist & Model::StateFreqs)
-            return 0.0;
-        checklist |= Model::StateFreqs;
-        
-        return DirichletUpdater::calcLogPrior(checklist);
+    inline double StateFreqUpdater::calcLogPrior() {  ///begin_calcLogPrior
+        return DirichletUpdater::calcLogPrior();
     }  ///end_calcLogPrior
     
     inline void StateFreqUpdater::pullFromModel() {  ///begin_pullFromModel

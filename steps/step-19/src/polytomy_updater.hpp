@@ -20,7 +20,7 @@ namespace strom {
                                                 PolytomyUpdater();
                                                 ~PolytomyUpdater();
 
-            virtual double                      calcLogPrior(int & checklist);
+            virtual double                      calcLogPrior();
 
         private:
 
@@ -69,7 +69,7 @@ namespace strom {
     }   ///end_destructor
     
     inline void PolytomyUpdater::reset() {  ///begin_reset
-        _new_edgelen_mean  = 0.01;
+        _new_edgelen_mean  = 0.5;
         _orig_par          = 0;
         _orig_lchild       = 0;
         _new_edgelen       = 0.0;
@@ -82,21 +82,10 @@ namespace strom {
         _d.clear();
     }   ///end_reset
 
-    inline double PolytomyUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
+    inline double PolytomyUpdater::calcLogPrior() {   ///begin_calcLogPrior
         double log_prior = 0.0;
-        
-        bool tree_topology_prior_calculated = (checklist & Model::TreeTopology);
-        if (!tree_topology_prior_calculated) {
-            log_prior += calcLogTopologyPrior();
-            checklist |= Model::TreeTopology;
-        }
-            
-        bool edge_lengths_prior_calculated  = (checklist & Model::EdgeLengths);
-        if (!edge_lengths_prior_calculated) {
-            log_prior += Updater::calcLogEdgeLengthPrior();
-            checklist |= Model::EdgeLengths;
-        }
-            
+        log_prior += Updater::calcLogTopologyPrior();
+        log_prior += Updater::calcLogEdgeLengthPrior();
         return log_prior;
     }   ///end_calcLogPrior
 
@@ -232,10 +221,15 @@ namespace strom {
                 
             // Compute the log of the Jacobian
             _log_jacobian = 0.0;
+#if DEBUG_SEPARATE_EDGELEN_PARAMS   //POLTMP
+            _log_jacobian += std::log(_new_edgelen_mean);
+            _log_jacobian += _new_edgelen/_new_edgelen_mean;
+#else
             _log_jacobian += std::log(_new_edgelen_mean);
             _log_jacobian += total_edges_before*std::log(tree_length_before);
-            _log_jacobian += _new_edgelen/_new_edgelen_mean;
+            _log_jacobian -= (-_new_edgelen/_new_edgelen_mean);
             _log_jacobian -= (total_edges_before + 1)*std::log(tree_length_before + _new_edgelen);
+#endif
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(new_nd);
@@ -284,10 +278,15 @@ namespace strom {
 
             // Compute the log Jacobian
             _log_jacobian = 0.0;
+#if DEBUG_SEPARATE_EDGELEN_PARAMS   //POLTMP
+            _log_jacobian -= std::log(_new_edgelen_mean);
+            _log_jacobian -= _orig_edgelen/_new_edgelen_mean;
+#else
             _log_jacobian -= std::log(_new_edgelen_mean);
             _log_jacobian -= (total_edges_before - 1)*std::log(tree_length_before - _orig_edgelen);
-            _log_jacobian -= _orig_edgelen/_new_edgelen_mean;
+            _log_jacobian += (-_orig_edgelen/_new_edgelen_mean);
             _log_jacobian += total_edges_before*std::log(tree_length_before);
+#endif
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(nd);

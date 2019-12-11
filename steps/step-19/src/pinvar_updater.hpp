@@ -18,7 +18,7 @@ namespace strom {
             double                      getCurrentPoint() const;
 
             // mandatory overrides of pure virtual functions
-            virtual double              calcLogPrior(int & checklist);
+            virtual double              calcLogPrior();
             virtual void                revert();
             virtual void                proposeNewState();
         
@@ -54,11 +54,7 @@ namespace strom {
         return *(_asrv->getPinvarSharedPtr());
     } ///end_getCurrentPoint
     
-    inline double PinvarUpdater::calcLogPrior(int & checklist) { ///begin_calcLogPrior
-        if (checklist & Model::ProportionInvar)
-            return 0.0;
-        checklist |= Model::ProportionInvar;
-
+    inline double PinvarUpdater::calcLogPrior() { ///begin_calcLogPrior
         // Assumes Beta(a,b) prior with mean a/(a+b) and variance a*b/((a + b + 1)*(a + b)^2)
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];

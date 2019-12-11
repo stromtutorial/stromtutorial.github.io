@@ -17,7 +17,7 @@ namespace strom {
                                                 TreeUpdater();
                                                 ~TreeUpdater();
 
-            virtual double                      calcLogPrior(int & checklist);
+            virtual double                      calcLogPrior();
             //double                              calcLogTopologyPrior() const;
 
         private:
@@ -92,20 +92,10 @@ namespace strom {
     }   ///end_calcLogTopologyPrior
 #endif
 
-    inline double TreeUpdater::calcLogPrior(int & checklist) {   ///begin_calcLogPrior
+    inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
         double log_prior = 0.0;
-        
-        bool tree_topology_prior_calculated = (checklist & Model::TreeTopology);
-        if (!tree_topology_prior_calculated) {
-            log_prior += Updater::calcLogTopologyPrior();
-            checklist |= Model::TreeTopology;
-        }
-            
-        bool edge_lengths_prior_calculated  = (checklist & Model::EdgeLengths);
-        if (!edge_lengths_prior_calculated) {
-            log_prior += Updater::calcLogEdgeLengthPrior();
-            checklist |= Model::EdgeLengths;
-        }
+        log_prior += Updater::calcLogTopologyPrior();
+        log_prior += Updater::calcLogEdgeLengthPrior();
         return log_prior;
     }   ///end_calcLogPrior
 
@@ -149,13 +139,11 @@ namespace strom {
         double m = exp(_lambda*(_lot->uniform() - 0.5));
 #endif
 
-        // Choose focal 2-edge segment to shrink or grow (middle edge constrained to equal zero in star tree)
+        // Choose focal 2-edge segment to modify
         _orig_edgelen_middle = 0.0;
         
         // Choose the first edge
-        _a = chooseRandomChild(_x, 0, true);
-        if (!_a)
-            _a = _x;
+        _a = chooseRandomChild(_x, 0, false);
         _orig_edgelen_top = _a->getEdgeLength();
 
         // Choose the second edge
@@ -164,14 +152,13 @@ namespace strom {
             _b = _x;
         _orig_edgelen_bottom = _b->getEdgeLength();
 
-        // Note that what (_a or _b) we're calling top and what we're calling bottom is arbitrary
+        // Note that _a must be a child of _x, but _b may either be a different child of _x or _x itself
 #if 1   //POLTMP
         // try not having a Hastings ratio
         double u = _lot->uniform();
-        _new_edgelen_top    = u*_orig_edgelen_top;
-        double remainder = _orig_edgelen_top - _new_edgelen_top;
+        _new_edgelen_top    = u*(_orig_edgelen_top + _orig_edgelen_bottom);
         _new_edgelen_middle = 0.0;
-        _new_edgelen_bottom = _orig_edgelen_bottom + remainder;
+        _new_edgelen_bottom = (1.0 - u)*(_orig_edgelen_top + _orig_edgelen_bottom);
 #else
         _new_edgelen_top    = m*_orig_edgelen_top;
         _new_edgelen_middle = 0.0;
@@ -179,7 +166,10 @@ namespace strom {
 #endif
 
         // Calculate Hastings ratio under GammaDir parameterization
-#if 0
+#if 1
+        _log_hastings_ratio = 0.0;
+        _log_jacobian = 0.0;
+#else
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_bottom)/TL;
@@ -228,7 +218,7 @@ namespace strom {
         _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
         
         // The only child of the root node will be chosen only if the tree equals the star tree
-        // in which case we want to switch to doing a starTreeMove rather than Larget-Simon
+        // in which case we want to perform a starTreeMove rather than Larget-Simon
         _star_tree_move = false;
         if (_x->getParent() && !_x->getParent()->getParent()) {
             _star_tree_move = true;
@@ -261,13 +251,15 @@ namespace strom {
 #if 1   //POLTMP
         // try not having a Hastings ratio
         double m = 1.0; // no shrinkage or expansion
-        _log_hastings_ratio = 0.0;
 #else
         double m = exp(_lambda*(_lot->uniform() - 0.5));
 #endif
 
         // Calculate Hastings ratio under GammaDir parameterization
-#if 0   //original version
+#if 1
+        _log_hastings_ratio = 0.0;
+        _log_jacobian = 0.0;
+#else   //original version
         double num_edges = (double)(_tree_manipulator->countEdges());
         double TL = _tree_manipulator->calcTreeLength();
         double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom)/TL;

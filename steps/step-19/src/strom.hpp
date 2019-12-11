@@ -155,7 +155,7 @@ namespace strom {
             ("pinvar", boost::program_options::value(&partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
             ("relrate", boost::program_options::value(&partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
             ("tree", boost::program_options::value(&partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
-            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(0.0), "topology prior C: tree (or resolution class) with m-1 internal nodes has probability C time greater than tree (or resolution class) with m internal nodes.")
+            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(1.0), "topology prior C: tree (or resolution class) with m-1 internal nodes has probability C time greater than tree (or resolution class) with m internal nodes.")
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
             ("nchains",       boost::program_options::value(&_num_chains)->default_value(1),                "number of chains") ///!a
             ("heatfactor",    boost::program_options::value(&_heating_lambda)->default_value(0.5),          "determines how hot the heated chains are")
