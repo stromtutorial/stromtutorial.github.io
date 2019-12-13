@@ -78,7 +78,7 @@ namespace strom {
     }   ///end_calcLogTopologyPrior
 
     inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
-        double log_topology_prior = calcLogTopologyPrior();
+        double log_topology_prior    = Updater::calcLogTopologyPrior();
         double log_edge_length_prior = Updater::calcEdgeLengthPrior();
         return log_topology_prior + log_edge_length_prior;
     }   ///end_calcLogPrior
@@ -157,7 +157,7 @@ namespace strom {
             _orig_edgelen_bottom = _y->getEdgeLength();
         }
         
-        // Symmetric move, Hastings ratio = 1
+        // Symmetric move: Hastings ratio = 1
         _log_hastings_ratio = 0.0;
 
         // Decide where along focal path (starting from top) to place moved node

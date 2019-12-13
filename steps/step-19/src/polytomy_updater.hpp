@@ -14,14 +14,13 @@ namespace strom {
 
             typedef std::map<unsigned, std::vector<double> >    _polytomy_distr_map_t;
             typedef std::vector<Node *>                         _polytomy_vect_t;
-            typedef std::vector<double>                         _move_prob_vect_t;
             typedef std::shared_ptr< PolytomyUpdater >          SharedPtr;
 
                                                 PolytomyUpdater();
                                                 ~PolytomyUpdater();
 
             virtual double                      calcLogPrior();
-
+            
         private:
 
             virtual void                        revert();
@@ -33,26 +32,20 @@ namespace strom {
             
             void                                computePolytomyDistribution(unsigned nspokes);
             void                                refreshPolytomies();
-            void                                refreshBirthDeathMoveProbs(unsigned num_taxa, unsigned num_internals_in_fully_resolved_tree);
-            double                              sampleEdgeLength() const;
-            
+
             _polytomy_distr_map_t               _poly_prob;
-            _polytomy_vect_t                    _poly_distr;
             _polytomy_vect_t                    _polytomies;
             
-            //unsigned                            _added_node_index;
             Node *                              _orig_par;
             Node *                              _orig_lchild;
-            //Node *                              _orig_rchild;
 
             bool                                _add_edge_proposed;
-            double                              _new_edgelen;
+            double                              _new_edge_proportion;
+            double                              _orig_edge_proportion;
+            double                              _tree_length;
+            double                              _phi;
             unsigned                            _polytomy_size;
             unsigned                            _num_polytomies;
-            double                              _orig_edgelen;
-            double                              _new_edgelen_mean;
-            _move_prob_vect_t                   _b;
-            _move_prob_vect_t                   _d;
     };
 
     // Member function bodies go here
@@ -69,17 +62,16 @@ namespace strom {
     }   ///end_destructor
     
     inline void PolytomyUpdater::reset() {  ///begin_reset
-        _new_edgelen_mean  = 0.5;
-        _orig_par          = 0;
-        _orig_lchild       = 0;
-        _new_edgelen       = 0.0;
-        _polytomy_size     = 0;
-        _num_polytomies    = 0;
-        _orig_edgelen      = 0.0;
-        _add_edge_proposed = false;
+        _tree_length          = 0.0;
+        _new_edge_proportion  = 0.0;
+        _orig_edge_proportion = 0.0;
+        _phi                  = 0.5;
+        _orig_par             = 0;
+        _orig_lchild          = 0;
+        _polytomy_size        = 0;
+        _num_polytomies       = 0;
+        _add_edge_proposed    = false;
         _polytomies.clear();
-        _b.clear();
-        _d.clear();
     }   ///end_reset
 
     inline double PolytomyUpdater::calcLogPrior() {   ///begin_calcLogPrior
@@ -134,6 +126,14 @@ namespace strom {
     inline void PolytomyUpdater::proposeNewState() {    ///begin_proposeNewState
         Tree::SharedPtr tree = _tree_manipulator->getTree();
         
+        // Translate tuning parameter _lambda into the maximum possible proportion
+        // that a newly created edge could have
+        if (_lambda > 1000.0)
+            _lambda = 1000.0;
+        else if (_lambda < 1.0)
+            _lambda = 1.0;
+        _phi = 1.0 - std::exp(-_lambda);
+
         // Compute number of internal nodes in a fully resolved tree
         unsigned num_internals_in_fully_resolved_tree = 0;
         if (tree->isRooted())
@@ -142,8 +142,8 @@ namespace strom {
             num_internals_in_fully_resolved_tree = tree->numLeaves() - 2;
             
         // Compute tree length before proposed move
-        double tree_length_before = _tree_manipulator->calcTreeLength();
-            
+        _tree_length = _tree_manipulator->calcTreeLength();
+
         // Determine whether starting tree is fully resolved or the star tree
         unsigned num_internals_before = tree->numInternals();
         unsigned num_leaves_before = tree->numLeaves();
@@ -156,30 +156,14 @@ namespace strom {
         refreshPolytomies();
         _num_polytomies = (unsigned)_polytomies.size();
         
-        //refreshBirthDeathMoveProbs(tree->numLeaves(), num_internals_in_fully_resolved_tree);
-
         // Determine whether an add edge move is proposed (alternative is a delete edge move)
         if (star_tree_before)
             _add_edge_proposed = true;
         else if (fully_resolved_before)
             _add_edge_proposed = false;
         else
-            //_add_edge_proposed = (_lot->uniform() < _b[num_internal_edges_before]);
             _add_edge_proposed = (_lot->uniform() < 0.5);
             
-#if DEBUG_POLY //POLTMP //POLY
-        if (_add_edge_proposed) {
-            std::cerr << "\n**** add edge *****" << std::endl;
-            DebugStuff::_debug_add_tries++;
-            DebugStuff::_debug_add_accepts++;
-        }
-        else {
-            std::cerr << "\n**** delete edge *****" << std::endl;
-            DebugStuff::_debug_del_tries++;
-            DebugStuff::_debug_del_accepts++;
-        }
-#endif
-
         Node * nd = 0;
         if (_add_edge_proposed) {
             // Choose a polytomy at random to split
@@ -187,13 +171,13 @@ namespace strom {
             nd = _polytomies[i];
             _polytomy_size = 1 + _tree_manipulator->countChildren(nd);
 
-            DebugStuff::debugSaveTree("pre-addedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            //std::cerr << "DebugStuff::debugSaveTree: pre-addedge" << std::endl; //POLTMP
-
             // Add an edge to split up polytomy at nd, moving a random subset
             // of the spokes to the (new) left child of nd
             proposeAddEdgeMove(nd);
             Node * new_nd = nd->getLeftChild();
+
+            double TL_after_add_edge = _tree_manipulator->calcTreeLength();
+            assert(std::fabs(_tree_length - TL_after_add_edge) < 1.e-8);
 
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
@@ -204,49 +188,29 @@ namespace strom {
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
             unsigned num_internals_after = tree->numInternals();
             assert(num_internals_after == num_internals_before + 1);
-#if 0
-            _log_hastings_ratio += std::log(_d[num_internals_after]);
-            _log_hastings_ratio -= std::log(_b[num_internals_before]);
-            //if (num_internals_before == 1)
-            //    std::cerr << "star tree before add edge move" << std::endl;
-            //else if (num_internals_after == num_internals_in_fully_resolved_tree)
-            //    std::cerr << "resolved tree after add edge move" << std::endl;
-#else
             const bool fully_resolved_after = (num_internals_after == num_internals_in_fully_resolved_tree);
             if (star_tree_before && !fully_resolved_after)
                 _log_hastings_ratio -= log(2.0);
             else if (fully_resolved_after && !star_tree_before)
                 _log_hastings_ratio += log(2.0);
-#endif
                 
             // Compute the log of the Jacobian
             _log_jacobian = 0.0;
-#if DEBUG_SEPARATE_EDGELEN_PARAMS   //POLTMP
-            _log_jacobian += std::log(_new_edgelen_mean);
-            _log_jacobian += _new_edgelen/_new_edgelen_mean;
-#else
-            _log_jacobian += std::log(_new_edgelen_mean);
-            _log_jacobian += total_edges_before*std::log(tree_length_before);
-            _log_jacobian -= (-_new_edgelen/_new_edgelen_mean);
-            _log_jacobian -= (total_edges_before + 1)*std::log(tree_length_before + _new_edgelen);
-#endif
+            _log_jacobian += std::log(_phi);
+            _log_jacobian += (total_edges_before - 1)*std::log(1.0 - _new_edge_proportion);
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(new_nd);
             new_nd->selectTMatrix();
-
-            _tree_manipulator->refreshNavigationPointers();
-            DebugStuff::debugSaveTree("post-addedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            //std::cerr << "DebugStuff::debugSaveTree: post-addedge" << std::endl; //POLTMP
         }
         else {
-            DebugStuff::debugSaveTree("pre-deleteedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            //std::cerr << "DebugStuff::debugSaveTree: pre-deleteedge" << std::endl; //POLTMP
-
             // Choose an internal edge at random and delete it to create a polytomy
             // (or a bigger polytomy if there is already a polytomy)
             nd = _tree_manipulator->randomInternalEdge(_lot->uniform());
             proposeDeleteEdgeMove(nd);
+
+            double TL_after_del_edge = _tree_manipulator->calcTreeLength();
+            assert(std::fabs(_tree_length - TL_after_del_edge) < 1.e-8);
 
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
@@ -258,15 +222,6 @@ namespace strom {
             // Now multiply by the value of the quantity labeled gamma_d in the paper
             unsigned num_internals_after = tree->numInternals();
             assert(num_internals_after == num_internals_before - 1);
-#if 0
-            _log_hastings_ratio += std::log(_b[num_internals_after]);
-            _log_hastings_ratio -= std::log(_d[num_internals_before]);
-            //if (num_internals_after == 1)
-            //    std::cerr << "star tree after delete edge move" << std::endl;
-            //else if (num_internals_before == num_internals_in_fully_resolved_tree)
-            //    std::cerr << "resolved tree before delete edge move" << std::endl;
-
-#else
             const bool star_tree_after = (num_internals_after == (tree->isRooted() ? 2 : 1));
             if (fully_resolved_before && !star_tree_after) {
                 _log_hastings_ratio -= log(2.0);
@@ -274,27 +229,15 @@ namespace strom {
             else if (star_tree_after && !fully_resolved_before) {
                 _log_hastings_ratio += log(2.0);
             }
-#endif
 
             // Compute the log Jacobian
             _log_jacobian = 0.0;
-#if DEBUG_SEPARATE_EDGELEN_PARAMS   //POLTMP
-            _log_jacobian -= std::log(_new_edgelen_mean);
-            _log_jacobian -= _orig_edgelen/_new_edgelen_mean;
-#else
-            _log_jacobian -= std::log(_new_edgelen_mean);
-            _log_jacobian -= (total_edges_before - 1)*std::log(tree_length_before - _orig_edgelen);
-            _log_jacobian += (-_orig_edgelen/_new_edgelen_mean);
-            _log_jacobian += total_edges_before*std::log(tree_length_before);
-#endif
+            _log_jacobian -= std::log(_phi);
+            _log_jacobian -= (total_edges_before - 2)*std::log(1.0 - _orig_edge_proportion);
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(nd);
-
-            _tree_manipulator->refreshNavigationPointers();
-            DebugStuff::debugSaveTree("post-deleteedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            //std::cerr << "DebugStuff::debugSaveTree: post-deleteedge" << std::endl; //POLTMP
-}
+        }
     }   ///end_proposeNewState
     
     inline void PolytomyUpdater::proposeAddEdgeMove(Node * u) {    ///begin_proposeAddEdgeMove
@@ -325,8 +268,9 @@ namespace strom {
 
         // Create the new node that will receive the x randomly-chosen spokes
         Node * v = _tree_manipulator->getUnusedNode();
-        _new_edgelen = sampleEdgeLength();
-        v->setEdgeLength(_new_edgelen);
+        _new_edge_proportion = _lot->uniform()*_phi;
+        _tree_manipulator->scaleAllEdgeLengths(1.0 - _new_edge_proportion);
+        v->setEdgeLength(_new_edge_proportion*_tree_length);
         _tree_manipulator->rectifyNumInternals(+1);
         _tree_manipulator->insertSubtreeOnLeft(v, u);
         assert(u->getLeftChild() == v);
@@ -383,6 +327,8 @@ namespace strom {
                 _tree_manipulator->insertSubtreeOnRight(*s, v);
             }
         }
+        
+        _tree_manipulator->refreshNavigationPointers();
     }   ///end_proposeAddEdgeMove
     
     inline void PolytomyUpdater::proposeDeleteEdgeMove(Node * u) {    ///begin_proposeDeleteEdgeMove
@@ -402,11 +348,11 @@ namespace strom {
         //
         //     Before           After
         //
-        // Returns the number of polytomies in the tree after the proposed delete-edge move. The return value will be incorrect if
-        // the polytomies vector is not up-to-date.
+        // Returns the number of polytomies in the tree after the proposed delete-edge move.
+        // The return value will be incorrect if the polytomies vector is not up-to-date.
         
         // Save u's edge length in case we need to revert
-        _orig_edgelen = u->getEdgeLength();
+        _orig_edge_proportion = u->getEdgeLength()/_tree_length;
 
         // This operation should not leave the root node (which is a tip) with more than one
         // child, so check to make sure that the supplied node is not the root nor a child of root
@@ -432,7 +378,7 @@ namespace strom {
             ++_num_polytomies;
         }
 
-        // Make all of u's children left siblings (i.e. children of u->par)
+        // Make all of u's children siblings of u (i.e. children of u->par)
         _orig_lchild = u->getLeftChild();
         while (u->getLeftChild() != NULL) {
             Node * tmp = u->getLeftChild();
@@ -440,21 +386,17 @@ namespace strom {
             _tree_manipulator->insertSubtreeOnRight(tmp, _orig_par);
         }
 
-        //std::cerr << "*** DELETE EDGE ***" << std::endl;  //POLTMP
         _tree_manipulator->detachSubtree(u);
-        //Tree::SharedPtr tree = _tree_manipulator->getTree();
         _tree_manipulator->putUnusedNode(u);
         _tree_manipulator->rectifyNumInternals(-1);
+        
+        _tree_manipulator->refreshNavigationPointers();
+        assert(_orig_edge_proportion < 1.0);
+        double scaler = 1.0/(1.0 - _orig_edge_proportion);
+        _tree_manipulator->scaleAllEdgeLengths(scaler);
     }   ///end_proposeDeleteEdgeMove
     
     inline void PolytomyUpdater::revert() { ///begin_revert
-        //Tree::SharedPtr tree = _tree_manipulator->getTree();
-#if DEBUG_POLY //POLTMP //POLY
-        if (_add_edge_proposed)
-            DebugStuff::_debug_add_accepts--;
-        else
-            DebugStuff::_debug_del_accepts--;
-#endif
         if (_add_edge_proposed) {
             // Return all of _orig_lchild's child nodes to _orig_par, then return orig_lchild to storage
             Node * child = _orig_lchild->getLeftChild();
@@ -465,19 +407,21 @@ namespace strom {
                 child = rsib;
             }
             _tree_manipulator->detachSubtree(_orig_lchild);
-            //std::cerr << "*** REVERT ADD EDGE ***" << std::endl;  //POLTMP
             _tree_manipulator->putUnusedNode(_orig_lchild);
             _tree_manipulator->rectifyNumInternals(-1);
-
+            
             _tree_manipulator->refreshNavigationPointers();
-            DebugStuff::debugSaveTree("revert-addedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            //std::cerr << "DebugStuff::debugSaveTree: revert-addedge" << std::endl; //POLTMP
+            assert(_new_edge_proportion < 1.0);
+            double scaler = 1.0/(1.0 - _new_edge_proportion);
+            _tree_manipulator->scaleAllEdgeLengths(scaler);
+            double TL_after_revert_add_edge = _tree_manipulator->calcTreeLength();
+            assert(std::fabs(_tree_length -TL_after_revert_add_edge) < 1.e-8);
         }
         else {
-            //std::cerr << "*** REVERT DELETE EDGE ***" << std::endl;  //POLTMP
             Node * v = _tree_manipulator->getUnusedNode();
             _tree_manipulator->rectifyNumInternals(+1);
-            v->setEdgeLength(_orig_edgelen);
+            _tree_manipulator->scaleAllEdgeLengths(1.0 - _orig_edge_proportion);
+            v->setEdgeLength(_orig_edge_proportion*_tree_length);
             for (Node * child = _orig_lchild; child;) {
                 Node * child_rsib = child->getRightSib();
                 _tree_manipulator->detachSubtree(child);
@@ -487,8 +431,8 @@ namespace strom {
             _tree_manipulator->insertSubtreeOnRight(v, _orig_par);
 
             _tree_manipulator->refreshNavigationPointers();
-            DebugStuff::debugSaveTree("revert-deleteedge", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-            //std::cerr << "DebugStuff::debugSaveTree: revert-deleteedge" << std::endl; //POLTMP
+            double TL_after_revert_del_edge = _tree_manipulator->calcTreeLength();
+            assert(std::fabs(_tree_length - TL_after_revert_del_edge) < 1.e-8);
         }
     }   ///end_revert
 
@@ -501,58 +445,5 @@ namespace strom {
                 _polytomies.push_back(nd);
         }
     }   ///end_refreshPolytomies
-
-    inline void PolytomyUpdater::refreshBirthDeathMoveProbs(unsigned num_taxa, unsigned num_internals_in_fully_resolved_tree) {  ///begin_refreshPolytomies
-        // This funtion is currently unused: probs turned out to be not that different from 50:50 when not at the ends
-        //
-        //  m        count    log(prob)         b[m]         d[m]         c[m]
-        //  1            1     -2.07944      1.00000      0.00000      0.00200
-        //  2          500     -8.29605      0.02138      0.97862      1.02184
-        //  3        22935    -12.11986      0.07037      0.92963      1.07569
-        //  4       302994    -14.70091      0.15621      0.84379      1.18513
-        //  5      1636634    -16.38759      0.28534      0.71466      1.39927
-        //  6      4099094    -17.30572      0.46429      0.53571      1.86667
-        //  7      4729725    -17.44882      0.50000      0.50000      2.00000
-        //  8      2027024    -16.60152      0.00000      1.00000      0.42857
-
-        Tree::SharedPtr tree = _tree_manipulator->getTree();
-        //double total_count = _topo_prior_calculator.getLogTotalCount(num_taxa);
-        _b.resize(num_internals_in_fully_resolved_tree+1, 0.0);
-        _d.resize(num_internals_in_fully_resolved_tree+1, 0.0);
-        std::vector<double> c(num_internals_in_fully_resolved_tree+1, 1.0);
-        _d[1] = 0.0;
-        _b[num_internals_in_fully_resolved_tree] = 0.0;
-        unsigned m = 1;
-        for (; m < num_internals_in_fully_resolved_tree; m++) {
-            double pm  = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
-            double pm1 = _topo_prior_calculator.getLogNormalizedTopologyPrior(m+1);
-            if (pm1 > pm) {
-                _b[m] = 1.0;
-                _d[m+1] = std::exp(pm - pm1);
-            }
-            else {
-                _b[m] = std::exp(pm1 - pm);
-                _d[m+1] = 1.0;
-            }
-            c[m] = _b[m] + _d[m];
-        }
-        c[m] = _b[m] + _d[m];
-        //std::cerr << boost::str(boost::format("%6s %12s %12s %12s %12s %12s") % "m" % "count" % "log(prob)" % "b[m]" % "d[m]" % "c[m]") << std::endl;
-        for (m = 1; m <= num_internals_in_fully_resolved_tree; m++) {
-            _b[m] /= c[m];
-            _d[m] /= c[m];
-            //std::cerr << boost::str(boost::format("%6d %12d %12.5f %12.5f %12.5f %12.5f")
-            //    % m
-            //    % int(std::exp(_topo_prior_calculator.getLogCount(num_taxa,m)))
-            //    % _topo_prior_calculator.getLogNormalizedTopologyPrior(m)
-            //    % _b[m]  % _d[m] % c[m]) << std::endl;
-        }
-        //std::cerr << std::endl;
-        }   ///end_refreshPolytomies
-
-    inline double PolytomyUpdater::sampleEdgeLength() const {  ///begin_sampleEdgeLength
-        double new_edgelen = -_new_edgelen_mean*std::log(_lot->uniform());
-        return new_edgelen;
-    }   ///end_sampleEdgeLength
 
 }   ///end

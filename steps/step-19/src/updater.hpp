@@ -8,7 +8,7 @@
 #include "topo_prior_calculator.hpp"
 
 #include "debug_stuff.hpp"  //DEBUGSTUFF
-#define DEBUG_POLY 1
+#define DEBUG_POLY 0
 #define DEBUG_SEPARATE_EDGELEN_PARAMS 0
 
 namespace strom {
@@ -54,6 +54,10 @@ namespace strom {
             virtual double                          update(double prev_lnL);
         
             static double                           getLogZero();
+            
+#if DEBUG_POLY //POLTMP //POLY
+            virtual std::string                     getQualifiedName() const {return _name;}
+#endif
 
         protected:
 
@@ -256,7 +260,8 @@ namespace strom {
             double logu = _lot->logUniform();
 
 #if DEBUG_POLY //POLTMP //POLY
-            std::cerr << "\nUpdate information (\"" << _name << "\"):" << std::endl;
+            std::string nm = getQualifiedName();
+            std::cerr << "\nUpdate information (\"" << nm << "\"):" << std::endl;
             std::cerr << "  log likelihood ratio: " << (log_likelihood - prev_lnL) << std::endl;
             std::cerr << "  log prior ratio:      " << (log_prior - prev_log_prior) << std::endl;
             std::cerr << "  log Hastings ratio:   " << _log_hastings_ratio << std::endl;
@@ -280,6 +285,10 @@ namespace strom {
             revert();
             _tree_manipulator->flipPartialsAndTMatrices();
             log_likelihood = prev_lnL;
+
+#if DEBUG_POLY //POLTMP //POLY
+            std::cerr << "tree after revert:" << DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5, false) << std::endl;
+#endif
 
             DebugStuff::_tree_index++;
             DebugStuff::debugSaveTree(boost::str(boost::format("revert-%d") % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF

@@ -38,7 +38,7 @@ SOFTWARE.
             // See https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute
 
             var showplotarea = false;
-            var showlabels = true;
+            var showlabels = false;
 
             function download(filename, text) {
                 var element = document.createElement('a');
@@ -82,6 +82,8 @@ SOFTWARE.
             var nplots = bins.length;
             var nbins = bins[0].length;
             var subplotw = (plotw - lmargin)/nplots;
+            var mean_color = "lavender";
+            var std_color = "lavender";
 
             var maxbin = 0;
             for (var b in bins) {
@@ -122,8 +124,7 @@ SOFTWARE.
             var yticks = [];
             for (var i = 1; i <= nbins; i++) {
                 ydomain.push(i);
-                if (i % 10 == 0)
-                    yticks.push(i);
+                yticks.push(i);
                 }
             var yscale = d3.scaleBand()
                 .domain(ydomain)
@@ -150,13 +151,13 @@ SOFTWARE.
 
             // Style the y-axis
             plot_svg.selectAll(".axis line, .axis path")
-                .style("stroke", "black")
+                .style("stroke", "none")
                 .style("fill", "none")
                 .style("stroke-width", "1px")
                 .style("shape-rendering", "crispEdges");
             plot_svg.selectAll("g#yaxis g.tick text")
-                .style("font-family", "Helvetica")
-                .style("font-size", "12px");
+                .style("font-family", "Verdana")
+                .style("font-size", "40px");
 
             // For debugging, this is a rect surrounding the entire plot area
             if (showplotarea) {
@@ -230,12 +231,29 @@ SOFTWARE.
                     .append("rect")
                     .attr("class", "plot" + (k+1))
                     .attr("x",      function(d)   {return x - xscale(d)/2;                 })
-                    .attr("y",      function(d,i) {return yscale(i+1);})
+                    .attr("y",      function(d,i) {return yscale(i+1);                     })
                     .attr("width",  function(d)   {return xscale(d);                       })
                     .attr("height", function()    {return yscale.bandwidth();              })
                     .attr("stroke", "black")
-                    .attr("fill", function(d,i)   {return (i == posterior_mean_resolution_class) ? "purple" : "lavender";});
+                    .attr("fill", function(d,i)   {return (i == posterior_mean_resolution_class) ? mean_color : std_color;});
+                
+                plot_svg.selectAll("text.binlabel" + (k+1))
+                    .data(bins[k])
+                    .enter()
+                    .append("text")
+                    .attr("class", function(d,i) {return "binlabel" + (k+1) + " bin" + i;})
+                    .attr("x",      function(d)   {return x;})
+                    .attr("y",      function(d,i) {return yscale(i+1) + yscale.bandwidth()/2;})
+                    .style("font-family", "Verdana")
+                    .style("font-size","40px")
+                    .text(function(d,i) {return bins[k][i];});
+
+                for (let i in bins[k]) {    
+                    console.log("i = " + i);  
+                    var b = plot_svg.select("text.bin" + i);              
+                    centerLabel(b, x, yscale(parseInt(i)+1) + yscale.bandwidth()/2);
                 }
+            }
 		</script>
 	</body>
 </html>

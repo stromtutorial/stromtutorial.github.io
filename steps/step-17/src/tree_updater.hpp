@@ -157,7 +157,7 @@ namespace strom {
             _orig_edgelen_bottom = _y->getEdgeLength();
         }
         
-        // Symmetric move, Hastings ratio = 1
+        // Symmetric move: Hastings ratio = 1
         _log_hastings_ratio = 0.0;
 
         // Decide where along focal path (starting from top) to place moved node
