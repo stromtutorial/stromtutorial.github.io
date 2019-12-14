@@ -108,8 +108,22 @@ The explanation of terms is largely the same as above for the add-edge move exce
 
 ## The computePolytomyDistribution member function
 
-TODO
+The add-edge move splits the edges of a polytomy across a new edge. This function computes the probability distribution of possible partitionings and stores it in the map member variable `_poly_prob` under a key equal to the number of "spokes" in the polytomy where a spoke is an edge radiating from the polytomous node. The value of `_poly_prob[6]`, as an example, is the following vector of length 3:
+~~~~~~
+                      6!
+_poly_prob[6][0] = -------
+                   2! 4! C
 
+                      6!
+_poly_prob[6][1] = -------
+                   3! 3! C
+
+                      6!
+_poly_prob[6][2] = -------
+                   4! 2! C
+~~~~~~
+{:.bash-output}
+where `C` is the normalizing constant, which equals `2^6 - 2*6 - 2`.
 ~~~~~~
 {{ "steps/step-19/src/polytomy_updater.hpp" | polcodesnippet:"begin_computePolytomyDistribution-end_computePolytomyDistribution","" }}
 ~~~~~~
@@ -117,8 +131,7 @@ TODO
 
 ## The revert member function
 
-TODO
-
+This function simply reverses the add-edge or delete-edge move performed. It is called by `Updater::update` if the proposed move is not accepted.
 ~~~~~~
 {{ "steps/step-19/src/polytomy_updater.hpp" | polcodesnippet:"begin_revert-end_revert","" }}
 ~~~~~~
@@ -126,8 +139,7 @@ TODO
 
 ## The refreshPolytomies member function
 
-TODO
-
+This function creates a vector (stored in `_polytomies`) of nodes that are polytomous. This is used by the add-edge move to choose a focal polytomy to split up.
 ~~~~~~
 {{ "steps/step-19/src/polytomy_updater.hpp" | polcodesnippet:"begin_refreshPolytomies-end_refreshPolytomies","" }}
 ~~~~~~

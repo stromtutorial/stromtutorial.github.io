@@ -70,7 +70,7 @@ namespace strom {
 
     inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
         double log_topology_prior    = Updater::calcLogTopologyPrior();
-        double log_edge_length_prior = Updater::calcEdgeLengthPrior();
+        double log_edge_length_prior = Updater::calcLogEdgeLengthPrior();
         return log_topology_prior + log_edge_length_prior;
     }   ///end_calcLogPrior
 
@@ -121,9 +121,8 @@ namespace strom {
 
         // Note that _a must be a child of _x, but _b may either be a different child of _x or _x itself
         double u = _lot->uniform();
-        _new_edgelen_top    = u*(_orig_edgelen_top + _orig_edgelen_bottom);
-        _new_edgelen_middle = 0.0;
-        _new_edgelen_bottom = (1.0 - u)*(_orig_edgelen_top + _orig_edgelen_bottom);
+        double new_edgelen_top    = u*(_orig_edgelen_top + _orig_edgelen_bottom);
+        double new_edgelen_bottom = (1.0 - u)*(_orig_edgelen_top + _orig_edgelen_bottom);
 
         // Hastings ratio and Jacobian are both 1 under Gamma-Dirichlet parameterization
         _log_hastings_ratio = 0.0;
@@ -131,9 +130,9 @@ namespace strom {
 
         // Change edge lengths and flag partials and transition matrices for recalculation
         _tree_manipulator->selectPartialsHereToRoot(_x);
-        _a->setEdgeLength(_new_edgelen_top);
+        _a->setEdgeLength(new_edgelen_top);
         _a->selectTMatrix();
-        _b->setEdgeLength(_new_edgelen_bottom);
+        _b->setEdgeLength(new_edgelen_bottom);
         _b->selectTMatrix();
     }   ///end_starTreeMove
     

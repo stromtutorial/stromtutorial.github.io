@@ -1,7 +1,7 @@
 import sys,re,math,random
 from scipy.stats import chisquare
 
-C = 2.0
+C = 1.0
 
 usage = 'usage: python p2js.py <svg-filename-prefix> <param-file-name> [ <param-file-name> [ <param-file-name> [...]]]'
 assert len(sys.argv) > 1, usage
@@ -75,6 +75,7 @@ for i,dvect in enumerate(data):
         print '%12d' % b,
     print
     print 'P =',chisquare(bins, xbins)
+    print 'Note: assuming C = %.3f' % C
         
 outf.write('];\n')
 outf.close()
