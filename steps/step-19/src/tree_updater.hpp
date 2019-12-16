@@ -169,6 +169,7 @@ namespace strom {
         //  ///!e
         
         _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
+        _orig_edgelen_middle = _x->getEdgeLength();
         
         // The only child of the root node will be chosen only if the tree equals the star tree ///!f
         // in which case we want to perform a starTreeMove rather than Larget-Simon
@@ -178,11 +179,10 @@ namespace strom {
             starTreeMove();
             return;
         }   ///!g
-        //...
-        ///end_star_tree_modifications
-        _orig_edgelen_middle = _x->getEdgeLength();
 
         _y = _x->getParent();
+        //...
+        ///end_star_tree_modifications
 
         // Choose focal 3-edge segment to modify
         // Begin by randomly choosing one child of x to be node _a

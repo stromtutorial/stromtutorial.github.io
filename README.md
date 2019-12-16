@@ -20,4 +20,12 @@ version of the tutorial is still available at [phylogeny.uconn.edu/tutorial-v2/]
 
 #### 3.1
 
-This update fixes two bugs. First, the Hastings ratio was incorrect in `TreeUpdater::proposeNewState`. Rather than fix the Hastings ratio, it seemed more reasonable to modify the proposal so that it was symmetric and only modifies edge length proportions, not edge lengths themselves. This accords with the fact that the model parameterizes edge lengths into a tree length and a vector of edge length proportions. Now, `TreeUpdater` modifies only the edge length proportions (and possibly the tree topology), while `TreeLengthUpdater` modified only the tree length. Second, the Gamma-Dirichlet prior on tree length and edge length proportions was being applied twice (once by `TreeUpdater` and then again by TreeLengthUpdater). Now, `Chain::calcLogJointPrior` fixes this by not letting `TreeLengthUpdater` contribute to the calculation of the joint prior.
+This update fixes 3 bugs and adds one more step to the tutorial (Step 19). 
+
+First, the Hastings ratio was incorrect in `TreeUpdater::proposeNewState`. Rather than fix the Hastings ratio, it seemed more reasonable to modify the proposal so that it was symmetric and only modifies edge length proportions, not edge lengths themselves. This accords with the fact that the model parameterizes edge lengths into a tree length and a vector of edge length proportions. Now, `TreeUpdater` modifies only the edge length proportions (and possibly the tree topology), while `TreeLengthUpdater` modifies only the tree length. 
+
+Second, the Gamma-Dirichlet prior on tree length and edge length proportions was being applied twice (once by `TreeUpdater` and then again by `TreeLengthUpdater`). Now, `Chain::calcLogJointPrior` fixes this by not letting `TreeLengthUpdater` contribute to the calculation of the joint prior. 
+
+Third, it was pointed out to me (thanks James McCulloch!) that section 11.2 asked you to insert 8 member functions but a glitch in my code prevented you from seeing those functions. This has now been fixed. Please contact me if you encounter other such glitches and I will repair the tutorial web site as soon as possible so that you can continue.
+
+Finally, I have added a 19th step to the tutorial showing how to modify strom to allow polytomy-aware MCMC analyses. This may be further than you wish to go with this tutorial (it is a significant amount of work to add polytomy-awareness), but Step 19 is there if you are interested.

@@ -1,17 +1,41 @@
 ---
 layout: steps
-title: Modifying the TreeManip class
+title: Modifying the Node, Tree, and TreeManip classes
 partnum: 19
 subpart: 6
-description: Add functions to TreeManip to enable likelihood calculation on polytomous trees.
+description: Add to Node, Tree, and TreeManip to enable likelihood calculation on polytomous trees.
 ---
 {% comment %}
 {{ page.description | markdownify }}
 {% endcomment %}
 
-We need to add a few functions to the TreeManip class to facilitate dealing with trees containing polytomies.
+We need to add a data member to `Tree` and some functions to the `Node` and `TreeManip` class to facilitate dealing with trees containing polytomies.
 
-Add the highlighted lines below to the TreeManip class declaration.
+## Modifying Tree
+
+Add the highlighted lines below to the file {% indexfile tree.hpp %}.
+~~~~~~
+{{ "steps/step-19/src/tree.hpp" | polcodesnippet:"start-end_class_declaration","a,b,c,d" }}
+~~~~~~
+{:.cpp}
+
+## Modifying Node
+
+Declare (and define) a new function, `clearPointers`, in the `Node` class declaration at the top of the file {% indexfile node.hpp %}.
+~~~~~~
+{{ "steps/step-19/src/node.hpp" | polcodesnippet:"start-end_class_declaration","a" }}
+~~~~~~
+{:.cpp}
+
+Replace the initialization of the 3 pointer data members `_left_child`, `_right_sib`, and `_parent` with a call to the new `clearPointers` function.
+~~~~~~
+{{ "steps/step-19/src/node.hpp" | polcodesnippet:"begin_clear-end_clear","b" }}
+~~~~~~
+{:.cpp}
+
+## Modifying TreeManip
+
+Add the highlighted lines below to the `TreeManip` class declaration.
 ~~~~~~
 {{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"start-end_class_declaration","a,b,c-d" }}
 ~~~~~~
@@ -25,6 +49,14 @@ Returns the resolution class of the managed tree (the resolution class is just t
 ~~~~~~
 {:.cpp}
 
+## The countChildren function
+
+Counts and returns the number of child nodes (left child and all its siblings) of the node supplied.
+~~~~~~
+{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_countChildren-end_countChildren","" }}
+~~~~~~
+{:.cpp}
+
 ## The countInternals function
 
 Counts and returns the number of internal nodes in the managed tree.
@@ -35,7 +67,7 @@ Counts and returns the number of internal nodes in the managed tree.
 
 ## Simplifying the refreshPreorder function
 
-The changes to the refreshPreorder function highlighed below are not necessary, but serve to simply this function and others by making use of a new function findNextPreorder. In the next major version of the tutorial, these changes will be moved earlier in the tutorial when refreshPreorder is first introduced.
+The changes to the `refreshPreorder` function highlighed below are not necessary, but serve to simply this function and others by making use of a new function `findNextPreorder`. In the next major version of the tutorial, these changes will be moved earlier in the tutorial when `refreshPreorder` is first introduced.
 ~~~~~~
 {{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_refreshPreorder-end_refreshPreorder","e-f" }}
 ~~~~~~
@@ -53,7 +85,7 @@ In the previous version of this function, the internal nodes that were not used 
 
 This function was introduced to simplify the refreshPreorder function. In a future version of the tutorial, this function will be introduced earlier.
 ~~~~~~
-{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_findNextPreorder-end_begin_findNextPreorder","" }}
+{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_findNextPreorder-end_findNextPreorder","" }}
 ~~~~~~
 {:.cpp}
 

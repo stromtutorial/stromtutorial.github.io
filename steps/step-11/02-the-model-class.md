@@ -58,9 +58,9 @@ Don't fret that you don't know about the `ASRV` and `QMatrix` classes, those wil
 
 ## Accessors
 
-These 8 functions (`getNumPatterns`, `getSubsetNumSites`, `getNumSites`, `getNumSubsets`, `getSubsetNumCateg`, `getSubsetIsInvarModel`, `getQMatrix`, and `getASRV`) simply provide a way to peek at the values of private data members.
+These 8 functions (`getSubsetNumPatterns`, `getSubsetNumSites`, `getNumSites`, `getNumSubsets`, `getSubsetNumCateg`, `getSubsetIsInvarModel`, `getQMatrix`, and `getASRV`) simply provide a way to peek at the values of private data members.
 ~~~~~~
-{{ "steps/step-11/src/model.hpp" | polcodesnippet:"begin_getNumPatterns-end_getASRV","" }}
+{{ "steps/step-11/src/model.hpp" | polcodesnippet:"begin_getSubsetNumPatterns-end_getASRV","" }}
 ~~~~~~
 {:.cpp}
 

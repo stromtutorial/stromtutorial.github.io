@@ -1,4 +1,4 @@
-#pragma once
+#pragma once    ///start
 
 #include <string>
 #include <vector>
@@ -12,16 +12,12 @@ namespace strom {
     class Likelihood;
     class Updater;
     
-    class DebugStuff;   //DEBUGSTUFF
-
     class Node {
         friend class Tree;
         friend class TreeManip;
         friend class Likelihood;
         friend class Updater;
         
-        friend class DebugStuff;   //DEBUGSTUFF
-
         public:
                                         Node();
                                         ~Node();
@@ -56,13 +52,13 @@ namespace strom {
                     double              getEdgeLength()             {return _edge_length;}
                     void                setEdgeLength(double v);
 
+                    void                clearPointers()             {_left_child = _right_sib = _parent = 0;}   ///!a
+                    
             static const double _smallest_edge_length;
 
             typedef std::vector<Node>    Vector;
             typedef std::vector<Node *>  PtrVector;
         
-            void                clearPointers();
-
         private:
         
             enum Flag {
@@ -84,7 +80,8 @@ namespace strom {
             Split               _split;
             int                 _flags;
     };
-
+    ///end_class_declaration
+    
     inline Node::Node() {
         //std::cout << "Creating Node object" << std::endl;
         clear();
@@ -94,19 +91,13 @@ namespace strom {
         //std::cout << "Destroying Node object" << std::endl;
     }
 
-    inline void Node::clearPointers() {
-        _left_child = 0;
-        _right_sib = 0;
-        _parent = 0;
-    }
-
-    inline void Node::clear() {
-        clearPointers();
+    inline void Node::clear() { ///begin_clear
         _flags = 0;
+        clearPointers();    ///!b
         _number = -1;
         _name = "";
         _edge_length = _smallest_edge_length;
-    }
+    }   ///end_clear
 
     inline void Node::setEdgeLength(double v) {
         _edge_length = (v < _smallest_edge_length ? _smallest_edge_length : v);

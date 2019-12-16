@@ -25,12 +25,12 @@ namespace strom {
             void                                    run();
         
         private:
-            bool                                    processAssignmentString(Model::SharedPtr m, const std::string & which, const std::string & definition); ///!a
-            void                                    handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition); ///!b
+            bool                                    processAssignmentString(Model::SharedPtr m, const std::string & which, const std::string & definition);
+            void                                    handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition); 
             bool                                    splitAssignmentString(const std::string & definition, std::vector<std::string> & vector_of_subset_names, std::vector<double>  & vector_of_values);
             void                                    sample(unsigned iter, Chain & chain);
 
-            void                                    readData();    ///!c
+            void                                    readData();
             void                                    readTrees();
             void                                    showPartitionInfo();
             void                                    showBeagleInfo();
@@ -43,20 +43,20 @@ namespace strom {
             void                                    swapChains();
             void                                    stopChains();
             void                                    swapSummary() const;
-            void                                    showChainTuningInfo() const;    ///!d
+            void                                    showChainTuningInfo() const;
 
             double                                  _expected_log_likelihood;
             
-            double                                  _topo_prior_C;
+            double                                  _topo_prior_C;  ///!a
+            bool                                    _allow_polytomies;
+            bool                                    _resolution_class_prior;  ///!b
 
             std::string                             _data_file_name;
             std::string                             _tree_file_name;
             Partition::SharedPtr                    _partition;
 
             Data::SharedPtr                         _data;
-            std::vector<Likelihood::SharedPtr>      _likelihoods;       ///!e
-            //Model::SharedPtr                        _model;
-            //Likelihood::SharedPtr                   _likelihood;      ///!f
+            std::vector<Likelihood::SharedPtr>      _likelihoods;
             TreeSummary::SharedPtr                  _tree_summary;
             Lot::SharedPtr                          _lot;
 
@@ -65,7 +65,7 @@ namespace strom {
             unsigned                                _print_freq;
             unsigned                                _sample_freq;
 
-            unsigned                                _num_burnin_iter;   ///!g
+            unsigned                                _num_burnin_iter; 
             bool                                    _using_stored_data;
             bool                                    _use_gpu;
             bool                                    _ambig_missing;
@@ -73,7 +73,7 @@ namespace strom {
             double                                  _heating_lambda;
             std::vector<Chain>                      _chains;
             std::vector<double>                     _heating_powers;
-            std::vector<unsigned>                   _swaps;             ///!h
+            std::vector<unsigned>                   _swaps;
 
             bool                                    _use_underflow_scaling;
 
@@ -83,9 +83,8 @@ namespace strom {
             
             OutputManager::SharedPtr                _output_manager;
 
-    };  ///end_class_declaration
-
-    // member function bodies go here
+    };
+    ///end_class_declaration
 
     inline Strom::Strom() {
         //std::cout << "Constructing a Strom" << std::endl;
@@ -113,7 +112,9 @@ namespace strom {
         _sample_freq                = 1;
         _output_manager             = nullptr;
         
-        _topo_prior_C               = 1.0;
+        _topo_prior_C               = 1.0;  ///!c
+        _allow_polytomies           = true;
+        _resolution_class_prior     = true;  ///!d
 
         _using_stored_data          = true;
         _likelihoods.clear();
@@ -155,16 +156,18 @@ namespace strom {
             ("pinvar", boost::program_options::value(&partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
             ("relrate", boost::program_options::value(&partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
             ("tree", boost::program_options::value(&partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
-            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(1.0), "topology prior C: tree (or resolution class) with m-1 internal nodes has probability C time greater than tree (or resolution class) with m internal nodes.")
+            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(1.0), "topology prior C: tree (or resolution class) with m internal nodes has probability C time greater than tree (or resolution class) with m+1 internal nodes.") ///!e
+            ("allowpolytomies", boost::program_options::value(&_allow_polytomies)->default_value(true), "yes or no; if yes, then topopriorC and polytomyprior are used, otherwise topopriorC and polytomyprior are ignored")
+            ("resclassprior", boost::program_options::value(&_resolution_class_prior)->default_value(true), "if yes, topologypriorC will apply to resolution classes; if no, topologypriorC will apply to individual tree topologies") ///!f
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
-            ("nchains",       boost::program_options::value(&_num_chains)->default_value(1),                "number of chains") ///!a
+            ("nchains",       boost::program_options::value(&_num_chains)->default_value(1),                "number of chains")
             ("heatfactor",    boost::program_options::value(&_heating_lambda)->default_value(0.5),          "determines how hot the heated chains are")
             ("burnin",        boost::program_options::value(&_num_burnin_iter)->default_value(100),         "number of iterations used to burn in chains")
-            ("usedata",       boost::program_options::value(&_using_stored_data)->default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)") ///!b
-            ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available") ///!bb
-            ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data") ///!bbb
-            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)") ///!c
-        ;
+            ("usedata",       boost::program_options::value(&_using_stored_data)->default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)")
+            ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available")
+            ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data")
+            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
+        ;   ///end_add_options
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
             const boost::program_options::parsed_options & parsed = boost::program_options::parse_config_file< char >("strom.conf", desc, false);
@@ -196,18 +199,18 @@ namespace strom {
             }
         }
 
-        // Be sure number of chains is greater than or equal to 1                               ///!c
+        // Be sure number of chains is greater than or equal to 1
         if (_num_chains < 1)
-            throw XStrom("nchains must be a positive integer greater than 0");                  ///!d
+            throw XStrom("nchains must be a positive integer greater than 0");
 
-        // Be sure heatfactor is between 0 and 1                                                ///!e
+        // Be sure heatfactor is between 0 and 1
         if (_heating_lambda <= 0.0 || _heating_lambda > 1.0)
-            throw XStrom("heatfactor must be a real number in the interval (0.0,1.0]");         ///!f
+            throw XStrom("heatfactor must be a real number in the interval (0.0,1.0]");
         
-        if (!_using_stored_data)                                                                ///!g
-            std::cout << "\n*** Not using stored data (posterior = prior) ***\n" << std::endl;  ///!h
-
-        // Allocate a separate model for each chain ///!begin_alloc_models
+        if (!_using_stored_data)
+            std::cout << "\n*** Not using stored data (posterior = prior) ***\n" << std::endl;
+            
+        // Allocate a separate model for each chain
         for (unsigned c = 0; c < _num_chains; c++) {
             Likelihood::SharedPtr likelihood = Likelihood::SharedPtr(new Likelihood());
             likelihood->setPreferGPU(_use_gpu);
@@ -223,25 +226,25 @@ namespace strom {
             handleAssignmentStrings(m, vm, "relrate",   partition_relrates,  "default:equal");
             handleAssignmentStrings(m, vm, "tree",      partition_tree,      "default:1");
             _likelihoods.push_back(likelihood);
-        }   ///!end_alloc_models
-    }   ///end_processCommandLineOptions
+        }
+    }
     
-    inline void Strom::handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition) { ///begin_handleAssignmentStrings
+    inline void Strom::handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition) {
         if (vm.count(label) > 0) {
             bool first = true;
             for (auto s : definitions) {
-                bool is_default = processAssignmentString(m, label, s); ///!a
+                bool is_default = processAssignmentString(m, label, s);
                 if (is_default && !first)
                     throw XStrom(boost::format("default specification must be first %s encountered") % label);
                 first = false;
             }
         }
         else {
-            processAssignmentString(m, label, default_definition);  ///!b
+            processAssignmentString(m, label, default_definition);
         }
-    }   ///end_handleAssignmentStrings
+    }
     
-    inline bool Strom::processAssignmentString(Model::SharedPtr m, const std::string & which, const std::string & definition) { ///begin_processAssignmentString
+    inline bool Strom::processAssignmentString(Model::SharedPtr m, const std::string & which, const std::string & definition) {
         unsigned num_subsets_defined = _partition->getNumSubsets();
         std::vector<std::string> vector_of_subset_names;
         std::vector<double> vector_of_values;
@@ -257,11 +260,11 @@ namespace strom {
             if (vector_of_subset_names[0] == "default") {
                 default_found = true;
                 for (unsigned i = 0; i < num_subsets_defined; i++)
-                    m->setSubsetStateFreqs(freqs, i, fixed);    ///!a
+                    m->setSubsetStateFreqs(freqs, i, fixed);
             }
             else {
                 for (auto s : vector_of_subset_names) {
-                    m->setSubsetStateFreqs(freqs, _partition->findSubsetByName(s), fixed);    ///!b
+                    m->setSubsetStateFreqs(freqs, _partition->findSubsetByName(s), fixed);
                 }
             }
         }
@@ -270,11 +273,11 @@ namespace strom {
             if (vector_of_subset_names[0] == "default") {
                 default_found = true;
                 for (unsigned i = 0; i < num_subsets_defined; i++)
-                    m->setSubsetExchangeabilities(xchg, i, fixed);    ///!c
+                    m->setSubsetExchangeabilities(xchg, i, fixed);
             }
             else {
                 for (auto s : vector_of_subset_names) {
-                    m->setSubsetExchangeabilities(xchg, _partition->findSubsetByName(s), fixed);    ///!d
+                    m->setSubsetExchangeabilities(xchg, _partition->findSubsetByName(s), fixed);
                 }
             }
         }
@@ -285,11 +288,11 @@ namespace strom {
             if (vector_of_subset_names[0] == "default") {
                 default_found = true;
                 for (unsigned i = 0; i < num_subsets_defined; i++)
-                    m->setSubsetOmega(omega, i, fixed);    ///!e
+                    m->setSubsetOmega(omega, i, fixed);
             }
             else {
                 for (auto s : vector_of_subset_names) {
-                    m->setSubsetOmega(omega, _partition->findSubsetByName(s), fixed);    ///!f
+                    m->setSubsetOmega(omega, _partition->findSubsetByName(s), fixed);
                 }
             }
         }
@@ -301,15 +304,15 @@ namespace strom {
             if (vector_of_subset_names[0] == "default") {
                 default_found = true;
                 for (unsigned i = 0; i < num_subsets_defined; i++) {
-                    m->setSubsetIsInvarModel(invar_model, i);    ///!g
-                    m->setSubsetPinvar(p, i, fixed);    ///!h
+                    m->setSubsetIsInvarModel(invar_model, i);
+                    m->setSubsetPinvar(p, i, fixed);
                 }
             }
             else {
                 for (auto s : vector_of_subset_names) {
                     unsigned i = _partition->findSubsetByName(s);
-                    m->setSubsetIsInvarModel(invar_model, i);    ///!i
-                    m->setSubsetPinvar(p, i, fixed);    ///!j
+                    m->setSubsetIsInvarModel(invar_model, i);
+                    m->setSubsetPinvar(p, i, fixed);
                 }
             }
         }
@@ -320,11 +323,11 @@ namespace strom {
             if (vector_of_subset_names[0] == "default") {
                 default_found = true;
                 for (unsigned i = 0; i < num_subsets_defined; i++)
-                    m->setSubsetRateVar(rv, i, fixed);    ///!k
+                    m->setSubsetRateVar(rv, i, fixed);
             }
             else {
                 for (auto s : vector_of_subset_names) {
-                    m->setSubsetRateVar(rv, _partition->findSubsetByName(s), fixed);    ///!l
+                    m->setSubsetRateVar(rv, _partition->findSubsetByName(s), fixed);
                 }
             }
         }
@@ -335,11 +338,11 @@ namespace strom {
             if (vector_of_subset_names[0] == "default") {
                 default_found = true;
                 for (unsigned i = 0; i < num_subsets_defined; i++)
-                    m->setSubsetNumCateg(ncat, i);    ///!m
+                    m->setSubsetNumCateg(ncat, i);
             }
             else {
                 for (auto s : vector_of_subset_names) {
-                    m->setSubsetNumCateg(ncat, _partition->findSubsetByName(s));    ///!n
+                    m->setSubsetNumCateg(ncat, _partition->findSubsetByName(s));
                 }
             }
         }
@@ -348,7 +351,7 @@ namespace strom {
                 throw XStrom(boost::format("expecting 1 value for tree, found %d values") % vector_of_values.size());
             unsigned tree_index = vector_of_values[0];
             assert(tree_index > 0);
-            m->setTreeIndex(tree_index - 1, fixed);    ///!o
+            m->setTreeIndex(tree_index - 1, fixed);
             if (vector_of_subset_names[0] != "default")
                 throw XStrom("tree must be assigned to default only");
         }
@@ -356,11 +359,11 @@ namespace strom {
             assert(which == "relrate");
             if (vector_of_subset_names[0] != "default")
                 throw XStrom("relrate must be assigned to default only");
-            m->setSubsetRelRates(vector_of_values, fixed);    ///!p
+            m->setSubsetRelRates(vector_of_values, fixed);
         }
 
         return default_found;
-    }   ///end_processAssignmentString
+    }
 
     inline bool Strom::splitAssignmentString(const std::string & definition, std::vector<std::string> & vector_of_subset_names, std::vector<double>  & vector_of_values) {
         // Split subset names from definition
@@ -433,44 +436,27 @@ namespace strom {
         if (chain.getHeatingPower() < 1.0)
             return;
             
-        //POLTMP
-#if 0
-        // Determine whether tree is fully resolved or the star tree
-        Tree::SharedPtr tree = chain.getTreeManip()->getTree();
-        // Compute number of internal nodes in a fully resolved tree
-        unsigned num_internals_in_fully_resolved_tree = 0;
-        if (tree->isRooted())
-            num_internals_in_fully_resolved_tree = tree->numLeaves();
-        else
-            num_internals_in_fully_resolved_tree = tree->numLeaves() - 2;
-        unsigned num_internals_before = tree->numInternals();
-        bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
-        bool star_tree_before = (tree->numInternals() == 1);
-#endif
-
         bool time_to_sample = (bool)(iteration % _sample_freq == 0);
         bool time_to_report = (bool)(iteration % _print_freq == 0);
         if (time_to_sample || time_to_report) {
             double logLike = chain.getLogLikelihood();
             double logPrior = chain.calcLogJointPrior();
             double TL = chain.getTreeManip()->calcTreeLength();
-            unsigned m = chain.getTreeManip()->calcResolutionClass();
+            unsigned m = chain.getTreeManip()->calcResolutionClass();   ///!g
             if (time_to_report) {
                 if (logPrior == Updater::getLogZero())
                     _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
-                    //POLTMP _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f %12d %12d") % iteration % logLike % "-infinity" % TL % DebugStuff::m1 % DebugStuff::m2));
                 else
                     _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
-                    //POLTMP _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f %12d %12d") % iteration % logLike % logPrior % TL % DebugStuff::m1 % DebugStuff::m2));
             }
             if (time_to_sample) {
                 _output_manager->outputTree(iteration, chain.getTreeManip());
-                _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());
+                _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());   ///!h
             }
         }
     }   ///end_sample
 
-    inline void Strom::calcHeatingPowers() {    ///begin_calcHeatingPowers
+    inline void Strom::calcHeatingPowers() {
         // Specify chain heating power (e.g. _heating_lambda = 0.2)
         // chain_index  power
         //      0       1.000 = 1/(1 + 0.2*0)
@@ -481,9 +467,9 @@ namespace strom {
         for (auto & h : _heating_powers) {
             h = 1.0/(1.0 + _heating_lambda*i++);
         }
-    }   ///end_calcHeatingPowers
+    }
 
-    inline void Strom::showChainTuningInfo() const {    ///begin_showChainTuningInfo
+    inline void Strom::showChainTuningInfo() const {
         for (unsigned idx = 0; idx < _num_chains; ++idx) {
             for (auto & c : _chains) {
                 if (c.getChainIndex() == idx) {
@@ -500,31 +486,31 @@ namespace strom {
                 }
             }
         }
-    }   ///end_showChainTuningInfo
+    }
     
-    inline void Strom::startTuningChains() { ///begin_startTuningChains
+    inline void Strom::startTuningChains() {
         _swaps.assign(_num_chains*_num_chains, 0);
         for (auto & c : _chains) {
             c.startTuning();
         }
-    }   ///end_startTuningChains
+    } 
     
-    inline void Strom::stopTuningChains() { ///begin_stopTuningChains
+    inline void Strom::stopTuningChains() {
         _swaps.assign(_num_chains*_num_chains, 0);
         for (auto & c : _chains) {
             c.stopTuning();
         }
-    }   ///end_stopTuningChains
+    }
     
-    inline void Strom::stepChains(unsigned iteration, bool sampling) {  ///begin_stepChains
+    inline void Strom::stepChains(unsigned iteration, bool sampling) {
         for (auto & c : _chains) {
              c.nextStep(iteration);
             if (sampling)
                 sample(iteration, c);
         }
-    }   ///end_stepChains
+    }
 
-    inline void Strom::swapChains() {   ///begin_swapChains
+    inline void Strom::swapChains() {
         if (_num_chains == 1)
             return;
 
@@ -595,14 +581,14 @@ namespace strom {
             _chains[i].setLambdas(lambdas_j);
             _chains[j].setLambdas(lambdas_i);
         }
-    }   ///end_swapChains
+    }
 
-    inline void Strom::stopChains() {   ///begin_stopChains
+    inline void Strom::stopChains() {
         for (auto & c : _chains)
             c.stop();
-    }   ///end_stopChains
+    }
 
-    inline void Strom::swapSummary() const {    ///begin_swapSummary
+    inline void Strom::swapSummary() const {
         if (_num_chains > 1) {
             unsigned i, j;
             std::cout << "\nSwap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):" << std::endl;
@@ -637,7 +623,7 @@ namespace strom {
                 std::cout << boost::str(boost::format("-%12s") % "------------");
             std::cout << std::endl;
         }
-    }   ///end_swapSummary
+    } 
 
     inline void Strom::initChains() {   ///begin_initChains
         // Create _num_chains chains
@@ -657,6 +643,7 @@ namespace strom {
             auto m          = likelihood->getModel();
             
             // Finish setting up models
+            m->setTopologyPriorOptions(_allow_polytomies, _resolution_class_prior, _topo_prior_C);   ///!i
             m->setSubsetNumPatterns(_data->calcNumPatternsVect());
             m->setSubsetSizes(_partition->calcSubsetSizes());
             m->activate();
@@ -672,7 +659,7 @@ namespace strom {
             likelihood->useStoredData(_using_stored_data);
             
             // Build list of updaters, one for each free parameter in the model
-            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);
+            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);   ///!xxx
             if (num_free_parameters == 0)
                 throw XStrom("MCMC skipped because there are no free parameters in the model");
 
@@ -682,10 +669,7 @@ namespace strom {
             // Set heating power to precalculated value
             c.setChainIndex(chain_index);
             c.setHeatingPower(_heating_powers[chain_index]);
-            
-            // Set topology prior parameter C
-            c.setTopoPriorC(_topo_prior_C);
-            
+                        
             // Give the chain a starting tree
             std::string newick = _tree_summary->getNewick(m->getTreeIndex());
             c.setTreeFromNewick(newick);
@@ -695,14 +679,14 @@ namespace strom {
         }
     }   ///end_initChains
 
-    inline void Strom::readData() {  ///begin_readData
+    inline void Strom::readData() {
         std::cout << "\n*** Reading and storing the data in the file " << _data_file_name << std::endl;
         _data = Data::SharedPtr(new Data());
         _data->setPartition(_partition);
         _data->getDataFromFile(_data_file_name);
-    }   ///end_readData
+    }
     
-    inline void Strom::readTrees() {  ///begin_readTrees
+    inline void Strom::readTrees() {
         assert(_data);
         assert(_likelihoods.size() > 0 && _likelihoods[0]);
         auto m = _likelihoods[0]->getModel();
@@ -714,9 +698,9 @@ namespace strom {
         Tree::SharedPtr tree = _tree_summary->getTree(tree_index);
         if (tree->numLeaves() != _data->getNumTaxa())
             throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree->numLeaves() % _data->getNumTaxa());
-    }   ///end_readTrees
+    }
 
-    inline void Strom::showPartitionInfo() {  ///begin_showPartitionInfo
+    inline void Strom::showPartitionInfo() {
         // Report information about data partition subsets
         unsigned nsubsets = _data->getNumSubsets();
         std::cout << "\nNumber of taxa: " << _data->getNumTaxa() << std::endl;
@@ -729,9 +713,9 @@ namespace strom {
             std::cout << "    patterns:  " << _data->getNumPatternsInSubset(subset) << std::endl;
             std::cout << "    ambiguity: " << (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") << std::endl;
         }
-    }  ///end_showPartitionInfo
+    }
 
-    inline void Strom::showBeagleInfo() {  ///begin_showBeagleInfo
+    inline void Strom::showBeagleInfo() {
         assert(_likelihoods.size() > 0 && _likelihoods[0]);
         std::cout << "\n*** BeagleLib " << _likelihoods[0]->beagleLibVersion() << " resources:\n";
         std::cout << "Preferred resource: " << (_use_gpu ? "GPU" : "CPU") << std::endl;
@@ -739,9 +723,9 @@ namespace strom {
         std::cout << _likelihoods[0]->availableResources() << std::endl;
         std::cout << "Resources used:" << std::endl;
         std::cout << _likelihoods[0]->usedResources() << std::endl;
-    }  ///end_showBeagleInfo
+    }
     
-    inline void Strom::showMCMCInfo() {  ///begin_showMCMCInfo
+    inline void Strom::showMCMCInfo() {
         assert(_likelihoods.size() > 0 && _likelihoods[0]);
         std::cout << "\n*** MCMC analysis beginning..." << std::endl;
         if (_likelihoods[0]->usingStoredData()) {
@@ -762,9 +746,9 @@ namespace strom {
         std::cout << "Sampling every " << _sample_freq << " iterations." << std::endl;
         std::cout << "Sample size is " << (int)(_num_iter/_sample_freq) << std::endl;
                 
-    }  ///end_showMCMCInfo
+    }
     
-    inline void Strom::run() {  ///begin_run
+    inline void Strom::run() {
         std::cout << "Starting..." << std::endl;
         std::cout << "Current working directory: " << boost::filesystem::current_path() << std::endl;
         
@@ -786,7 +770,6 @@ namespace strom {
             // Create an output manager and open output files
             _output_manager.reset(new OutputManager);
             _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
-            //POLTMP _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL" % "m=1" % "m=2"));
             _output_manager->openTreeFile("trees.tre", _data);
             _output_manager->openParameterFile("params.txt", _chains[0].getModel());
             sample(0, _chains[0]);
@@ -818,6 +801,6 @@ namespace strom {
         }
 
         std::cout << "\nFinished!" << std::endl;
-    }   ///end_run
+    }
 
 }

@@ -30,7 +30,7 @@ namespace strom {
             void                                    setTuning(bool on);
             void                                    setTargetAcceptanceRate(double target);
             void                                    setPriorParameters(const std::vector<double> & c);
-            void                                    setTopoPriorC(double c);    ///!b
+            void                                    setTopologyPriorOptions(bool resclass, double C);    ///!b
             void                                    setWeight(double w);
             void                                    calcProb(double wsum);
 
@@ -73,7 +73,6 @@ namespace strom {
             unsigned                                _nattempts;
             bool                                    _tuning;
             std::vector<double>                     _prior_parameters;
-            double                                  _topo_prior_C;      ///!e
             
             double                                  _heating_power;
 
@@ -103,7 +102,6 @@ namespace strom {
         _naccepts               = 0;
         _nattempts              = 0;
         _heating_power          = 1.0;
-        _topo_prior_C           = 1.0;  ///!g
         _prior_parameters.clear();
         reset();
     } ///end_clear
@@ -132,10 +130,6 @@ namespace strom {
     inline void Updater::setHeatingPower(double p) { ///begin_setHeatingPower
         _heating_power = p;
     } ///end_setHeatingPower
-
-    inline void Updater::setTopoPriorC(double c) { ///begin_setTopoPriorC
-        _topo_prior_C = c;
-    } ///end_setTopoPriorC
 
     inline void Updater::setLambda(double lambda) { ///begin_setLambda
         _lambda = lambda;
@@ -259,16 +253,22 @@ namespace strom {
         return log_likelihood;
     } ///end_update
     
+    inline void Updater::setTopologyPriorOptions(bool resclass, double C) { ///begin_setTopologyPriorOptions
+        _topo_prior_calculator.setC(C);
+        if (resclass)
+            _topo_prior_calculator.chooseResolutionClassPrior();
+        else
+            _topo_prior_calculator.choosePolytomyPrior();
+    }   ///end_setTopologyPriorOptions
+    
     inline double Updater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
         Tree::SharedPtr tree = _tree_manipulator->getTree();
         assert(tree);
-        _topo_prior_calculator.chooseResolutionClassPrior();
         if (tree->isRooted())
             _topo_prior_calculator.chooseRooted();
         else
             _topo_prior_calculator.chooseUnrooted();
         _topo_prior_calculator.setNTax(tree->numLeaves());
-        _topo_prior_calculator.setC(_topo_prior_C);
         unsigned m = tree->numInternals();
                 
         double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);

@@ -316,7 +316,7 @@ namespace strom {
     inline double Chain::calcLogJointPrior() const { ///begin_calcLogJointPrior
         double lnP = 0.0;
         for (auto u : _updaters) {
-            //if (u->_name != "Tree Length")
+            if (u->_name != "Tree Length")
                 lnP += u->calcLogPrior();
         }
         return lnP;

@@ -42,7 +42,7 @@ namespace strom {
             virtual void                        clear();
 
             virtual double                      calcLogPrior() = 0;
-            double                              calcEdgeLengthPrior() const;
+            double                              calcLogEdgeLengthPrior() const;
             double                              calcLogLikelihood() const;
             virtual double                      update(double prev_lnL);
         
@@ -242,7 +242,7 @@ namespace strom {
         return log_likelihood;
     } ///end_update
 
-    inline double Updater::calcEdgeLengthPrior() const { ///begin_calcEdgeLengthPrior
+    inline double Updater::calcLogEdgeLengthPrior() const { ///begin_calcLogEdgeLengthPrior
         Tree::SharedPtr tree = _tree_manipulator->getTree();
         assert(tree);
 
@@ -280,7 +280,7 @@ namespace strom {
 
         double log_prior = log_gamma_prior_on_TL + log_edge_length_proportions_prior;
         return log_prior;
-    } ///end_calcEdgeLengthPrior
+    } ///end_calcLogEdgeLengthPrior
 
     inline double Updater::getLogZero() {
         return _log_zero;

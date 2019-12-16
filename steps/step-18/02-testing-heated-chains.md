@@ -23,39 +23,39 @@ Note that chain summaries are provided for all four chains.
 ~~~~~~
 Chain 0 (power 1.00000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4168
-                  Exchangeabilities        1000.000           100.0            4223
-                Gamma Rate Variance          11.883            29.6            4227
-     Proportion of Invariable Sites           1.000           100.0            4120
- Tree Topology and Edge Proportions        1000.000           100.0           79054
-                        Tree Length          11.221            28.7            4208
+                  State Frequencies        1000.000           100.0            4167
+                  Exchangeabilities        1000.000           100.0            4155
+                Gamma Rate Variance          10.317            30.1            4161
+     Proportion of Invariable Sites           1.000           100.0            4279
+ Tree Topology and Edge Proportions        1000.000           100.0           79038
+                        Tree Length          10.929            31.5            4200
 
 Chain 1 (power 0.66667)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4201
-                  Exchangeabilities        1000.000           100.0            4254
-                Gamma Rate Variance          13.438            30.2            4253
-     Proportion of Invariable Sites           1.000           100.0            4206
- Tree Topology and Edge Proportions        1000.000           100.0           78945
-                        Tree Length          12.107            29.2            4141
+                  State Frequencies        1000.000           100.0            4169
+                  Exchangeabilities        1000.000           100.0            4221
+                Gamma Rate Variance          14.331            29.9            4230
+     Proportion of Invariable Sites           1.000           100.0            4119
+ Tree Topology and Edge Proportions        1000.000           100.0           79054
+                        Tree Length          10.682            30.6            4207
 
 Chain 2 (power 0.50000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4203
-                  Exchangeabilities        1000.000           100.0            4217
-                Gamma Rate Variance          10.988            30.1            4221
-     Proportion of Invariable Sites           1.000           100.0            4202
- Tree Topology and Edge Proportions        1000.000           100.0           79099
-                        Tree Length          12.692            28.3            4058
+                  State Frequencies        1000.000           100.0            4204
+                  Exchangeabilities        1000.000           100.0            4218
+                Gamma Rate Variance          13.999            29.3            4221
+     Proportion of Invariable Sites           1.000           100.0            4203
+ Tree Topology and Edge Proportions        1000.000           100.0           79096
+                        Tree Length          12.619            31.6            4058
 
 Chain 3 (power 0.40000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4171
-                  Exchangeabilities        1000.000           100.0            4155
-                Gamma Rate Variance          11.580            31.0            4160
-     Proportion of Invariable Sites           1.000           100.0            4280
- Tree Topology and Edge Proportions        1000.000           100.0           79035
-                        Tree Length          13.722            29.4            4199
+                  State Frequencies        1000.000           100.0            4201
+                  Exchangeabilities        1000.000           100.0            4255
+                Gamma Rate Variance          11.183            30.0            4250
+     Proportion of Invariable Sites           1.000           100.0            4205
+ Tree Topology and Edge Proportions        1000.000           100.0           78946
+                        Tree Length          12.456            31.5            4143
 ~~~~~~
 {:.bash-output}
 
@@ -71,10 +71,10 @@ The swap summary shows that more than 16000 swaps were attempted between each pa
 Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
                         0            1            2            3
 ----------------------------------------------------------------
-           0          ---        16729        16751        16876
-           1        10357          ---        16546        16721
-           2         6617        11780          ---        16377
-           3         4118         8196        12381          ---
+           0          ---        16481        16646        16991
+           1        11517          ---        16703        16646
+           2         8490        13087          ---        16533
+           3         6718        10472        13723          ---
 ----------------------------------------------------------------
 ~~~~~~
 {:.bash-output}

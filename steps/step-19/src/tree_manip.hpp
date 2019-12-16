@@ -136,7 +136,7 @@ namespace strom {
         return m;
     }   ///end_countInternals
 
-    inline unsigned TreeManip::countChildren(Node * nd) const {
+    inline unsigned TreeManip::countChildren(Node * nd) const { ///begin_countChildren
         assert(nd);
         unsigned nchildren = 0;
         Node * child = nd->getLeftChild();
@@ -145,7 +145,7 @@ namespace strom {
             child = child->getRightSib();
         }
         return nchildren;
-    }
+    }   ///end_countChildren
 
     inline void TreeManip::scaleAllEdgeLengths(double scaler) {
         for (auto nd : _tree->_preorder) {

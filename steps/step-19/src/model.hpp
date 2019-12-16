@@ -1,4 +1,4 @@
-#pragma once
+#pragma once    ///start
 
 #include <algorithm>
 #include <vector>
@@ -14,7 +14,7 @@ namespace strom {
     
     class Likelihood;
 
-    class Model {   ///begin_model
+    class Model { 
         
         friend class Likelihood;
 
@@ -55,7 +55,11 @@ namespace strom {
             void                        setTreeIndex(unsigned i, bool fixed);
             unsigned                    getTreeIndex() const;
             bool                        isFixedTree() const;
-            bool                        isAllowPolytomies() const;
+            
+            void                        setTopologyPriorOptions(bool allow_polytomies, bool resclass, double C); ///!a
+            bool                        isResolutionClassTopologyPrior() const;
+            double                      getTopologyPriorC() const;
+            bool                        isAllowPolytomies() const; ///!b
 
             unsigned                    getNumSubsets() const;
             unsigned                    getNumSites() const;
@@ -89,19 +93,6 @@ namespace strom {
             std::string                 paramNamesAsString(std::string sep) const;
             std::string                 paramValuesAsString(std::string sep) const;
 
-#if 0
-            enum PriorComponent {
-                EdgeLengths       = (1 << 0),
-                TreeTopology      = (1 << 1),
-                StateFreqs        = (1 << 2),
-                Exchangeabilities = (1 << 3),
-                Omega             = (1 << 4),
-                RateVar           = (1 << 5),
-                ProportionInvar   = (1 << 6),
-                SubsetRelRates    = (1 << 7)
-            };
-#endif
-
         private:
         
             void                        clear();
@@ -116,7 +107,10 @@ namespace strom {
         
             bool                        _tree_index;
             bool                        _tree_fixed;
-            bool                        _allow_polytomies;
+            
+            bool                        _allow_polytomies; ///!c
+            bool                        _resolution_class_prior;
+            double                      _topo_prior_C; ///!d
 
             bool                        _subset_relrates_fixed;
             subset_relrate_vect_t       _subset_relrates;
@@ -126,9 +120,8 @@ namespace strom {
             omega_params_t              _omega_params;
             ratevar_params_t            _ratevar_params;
             pinvar_params_t             _pinvar_params;
-        };  ///end_model
-    
-    // member function bodies go here
+        };
+    ///end_class_declaration
     
     inline Model::Model() {
         //std::cout << "Constructing a Model" << std::endl;
@@ -139,12 +132,14 @@ namespace strom {
         //std::cout << "Destroying a Model" << std::endl;
     }
 
-    inline void Model::clear() {
+    inline void Model::clear() {    ///begin_clear
         _num_subsets = 0;
         _num_sites = 0;
         _tree_index = 0;
         _tree_fixed = false;
-        _allow_polytomies = true; 
+        _allow_polytomies = true;///!e
+        _resolution_class_prior = true; 
+        _topo_prior_C = 1.0; ///!f
         _subset_relrates_fixed = false;
         _subset_relrates.clear();
         _subset_sizes.clear();
@@ -152,7 +147,7 @@ namespace strom {
         _subset_datatypes.clear();
         _qmatrix.clear();
         _asrv.clear();
-    }
+    }   ///end_clear
     
     inline std::string Model::describeModel() {
         // Creates summary such as following and returns as a string:
@@ -668,7 +663,7 @@ namespace strom {
         return code;
     }
         
-    inline std::string Model::paramNamesAsString(std::string sep) const {   ///begin_paramNamesAsString
+    inline std::string Model::paramNamesAsString(std::string sep) const {
         unsigned k;
         std::string s = "";
         if (_num_subsets > 1) {
@@ -694,9 +689,9 @@ namespace strom {
             }
         }
         return s;
-    }   ///end_paramNamesAsString
+    }
 
-    inline std::string Model::paramValuesAsString(std::string sep) const {  ///begin_paramValuesAsString
+    inline std::string Model::paramValuesAsString(std::string sep) const {
         unsigned k;
         std::string s = "";
         if (_num_subsets > 1) {
@@ -725,9 +720,9 @@ namespace strom {
             }
         }
         return s;
-    }   ///end_paramValuesAsString
+    }
     
-    inline void Model::setSubsetRelRates(subset_relrate_vect_t & relrates, bool fixed) {   ///begin_setSubsetRelRates
+    inline void Model::setSubsetRelRates(subset_relrate_vect_t & relrates, bool fixed) {
         assert(_num_subsets > 0);
         assert(relrates.size() > 0);
         if (relrates[0] == -1)
@@ -735,31 +730,45 @@ namespace strom {
         else
             _subset_relrates.assign(relrates.begin(), relrates.end());
         _subset_relrates_fixed = fixed;
-    }   ///end_setSubsetRelRates
+    }
 
-    inline Model::subset_relrate_vect_t & Model::getSubsetRelRates() {   ///begin_getSubsetRelRates
+    inline Model::subset_relrate_vect_t & Model::getSubsetRelRates() {
         return _subset_relrates;
-    }   ///end_getSubsetRelRates
+    }
     
-    inline bool Model::isFixedSubsetRelRates() const {  ///begin_isFixedSubsetRelRates
+    inline bool Model::isFixedSubsetRelRates() const {
         return _subset_relrates_fixed;
-    }   ///end_isFixedSubsetRelRates
+    }
     
-    inline void Model::setTreeIndex(unsigned i, bool fixed) {   ///begin_setTreeIndex
+    inline void Model::setTreeIndex(unsigned i, bool fixed) {
         _tree_index = i;
         _tree_fixed = fixed;
-    }   ///end_setTreeIndex
+    }
 
-    inline unsigned Model::getTreeIndex() const {   ///begin_getTreeIndex
+    inline unsigned Model::getTreeIndex() const {
         return _tree_index;
-    }   ///end_getTreeIndex
+    }
     
     inline bool Model::isFixedTree() const {
         return _tree_fixed;
     }
 
-    inline bool Model::isAllowPolytomies() const {
+    inline void Model::setTopologyPriorOptions(bool allow_polytomies, bool resclass, double C) {  ///begin_setTopologyPriorOptions
+        _allow_polytomies       = allow_polytomies;
+        _resolution_class_prior = resclass;
+        _topo_prior_C           = C;
+    }   ///end_setTopologyPriorOptions
+
+    inline bool Model::isAllowPolytomies() const {  ///begin_isAllowPolytomies
         return _allow_polytomies;
-    }
+    }   ///end_isAllowPolytomies
+
+    inline bool Model::isResolutionClassTopologyPrior() const {  ///begin_isResolutionClassTopologyPrior
+        return _resolution_class_prior;
+    }   ///end_isResolutionClassTopologyPrior
+
+    inline double Model::getTopologyPriorC() const {  ///begin_getTopologyPriorC
+        return _topo_prior_C;
+    }   ///end_getTopologyPriorC
 
 }

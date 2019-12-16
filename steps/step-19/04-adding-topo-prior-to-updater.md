@@ -17,27 +17,11 @@ The following highlighted changes need to be made to the class declaration in {%
 ~~~~~~
 {:.cpp}
 
-## Modifying the clear function
-
-Initialize the new data member `_topo_prior_C` in the clear function:
-~~~~~~
-{{ "steps/step-19/src/updater.hpp" | polcodesnippet:"begin_clear-end_clear","g" }}
-~~~~~~
-{:.cpp}
-
 ## Modifying the reset function
 
 Set the new data member `_log_jacobian` to zero in the reset function:
 ~~~~~~
 {{ "steps/step-19/src/updater.hpp" | polcodesnippet:"begin_reset-end_reset","h" }}
-~~~~~~
-{:.cpp}
-
-## Add the setTopoPriorC function
-
-This function allows the topology prior parameter C to be set.
-~~~~~~
-{{ "steps/step-19/src/updater.hpp" | polcodesnippet:"begin_setTopoPriorC-end_setTopoPriorC","h" }}
 ~~~~~~
 {:.cpp}
 
@@ -51,9 +35,17 @@ Modify the update function to take account of the new _log_jacobian data member.
 
 ## Add the calcLogTopologyPrior function
 
-This function uses the data member _topo_prior_calculator to compute the log of the tree topology prior.
+This function uses the data member `_topo_prior_calculator` to compute the log of the tree topology prior.
 ~~~~~~
 {{ "steps/step-19/src/updater.hpp" | polcodesnippet:"begin_calcLogTopologyPrior-end_calcLogTopologyPrior","" }}
+~~~~~~
+{:.cpp}
+
+## Add the setTopologyPriorOptions function
+
+This function calls the appropriate functions in the `PolytomyTopoPriorCalculator` object to set the C parameter for the topology prior as well as the type of polytomy prior (resolution class or standard polytomy).
+~~~~~~
+{{ "steps/step-19/src/updater.hpp" | polcodesnippet:"begin_setTopologyPriorOptions-end_setTopologyPriorOptions","" }}
 ~~~~~~
 {:.cpp}
 

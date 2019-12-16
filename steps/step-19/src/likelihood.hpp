@@ -324,11 +324,10 @@ namespace strom {
             _identity_matrix[15+offset] = 1.0;
         }   ///!h
         
+        unsigned num_subsets = (unsigned)subset_indices.size();
         //...   
         ///after_identity_matrix_init
-        
-        unsigned num_subsets = (unsigned)subset_indices.size();
-        
+                
         bool is_invar_model = (nrates < 0 ? true : false);
         unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
         

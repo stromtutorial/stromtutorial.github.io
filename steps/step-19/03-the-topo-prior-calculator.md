@@ -15,7 +15,7 @@ There are also at least two interesting variations on the concept of a flat prio
 
 To help us compute the topology prior, create the following class `TopoPriorCalculator` in a header file named {% indexfile topo_prior_calculator.hpp %} as follows:
 ~~~~~~
-{{ "steps/step-19/src/topo_prior_calculator.hpp" | polcodesnippet:"start-end_class_declaration","h" }}
+{{ "steps/step-19/src/topo_prior_calculator.hpp" | polcodesnippet:"start-end_class_declaration,end","h" }}
 ~~~~~~
 {:.cpp}
 
