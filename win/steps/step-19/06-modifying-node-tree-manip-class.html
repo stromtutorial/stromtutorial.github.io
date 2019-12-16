@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modifying the Node, Tree, and TreeManip classes</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.6 Modifying the Node, Tree, and TreeManip classes</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/05-modifying-the-likelihood-class.html">&lt;&nbsp;19.5</a> | 19.6 | <a href="//win//steps/step-19/07-adding-polytomy-updater-to-chain.html">19.7&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>We need to add a data member to <code class="highlighter-rouge">Tree</code> and some functions to the <code class="highlighter-rouge">Node</code> and <code class="highlighter-rouge">TreeManip</code> class to facilitate dealing with trees containing polytomies.</p>
+
+<h2 id="modifying-tree">Modifying Tree</h2>
+
+<p>Add the highlighted lines below to the file <em>tree.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include &amp;lt;stack&amp;gt;&lt;/strong&gt;&lt;/span&gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;iostream&amp;gt;
+#include "node.hpp"
+
+namespace strom {
+
+    class TreeManip;
+    class Likelihood;
+    class Updater;
+    class TreeUpdater;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class PolytomyUpdater;&lt;/strong&gt;&lt;/span&gt;
+
+    class Tree {
+
+            friend class TreeManip;
+            friend class Likelihood;
+            friend class Updater;
+            friend class TreeUpdater;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class PolytomyUpdater;&lt;/strong&gt;&lt;/span&gt;
+        
+        public:
+
+                                        Tree();
+                                        ~Tree();
+
+            bool                        isRooted() const;
+            unsigned                    numLeaves() const;
+            unsigned                    numInternals() const;
+            unsigned                    numNodes() const;
+        
+        private:
+
+            void                        clear();
+
+            bool                        _is_rooted;
+            Node *                      _root;
+            unsigned                    _nleaves;
+            unsigned                    _ninternals;
+            Node::PtrVector             _preorder;
+            Node::PtrVector             _levelorder;
+            Node::Vector                _nodes;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::stack&amp;lt;Node *&amp;gt;          _unused_nodes;&lt;/strong&gt;&lt;/span&gt;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt;Tree&amp;gt; SharedPtr;
+    };
+    
+
+</code></pre></div></div>
+
+<h2 id="modifying-node">Modifying Node</h2>
+
+<p>Declare (and define) a new function, <code class="highlighter-rouge">clearPointers</code>, in the <code class="highlighter-rouge">Node</code> class declaration at the top of the file <em>node.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+#include "split.hpp"
+
+namespace strom {
+
+    class Tree;
+    class TreeManip;
+    class Likelihood;
+    class Updater;
+    
+    class Node {
+        friend class Tree;
+        friend class TreeManip;
+        friend class Likelihood;
+        friend class Updater;
+        
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()                 {return _parent;}
+                    Node *              getLeftChild()              {return _left_child;}
+                    Node *              getRightSib()               {return _right_sib;}
+                    int                 getNumber()                 {return _number;}
+                    std::string         getName()                   {return _name;}
+                    Split               getSplit()                  {return _split;}
+        
+                    bool                isSelected()                {return _flags &amp; Flag::Selected;}
+                    void                select()                    {_flags |= Flag::Selected;}
+                    void                deselect()                  {_flags &amp;= ~Flag::Selected;}
+
+                    bool                isSelPartial()              {return _flags &amp; Flag::SelPartial;}
+                    void                selectPartial()             {_flags |= Flag::SelPartial;}
+                    void                deselectPartial()           {_flags &amp;= ~Flag::SelPartial;}
+
+                    bool                isSelTMatrix()              {return _flags &amp; Flag::SelTMatrix;}
+                    void                selectTMatrix()             {_flags |= Flag::SelTMatrix;}
+                    void                deselectTMatrix()           {_flags &amp;= ~Flag::SelTMatrix;}
+
+                    bool                isAltPartial()              {return _flags &amp; Flag::AltPartial;}
+                    void                setAltPartial()             {_flags |= Flag::AltPartial;}
+                    void                clearAltPartial()           {_flags &amp;= ~Flag::AltPartial;}
+
+                    bool                isAltTMatrix()              {return _flags &amp; Flag::AltTMatrix;}
+                    void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}
+                    void                clearAltTMatrix()           {_flags &amp;= ~Flag::AltTMatrix;}
+
+                    double              getEdgeLength()             {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                clearPointers()             {_left_child = _right_sib = _parent = 0;}&lt;/strong&gt;&lt;/span&gt;
+                    
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+        
+        private:
+        
+            enum Flag {
+                Selected   = (1 &amp;lt;&amp;lt; 0),
+                SelPartial = (1 &amp;lt;&amp;lt; 1),
+                SelTMatrix = (1 &amp;lt;&amp;lt; 2),
+                AltPartial = (1 &amp;lt;&amp;lt; 3),
+                AltTMatrix = (1 &amp;lt;&amp;lt; 4)
+            };
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            Split               _split;
+            int                 _flags;
+    };
+    
+
+</code></pre></div></div>
+
+<p>Replace the initialization of the 3 pointer data members <code class="highlighter-rouge">_left_child</code>, <code class="highlighter-rouge">_right_sib</code>, and <code class="highlighter-rouge">_parent</code> with a call to the new <code class="highlighter-rouge">clearPointers</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Node::clear() { 
+        _flags = 0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;clearPointers();&lt;/strong&gt;&lt;/span&gt;
+        _number = -1;
+        _name = "";
+        _edge_length = _smallest_edge_length;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-treemanip">Modifying TreeManip</h2>
+
+<p>Add the highlighted lines below to the <code class="highlighter-rouge">TreeManip</code> class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;cassert&amp;gt;
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;stack&amp;gt;
+#include &amp;lt;queue&amp;gt;
+#include &amp;lt;set&amp;gt;
+#include &amp;lt;regex&amp;gt;
+#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "tree.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class TreeManip {
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                    calcResolutionClass() const;&lt;/strong&gt;&lt;/span&gt;
+            unsigned                    countEdges() const;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                    countInternals() const;&lt;/strong&gt;&lt;/span&gt;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            std::string                 makeNewick(unsigned precision) const;
+
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);
+            void                        rerootAtNodeNumber(int node_number);
+        
+            void                        LargetSimonSwap(Node * a, Node * b);
+            Node *                      randomInternalEdge(double uniform01);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        nniNodeSwap(Node * a, Node * b);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                    countChildren(Node * nd) const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findLeftSib(Node * nd);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findNextPreorder(Node * nd);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findRightmostChild(Node * nd);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findLastPreorderInClade(Node * start);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        insertSubtreeOnLeft(Node * s, Node * u);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        insertSubtreeOnRight(Node * s, Node * u);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        detachSubtree(Node * s);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        rectifyNumInternals(int incr);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        refreshNavigationPointers();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      getUnusedNode();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        putUnusedNode(Node * nd);&lt;/strong&gt;&lt;/span&gt;
+            
+            void                        selectAll();
+            void                        deselectAll();
+            void                        selectAllPartials();
+            void                        deselectAllPartials();
+            void                        selectAllTMatrices();
+            void                        deselectAllTMatrices();
+
+            void                        selectPartialsHereToRoot(Node * a);
+            void                        flipPartialsAndTMatrices();
+
+            void                        clear();
+            
+        private:
+
+            void                        refreshPreorder();
+            void                        refreshLevelorder();
+            void                        renumberInternals();
+            void                        rerootAtNode(Node * prospective_root);
+            void                        extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used);
+            void                        extractEdgeLen(Node * nd, std::string edge_length_string);
+            unsigned                    countNewickLeaves(const std::string newick);
+            void                        stripOutNexusComments(std::string &amp; newick);
+            bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };
+
+
+</code></pre></div></div>
+
+<h2 id="the-calcresolutionclass-function">The calcResolutionClass function</h2>
+
+<p>Returns the resolution class of the managed tree (the resolution class is just the number of internal nodes).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned TreeManip::calcResolutionClass() const {    
+        return _tree-&amp;gt;_ninternals;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-countchildren-function">The countChildren function</h2>
+
+<p>Counts and returns the number of child nodes (left child and all its siblings) of the node supplied.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned TreeManip::countChildren(Node * nd) const { 
+        assert(nd);
+        unsigned nchildren = 0;
+        Node * child = nd-&amp;gt;getLeftChild();
+        while (child) {
+            nchildren++;
+            child = child-&amp;gt;getRightSib();
+        }
+        return nchildren;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-countinternals-function">The countInternals function</h2>
+
+<p>Counts and returns the number of internal nodes in the managed tree.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned TreeManip::countInternals() const { 
+        unsigned m = 0;
+        for (auto nd : _tree-&amp;gt;_preorder) {
+            if (nd-&amp;gt;_left_child)
+                m++;
+        }
+        return m;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="simplifying-the-refreshpreorder-function">Simplifying the refreshPreorder function</h2>
+
+<p>The changes to the <code class="highlighter-rouge">refreshPreorder</code> function highlighed below are not necessary, but serve to simply this function and others by making use of a new function <code class="highlighter-rouge">findNextPreorder</code>. In the next major version of the tutorial, these changes will be moved earlier in the tutorial when <code class="highlighter-rouge">refreshPreorder</code> is first introduced.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::refreshPreorder() {  
+        // Create vector of node pointers in preorder sequence
+        _tree-&amp;gt;_preorder.clear();
+        _tree-&amp;gt;_preorder.reserve(_tree-&amp;gt;_nodes.size() - 1); // _preorder does not include root node
+
+        if (!_tree-&amp;gt;_root)
+            return;
+
+        Node * first_preorder = _tree-&amp;gt;_root-&amp;gt;_left_child;
+
+        // sanity check: first preorder node should be the only child of the root node
+        assert(first_preorder-&amp;gt;_right_sib == 0);
+
+        Node * nd = first_preorder;
+        _tree-&amp;gt;_preorder.push_back(nd);
+
+        while (true) {
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;nd = findNextPreorder(nd);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_tree-&amp;gt;_preorder.push_back(nd);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;break;&lt;/strong&gt;&lt;/span&gt;
+        }   // end while loop
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-renumberinternals-function">Modifying the renumberInternals function</h2>
+
+<p>In the previous version of this function, the internal nodes that were not used because of the presence of polytomies were simply numbered. Now that there is the possibility that a tree can make use of these initially unused nodes, we will modify this function to store these currently unused nodes in the <code class="highlighter-rouge">_unused_nodes</code> vector of the managed Tree object.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::renumberInternals() {    
+        assert(_tree-&amp;gt;_preorder.size() &amp;gt; 0);
+        
+        // Renumber internal nodes in postorder sequence
+        int curr_internal = _tree-&amp;gt;_nleaves;
+        for (auto nd : boost::adaptors::reverse(_tree-&amp;gt;_preorder)) {
+            if (nd-&amp;gt;_left_child) {
+                // nd is an internal node
+                nd-&amp;gt;_number = curr_internal++;
+            }
+        }
+        
+        // Root node is not included in _tree-&amp;gt;_preorder, so if the root node
+        // is an internal node we need to number it here
+        if (_tree-&amp;gt;_is_rooted)
+            _tree-&amp;gt;_root-&amp;gt;_number = curr_internal++;
+            
+        _tree-&amp;gt;_ninternals = curr_internal - _tree-&amp;gt;_nleaves;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(_tree-&amp;gt;_unused_nodes.empty());&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (; curr_internal &amp;lt; _tree-&amp;gt;_nodes.size(); curr_internal++) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * curr = &amp;_tree-&amp;gt;_nodes[curr_internal];&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;putUnusedNode(curr);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(curr-&amp;gt;_number == -1);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;curr-&amp;gt;_number = curr_internal;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-findnextpreorder-function">Adding the findNextPreorder function</h2>
+
+<p>This function was introduced to simplify the refreshPreorder function. In a future version of the tutorial, this function will be introduced earlier.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::findNextPreorder(Node * nd) {  
+        assert(nd);
+        Node * next = 0;
+        if (!nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
+            // nd has no children and no siblings, so next preorder is the right sibling of
+            // the first ancestral node that has a right sibling.
+            Node * anc = nd-&amp;gt;_parent;
+            while (anc &amp;&amp; !anc-&amp;gt;_right_sib)
+                anc = anc-&amp;gt;_parent;
+            if (anc) {
+                // We found an ancestor with a right sibling
+                next = anc-&amp;gt;_right_sib;
+            }
+            else {
+                // nd is last preorder node in the tree
+                next = 0;
+            }
+        }
+        else if (nd-&amp;gt;_right_sib &amp;&amp; !nd-&amp;gt;_left_child) {
+            // nd has no children (it is a tip), but does have a sibling on its right
+            next = nd-&amp;gt;_right_sib;
+        }
+        else if (nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
+            // nd has children (it is an internal node) but no siblings on its right
+            next = nd-&amp;gt;_left_child;
+        }
+        else {
+            // nd has both children and siblings on its right
+            next = nd-&amp;gt;_left_child;
+        }
+        return next;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-findleftsib-function">Adding the findLeftSib function</h2>
+
+<p>This function determines whether there is a sibling to the left of the supplied Node. If so, a pointer to that left sib is returned; if there is no left sib, NULL is returned.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::findLeftSib(Node * nd) {   
+        assert(nd);
+        assert(nd-&amp;gt;_parent);
+        Node * child = nd-&amp;gt;_parent-&amp;gt;_left_child;
+        while (child &amp;&amp; child-&amp;gt;_right_sib != nd)
+            child = child-&amp;gt;_right_sib;
+        return child;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-findrightmostchild-function">Adding the findRightmostChild function</h2>
+
+<p>Finds the rightmost child of the supplied Node. If there are no children, returns NULL.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::findRightmostChild(Node * nd) {    
+        assert(nd);
+        Node * child = nd-&amp;gt;getLeftChild();
+        while (child-&amp;gt;getRightSib())
+            child = child-&amp;gt;getRightSib();
+        return child;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-findlastpreorderinclade-function">Adding the findLastPreorderInClade function</h2>
+
+<p>Walks through the entire clade rooted at the supplied node, returning the last descendant in the preorder sequence before leaving the clade.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::findLastPreorderInClade(Node * start) {    
+        assert(start);
+        Node * curr = start;
+        Node * rchild = findRightmostChild(curr);
+        while (rchild) {
+            curr = rchild;
+            rchild = findRightmostChild(curr);
+        }
+        return curr;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-insertsubtreeonleft-function">Adding the insertSubtreeOnLeft function</h2>
+
+<p>Makes supplied Node <code class="highlighter-rouge">s</code> the left child of supplied Node <code class="highlighter-rouge">u</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::insertSubtreeOnLeft(Node * s, Node * u) {    
+        assert(u);
+        assert(s);
+        s-&amp;gt;_right_sib  = u-&amp;gt;_left_child;
+        s-&amp;gt;_parent     = u;
+        u-&amp;gt;_left_child = s;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-insertsubtreeonright-function">Adding the insertSubtreeOnRight function</h2>
+
+<p>If supplied Node <code class="highlighter-rouge">u</code> has children, this function makes supplied Node <code class="highlighter-rouge">s</code> the right sib of the rightmost child of <code class="highlighter-rouge">u</code>. If <code class="highlighter-rouge">u</code> has no children currently, <code class="highlighter-rouge">s</code> is made the only child of <code class="highlighter-rouge">u</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::insertSubtreeOnRight(Node * s, Node * u) {   
+        assert(u);
+        assert(s);
+
+        s-&amp;gt;_right_sib = 0;
+        s-&amp;gt;_parent    = u;
+        if (u-&amp;gt;_left_child) {
+            Node * u_rchild = findRightmostChild(u);
+            u_rchild-&amp;gt;_right_sib = s;
+        }
+        else
+            u-&amp;gt;_left_child = s;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-detachsubtree-function">Adding the detachSubtree function</h2>
+
+<p>This function detaches the supplied Node <code class="highlighter-rouge">s</code> from the managed tree. This function is normally used just before calling the <code class="highlighter-rouge">insertSubtreeOnLeft</code> or <code class="highlighter-rouge">insertSubtreeOnRight</code> function to reinsert <code class="highlighter-rouge">s</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::detachSubtree(Node * s) {    
+        assert(s);
+        assert(s-&amp;gt;_parent);
+        
+        // Save pointers to relevant nodes
+        Node * s_leftsib  = findLeftSib(s);
+        Node * s_rightsib = s-&amp;gt;_right_sib;
+        Node * s_parent   = s-&amp;gt;_parent;
+
+        // Completely detach s and seal up the wound
+        s-&amp;gt;_parent = 0;
+        s-&amp;gt;_right_sib = 0;
+        if (s_leftsib)
+            s_leftsib-&amp;gt;_right_sib = s_rightsib;
+        else
+            s_parent-&amp;gt;_left_child = s_rightsib;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-rectifynuminternals-function">Adding the rectifyNumInternals function</h2>
+
+<p>Tree objects have an <code class="highlighter-rouge">_ninternals</code> data member that holds the number of internal nodes in the tree. Polytomy analyses perform modifications to trees that change the number of internal nodes, and this function is used to keep this Tree data member accurate by adding incr to the value currently stored in the managed tree’s <code class="highlighter-rouge">_ninternals</code> data member. Note that <code class="highlighter-rouge">incr</code> is an int and can be negative.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::rectifyNumInternals(int incr) {  
+        assert(_tree-&amp;gt;_nodes.size() == _tree-&amp;gt;_unused_nodes.size() + _tree-&amp;gt;_nleaves + _tree-&amp;gt;_ninternals + incr);
+        _tree-&amp;gt;_ninternals += incr;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-refreshnavigationpointers-function">Adding the refreshNavigationPointers function</h2>
+
+<p>This function calls <code class="highlighter-rouge">refreshPreorder</code> and <code class="highlighter-rouge">refreshLevelorder</code> to ensure that the managed tree’s _preorder and _levelorder vectors accurately reflect the structure of the tree. This function should be called if, for example, a polytomy is created or expanded by a delete-edge move or is broken apart by an add-edge move.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::refreshNavigationPointers() {    
+        refreshPreorder();
+        refreshLevelorder();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="adding-the-getunusednode-and-putunusednode-functions">Adding the getUnusedNode and putUnusedNode functions</h2>
+
+<p>Polytomies in trees mean that not all elements of the tree’s <code class="highlighter-rouge">_nodes</code> vector are used. The Tree class’s <code class="highlighter-rouge">_unused_nodes</code> stack keeps a list of nodes that are currently not being used. These unused nodes are tapped by the <code class="highlighter-rouge">Likelihood::defineOperations</code> function to help in computing the likelihood on polytomous trees. the <code class="highlighter-rouge">getUnusedNode</code> removes a node from the top of the stack and returns a pointer to the removed Node object. The <code class="highlighter-rouge">putUnusedNode</code> function takes a <code class="highlighter-rouge">Node</code> pointer and pushes it onto the <code class="highlighter-rouge">_unused_nodes</code> stack.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::getUnusedNode() {  
+        assert(_tree-&amp;gt;_unused_nodes.size() &amp;gt; 0);
+        Node * nd = _tree-&amp;gt;_unused_nodes.top();
+        _tree-&amp;gt;_unused_nodes.pop();
+        nd-&amp;gt;clearPointers();
+        return nd;
+    }   
+    
+    inline void TreeManip::putUnusedNode(Node * nd) {   
+        _tree-&amp;gt;_unused_nodes.push(nd);
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/05-modifying-the-likelihood-class.html">&lt;&nbsp;19.5</a> | 19.6 | <a href="//win//steps/step-19/07-adding-polytomy-updater-to-chain.html">19.7&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

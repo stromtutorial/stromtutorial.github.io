@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding calcLogTopologyPrior to Updater</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.4 Adding calcLogTopologyPrior to Updater</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//mac//steps/step-19/03-the-topo-prior-calculator.html">&lt;&nbsp;19.3</a> | 19.4 | <a href="//mac//steps/step-19/05-modifying-the-likelihood-class.html">19.5&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="updating-the-updater-class-declaration">Updating the Updater class declaration</h2>
+
+<p>The following highlighted changes need to be made to the class declaration in <em>updater.hpp</em>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "tree.hpp"
+#include "tree_manip.hpp"
+#include "lot.hpp"
+#include "xstrom.hpp"
+#include "likelihood.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "topo_prior_calculator.hpp"&lt;/strong&gt;&lt;/span&gt;
+
+namespace strom {
+    class Chain;
+
+    class Updater {
+    
+        friend class Chain;
+
+        public:
+            typedef std::shared_ptr&amp;lt;Updater&amp;gt;        SharedPtr;
+        
+            TreeManip::SharedPtr                    getTreeManip() const;
+
+                                                    Updater();
+            virtual                                 ~Updater();
+
+            void                                    setLikelihood(Likelihood::SharedPtr likelihood);
+            void                                    setTreeManip(TreeManip::SharedPtr treemanip);
+            void                                    setLot(Lot::SharedPtr lot);
+            void                                    setLambda(double lambda);
+            void                                    setHeatingPower(double p);
+            void                                    setTuning(bool on);
+            void                                    setTargetAcceptanceRate(double target);
+            void                                    setPriorParameters(const std::vector&amp;lt;double&amp;gt; &amp; c);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    setTopologyPriorOptions(bool resclass, double C);&lt;/strong&gt;&lt;/span&gt;
+            void                                    setWeight(double w);
+            void                                    calcProb(double wsum);
+
+            double                                  getLambda() const;
+            double                                  getWeight() const;
+            double                                  getProb() const;
+            double                                  getAcceptPct() const;
+            double                                  getNumUpdates() const;
+            std::string                             getUpdaterName() const;
+
+            virtual void                            clear();
+
+            virtual double                          calcLogPrior() = 0;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  calcLogTopologyPrior() const;&lt;/strong&gt;&lt;/span&gt;
+            double                                  calcLogEdgeLengthPrior() const; 
+            double                                  calcLogLikelihood() const;
+            virtual double                          update(double prev_lnL);
+        
+            static double                           getLogZero();
+            
+        protected:
+
+            virtual void                            reset();
+            virtual void                            tune(bool accepted);
+
+            virtual void                            revert() = 0;
+            virtual void                            proposeNewState() = 0;
+
+            Lot::SharedPtr                          _lot;
+            Likelihood::SharedPtr                   _likelihood;
+            TreeManip::SharedPtr                    _tree_manipulator;
+            std::string                             _name;
+            double                                  _weight;
+            double                                  _prob;
+            double                                  _lambda;
+            double                                  _log_hastings_ratio;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _log_jacobian;&lt;/strong&gt;&lt;/span&gt;
+            double                                  _target_acceptance;
+            unsigned                                _naccepts;
+            unsigned                                _nattempts;
+            bool                                    _tuning;
+            std::vector&amp;lt;double&amp;gt;                     _prior_parameters;
+            
+            double                                  _heating_power;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;mutable PolytomyTopoPriorCalculator     _topo_prior_calculator;&lt;/strong&gt;&lt;/span&gt;
+            
+            static const double                     _log_zero;
+    };
+ 
+    // member function bodies go here
+    
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-reset-function">Modifying the reset function</h2>
+
+<p>Set the new data member <code class="highlighter-rouge">_log_jacobian</code> to zero in the reset function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Updater::reset() { 
+        _log_hastings_ratio = 0.0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_log_jacobian       = 0.0;&lt;/strong&gt;&lt;/span&gt;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="modify-the-update-function">Modify the update function</h2>
+
+<p>Modify the update function to take account of the new _log_jacobian data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::update(double prev_lnL) { 
+        double prev_log_prior = calcLogPrior();
+
+        // Clear any nodes previously selected so that we can detect those nodes
+        // whose partials and/or transition probabilities need to be recalculated
+        _tree_manipulator-&amp;gt;deselectAllPartials();
+        _tree_manipulator-&amp;gt;deselectAllTMatrices();
+        
+        // Set model to proposed state and calculate _log_hastings_ratio
+        proposeNewState();
+        
+        // Use alternative partials and transition probability buffer for any selected nodes
+        // This allows us to easily revert to the previous values if the move is rejected
+        _tree_manipulator-&amp;gt;flipPartialsAndTMatrices();
+
+        // Calculate the log-likelihood and log-prior for the proposed state
+        double log_likelihood = calcLogLikelihood();
+        double log_prior = calcLogPrior();
+        
+        // Decide whether to accept or reject the proposed state
+        bool accept = true;
+        if (log_prior &amp;gt; _log_zero) {
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_R = 0.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _heating_power*(log_likelihood - prev_lnL);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _heating_power*(log_prior - prev_log_prior);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _log_hastings_ratio;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _log_jacobian;&lt;/strong&gt;&lt;/span&gt;
+            
+            double logu = _lot-&amp;gt;logUniform();
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (logu &amp;gt; log_R)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;accept = false;&lt;/strong&gt;&lt;/span&gt;
+        }
+        else
+            accept = false;
+
+        if (accept) {
+            _naccepts++;
+        }
+        else {
+            revert();
+            _tree_manipulator-&amp;gt;flipPartialsAndTMatrices();
+            log_likelihood = prev_lnL;
+        }
+
+        tune(accept);
+        reset();
+
+        return log_likelihood;
+    } 
+
+</code></pre></div></div>
+
+<h2 id="add-the-calclogtopologyprior-function">Add the calcLogTopologyPrior function</h2>
+
+<p>This function uses the data member <code class="highlighter-rouge">_topo_prior_calculator</code> to compute the log of the tree topology prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcLogTopologyPrior() const {   
+        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
+        assert(tree);
+        if (tree-&amp;gt;isRooted())
+            _topo_prior_calculator.chooseRooted();
+        else
+            _topo_prior_calculator.chooseUnrooted();
+        _topo_prior_calculator.setNTax(tree-&amp;gt;numLeaves());
+        unsigned m = tree-&amp;gt;numInternals();
+                
+        double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
+
+        return log_topology_prior;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-the-settopologyprioroptions-function">Add the setTopologyPriorOptions function</h2>
+
+<p>This function calls the appropriate functions in the <code class="highlighter-rouge">PolytomyTopoPriorCalculator</code> object to set the C parameter for the topology prior as well as the type of polytomy prior (resolution class or standard polytomy).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Updater::setTopologyPriorOptions(bool resclass, double C) { 
+        _topo_prior_calculator.setC(C);
+        if (resclass)
+            _topo_prior_calculator.chooseResolutionClassPrior();
+        else
+            _topo_prior_calculator.choosePolytomyPrior();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modify-the-calclogedgelengthprior-function">Modify the calcLogEdgeLengthPrior function</h2>
+
+<p>The <code class="highlighter-rouge">calcLogEdgeLengthPrior</code> function must be modified because, if polytomies may be present, we must now count the number of edges in the tree can can no longer use a formula that only works for binary trees.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcLogEdgeLengthPrior() const { 
+        double log_prior = 0.0;
+        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
+        assert(tree);
+
+        double TL = _tree_manipulator-&amp;gt;calcTreeLength();
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//double n = tree-&amp;gt;numLeaves();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double num_edges = _tree_manipulator-&amp;gt;countEdges();&lt;/strong&gt;&lt;/span&gt;
+
+        double a = _prior_parameters[0];    // shape of Gamma prior on TL
+        double b = _prior_parameters[1];    // scale of Gamma prior on TL
+        double c = _prior_parameters[2];    // parameter of Dirichlet prior on edge length proportions
+
+        // Calculate Gamma prior on tree length (TL)
+        double log_gamma_prior_on_TL = (a - 1.0)*log(TL) - TL/b - a*log(b) - std::lgamma(a);
+
+        // Calculate Dirichlet prior on edge length proportions
+        //
+        // Note that, for n edges, the Dirichlet prior density is
+        //
+        // p1^{c-1} p2^{c-1} ... pn^{c-1}
+        // ------------------------------
+        //    Gamma(c)^n / Gamma(n*c)
+        //
+        // where n = num_edges, pk = edge length k / TL and Gamma is the Gamma function.
+        // If c == 1, then both numerator and denominator equal 1, so it is pointless
+        // do loop over edge lengths.
+        double log_edge_length_proportions_prior = std::lgamma(num_edges*c);
+        if (c != 1.0) {
+            for (auto nd : tree-&amp;gt;_preorder) {
+                double edge_length_proportion = nd-&amp;gt;_edge_length/TL;
+                log_edge_length_proportions_prior += (c - 1.0)*log(edge_length_proportion);
+            }
+            log_edge_length_proportions_prior -= std::lgamma(c)*num_edges;
+        }
+
+        log_prior = log_gamma_prior_on_TL + log_edge_length_proportions_prior;
+        return log_prior;
+    } 
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//mac//steps/step-19/03-the-topo-prior-calculator.html">&lt;&nbsp;19.3</a> | 19.4 | <a href="//mac//steps/step-19/05-modifying-the-likelihood-class.html">19.5&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding the PolytomyUpdater class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.2 Adding the PolytomyUpdater class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//mac//steps/step-19/01-modifying-treeupdater.html">&lt;&nbsp;19.1</a> | 19.2 | <a href="//mac//steps/step-19/03-the-topo-prior-calculator.html">19.3&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>We need a new updater that either adds and edge to an existing polytomy or deletes an edge to create a new polytomy (or expand an existing one). Create the <code class="highlighter-rouge">PolytomyUpdater</code> class declaration below in the file <em>polytomy_updater.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "updater.hpp"
+
+namespace strom {
+
+    class Chain;
+
+    class PolytomyUpdater : public Updater {
+
+        friend class Chain;
+
+        public:
+
+            typedef std::vector&amp;lt;double&amp;gt;                         _partition_vect_t;
+            typedef std::map&amp;lt;unsigned, _partition_vect_t &amp;gt;      _partition_map_t;
+            typedef std::vector&amp;lt;Node *&amp;gt;                         _polytomy_vect_t;
+            typedef std::shared_ptr&amp;lt; PolytomyUpdater &amp;gt;          SharedPtr;
+
+                                                PolytomyUpdater();
+                                                ~PolytomyUpdater();
+
+            virtual double                      calcLogPrior();
+            
+        private:
+
+            virtual void                        revert();
+            virtual void                        proposeNewState();
+            virtual void                        reset();
+            
+            void                                proposeAddEdgeMove(Node * nd);
+            void                                proposeDeleteEdgeMove(Node * nd);
+            
+            _partition_vect_t &amp;                 computePolytomyDistribution(unsigned nspokes);
+            void                                refreshPolytomies();
+
+            _partition_map_t                    _poly_prob;
+            _polytomy_vect_t                    _polytomies;
+            
+            Node *                              _orig_par;
+            Node *                              _orig_lchild;
+
+            bool                                _add_edge_proposed;
+            double                              _new_edge_proportion;
+            double                              _orig_edge_proportion;
+            double                              _tree_length;
+            double                              _phi;
+            unsigned                            _polytomy_size;
+            unsigned                            _num_polytomies;
+    };
+
+    // Member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="the-constructor-and-destructor">The constructor and destructor</h2>
+
+<p>This class uses the base class (<code class="highlighter-rouge">Updater</code>) version of the <code class="highlighter-rouge">clear</code> function in the constructor and, as usual, the destructor has no work to do.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline PolytomyUpdater::PolytomyUpdater() { 
+        // std::cout &amp;lt;&amp;lt; "Creating a PolytomyUpdater" &amp;lt;&amp;lt; std::endl;
+        Updater::clear();
+        _name = "Polytomies";
+        reset();
+    }   
+
+    inline PolytomyUpdater::~PolytomyUpdater() {    
+        // std::cout &amp;lt;&amp;lt; "Destroying a PolytomyUpdater" &amp;lt;&amp;lt; std::endl;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-reset-member-function">The reset member function</h2>
+
+<p>The <code class="highlighter-rouge">reset</code> function is called at the end of the <code class="highlighter-rouge">Updater::update</code> function to prepare the updater for the next update. Any temporary variables needed by an updater during the update process need to be re-initialized in this function, and this <code class="highlighter-rouge">PolytomyUpdater</code> has several of these temporary variables, most of which are needed to keep track of how to revert if the proposed tree is rejected.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::reset() {  
+        _tree_length          = 0.0;
+        _new_edge_proportion  = 0.0;
+        _orig_edge_proportion = 0.0;
+        _phi                  = 0.5;
+        _orig_par             = 0;
+        _orig_lchild          = 0;
+        _polytomy_size        = 0;
+        _num_polytomies       = 0;
+        _add_edge_proposed    = false;
+        _polytomies.clear();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-calclogprior-member-function">The calcLogPrior member function</h2>
+
+<p>The <code class="highlighter-rouge">calcLogPrior</code> function calls two functions in the base class (<code class="highlighter-rouge">Updater</code>) and returns the sum of the values they calculate. This function is an abstract function in the base class (along with <code class="highlighter-rouge">proposeNewState</code> and <code class="highlighter-rouge">revert</code>) and so must be defined in this derived class.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double PolytomyUpdater::calcLogPrior() {   
+        double log_prior = 0.0;
+        log_prior += Updater::calcLogTopologyPrior();
+        log_prior += Updater::calcLogEdgeLengthPrior();
+        return log_prior;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
+
+<p>The proposeNewState function, which is an abstract base class member function that must be defined in any derived class, proposes either an add-edge or a delete-edge move.</p>
+
+<p>The first part of this function is involved in determining whether the current tree is the star tree (in which case add-edge is the only move possible) or a fully-resolved, binary tree (in which case delete-edge is the only option). If both add-edge and delete-edge are possible, then a coin flip is used to decide which of the two will be attempted.</p>
+
+<p>The member functions <code class="highlighter-rouge">proposeAddEdgeMove</code> and <code class="highlighter-rouge">proposeDeleteEdgeMove</code> handle most of the work, once the decision is made which move to attempt. The calculation of the Hastings ratio and Jacobian determinant will be discussed when these functions are introduced.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::proposeNewState() {    
+        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
+        
+        // Translate tuning parameter _lambda into the maximum possible proportion
+        // that a newly created edge could have
+        if (_lambda &amp;gt; 1000.0)
+            _lambda = 1000.0;
+        else if (_lambda &amp;lt; 1.0)
+            _lambda = 1.0;
+        _phi = 1.0 - std::exp(-_lambda);
+
+        // Compute number of internal nodes in a fully resolved tree
+        unsigned num_internals_in_fully_resolved_tree = 0;
+        if (tree-&amp;gt;isRooted())
+            num_internals_in_fully_resolved_tree = tree-&amp;gt;numLeaves();
+        else
+            num_internals_in_fully_resolved_tree = tree-&amp;gt;numLeaves() - 2;
+            
+        // Compute tree length before proposed move
+        _tree_length = _tree_manipulator-&amp;gt;calcTreeLength();
+
+        // Determine whether starting tree is fully resolved or the star tree
+        unsigned num_internals_before = tree-&amp;gt;numInternals();
+        unsigned num_leaves_before = tree-&amp;gt;numLeaves();
+        unsigned num_internal_edges_before = num_internals_before - (tree-&amp;gt;isRooted() ? 2 : 1);
+        unsigned total_edges_before = num_leaves_before + num_internal_edges_before;
+        bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
+        bool star_tree_before = (tree-&amp;gt;numInternals() == 1);
+        
+        // Rebuild _polytomies vector, which is a vector of pointers to Node objects having more than 2 children
+        refreshPolytomies();
+        _num_polytomies = (unsigned)_polytomies.size();
+        
+        // Determine whether an add edge move is proposed (alternative is a delete edge move)
+        if (star_tree_before)
+            _add_edge_proposed = true;
+        else if (fully_resolved_before)
+            _add_edge_proposed = false;
+        else
+            _add_edge_proposed = (_lot-&amp;gt;uniform() &amp;lt; 0.5);
+            
+        Node * nd = 0;
+        if (_add_edge_proposed) {
+            // Choose a polytomy at random to split
+            unsigned i = _lot-&amp;gt;randint(0, _num_polytomies-1);
+            nd = _polytomies[i];
+            _polytomy_size = 1 + _tree_manipulator-&amp;gt;countChildren(nd);
+
+            // Add an edge to split up polytomy at nd, moving a random subset
+            // of the spokes to the (new) left child of nd
+            proposeAddEdgeMove(nd);
+            Node * new_nd = nd-&amp;gt;getLeftChild();
+
+            double TL_after_add_edge = _tree_manipulator-&amp;gt;calcTreeLength();
+            assert(std::fabs(_tree_length - TL_after_add_edge) &amp;lt; 1.e-8);
+
+            // Compute the log of the Hastings ratio
+            _log_hastings_ratio  = 0.0;
+            _log_hastings_ratio += std::log(_num_polytomies);
+            _log_hastings_ratio += std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
+            _log_hastings_ratio -= std::log(num_internal_edges_before + 1);
+            
+            // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
+            unsigned num_internals_after = tree-&amp;gt;numInternals();
+            assert(num_internals_after == num_internals_before + 1);
+            const bool fully_resolved_after = (num_internals_after == num_internals_in_fully_resolved_tree);
+            if (star_tree_before &amp;&amp; !fully_resolved_after)
+                _log_hastings_ratio -= log(2.0);
+            else if (fully_resolved_after &amp;&amp; !star_tree_before)
+                _log_hastings_ratio += log(2.0);
+                
+            // Compute the log of the Jacobian
+            _log_jacobian = 0.0;
+            _log_jacobian += std::log(_phi);
+            _log_jacobian += (total_edges_before - 1)*std::log(1.0 - _new_edge_proportion);
+
+            // flag partials and transition matrices for recalculation
+            _tree_manipulator-&amp;gt;selectPartialsHereToRoot(new_nd);
+            new_nd-&amp;gt;selectTMatrix();
+        }
+        else {
+            // Choose an internal edge at random and delete it to create a polytomy
+            // (or a bigger polytomy if there is already a polytomy)
+            nd = _tree_manipulator-&amp;gt;randomInternalEdge(_lot-&amp;gt;uniform());
+            proposeDeleteEdgeMove(nd);
+
+            double TL_after_del_edge = _tree_manipulator-&amp;gt;calcTreeLength();
+            assert(std::fabs(_tree_length - TL_after_del_edge) &amp;lt; 1.e-8);
+
+            // Compute the log of the Hastings ratio
+            _log_hastings_ratio  = 0.0;
+            _log_hastings_ratio += std::log(num_internal_edges_before);
+            _log_hastings_ratio -= std::log(_num_polytomies);
+            _log_hastings_ratio -= std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
+
+            // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
+            // Now multiply by the value of the quantity labeled gamma_d in the paper
+            unsigned num_internals_after = tree-&amp;gt;numInternals();
+            assert(num_internals_after == num_internals_before - 1);
+            const bool star_tree_after = (num_internals_after == (tree-&amp;gt;isRooted() ? 2 : 1));
+            if (fully_resolved_before &amp;&amp; !star_tree_after) {
+                _log_hastings_ratio -= log(2.0);
+            }
+            else if (star_tree_after &amp;&amp; !fully_resolved_before) {
+                _log_hastings_ratio += log(2.0);
+            }
+
+            // Compute the log Jacobian
+            _log_jacobian = 0.0;
+            _log_jacobian -= std::log(_phi);
+            _log_jacobian -= (total_edges_before - 2)*std::log(1.0 - _orig_edge_proportion);
+
+            // flag partials and transition matrices for recalculation
+            _tree_manipulator-&amp;gt;selectPartialsHereToRoot(nd);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-proposeaddedgemove-member-function">The proposeAddEdgeMove member function</h2>
+
+<p>The add-edge move is illustrated below. This move involves choosing a polytomy uniformly at random (1/2 in the example because there are 2 polytomies to choose from), drawing a new edge proportion by multiplying the tuning parameter (<code class="highlighter-rouge">_phi</code>) by a uniform(0,1) random deviate, squeezing the previous edge proportions down to make room for the new edge, and, finally, deciding how to partition the spokes of the original polytomy between the two nodes at the ends of the newly created edge (there are 3 possible choices for a polytomy with 4 spokes: 9,10 was chosen in the example, but 8,10 and 7,10 were also possibilities).</p>
+
+<p><img src="/assets/img/addedge.png" alt="The add-edge move" class="center-math-image" /></p>
+
+<p>The full acceptance ratio comprises 5 terms:
+<img src="/assets/img/Raddedge.png" alt="The add-edge acceptance ratio" class="center-math-image" /></p>
+
+<p>The probability of accepting the proposed add-edge move is either 1.0 or R, whichever is smaller.</p>
+
+<p>The first term (left-to-right) is the likelihood ratio, which is the likelihood of the tree after the add-edge move divided by the likelihood of the tree before the move. This term is straightforward (although, as you will see shortly, we will have to modify our <code class="highlighter-rouge">Likelihood</code> class to handle computing likelihoods for polytomous trees).</p>
+
+<p>The second term is the ratio of the prior density after the move divided by the prior density before the move. The prior in both cases is a product of the (discrete) topology prior probability and the edge proportions prior density. The topology prior is new, but will be discussed when we modify the <code class="highlighter-rouge">Updater</code> base class to add the member function <code class="highlighter-rouge">calcLogTopologyPrior</code>. The <code class="highlighter-rouge">PolytomyUpdater::calcLogPrior</code> function (see above) computes the joint prior, and the <code class="highlighter-rouge">Updater::update</code> function is where this function is called (before and after the proposed move).</p>
+
+<p>The third term from the left is the ratio of the probability of proposing the reverse move (a delete-edge move that exactly reverses the proposed add-edge move) divided by the probability of proposing the add-edge move itself. If the current tree (before the add-edge move) is the star tree, then this ratio equals <code class="highlighter-rouge">0.5/1 = 0.5</code>. If the current tree is a fully-resolved tree, this ratio equals <code class="highlighter-rouge">1/0.5 = 2</code>. Otherwise, it equals 1.0.</p>
+
+<p>The fourth term is the probability of the reverse move divided by the probability of the forward (add-edge) move. The reverse move involves only a choice of which edge to delete, the probability of which is just 1 divided by the number of edges in the tree (one more than the number of edges <code class="highlighter-rouge">n_e</code> in the starting tree for the add-edge move).</p>
+
+<p>The forward move is more complex. First, we must choose one of <code class="highlighter-rouge">n_p</code> polytomies to break up (probability <code class="highlighter-rouge">1/n_p</code>). Next, we must decide which of the <code class="highlighter-rouge">s</code> spokes (edges radiating from this polytomous node) to move to the newly created node. This probability is 1 divided by the number of ways of partitioning <code class="highlighter-rouge">s</code> spokes into 2 groups, ensuring that each group contains at least 2 spokes. This number of possible partitionings is quantity <code class="highlighter-rouge">2^(s-1)-s-1</code>. Finally, we must draw a Uniform(0,1) random deviate, <code class="highlighter-rouge">u</code>, to help us choose an edge proportion to go along with the newly created node. The probability density of this is the <code class="highlighter-rouge">f(u)</code> term, which equals 1.</p>
+
+<p>The final term is the absolute value of the determinant of the Jacobian matrix for the transformation of <code class="highlighter-rouge">u</code> and the <code class="highlighter-rouge">n_e</code> edge proportions before the add-edge move into the <code class="highlighter-rouge">n_e+1</code> edge proportions in the tree after the new edge has been inserted. The calculation of the Jacobian determinant for the simplest case (4-taxon star tree) is illustrated below:</p>
+
+<p><img src="/assets/img/jacobian.png" alt="The Jacobian for the 4-taxon star tree add-edge case" class="center-math-image" /></p>
+
+<p>Note that the Jacobian matrix is 4x4, not 5x5, as one edge proportion can be determined from the others. I’ve arbitrarily chosen edge proportion 1 as the one that is determined by the others.</p>
+
+<p>Hopefully, I’ve provided enough background for you to now understand the <code class="highlighter-rouge">proposeAddEdgeMove</code> function (and the section of <code class="highlighter-rouge">proposeNewState</code> in which it appears).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::proposeAddEdgeMove(Node * u) {    
+        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
+
+        // Split up the polytomy at `u' by creating a new internal node v and a new edge
+        // connecting u with v. Node u is saved as _orig_par and node v is saved
+        // as _orig_lchild in case we need to revert the proposed move.
+        assert(u);
+
+        // Calculate (if necessary) the probability of each possible partitioning of the chosen polytomy
+        // Select number of spokes to move over to new node
+        // Note that 0 and 1 are not allowed because they
+        // would leave the tree in an invalid state
+        const _partition_vect_t &amp; prob_n = computePolytomyDistribution(_polytomy_size);
+        double p = _lot-&amp;gt;uniform();
+        double cum = 0.0;
+        unsigned k = 0;
+        bool found = false;
+        for (; k &amp;lt; prob_n.size(); ++k) {
+            double prob_k_given_n = prob_n[k];
+            cum += prob_k_given_n;
+            if (p &amp;lt; cum) {
+                found = true;
+                break;
+            }
+        }
+        assert(found);
+        k += 2;
+
+        // Create the new node that will receive the k randomly-chosen spokes
+        Node * v = _tree_manipulator-&amp;gt;getUnusedNode();
+        _new_edge_proportion = _lot-&amp;gt;uniform()*_phi;
+        _tree_manipulator-&amp;gt;scaleAllEdgeLengths(1.0 - _new_edge_proportion);
+        v-&amp;gt;setEdgeLength(_new_edge_proportion*_tree_length);
+        _tree_manipulator-&amp;gt;rectifyNumInternals(+1);
+        _tree_manipulator-&amp;gt;insertSubtreeOnLeft(v, u);
+        assert(u-&amp;gt;getLeftChild() == v);
+
+        // Save u and v. If revert is necessary, all of orig_lchild's nodes will be returned
+        // to orig_par, and orig_lchild will be deleted.
+        _orig_par    = u;
+        _orig_lchild = v;
+
+        // After the move, either v should have k spokes and the
+        // other node _polytomy_size - k spokes (u and v will each
+        // have 1 additional connector spoke).
+        //
+        // Choose k spokes randomly out of the _polytomy_size available.
+        // If u-&amp;gt;par is included, let u retain the k spokes and move
+        // _polytomy_size - k spokes to v. Otherwise, move the
+        // k spokes to v leaving _polytomy_size - k spokes behind.
+        
+        // Create vector of valid spokes (parent and all children of u except v)
+        std::vector&amp;lt;Node *&amp;gt; uspokes;
+        uspokes.push_back(u-&amp;gt;getParent());
+        for (Node * uchild = u-&amp;gt;getLeftChild(); uchild; uchild = uchild-&amp;gt;getRightSib()) {
+            if (uchild != v)
+                uspokes.push_back(uchild);
+        }
+        assert (uspokes.size() == _polytomy_size);
+
+        bool reverse_polarity = false;
+        std::vector&amp;lt;Node *&amp;gt; vspokes;
+        typedef std::vector&amp;lt;Node *&amp;gt;::iterator::difference_type vec_it_diff;
+        for (unsigned i = 0; i &amp;lt; k; ++i) {
+            unsigned num_u_spokes = (unsigned)uspokes.size();
+            assert(num_u_spokes &amp;gt; 0);
+            unsigned j = _lot-&amp;gt;randint(0, num_u_spokes-1);
+            Node * s = uspokes[j];
+            if (s == u-&amp;gt;getParent())
+                reverse_polarity = true;
+            vspokes.push_back(s);
+            uspokes.erase(uspokes.begin() + (vec_it_diff)j);
+            }
+        assert(uspokes.size() + vspokes.size() == _polytomy_size);
+
+        if (reverse_polarity) {
+            // transfer nodes in uspokes to v
+            for (auto s = uspokes.begin(); s != uspokes.end(); ++s) {
+                _tree_manipulator-&amp;gt;detachSubtree(*s);
+                _tree_manipulator-&amp;gt;insertSubtreeOnRight(*s, v);
+            }
+        }
+        else {
+            // transfer nodes in vspokes to v
+            for (auto s = vspokes.begin(); s != vspokes.end(); ++s) {
+                _tree_manipulator-&amp;gt;detachSubtree(*s);
+                _tree_manipulator-&amp;gt;insertSubtreeOnRight(*s, v);
+            }
+        }
+        
+        _tree_manipulator-&amp;gt;refreshNavigationPointers();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-proposedeleteedgemove-member-function">The proposeDeleteEdgeMove member function</h2>
+
+<p>The delete-edge move is illustrated below.</p>
+
+<p><img src="/assets/img/deleteedge.png" alt="The delete-edge move" class="center-math-image" /></p>
+
+<p>The acceptance ratio for the delete-edge move is:
+<img src="/assets/img/Rdeledge.png" alt="The delete-edge acceptance ratio" class="center-math-image" /></p>
+
+<p>The explanation of terms is largely the same as above for the add-edge move except:
+*<code class="highlighter-rouge">p*</code> now refers to the parameters after the delete-edge move and <code class="highlighter-rouge">p</code> to the parameters before the delete-edge move</p>
+<ul>
+  <li>the third term equals 2 if the tree resulting from the delete-edge move is the star tree, 0.5 if the tree before the delete-edge move is fully resolved, and 1 otherwise. (Note that in the 4-taxon case the third term is always 1).</li>
+  <li>n_p is the number of polytomies in the tree _resulting) from the delete-edge move</li>
+  <li>s is the number of spokes in the polytomy created (or expanded) by deleting an edge</li>
+  <li>n_e is the number of edges in the tree before the delete-edge move</li>
+  <li>the Jacobian determinant equals 1 divided by <code class="highlighter-rouge">phi (1 - v)^(n_e-2)</code>, where <code class="highlighter-rouge">v</code> is the proportion of the tree length corresponding to the edge that was deleted</li>
+</ul>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::proposeDeleteEdgeMove(Node * u) {    
+        // Delete the edge associated with `u' to create a polytomy (or a bigger polytomy if `u-&amp;gt;par' was already a polytomy).
+        // The supplied node u should not be the only child of the root node.
+        //
+        //       b       c
+        //        \     /
+        //         \   /
+        //          \ /
+        //   a       u           a   b   c
+        //    \     /            \  |  /
+        //     \   /              \ | /
+        //      \ /                \|/
+        //       v                  v
+        //      /                  /
+        //
+        //     Before           After
+        //
+        // Returns the number of polytomies in the tree after the proposed delete-edge move.
+        // The return value will be incorrect if the polytomies vector is not up-to-date.
+        
+        // Save u's edge length in case we need to revert
+        _orig_edge_proportion = u-&amp;gt;getEdgeLength()/_tree_length;
+
+        // This operation should not leave the root node (which is a tip) with more than one
+        // child, so check to make sure that the supplied node is not the root nor a child of root
+        _orig_par = u-&amp;gt;getParent();
+        assert(_orig_par);
+        assert(_orig_par-&amp;gt;getParent());
+
+        // Compute size of polytomy after the delete-edge move, a quantity that is needed for computing the Hastings ratio.
+        // Note that one of v's children (i.e. u) is deleted but this is made up for by considering v-&amp;gt;par, which is
+        // also a spoke that counts.
+        unsigned u_children = _tree_manipulator-&amp;gt;countChildren(u);
+        unsigned v_children = _tree_manipulator-&amp;gt;countChildren(_orig_par);
+        _polytomy_size = v_children + u_children;
+
+        bool u_polytomy_before = (u_children &amp;gt; 2);
+        bool v_polytomy_before = (v_children &amp;gt; 2);
+        if (u_polytomy_before &amp;&amp; v_polytomy_before) {
+            // No. polytomies will decrease by one as a result of this delete-edge move
+            --_num_polytomies;
+        }
+        else if (!u_polytomy_before &amp;&amp; !v_polytomy_before) {
+            // No. polytomies will increase by one as a result of this delete-edge move
+            ++_num_polytomies;
+        }
+
+        // Make all of u's children siblings of u (i.e. children of u-&amp;gt;par)
+        _orig_lchild = u-&amp;gt;getLeftChild();
+        while (u-&amp;gt;getLeftChild() != NULL) {
+            Node * tmp = u-&amp;gt;getLeftChild();
+            _tree_manipulator-&amp;gt;detachSubtree(tmp);
+            _tree_manipulator-&amp;gt;insertSubtreeOnRight(tmp, _orig_par);
+        }
+
+        _tree_manipulator-&amp;gt;detachSubtree(u);
+        _tree_manipulator-&amp;gt;putUnusedNode(u);
+        _tree_manipulator-&amp;gt;rectifyNumInternals(-1);
+        
+        _tree_manipulator-&amp;gt;refreshNavigationPointers();
+        assert(_orig_edge_proportion &amp;lt; 1.0);
+        double scaler = 1.0/(1.0 - _orig_edge_proportion);
+        _tree_manipulator-&amp;gt;scaleAllEdgeLengths(scaler);
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-computepolytomydistribution-member-function">The computePolytomyDistribution member function</h2>
+
+<p>The add-edge move splits the edges of a polytomy across a new edge. This function computes the probability distribution of possible partitionings and stores it in the map member variable <code class="highlighter-rouge">_poly_prob</code> under a key equal to the number of “spokes” in the polytomy where a spoke is an edge radiating from the polytomous node. The value of <code class="highlighter-rouge">_poly_prob[6]</code>, as an example, is the following vector of length 2:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                     6!
+_poly_prob[6][0] = ----- C   = 3/5
+                   2! 4!
+
+                      6!
+_poly_prob[6][1] = ------- C = 2/5
+                   3! 3! 2
+</code></pre></div></div>
+<p>where <code class="highlighter-rouge">C</code> is the normalizing constant, which equals <code class="highlighter-rouge">1/(2^5 - 6 - 1) = 1/25</code>. Note that the final probability must be divided by 2 in the case of an even number of spokes. This means that 2 of 6 spokes will be moved to the new node with probability 0.6 and 3 spokes will be moved with probability 0.4.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>inline PolytomyUpdater::_partition_vect_t &amp; PolytomyUpdater::computePolytomyDistribution(unsigned nspokes) {    
+    assert(nspokes &amp;gt; 2);
+            
+    // Only compute it if it isn't already stored in the _poly_prob map
+    auto iter = _poly_prob.find(nspokes);
+    if (iter == _poly_prob.end()) {
+        // There is no existing probability distribution vector corresponding to nspokes
+        double ln_denom = std::log(pow(2.0,nspokes-1) - nspokes - 1.0);
+        _partition_vect_t v(nspokes - 3);
+        unsigned first = 2;
+        unsigned last = nspokes/2;
+        bool nspokes_even = nspokes % 2 == 0;
+        double total_prob = 0.0;
+        for (unsigned x = first; x &amp;lt;= last; ++x) {
+            double ln_numer = std::lgamma(nspokes + 1) - std::lgamma(x + 1) - std::lgamma(nspokes - x + 1);
+            if (nspokes_even &amp;&amp; x == last)
+                ln_numer -= std::log(2);
+            double prob_x = exp(ln_numer - ln_denom);
+            if (prob_x &amp;gt; 1.0)
+                prob_x = 1.0;
+            total_prob += prob_x;
+            v[x-first] = prob_x;
+            }
+        assert(std::fabs(total_prob - 1.0) &amp;lt; 1.e-8);
+        _poly_prob[nspokes] = v;
+    }
+    return _poly_prob[nspokes];
+} 
+
+</code></pre></div></div>
+
+<h2 id="the-revert-member-function">The revert member function</h2>
+
+<p>This function simply reverses the add-edge or delete-edge move performed. It is called by <code class="highlighter-rouge">Updater::update</code> if the proposed move is not accepted.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::revert() { 
+        if (_add_edge_proposed) {
+            // Return all of _orig_lchild's child nodes to _orig_par, then return orig_lchild to storage
+            Node * child = _orig_lchild-&amp;gt;getLeftChild();
+            while (child) {
+                Node * rsib = child-&amp;gt;getRightSib();
+                _tree_manipulator-&amp;gt;detachSubtree(child);
+                _tree_manipulator-&amp;gt;insertSubtreeOnRight(child, _orig_par);
+                child = rsib;
+            }
+            _tree_manipulator-&amp;gt;detachSubtree(_orig_lchild);
+            _tree_manipulator-&amp;gt;putUnusedNode(_orig_lchild);
+            _tree_manipulator-&amp;gt;rectifyNumInternals(-1);
+            
+            _tree_manipulator-&amp;gt;refreshNavigationPointers();
+            assert(_new_edge_proportion &amp;lt; 1.0);
+            double scaler = 1.0/(1.0 - _new_edge_proportion);
+            _tree_manipulator-&amp;gt;scaleAllEdgeLengths(scaler);
+            double TL_after_revert_add_edge = _tree_manipulator-&amp;gt;calcTreeLength();
+            assert(std::fabs(_tree_length -TL_after_revert_add_edge) &amp;lt; 1.e-8);
+        }
+        else {
+            Node * v = _tree_manipulator-&amp;gt;getUnusedNode();
+            _tree_manipulator-&amp;gt;rectifyNumInternals(+1);
+            _tree_manipulator-&amp;gt;scaleAllEdgeLengths(1.0 - _orig_edge_proportion);
+            v-&amp;gt;setEdgeLength(_orig_edge_proportion*_tree_length);
+            for (Node * child = _orig_lchild; child;) {
+                Node * child_rsib = child-&amp;gt;getRightSib();
+                _tree_manipulator-&amp;gt;detachSubtree(child);
+                _tree_manipulator-&amp;gt;insertSubtreeOnRight(child, v);
+                child = child_rsib;
+            }
+            _tree_manipulator-&amp;gt;insertSubtreeOnRight(v, _orig_par);
+
+            _tree_manipulator-&amp;gt;refreshNavigationPointers();
+            double TL_after_revert_del_edge = _tree_manipulator-&amp;gt;calcTreeLength();
+            assert(std::fabs(_tree_length - TL_after_revert_del_edge) &amp;lt; 1.e-8);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-refreshpolytomies-member-function">The refreshPolytomies member function</h2>
+
+<p>This function creates a vector (stored in <code class="highlighter-rouge">_polytomies</code>) of nodes that are polytomous. This is used by the add-edge move to choose a focal polytomy to split up.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::refreshPolytomies() {  
+        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
+        _polytomies.clear();
+        for (auto nd : tree-&amp;gt;_preorder) {
+            unsigned s = _tree_manipulator-&amp;gt;countChildren(nd);
+            if (s &amp;gt; 2)
+                _polytomies.push_back(nd);
+        }
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//mac//steps/step-19/01-modifying-treeupdater.html">&lt;&nbsp;19.1</a> | 19.2 | <a href="//mac//steps/step-19/03-the-topo-prior-calculator.html">19.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

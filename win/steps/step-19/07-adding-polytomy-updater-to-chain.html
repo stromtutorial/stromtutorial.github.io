@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding PolytomyUpdater to the Chain class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.7 Adding PolytomyUpdater to the Chain class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/06-modifying-node-tree-manip-class.html">&lt;&nbsp;19.6</a> | 19.7 | <a href="//win//steps/step-19/08-modifying-model-outputmanager.html">19.8&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Now that we’ve created the <code class="highlighter-rouge">PolytomyUpdater</code> class, we need to insert it into the updater rotation. Start by including the <em>polytomy_updater.hpp</em> header near the top of the <em>chain.hpp</em>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;memory&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include "lot.hpp"
+#include "data.hpp"
+#include "tree.hpp"
+#include "model.hpp"
+#include "likelihood.hpp"
+#include "tree_manip.hpp"
+#include "updater.hpp"
+#include "gamma_ratevar_updater.hpp"
+#include "omega_updater.hpp"
+#include "pinvar_updater.hpp"
+#include "statefreq_updater.hpp"
+#include "exchangeability_updater.hpp"
+#include "subset_relrate_updater.hpp"
+#include "tree_updater.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "polytomy_updater.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include "tree_length_updater.hpp"
+
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-settreefromnewick-function">Modifying the setTreeFromNewick function</h2>
+
+<p>In the <code class="highlighter-rouge">setTreeFromNewick</code> function, make the last argument to <code class="highlighter-rouge">buildFromNewick</code> equal to true so that polytomies are allowed when creating (for example) the starting tree.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::setTreeFromNewick(std::string &amp; newick) { 
+        assert(_updaters.size() &amp;gt; 0);
+        if (!_tree_manipulator)
+            _tree_manipulator.reset(new TreeManip);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_tree_manipulator-&amp;gt;buildFromNewick(newick, false, true);&lt;/strong&gt;&lt;/span&gt;
+        for (auto u : _updaters)
+            u-&amp;gt;setTreeManip(_tree_manipulator);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-createupdaters-function">Modifying the createUpdaters function</h2>
+
+<p>Add the highlighted lines to the <code class="highlighter-rouge">createUpdaters</code> function to add <code class="highlighter-rouge">PolytomyUpdater</code> to the list of updaters potentially called during an MCMC iteration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { 
+        _model = model;
+        _lot = lot;
+        _updaters.clear();
+
+        double wstd             = 1.0;
+        double wtreelength      = 1.0;
+        double wtreetopology    = 19.0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double wpolytomy        = 0.0;&lt;/strong&gt;&lt;/span&gt;
+        double sum_weights      = 0.0;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_model-&amp;gt;isAllowPolytomies()) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wstd             = 1.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wtreelength      = 2.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wtreetopology    = 10.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wpolytomy        = 5.0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        
+        //...
+        
+        // Add tree updater and tree length updater to _updaters  
+        if (!_model-&amp;gt;isFixedTree()) {
+            double tree_length_shape = 1.0;
+            double tree_length_scale = 10.0;
+            double dirichlet_param   = 1.0;
+                        
+            Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater());
+            u-&amp;gt;setLikelihood(likelihood);
+            u-&amp;gt;setLot(lot);
+            u-&amp;gt;setLambda(0.5);
+            u-&amp;gt;setTargetAcceptanceRate(0.3);
+            u-&amp;gt;setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTopologyPriorOptions(_model-&amp;gt;isResolutionClassTopologyPrior(), _model-&amp;gt;getTopologyPriorC());&lt;/strong&gt;&lt;/span&gt;
+            u-&amp;gt;setWeight(wtreetopology); sum_weights += wtreetopology;
+            _updaters.push_back(u);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_model-&amp;gt;isAllowPolytomies()) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = PolytomyUpdater::SharedPtr(new PolytomyUpdater());&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(0.05);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTopologyPriorOptions(_model-&amp;gt;isResolutionClassTopologyPrior(), _model-&amp;gt;getTopologyPriorC());&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wpolytomy); sum_weights += wpolytomy;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+            u = TreeLengthUpdater::SharedPtr(new TreeLengthUpdater());
+            u-&amp;gt;setLikelihood(likelihood);
+            u-&amp;gt;setLot(lot);
+            u-&amp;gt;setLambda(0.2);
+            u-&amp;gt;setTargetAcceptanceRate(0.3);
+            u-&amp;gt;setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTopologyPriorOptions(_model-&amp;gt;isResolutionClassTopologyPrior(), _model-&amp;gt;getTopologyPriorC());&lt;/strong&gt;&lt;/span&gt;
+            u-&amp;gt;setWeight(wtreelength); sum_weights += wtreelength;
+            _updaters.push_back(u);
+        }   
+        
+        for (auto u : _updaters) {
+            u-&amp;gt;calcProb(sum_weights);
+        }
+        
+        return (unsigned)_updaters.size();
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-calclogjointprior-function">The calcLogJointPrior function</h2>
+
+<p>We must not let either the <code class="highlighter-rouge">TreeLengthUpdator</code> nor the <code class="highlighter-rouge">PolytomyUpdater</code> contribute to the calculation of the joint prior because <code class="highlighter-rouge">TreeUpdater</code> is already handling the tree topology and edge length components of the joint prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::calcLogJointPrior() const { 
+        double lnP = 0.0;
+        for (auto u : _updaters) {
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (u-&amp;gt;_name != "Tree Length" &amp;&amp; u-&amp;gt;_name != "Polytomies" )&lt;/strong&gt;&lt;/span&gt;
+                lnP += u-&amp;gt;calcLogPrior();
+        }
+        return lnP;
+    } 
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/06-modifying-node-tree-manip-class.html">&lt;&nbsp;19.6</a> | 19.7 | <a href="//win//steps/step-19/08-modifying-model-outputmanager.html">19.8&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

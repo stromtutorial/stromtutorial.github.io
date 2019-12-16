@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modifying Strom</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.9 Modifying Strom</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/08-modifying-model-outputmanager.html">&lt;&nbsp;19.8</a> | 19.9 | <a href="//win//steps/step-19/10-testing-polytomies.html">19.10&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="modifying-strom">Modifying Strom</h2>
+
+<p>Add data members <code class="highlighter-rouge">_allow_polytomies</code>, <code class="highlighter-rouge">_topo_prior_C</code>, <code class="highlighter-rouge">_resolution_class_prior</code> to the <code class="highlighter-rouge">Strom</code> class as shown below to allow the user to (1) choose whether to allow polytomies, (2) set the C parameter of the topology prior, and (3) choose whether the topology prior represents a resolution class or standard polytomy prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;iostream&amp;gt;
+#include "data.hpp"
+#include "likelihood.hpp"
+#include "tree_summary.hpp"
+#include "partition.hpp"
+#include "lot.hpp"
+#include "chain.hpp"
+#include "output_manager.hpp"
+#include &amp;lt;boost/program_options.hpp&amp;gt;
+#include &amp;lt;boost/filesystem.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/split.hpp&amp;gt;
+#include &amp;lt;boost/algorithm/string/classification.hpp&amp;gt;
+
+namespace strom {
+
+    class Strom {
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+        
+        private:
+            bool                                    processAssignmentString(Model::SharedPtr m, const std::string &amp; which, const std::string &amp; definition);
+            void                                    handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition); 
+            bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);
+            void                                    sample(unsigned iter, Chain &amp; chain);
+
+            void                                    readData();
+            void                                    readTrees();
+            void                                    showPartitionInfo();
+            void                                    showBeagleInfo();
+            void                                    showMCMCInfo();
+            void                                    calcHeatingPowers();
+            void                                    initChains();
+            void                                    startTuningChains();
+            void                                    stopTuningChains();
+            void                                    stepChains(unsigned iteration, bool sampling);
+            void                                    swapChains();
+            void                                    stopChains();
+            void                                    swapSummary() const;
+            void                                    showChainTuningInfo() const;
+
+            double                                  _expected_log_likelihood;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _topo_prior_C;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _allow_polytomies;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _resolution_class_prior;&lt;/strong&gt;&lt;/span&gt;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            std::vector&amp;lt;Likelihood::SharedPtr&amp;gt;      _likelihoods;
+            TreeSummary::SharedPtr                  _tree_summary;
+            Lot::SharedPtr                          _lot;
+
+            unsigned                                _random_seed;
+            unsigned                                _num_iter;
+            unsigned                                _print_freq;
+            unsigned                                _sample_freq;
+
+            unsigned                                _num_burnin_iter; 
+            bool                                    _using_stored_data;
+            bool                                    _use_gpu;
+            bool                                    _ambig_missing;
+            unsigned                                _num_chains;
+            double                                  _heating_lambda;
+            std::vector&amp;lt;Chain&amp;gt;                      _chains;
+            std::vector&amp;lt;double&amp;gt;                     _heating_powers;
+            std::vector&amp;lt;unsigned&amp;gt;                   _swaps;
+
+            bool                                    _use_underflow_scaling;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+            
+            OutputManager::SharedPtr                _output_manager;
+
+    };
+    
+
+</code></pre></div></div>
+
+<p>Initialize the 3 new data members in the <code class="highlighter-rouge">Strom::clear</code> function</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name             = "";
+        _tree_file_name             = "";
+        _tree_summary               = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu                    = true;
+        _ambig_missing              = true;
+        _expected_log_likelihood    = 0.0;
+        _use_underflow_scaling      = false;
+        _data                       = nullptr;
+        _lot                        = nullptr;
+        _random_seed                = 1;
+        _num_iter                   = 1000;
+        _print_freq                 = 1;
+        _sample_freq                = 1;
+        _output_manager             = nullptr;
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_topo_prior_C               = 1.0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_allow_polytomies           = true;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_resolution_class_prior     = true;&lt;/strong&gt;&lt;/span&gt;
+
+        _using_stored_data          = true;
+        _likelihoods.clear();
+        _num_burnin_iter            = 1000;
+        _heating_lambda             = 0.5;
+        _num_chains                 = 1;
+        _chains.resize(0);
+        _heating_powers.resize(0);
+        _swaps.resize(0);
+    }   
+
+</code></pre></div></div>
+
+<p>Provide settings for the new data members to allow the user to modify them in <code class="highlighter-rouge">processCommandLineOptions</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        std::vector&amp;lt;std::string&amp;gt; partition_statefreq;
+        std::vector&amp;lt;std::string&amp;gt; partition_rmatrix;
+        std::vector&amp;lt;std::string&amp;gt; partition_omega;
+        std::vector&amp;lt;std::string&amp;gt; partition_ratevar;
+        std::vector&amp;lt;std::string&amp;gt; partition_pinvar;
+        std::vector&amp;lt;std::string&amp;gt; partition_ncateg;
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        std::vector&amp;lt;std::string&amp;gt; partition_relrates;
+        std::vector&amp;lt;std::string&amp;gt; partition_tree;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("seed,z",        boost::program_options::value(&amp;_random_seed)-&amp;gt;default_value(1),   "pseudorandom number seed")
+            ("niter,n",       boost::program_options::value(&amp;_num_iter)-&amp;gt;default_value(1000),   "number of MCMC iterations")
+            ("printfreq",  boost::program_options::value(&amp;_print_freq)-&amp;gt;default_value(1),   "skip this many iterations before reporting progress")
+            ("samplefreq",  boost::program_options::value(&amp;_sample_freq)-&amp;gt;default_value(1),   "skip this many iterations before sampling next")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            ("ncateg,c", boost::program_options::value(&amp;partition_ncateg), "number of categories in the discrete Gamma rate heterogeneity model")
+            ("statefreq", boost::program_options::value(&amp;partition_statefreq), "a string defining state frequencies for one or more data subsets, e.g. 'first,second:0.1,0.2,0.3,0.4'")
+            ("omega", boost::program_options::value(&amp;partition_omega), "a string defining the nonsynonymous/synonymous rate ratio omega for one or more data subsets, e.g. 'first,second:0.1'")
+            ("rmatrix", boost::program_options::value(&amp;partition_rmatrix), "a string defining the rmatrix for one or more data subsets, e.g. 'first,second:1,2,1,1,2,1'")
+            ("ratevar", boost::program_options::value(&amp;partition_ratevar), "a string defining the among-site rate variance for one or more data subsets, e.g. 'first,second:2.5'")
+            ("pinvar", boost::program_options::value(&amp;partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
+            ("relrate", boost::program_options::value(&amp;partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
+            ("tree", boost::program_options::value(&amp;partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("topopriorC", boost::program_options::value(&amp;_topo_prior_C)-&amp;gt;default_value(1.0), "topology prior C: tree (or resolution class) with m internal nodes has probability C time greater than tree (or resolution class) with m+1 internal nodes.")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("allowpolytomies", boost::program_options::value(&amp;_allow_polytomies)-&amp;gt;default_value(true), "yes or no; if yes, then topopriorC and polytomyprior are used, otherwise topopriorC and polytomyprior are ignored")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("resclassprior", boost::program_options::value(&amp;_resolution_class_prior)-&amp;gt;default_value(true), "if yes, topologypriorC will apply to resolution classes; if no, topologypriorC will apply to individual tree topologies")&lt;/strong&gt;&lt;/span&gt;
+            ("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")
+            ("nchains",       boost::program_options::value(&amp;_num_chains)-&amp;gt;default_value(1),                "number of chains")
+            ("heatfactor",    boost::program_options::value(&amp;_heating_lambda)-&amp;gt;default_value(0.5),          "determines how hot the heated chains are")
+            ("burnin",        boost::program_options::value(&amp;_num_burnin_iter)-&amp;gt;default_value(100),         "number of iterations used to burn in chains")
+            ("usedata",       boost::program_options::value(&amp;_using_stored_data)-&amp;gt;default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)")
+            ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
+            ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
+            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
+        ;   
+
+</code></pre></div></div>
+
+<p>Modify the <code class="highlighter-rouge">sample</code> function to output the resolution class of sampled trees in the parameters file.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::sample(unsigned iteration, Chain &amp; chain) {  
+        if (chain.getHeatingPower() &amp;lt; 1.0)
+            return;
+            
+        bool time_to_sample = (bool)(iteration % _sample_freq == 0);
+        bool time_to_report = (bool)(iteration % _print_freq == 0);
+        if (time_to_sample || time_to_report) {
+            double logLike = chain.getLogLikelihood();
+            double logPrior = chain.calcLogJointPrior();
+            double TL = chain.getTreeManip()-&amp;gt;calcTreeLength();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned m = chain.getTreeManip()-&amp;gt;calcResolutionClass();&lt;/strong&gt;&lt;/span&gt;
+            if (time_to_report) {
+                if (logPrior == Updater::getLogZero())
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
+                else
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+            }
+            if (time_to_sample) {
+                _output_manager-&amp;gt;outputTree(iteration, chain.getTreeManip());
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());&lt;/strong&gt;&lt;/span&gt;
+            }
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>Modify the <code class="highlighter-rouge">initChains</code> function to notify chains of the new settings via their <code class="highlighter-rouge">Model</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::initChains() {   
+        // Create _num_chains chains
+        _chains.resize(_num_chains);
+        
+        // Create _num_chains by _num_chains swap matrix
+        _swaps.assign(_num_chains*_num_chains, 0);
+
+        // Create heating power vector
+        _heating_powers.assign(_num_chains, 1.0);
+        calcHeatingPowers();
+        
+        // Initialize chains
+        for (unsigned chain_index = 0; chain_index &amp;lt; _num_chains; ++chain_index) {
+            auto &amp; c        = _chains[chain_index];
+            auto likelihood = _likelihoods[chain_index];
+            auto m          = likelihood-&amp;gt;getModel();
+            
+            // Finish setting up models
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;m-&amp;gt;setTopologyPriorOptions(_allow_polytomies, _resolution_class_prior, _topo_prior_C);&lt;/strong&gt;&lt;/span&gt;
+            m-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            m-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            m-&amp;gt;activate();
+            if (chain_index == 0)
+                std::cout &amp;lt;&amp;lt; "\n" &amp;lt;&amp;lt; m-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+            else
+                m-&amp;gt;describeModel();
+                
+            // Finish setting up likelihoods
+            likelihood-&amp;gt;setData(_data);
+            likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);
+            likelihood-&amp;gt;initBeagleLib();
+            likelihood-&amp;gt;useStoredData(_using_stored_data);
+            
+            // Build list of updaters, one for each free parameter in the model
+            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);   
+            if (num_free_parameters == 0)
+                throw XStrom("MCMC skipped because there are no free parameters in the model");
+
+            // Tell the chain that it should adapt its updators (at least initially)
+            c.startTuning();
+
+            // Set heating power to precalculated value
+            c.setChainIndex(chain_index);
+            c.setHeatingPower(_heating_powers[chain_index]);
+                        
+            // Give the chain a starting tree
+            std::string newick = _tree_summary-&amp;gt;getNewick(m-&amp;gt;getTreeIndex());
+            c.setTreeFromNewick(newick);
+
+            // Print headers in output files and make sure each updator has its starting value
+            c.start();
+        }
+    }   
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/08-modifying-model-outputmanager.html">&lt;&nbsp;19.8</a> | 19.9 | <a href="//win//steps/step-19/10-testing-polytomies.html">19.10&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

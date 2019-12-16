@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modifying Model and OutputManager</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.8 Modifying Model and OutputManager</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//linux//steps/step-19/07-adding-polytomy-updater-to-chain.html">&lt;&nbsp;19.7</a> | 19.8 | <a href="//linux//steps/step-19/09-adding-polytomy-options-to-strom.html">19.9&nbsp;&gt;</a></h3>
+</div>
+
+
+<h2 id="update-the-model-class">Update the Model class</h2>
+
+<p>Add the 4 new function prototypes and 3 new data members highlighted below to the Model class declaration.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;algorithm&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include "datatype.hpp"
+#include "qmatrix.hpp"
+#include "asrv.hpp"
+#include "libhmsbeagle/beagle.h"
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include &amp;lt;boost/math/distributions/gamma.hpp&amp;gt;
+#include &amp;lt;Eigen/Dense&amp;gt;
+
+namespace strom {
+    
+    class Likelihood;
+
+    class Model { 
+        
+        friend class Likelihood;
+
+        public:
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      asrv_vect_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   qmat_vect_t;
+            typedef std::vector&amp;lt;unsigned&amp;gt;             subset_sizes_t;
+            typedef std::vector&amp;lt;DataType&amp;gt;             subset_datatype_t;
+            typedef std::vector&amp;lt;double&amp;gt;               subset_relrate_vect_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   state_freq_params_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   exchangeability_params_t;
+            typedef std::vector&amp;lt;QMatrix::SharedPtr&amp;gt;   omega_params_t;
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      ratevar_params_t;
+            typedef std::vector&amp;lt;ASRV::SharedPtr&amp;gt;      pinvar_params_t;
+            typedef boost::shared_ptr&amp;lt;Model&amp;gt;          SharedPtr;
+        
+                                        Model();
+                                        ~Model();
+
+            void                        activate();
+            void                        inactivate();
+            
+            std::string                 describeModel();
+
+            void                        setSubsetDataTypes(const subset_datatype_t &amp; datatype_vect);
+
+            void                        setSubsetRateVar(ASRV::ratevar_ptr_t ratevar, unsigned subset, bool fixed);
+            void                        setSubsetPinvar(ASRV::pinvar_ptr_t pinvar, unsigned subset, bool fixed);
+            void                        setSubsetExchangeabilities(QMatrix::freq_xchg_ptr_t exchangeabilities, unsigned subset, bool fixed);
+            void                        setSubsetStateFreqs(QMatrix::freq_xchg_ptr_t state_frequencies, unsigned subset, bool fixed);
+            void                        setSubsetOmega(QMatrix::omega_ptr_t omega, unsigned subset, bool fixed);
+
+            void                        setSubsetRelRates(subset_relrate_vect_t &amp; relrates, bool fixed);
+            subset_relrate_vect_t &amp;     getSubsetRelRates();
+            bool                        isFixedSubsetRelRates() const;
+            double                      calcNormalizingConstantForSubsetRelRates() const;
+
+            void                        setTreeIndex(unsigned i, bool fixed);
+            unsigned                    getTreeIndex() const;
+            bool                        isFixedTree() const;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        setTopologyPriorOptions(bool allow_polytomies, bool resclass, double C);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                        isResolutionClassTopologyPrior() const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                      getTopologyPriorC() const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                        isAllowPolytomies() const;&lt;/strong&gt;&lt;/span&gt;
+
+            unsigned                    getNumSubsets() const;
+            unsigned                    getNumSites() const;
+            unsigned                    getSubsetNumSites(unsigned subset) const;
+            const QMatrix &amp;             getQMatrix(unsigned subset) const;
+            const ASRV &amp;                getASRV(unsigned subset) const;
+
+            void                        setSubsetIsInvarModel(bool is_invar, unsigned subset);
+            bool                        getSubsetIsInvarModel(unsigned subset) const;
+
+            void                        setSubsetSizes(const subset_sizes_t nsites_vect);
+            subset_sizes_t &amp;            getSubsetSizes();
+
+            void                        setSubsetNumPatterns(const subset_sizes_t npatterns_vect);
+            unsigned                    getSubsetNumPatterns(unsigned subset) const;
+
+            void                        setSubsetNumCateg(unsigned ncateg, unsigned subset);
+            unsigned                    getSubsetNumCateg(unsigned subset) const;
+
+            state_freq_params_t &amp;       getStateFreqParams();
+            exchangeability_params_t &amp;  getExchangeabilityParams();
+            omega_params_t &amp;            getOmegaParams();
+            ratevar_params_t &amp;          getRateVarParams();
+            pinvar_params_t &amp;           getPinvarParams();
+        
+            int                         setBeagleEigenDecomposition(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleStateFrequencies(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationRates(int beagle_instance, unsigned subset, unsigned instance_subset);
+            int                         setBeagleAmongSiteRateVariationProbs(int beagle_instance, unsigned subset, unsigned instance_subset);
+
+            std::string                 paramNamesAsString(std::string sep) const;
+            std::string                 paramValuesAsString(std::string sep) const;
+
+        private:
+        
+            void                        clear();
+        
+            unsigned                    _num_subsets;
+            unsigned                    _num_sites;
+            subset_sizes_t              _subset_sizes;
+            subset_sizes_t              _subset_npatterns;
+            subset_datatype_t           _subset_datatypes;
+            qmat_vect_t                 _qmatrix;
+            asrv_vect_t                 _asrv;
+        
+            bool                        _tree_index;
+            bool                        _tree_fixed;
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                        _allow_polytomies;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                        _resolution_class_prior;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                      _topo_prior_C;&lt;/strong&gt;&lt;/span&gt;
+
+            bool                        _subset_relrates_fixed;
+            subset_relrate_vect_t       _subset_relrates;
+        
+            state_freq_params_t         _state_freq_params;
+            exchangeability_params_t    _exchangeability_params;
+            omega_params_t              _omega_params;
+            ratevar_params_t            _ratevar_params;
+            pinvar_params_t             _pinvar_params;
+        };
+    
+
+</code></pre></div></div>
+
+<p>Initialize the 2 new data members (<code class="highlighter-rouge">_resolution_class_prior</code> and <code class="highlighter-rouge">_topo_prior_C</code>) in the <code class="highlighter-rouge">clear</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::clear() {    
+        _num_subsets = 0;
+        _num_sites = 0;
+        _tree_index = 0;
+        _tree_fixed = false;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_allow_polytomies = true;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_resolution_class_prior = true;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_topo_prior_C = 1.0;&lt;/strong&gt;&lt;/span&gt;
+        _subset_relrates_fixed = false;
+        _subset_relrates.clear();
+        _subset_sizes.clear();
+        _subset_npatterns.clear();
+        _subset_datatypes.clear();
+        _qmatrix.clear();
+        _asrv.clear();
+    }   
+
+</code></pre></div></div>
+
+<p>Add the body of the <code class="highlighter-rouge">setTopologyPriorOptions</code> function to <em>model.hpp</em> somehwere before the bracket that closes the <code class="highlighter-rouge">strom</code> namespace. This function provides a way to inform the <code class="highlighter-rouge">Model</code> object of all 3 parameters of the topology prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setTopologyPriorOptions(bool allow_polytomies, bool resclass, double C) {  
+        _allow_polytomies       = allow_polytomies;
+        _resolution_class_prior = resclass;
+        _topo_prior_C           = C;
+    }   
+
+</code></pre></div></div>
+
+<p>Finally, add bodies of the 3 accessor functions <code class="highlighter-rouge">isAllowPolytomies</code>, <code class="highlighter-rouge">isResolutionClassTopologyPrior</code>, and <code class="highlighter-rouge">getTopologyPriorC</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Model::isAllowPolytomies() const {  
+        return _allow_polytomies;
+    }   
+
+    inline bool Model::isResolutionClassTopologyPrior() const {  
+        return _resolution_class_prior;
+    }   
+
+    inline double Model::getTopologyPriorC() const {  
+        return _topo_prior_C;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="update-the-outputmanager-class">Update the OutputManager class</h2>
+
+<p>The only tweak we need to make to OutputManager is to add the resolution class of the current tree to the quantities output to the parameter file.</p>
+
+<p>In the class declaration in the file <em>output_manager.hpp</em>, add <code class="highlighter-rouge">unsigned m</code> to the parameter list of the <code class="highlighter-rouge">outputParameters</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "data.hpp"
+#include "tree_manip.hpp"
+#include "model.hpp"
+#include "xstrom.hpp"
+#include &amp;lt;fstream&amp;gt;
+
+namespace strom {
+
+    class OutputManager {
+        public:
+            typedef std::shared_ptr&amp;lt; OutputManager &amp;gt;            SharedPtr;
+
+                                                                OutputManager();
+                                                                ~OutputManager();
+            
+            void                                                setModel(Model::SharedPtr model) {_model = model;}
+            void                                                setTreeManip(TreeManip::SharedPtr tm) {_tree_manip = tm;}
+            
+            void                                                openTreeFile(std::string filename, Data::SharedPtr data);
+            void                                                openParameterFile(std::string filename, Model::SharedPtr model);
+            
+            void                                                closeTreeFile();
+            void                                                closeParameterFile();
+
+            void                                                outputConsole(std::string s);
+            void                                                outputTree(unsigned iter, TreeManip::SharedPtr tm);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                                outputParameters(unsigned iter, double lnL, double lnP, double TL, unsigned m, Model::SharedPtr model);&lt;/strong&gt;&lt;/span&gt;
+            
+
+        private:
+
+            TreeManip::SharedPtr                                _tree_manip;
+            Model::SharedPtr                                    _model;
+            std::ofstream                                       _treefile;
+            std::ofstream                                       _parameterfile;
+            std::string                                         _tree_file_name;
+            std::string                                         _param_file_name;
+    };
+    
+
+</code></pre></div></div>
+
+<p>In the function <code class="highlighter-rouge">openParameterFile</code>, replace the line highlighted below. The difference is that a column heading <code class="highlighter-rouge">"m"</code> has been added for the column showing the resolution class.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void OutputManager::openParameterFile(std::string filename, Model::SharedPtr model) {    
+        assert(model);
+        assert(!_parameterfile.is_open());
+        _param_file_name = filename;
+        _parameterfile.open(_param_file_name.c_str());
+        if (!_parameterfile.is_open())
+            throw XStrom(boost::str(boost::format("Could not open parameter file \"%s\"") % _param_file_name));
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_parameterfile &amp;lt;&amp;lt; boost::str(boost::format("%s\t%s\t%s\t%s\t%s\t%s") % "iter" % "lnL" % "lnPr" % "TL" % "m" % model-&amp;gt;paramNamesAsString("\t")) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+
+<p>Finally, in the <code class="highlighter-rouge">outputParameters</code> function, replace the lines highlighted below. The difference is that a parameter <code class="highlighter-rouge">m</code> has been added to the function and the value of <code class="highlighter-rouge">m</code> is now output in the new resolution class column.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline void OutputManager::outputParameters(unsigned iter, double lnL, double lnP, double TL, unsigned m, Model::SharedPtr model) {&lt;/strong&gt;&lt;/span&gt;
+        assert(model);
+        assert(_parameterfile.is_open());
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_parameterfile &amp;lt;&amp;lt; boost::str(boost::format("%d\t%.5f\t%.5f\t%.5f\t%d\t%s") % iter % lnL % lnP % TL % m % model-&amp;gt;paramValuesAsString("\t")) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+    }
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//linux//steps/step-19/07-adding-polytomy-updater-to-chain.html">&lt;&nbsp;19.7</a> | 19.8 | <a href="//linux//steps/step-19/09-adding-polytomy-options-to-strom.html">19.9&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

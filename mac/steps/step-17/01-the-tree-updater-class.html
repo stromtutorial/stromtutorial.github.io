@@ -46,7 +46,7 @@
 </div>
 
 
-<p>The <code class="highlighter-rouge">TreeUpdater</code> class updates three edge lengths and the tree topology using the Larget and Simon (1999) LOCAL move for unrooted trees.</p>
+<p>The <code class="highlighter-rouge">TreeUpdater</code> class updates three edge length proportions and (potentially) the tree topology using a modified version of the Larget and Simon (1999) LOCAL move for unrooted trees.</p>
 
 <p>Create a new header file named <em>tree_updater.hpp</em> and copy into it the following class declaration.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
@@ -84,10 +84,6 @@ namespace strom {
             double                              _orig_edgelen_middle;
             double                              _orig_edgelen_bottom;
 
-            double                              _new_edgelen_top;
-            double                              _new_edgelen_middle;
-            double                              _new_edgelen_bottom;
-
             unsigned                            _case;
             bool                                _topology_changed;
             Node *                              _x;
@@ -108,7 +104,7 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline TreeUpdater::TreeUpdater() { 
         // std::cout &amp;lt;&amp;lt; "Creating a TreeUpdater" &amp;lt;&amp;lt; std::endl;
         Updater::clear();
-        _name = "Tree and Edge Lengths";
+        _name = "Tree Topology and Edge Proportions";
         reset();
     }   
 
@@ -120,15 +116,12 @@ namespace strom {
 
 <h2 id="the-reset-member-function">The reset member function</h2>
 
-<p>Recall that the <code class="highlighter-rouge">reset</code> function is called at the end of the <code class="highlighter-rouge">Updater::update</code> function to prepare the updater for the next update. Any temporary variables needed by an updater during the update process need to be re-initialized in this function, and this <code class="highlighter-rouge">TreeUpdater</code> has many of these temporary variables, most of which are needed to keep track of how to revert if the proposed tree is rejected.</p>
+<p>Recall that the <code class="highlighter-rouge">reset</code> function is called at the end of the <code class="highlighter-rouge">Updater::update</code> function to prepare the updater for the next update. Any temporary variables needed by an updater during the update process need to be re-initialized in this function, and this <code class="highlighter-rouge">TreeUpdater</code> has several of these temporary variables, most of which are needed to keep track of how to revert if the proposed tree is rejected.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeUpdater::reset() {  
         _topology_changed       = false;
         _orig_edgelen_top       = 0.0;
         _orig_edgelen_middle    = 0.0;
         _orig_edgelen_bottom    = 0.0;
-        _new_edgelen_top        = 0.0;
-        _new_edgelen_middle     = 0.0;
-        _new_edgelen_bottom     = 0.0;
         _log_hastings_ratio     = 0.0;
         _case                   = 0;
         _x                      = 0;
@@ -141,7 +134,7 @@ namespace strom {
 
 <h2 id="the-calclogtopologyprior-member-function">The calcLogTopologyPrior member function</h2>
 
-<p>The tree topology prior is a discrete uniform prior distribution over all possible unrooted tree topologies. If there are <em>N</em> distinct unrooted tree topologies, then the prior probability of each of these topologies is 1/<em>N</em>. The number <em>N</em> can be obtained as follows:</p>
+<p>The tree topology prior is a discrete uniform prior distribution over all possible unrooted binary tree topologies. In step 19, we will begin to allow polytomies, at which point we will have to modify the topology prior to account for polytomous tree, but for the present we will assume that all trees are binary. If there are <em>N</em> distinct unrooted tree topologies, then the prior probability of each of these topologies is 1/<em>N</em>. The number <em>N</em> can be obtained as follows:</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>N = (2*n-5)!/[2^(n-3) (n-3)!]
 </code></pre></div></div>
 <p>where <em>n</em> equals the number of taxa. For rooted trees, the same formula may be used if <em>n</em>+1 is substituted for <em>n</em>. This function calculates and returns the logarithm of 1/<em>N</em>, namely -log(<em>N</em>). We make use of the <strong>lgamma function</strong>, which returns the log of the gamma function (not to be confused with the Gamma distribution). Note that <code class="highlighter-rouge">lgamma(n+1)</code> returns the log of <code class="highlighter-rouge">n!</code> (<code class="highlighter-rouge">n</code> factorial).</p>
@@ -159,7 +152,7 @@ namespace strom {
 
 <h2 id="the-chooserandomchild-member-function">The chooseRandomChild member function</h2>
 
-<p>The chooseRandomChild member function is used by <code class="highlighter-rouge">proposeNewState</code> (see below) to choose nodes to complete the random 3-edge focal segment of the tree updated by the Larget-Simon proposal. If <code class="highlighter-rouge">avoid</code> is specified, then that node will not be returned as the chosen node. If <code class="highlighter-rouge">parent_included</code> is <code class="highlighter-rouge">true</code>, then the parent of the specified node will be considered one of the possible children.</p>
+<p>The <code class="highlighter-rouge">chooseRandomChild</code> member function is used by <code class="highlighter-rouge">proposeNewState</code> (see below) to choose nodes to complete the random 3-edge focal segment of the tree updated by the Larget-Simon proposal. If <code class="highlighter-rouge">avoid</code> is specified, then that node will not be returned as the chosen node. If <code class="highlighter-rouge">parent_included</code> is <code class="highlighter-rouge">true</code>, then the parent of the specified node will be considered one of the possible children. Note that this function returns <code class="highlighter-rouge">NULL</code> if the parent is chosen so that the calling routine knows that the chosen node is not actually a child of <code class="highlighter-rouge">x</code>.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeUpdater::chooseRandomChild(Node * x, Node * avoid, bool parent_included) { 
         // Count number of children of x
         unsigned n = 0;
@@ -206,7 +199,7 @@ namespace strom {
 
 <h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
 
-<p>This function, which overrides one of the 4 pure virtual functions defined by the base class <code class="highlighter-rouge">Updater</code>, is unfortunately rather long and tedious owing to the fact that the first step in the Larget-Simon LOCAL move, which involves choosing 3 adjacent random internal edges, leads to 8 distinct possible proposed states. I’ve tried to make following the code in this function easier by creating diagrams in the comments showing the relationships among all the temporary variables, but to fully understand this function, you will need to read and understand the description of this move in the papers by Larget and Simon (1999) and the note about calculating the Hastings ratio in Holder et al. (2005).</p>
+<p>This function, which overrides one of the 3 pure virtual functions defined by the base class <code class="highlighter-rouge">Updater</code>, is unfortunately rather long and tedious owing to the fact that the first step in the Larget-Simon LOCAL move, which involves choosing 3 adjacent random internal edges, leads to 8 distinct possible proposed states. I’ve tried to make following the code in this function easier by creating diagrams in the comments showing the relationships among all the temporary variables, but to fully understand this function, you will need to read and understand the description of this move in the papers by Larget and Simon (1999). Keep in mind that we are modifying the original method; specifically we do not expand or contract the 3-edge segment before moving one of the attached nodes to a different place. This means that the Hastings ratio is 1.0 because the move is now symmetric, and the discussion of the Hastings ratio in Holder et al. (2005) is no longer relevant. The reason we can get away with this is that we will next create a <code class="highlighter-rouge">TreeLengthUpdater</code> class that will handle scaling the tree up or down, so we do not need to do any rescaling in the <code class="highlighter-rouge">TreeUpdater</code> proposal.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeUpdater::proposeNewState() {    
         _case = 0;
         _topology_changed = false;
@@ -231,11 +224,12 @@ namespace strom {
 
         _y = _x-&amp;gt;getParent();
 
-        // Choose focal 3-edge segment to shrink or grow
-        // Begin by randomy choosing one child of x to be node a
+        // Choose focal 3-edge segment to modify
+        // Begin by randomly choosing one child of x to be node _a
         _a = chooseRandomChild(_x, 0, false);
         _orig_edgelen_top = _a-&amp;gt;getEdgeLength();
 
+        // Now choose a different child of x (or the parent) to be node _b
         _b = chooseRandomChild(_y, _x, true);
         bool b_is_child_of_y;
         if (_b) {
@@ -248,21 +242,11 @@ namespace strom {
             _orig_edgelen_bottom = _y-&amp;gt;getEdgeLength();
         }
         
-        // Choose expansion/contraction factor
-        double m = exp(_lambda*(_lot-&amp;gt;uniform() - 0.5));
-
-        // Calculate Hastings ratio under GammaDir parameterization
-        double num_edges = (double)(_tree_manipulator-&amp;gt;countEdges());
-        double TL = _tree_manipulator-&amp;gt;calcTreeLength();
-        double fraction_of_tree_length = (_orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom)/TL;
-        _log_hastings_ratio = 3.0*log(m) - num_edges*log(fraction_of_tree_length*m + 1.0 - fraction_of_tree_length);
-
-        _new_edgelen_top    = m*_orig_edgelen_top;
-        _new_edgelen_middle = m*_orig_edgelen_middle;
-        _new_edgelen_bottom = m*_orig_edgelen_bottom;
+        // Symmetric move: Hastings ratio = 1
+        _log_hastings_ratio = 0.0;
 
         // Decide where along focal path (starting from top) to place moved node
-        double new_focal_path_length = _new_edgelen_top + _new_edgelen_middle + _new_edgelen_bottom;
+        double new_focal_path_length = _orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom;
         double u = _lot-&amp;gt;uniform();
         double new_attachment_point = u*new_focal_path_length;
         if (new_attachment_point &amp;lt;= Node::_smallest_edge_length)
@@ -275,53 +259,53 @@ namespace strom {
         bool x_node_slides = (bool)(u &amp;lt; 0.5);
         if (x_node_slides) {
             // _x slides toward _y
-            _topology_changed = (new_attachment_point &amp;gt; _new_edgelen_top + _new_edgelen_middle);
+            _topology_changed = (new_attachment_point &amp;gt; _orig_edgelen_top + _orig_edgelen_middle);
             if (_topology_changed) {
                 _tree_manipulator-&amp;gt;LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
                     _a-&amp;gt;setEdgeLength(new_focal_path_length - new_attachment_point);
-                    _x-&amp;gt;setEdgeLength(new_attachment_point - _new_edgelen_top - _new_edgelen_middle);
-                    _b-&amp;gt;setEdgeLength(_new_edgelen_top + _new_edgelen_middle);
+                    _x-&amp;gt;setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
+                    _b-&amp;gt;setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
                     _case = 1;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
-                    _a-&amp;gt;setEdgeLength(_new_edgelen_top + _new_edgelen_middle);
-                    _x-&amp;gt;setEdgeLength(new_attachment_point - _new_edgelen_top - _new_edgelen_middle);
+                    _a-&amp;gt;setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
+                    _x-&amp;gt;setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
                     _y-&amp;gt;setEdgeLength(new_focal_path_length - new_attachment_point);
                     _case = 2;                }
             } else {
                 _a-&amp;gt;setEdgeLength(new_attachment_point);
-                _x-&amp;gt;setEdgeLength(_new_edgelen_top + _new_edgelen_middle - new_attachment_point);
+                _x-&amp;gt;setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle - new_attachment_point);
                 if (b_is_child_of_y) {
-                    _b-&amp;gt;setEdgeLength(_new_edgelen_bottom);
+                    _b-&amp;gt;setEdgeLength(_orig_edgelen_bottom);
                     _case = 3;
                 } else {
-                    _y-&amp;gt;setEdgeLength(_new_edgelen_bottom);
+                    _y-&amp;gt;setEdgeLength(_orig_edgelen_bottom);
                     _case = 4;
                 }
             }
         } else {
             // _y slides toward _x
-            _topology_changed = (new_attachment_point &amp;lt; _new_edgelen_top);
+            _topology_changed = (new_attachment_point &amp;lt; _orig_edgelen_top);
             if (_topology_changed) {
                 _tree_manipulator-&amp;gt;LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-                    _a-&amp;gt;setEdgeLength(_new_edgelen_middle + _new_edgelen_bottom);
-                    _x-&amp;gt;setEdgeLength(_new_edgelen_top - new_attachment_point);
+                    _a-&amp;gt;setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
+                    _x-&amp;gt;setEdgeLength(_orig_edgelen_top - new_attachment_point);
                     _b-&amp;gt;setEdgeLength(new_attachment_point);
                     _case = 5;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
                     _a-&amp;gt;setEdgeLength(new_attachment_point);
-                    _x-&amp;gt;setEdgeLength(_new_edgelen_top - new_attachment_point);
-                    _y-&amp;gt;setEdgeLength(_new_edgelen_middle + _new_edgelen_bottom);
+                    _x-&amp;gt;setEdgeLength(_orig_edgelen_top - new_attachment_point);
+                    _y-&amp;gt;setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
                     _case = 6;
                 }
             } else {
-                _a-&amp;gt;setEdgeLength(_new_edgelen_top);
-                _x-&amp;gt;setEdgeLength(new_attachment_point - _new_edgelen_top);
+                _a-&amp;gt;setEdgeLength(_orig_edgelen_top);
+                _x-&amp;gt;setEdgeLength(new_attachment_point - _orig_edgelen_top);
                 if (b_is_child_of_y) {
                     _b-&amp;gt;setEdgeLength(new_focal_path_length - new_attachment_point);
                     _case = 7;

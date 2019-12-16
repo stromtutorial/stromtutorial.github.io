@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modifying the Likelihood class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.5 Modifying the Likelihood class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//linux//steps/step-19/04-adding-topo-prior-to-updater.html">&lt;&nbsp;19.4</a> | 19.5 | <a href="//linux//steps/step-19/06-modifying-node-tree-manip-class.html">19.6&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>As you know, the <code class="highlighter-rouge">Likelihood</code> class uses BeagleLib to compute the likelihood of a tree. BeagleLib computes the likelihood by working down the tree in reverse level order, combining the conditional likelihood arrays for each pair of child lineages to compute the conditional likelihood vector for the parent node.</p>
+
+<p>If trees contain polytomies, then a wrench is thrown in the works because a polytomous node has more than two children. We will take advantage of the fact that</p>
+<ol>
+  <li>there are always enough nodes in the <code class="highlighter-rouge">_nodes</code> array of the <code class="highlighter-rouge">Tree</code> object to represent a fully resolved tree, and</li>
+  <li>the likelihood of a polytomous tree is identical to the likelihood of a fully resolved tree representing an arbitrary resolution of all polytomies so long as the edges added have an edge length equal to zero.</li>
+</ol>
+
+<p>Begin by adding the highlighted lines below to the <code class="highlighter-rouge">Likelihood</code> class declaration in <em>likelihood.hpp</em>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;map&amp;gt;
+#include &amp;lt;boost/algorithm/string.hpp&amp;gt;
+#include &amp;lt;boost/format.hpp&amp;gt;
+#include &amp;lt;boost/shared_ptr.hpp&amp;gt;
+#include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
+#include "libhmsbeagle/beagle.h"
+#include "tree.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "tree_manip.hpp"&lt;/strong&gt;&lt;/span&gt;
+#include "data.hpp"
+#include "model.hpp"
+#include "xstrom.hpp"
+
+namespace strom {
+
+    class Likelihood {
+        public:
+                                                    Likelihood();
+                                                    ~Likelihood();
+
+            void                                    setRooted(bool is_rooted);
+            void                                    setPreferGPU(bool prefer_gpu);
+            void                                    setAmbiguityEqualsMissing(bool ambig_equals_missing);
+        
+            bool                                    usingStoredData() const;
+            void                                    useStoredData(bool using_data);
+            void                                    useUnderflowScaling(bool do_scaling);
+
+            std::string                             beagleLibVersion() const;
+            std::string                             availableResources() const;
+            std::string                             usedResources() const;
+
+            void                                    initBeagleLib();
+            void                                    finalizeBeagleLib(bool use_exceptions);
+
+            double                                  calcLogLikelihood(Tree::SharedPtr t);
+
+            Data::SharedPtr                         getData();
+            void                                    setData(Data::SharedPtr d);
+
+            Model::SharedPtr                        getModel();
+            void                                    setModel(Model::SharedPtr m);
+
+            void                                    clear();
+            
+            unsigned                                calcNumEdgesInFullyResolvedTree() const;
+            unsigned                                calcNumInternalsInFullyResolvedTree() const;
+
+        private:
+        
+            struct InstanceInfo {
+                int handle;
+                int resourcenumber;
+                std::string resourcename;
+                unsigned nstates;
+                unsigned nratecateg;
+                unsigned npatterns;
+                unsigned partial_offset;
+                unsigned tmatrix_offset;
+                bool invarmodel;
+                std::vector&amp;lt;unsigned&amp;gt; subsets;
+                
+                InstanceInfo() : handle(-1), resourcenumber(-1), resourcename(""), nstates(0), nratecateg(0), npatterns(0), partial_offset(0), tmatrix_offset(0), invarmodel(false) {}
+            };
+
+            typedef std::pair&amp;lt;unsigned, int&amp;gt;        instance_pair_t;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    isPolytomy(Node * nd) const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                                countChildren(Node * nd) const;&lt;/strong&gt;&lt;/span&gt;
+            unsigned                                getPartialIndex(Node * nd, InstanceInfo &amp; info) const;
+            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const;
+            void                                    updateInstanceMap(instance_pair_t &amp; p, unsigned subset);
+            void                                    newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices);
+            void                                    setTipStates();
+            void                                    setTipPartials();
+            void                                    setPatternPartitionAssignments();
+            void                                    setPatternWeights();
+            void                                    setAmongSiteRateHeterogenetity();
+            void                                    setModelRateMatrix();
+            void                                    addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
+            void                                    defineOperations(Tree::SharedPtr t);
+            void                                    updateTransitionMatrices();
+            void                                    calculatePartials();
+            double                                  calcInstanceLogLikelihood(InstanceInfo &amp; inst, Tree::SharedPtr t);
+
+
+            std::vector&amp;lt;InstanceInfo&amp;gt;               _instances;
+            std::map&amp;lt;int, std::string&amp;gt;              _beagle_error;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _operations;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _pmatrix_index;
+            std::map&amp;lt;int, std::vector&amp;lt;double&amp;gt; &amp;gt;     _edge_lengths;
+
+            std::vector&amp;lt;int&amp;gt;                        _subset_indices;
+            std::vector&amp;lt;int&amp;gt;                        _parent_indices;
+            std::vector&amp;lt;int&amp;gt;                        _child_indices;
+            std::vector&amp;lt;int&amp;gt;                        _tmatrix_indices;
+            std::vector&amp;lt;int&amp;gt;                        _weights_indices;
+            std::vector&amp;lt;int&amp;gt;                        _freqs_indices;
+            std::vector&amp;lt;int&amp;gt;                        _scaling_indices;
+        
+            Model::SharedPtr                        _model;
+
+            Data::SharedPtr                         _data;
+            unsigned                                _ntaxa;
+            bool                                    _rooted;
+            bool                                    _prefer_gpu;
+            bool                                    _ambiguity_equals_missing;
+            bool                                    _underflow_scaling;
+            bool                                    _using_data;
+        
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::stack&amp;lt;Node *&amp;gt;                      _polytomy_stack;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;double&amp;gt;                     _identity_matrix;&lt;/strong&gt;&lt;/span&gt;
+
+        public:
+            typedef std::shared_ptr&amp;lt; Likelihood &amp;gt;   SharedPtr;
+    };
+    
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-clear-function">Modifying the clear function</h2>
+
+<p>Add the indicated line to the clear function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::clear() {   
+        finalizeBeagleLib(true);
+        
+        _ntaxa                      = 0;
+        _rooted                     = false;
+        _prefer_gpu                 = false;
+        _ambiguity_equals_missing   = true;
+        _underflow_scaling          = false;
+        _using_data                 = true;
+        _data                       = nullptr;
+        
+        _operations.clear();
+        _pmatrix_index.clear();
+        _edge_lengths.clear();
+        _subset_indices.assign(1, 0);
+        _parent_indices.assign(1, 0);
+        _child_indices.assign(1, 0);
+        _tmatrix_indices.assign(1, 0);
+        _weights_indices.assign(1, 0);
+        _freqs_indices.assign(1, 0);
+        _scaling_indices.assign(1, 0);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_identity_matrix.assign(1, 0.0);&lt;/strong&gt;&lt;/span&gt;
+        
+        _model = Model::SharedPtr(new Model());        
+
+        // Store BeagleLib error codes so that useful
+        // error messages may be provided to the user
+        _beagle_error.clear();
+        _beagle_error[0]  = std::string("success");
+        _beagle_error[-1] = std::string("unspecified error");
+        _beagle_error[-2] = std::string("not enough memory could be allocated");
+        _beagle_error[-3] = std::string("unspecified exception");
+        _beagle_error[-4] = std::string("the instance index is out of range, or the instance has not been created");
+        _beagle_error[-5] = std::string("one of the indices specified exceeded the range of the array");
+        _beagle_error[-6] = std::string("no resource matches requirements");
+        _beagle_error[-7] = std::string("no implementation matches requirements");
+        _beagle_error[-8] = std::string("floating-point range exceeded");
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-newinstance-function">Modifying the newInstance function</h2>
+
+<p>Initialize the <code class="highlighter-rouge">_identity_matrix</code> data member in the first few lines of <code class="highlighter-rouge">newInstance</code>:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices) { 
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Create an identity matrix used for computing partials&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// for polytomies (represents the transition matrix&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// for the zero-length edges inserted to arbitrarily&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// resolve each polytomy)&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_identity_matrix.assign(nstates*nstates*nrates, 0.0);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned k = 0; k &amp;lt; nrates; k++) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned offset = k*nstates*nstates;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_identity_matrix[0+offset]  = 1.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_identity_matrix[5+offset]  = 1.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_identity_matrix[10+offset] = 1.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_identity_matrix[15+offset] = 1.0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        
+        unsigned num_subsets = (unsigned)subset_indices.size();
+        //...   
+        
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-function-ispolytomy">Add function isPolytomy</h2>
+
+<p>This function returns true if the supplied <code class="highlighter-rouge">nd</code> points to a <code class="highlighter-rouge">Node</code> object representing a polytomy (i.e. <code class="highlighter-rouge">nd</code> has more than 2 children).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Likelihood::isPolytomy(Node * nd) const {   
+        Node * lchild = nd-&amp;gt;_left_child;
+        assert(lchild);    // should only call this function for internal nodes
+        
+        Node * rchild = lchild-&amp;gt;_right_sib;
+        if (rchild &amp;&amp; rchild-&amp;gt;_right_sib)
+            return true;
+        return false;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="add-function-countchildren">Add function countChildren</h2>
+
+<p>This function counts the number of children of the <code class="highlighter-rouge">Node</code> object pointed to by the supplied <code class="highlighter-rouge">nd</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Likelihood::countChildren(Node * nd) const {    
+        Node * child = nd-&amp;gt;_left_child;
+        assert(child);    // should only call this function for internal nodes
+        unsigned nchildren = 0;
+        while (child) {
+            nchildren++;
+            child = child-&amp;gt;_right_sib;
+        }
+        return nchildren;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modify-the-defineoperations-function">Modify the defineOperations function</h2>
+
+<p>This is the main modification made to the <code class="highlighter-rouge">Likelihood</code> class to allow for polytomies in trees. The vector <code class="highlighter-rouge">_polytomy_stack</code> starts out empty. Currently unused nodes are assigned to each polytomy until the polytomy is resolved (the number of children is just 2). Each fake internal node is assigned a transition matrix equal to the identity matrix because its edge length is necessarily zero (so no calculation of the transition matrix is needed). Operations are added to compute partials for each fake internal node and also the actual (polytomous) node. Each unused node that is put into service is stored in <code class="highlighter-rouge">_polytomy_stack</code> so that, after the likelihood is computed, all these fake internal nodes can be returned to their former unused state.</p>
+
+<p>Add or change the highlighted lines in the <code class="highlighter-rouge">defineOperations</code> member function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   
+        assert(_instances.size() &amp;gt; 0);
+        assert(t);
+        assert(t-&amp;gt;isRooted() == _rooted);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(_polytomy_stack.empty());&lt;/strong&gt;&lt;/span&gt;
+
+        double relrate_normalizing_constant = _model-&amp;gt;calcNormalizingConstantForSubsetRelRates();
+        Model::subset_relrate_vect_t &amp; subset_relrates = _model-&amp;gt;getSubsetRelRates();
+
+        // Loop through all instances
+        for (auto &amp; info : _instances) {
+            _operations[info.handle].clear();
+            _pmatrix_index[info.handle].clear();
+            _edge_lengths[info.handle].clear();
+            
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                double subset_relative_rate = subset_relrates[s]/relrate_normalizing_constant;
+
+                // Loop through all nodes in reverse level order
+                for (auto nd : boost::adaptors::reverse(t-&amp;gt;_levelorder)) {
+                    assert(nd-&amp;gt;_number &amp;gt;= 0);
+                    if (!nd-&amp;gt;_left_child) {
+                        // This is a leaf
+                        if (nd-&amp;gt;isSelTMatrix()) {
+                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                            _pmatrix_index[info.handle].push_back(tindex);
+                            _edge_lengths[info.handle].push_back(nd-&amp;gt;_edge_length*subset_relative_rate);
+                        }
+                    }
+                    // ...
+                    else {
+                        // This is an internal node
+                        if (nd-&amp;gt;isSelTMatrix()) {
+                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                            _pmatrix_index[info.handle].push_back(tindex);
+                            _edge_lengths[info.handle].push_back(nd-&amp;gt;_edge_length*subset_relative_rate);
+                        }
+
+                        // Internal nodes have partials to be calculated, so define
+                        // an operation to compute the partials for this node
+                        if (nd-&amp;gt;isSelPartial()) {
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (isPolytomy(nd)) {&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Internal node is a polytomy&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;TreeManip tm(t);&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned nchildren = countChildren(nd);&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * a = nd-&amp;gt;_left_child;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * b = a-&amp;gt;_right_sib;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * c = 0;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned k = 0; k &amp;lt; nchildren - 2; k++) {&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;c = tm.getUnusedNode();&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;c-&amp;gt;_left_child = a;&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_polytomy_stack.push(c);&lt;/strong&gt;&lt;/span&gt;
+
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Set the transition matrix equal to the identity matrix&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned tindex = getTMatrixIndex(c, info, instance_specific_subset_index);&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int code = beagleSetTransitionMatrix(info.handle, tindex, &amp;_identity_matrix[0], 1);&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("Failed to set transition matrix for instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add an operation to compute the partial for this fake internal node&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;addOperation(info, c, a, b, instance_specific_subset_index);&lt;/strong&gt;&lt;/span&gt;
+                                    
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Tackle next arm of the polytomy&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;b = b-&amp;gt;_right_sib;&lt;/strong&gt;&lt;/span&gt;
+                                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;a = c;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                                
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Now add operation to compute the partial for the real internal node&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;addOperation(info, nd, a, b, instance_specific_subset_index);&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Internal node is not a polytomy&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * lchild = nd-&amp;gt;_left_child;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(lchild);&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * rchild = lchild-&amp;gt;_right_sib;&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(rchild);&lt;/strong&gt;&lt;/span&gt;
+                                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;addOperation(info, nd, lchild, rchild, instance_specific_subset_index);&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                        }   // isSelPartial
+                    }   // internal node
+                }   // nd loop
+                ++instance_specific_subset_index;
+            }   // subsets loop
+        } // instances loop
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modify-the-calcloglikelihood-function">Modify the calcLogLikelihood function</h2>
+
+<p>All we need to do to the <code class="highlighter-rouge">calcLogLikelihood</code> function is to return the nodes we pulled out of storage back to their previous, unused state.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {    
+        assert(_instances.size() &amp;gt; 0);
+        
+        if (!_using_data)
+            return 0.0;
+        
+        // Must call setData and setModel before calcLogLikelihood
+        assert(_data);
+        assert(_model);
+
+        if (t-&amp;gt;_is_rooted)
+            throw XStrom("This version of the program can only compute likelihoods for unrooted trees");
+
+        // Assuming "root" is leaf 0
+        assert(t-&amp;gt;_root-&amp;gt;_number == 0 &amp;&amp; t-&amp;gt;_root-&amp;gt;_left_child == t-&amp;gt;_preorder[0] &amp;&amp; !t-&amp;gt;_preorder[0]-&amp;gt;_right_sib);
+
+        setModelRateMatrix();
+        setAmongSiteRateHeterogenetity();
+        defineOperations(t);
+        updateTransitionMatrices();
+        calculatePartials();
+        
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// We no longer need fake internal nodes used to compute partials for polytomies&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;TreeManip tm(t);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;while (!_polytomy_stack.empty()) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;tm.putUnusedNode(_polytomy_stack.top());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_polytomy_stack.pop();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+        double log_likelihood = 0.0;
+        for (auto &amp; info : _instances) {
+            log_likelihood += calcInstanceLogLikelihood(info, t);
+        }
+        
+        return log_likelihood;
+    }   
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//linux//steps/step-19/04-adding-topo-prior-to-updater.html">&lt;&nbsp;19.4</a> | 19.5 | <a href="//linux//steps/step-19/06-modifying-node-tree-manip-class.html">19.6&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

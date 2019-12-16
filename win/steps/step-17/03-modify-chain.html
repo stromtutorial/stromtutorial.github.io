@@ -168,7 +168,6 @@
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double tree_length_scale = 10.0;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double dirichlet_param   = 1.0;&lt;/strong&gt;&lt;/span&gt;
             
-&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = TreeUpdater::SharedPtr(new TreeUpdater());&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
@@ -178,7 +177,6 @@
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wtreetopology); sum_weights += wtreetopology;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_updaters.push_back(u);&lt;/strong&gt;&lt;/span&gt;
 
-&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u = TreeLengthUpdater::SharedPtr(new TreeLengthUpdater());&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
@@ -198,7 +196,19 @@
 
 </code></pre></div></div>
 
-<p>As with the other updaters, we are hard-coding the prior for tree topology and edge lengths. In this case, the tree length prior is an Exponential distribution with mean 10, and the prior on edge length proportions is a flat Dirichlet distribution. The prior on tree topology is Discrete Uniform over the space of all possible tree topologies (and tree topologies are assumed to be unrooted and binary). You should know enough at this point to add options to the <code class="highlighter-rouge">Strom</code> class to allow the prior parameters to be set by the user.</p>
+<p>As with the other updaters, we are hard-coding the prior for tree topology and edge lengths. We will add options in Step 19 so that the user can change these values, but for now we are keeping things simple and baking in the priors. In this case, the tree length prior is an Exponential distribution with mean 10, and the prior on edge length proportions is a flat Dirichlet distribution. The prior on tree topology is Discrete Uniform over the space of all possible tree topologies (and tree topologies are assumed to be unrooted and binary).</p>
+
+<p>I mentioned (when creating the <code class="highlighter-rouge">TreeLengthUpdater</code> class) that we would need to be careful to avoid counting the tree length prior and edge length proportions prior twice. We will now take care of that by simply adding a line to the <code class="highlighter-rouge">calcLogJointPrior</code> function that causes the <code class="highlighter-rouge">TreeLengthUpdater</code> to be skipped when computing the joint prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::calcLogJointPrior() const { 
+        double lnP = 0.0;
+        for (auto u : _updaters) {
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (u-&amp;gt;_name != "Tree Length")&lt;/strong&gt;&lt;/span&gt;
+                lnP += u-&amp;gt;calcLogPrior();
+        }
+        return lnP;
+    } 
+
+</code></pre></div></div>
 
 <div class="titlebar">
 	<h3 class="subsection"><a href="//win//steps/step-17/02-the-tree-length-updater-class.html">&lt;&nbsp;17.2</a> | 17.3 | <a href="//win//steps/step-17/04-modify-treemanip.html">17.4&nbsp;&gt;</a></h3>

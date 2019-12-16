@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The TopoPriorCalculator class</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.3 The TopoPriorCalculator class</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/02-the-polytomyupdater-class.html">&lt;&nbsp;19.2</a> | 19.3 | <a href="//win//steps/step-19/04-adding-topo-prior-to-updater.html">19.4&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>With the introduction of polytomous trees, the computation of the tree topology prior becomes more interesting but also much more complicated. We now need to not only know the number of binary tree topologies (the highest resolution class), we need to know the number of tree topologies in all the other resolution classes.</p>
+
+<p>There are also at least two interesting variations on the concept of a flat prior with respect to tree topology. The prior could be flat across all tree topologies, or it could be flat across resolution classes. In the first case, the star tree and any particular fully-resolved tree topology have the same prior probability. In the second case, the star tree (which is the only representative of its resolution class), gets much greater weight than any particular fully-resolved tree topology. For example, with just 10 taxa, the star tree would have (in the flat resolution class prior) a prior probabilility 2,027,025 times that of any resolved tree!</p>
+
+<p>To help us compute the topology prior, create the following class <code class="highlighter-rouge">TopoPriorCalculator</code> in a header file named <em>topo_prior_calculator.hpp</em> as follows:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include "tree.hpp"
+#include "lot.hpp"
+
+namespace strom {
+
+    class PolytomyTopoPriorCalculator {
+    
+        public:
+        
+            typedef std::shared_ptr&amp;lt;PolytomyTopoPriorCalculator&amp;gt; SharedPtr;
+                                            
+                                            PolytomyTopoPriorCalculator();
+                                            ~PolytomyTopoPriorCalculator();
+
+            bool                            isResolutionClassPrior() const;
+            bool                            isPolytomyPrior() const;
+
+            bool                            isRooted() const;
+            bool                            isUnrooted() const;
+
+            void                            setNTax(unsigned n);
+            unsigned                        getNTax() const;
+
+            void                            chooseRooted();
+            void                            chooseUnrooted();
+
+            double                          getLogCount(unsigned n, unsigned m);
+            double                          getLogSaturatedCount(unsigned n);
+            double                          getLogTotalCount(unsigned n);
+            std::vector&amp;lt;double&amp;gt;             getLogCounts();
+
+            std::vector&amp;lt;double&amp;gt;             getCountsVect();
+            std::vector&amp;lt;int&amp;gt;                getNFactorsVect();
+
+            void                            chooseResolutionClassPrior();
+            void                            choosePolytomyPrior();
+
+            void                            setC(double c);
+            double                          getC() const;
+
+            void                            setLogScalingFactor(double lnf);
+            double                          getLogScalingFactor() const;
+
+            virtual double                  getLogTopoProb(Tree::SharedPtr t);
+
+            double                          getLogTopologyPrior(unsigned m);
+            double                          getLogNormalizedTopologyPrior(unsigned m);
+            double                          getLogNormConstant();
+
+            std::vector&amp;lt;double&amp;gt;             getTopoPriorVect();
+            std::vector&amp;lt;double&amp;gt;             getRealizedResClassPriorsVect();
+
+            unsigned                        sample(Lot::SharedPtr rng);
+
+            void                            reset();
+
+        private:
+
+            void                            recalcCountsAndPriorsImpl(unsigned n);
+            void                            recalcPriorsImpl();
+
+            unsigned                        _ntax;
+            bool                            _is_rooted;
+            bool                            _is_resolution_class_prior;
+            double                          _C;
+
+            bool                            _topo_priors_dirty;
+            bool                            _counts_dirty;
+
+            double                          _log_scaling_factor;
+            std::vector&amp;lt;int&amp;gt;                _nfactors;
+            std::vector&amp;lt;double&amp;gt;             _counts;
+            double                          _log_total_count;
+            std::vector&amp;lt;double&amp;gt;             _topology_prior;
+    };
+    
+    // Member function bodies go here
+    
+}   
+
+</code></pre></div></div>
+
+<h2 id="the-topopriorcalculator-constructor-and-destructor">The TopoPriorCalculator constructor and destructor</h2>
+
+<p>The constructor sets <code class="highlighter-rouge">_is_rooted</code> to false, <code class="highlighter-rouge">_is_resolution_class_prior</code> to true, <code class="highlighter-rouge">_C</code> to 1.0, <code class="highlighter-rouge">_ntax</code> to 4, and <code class="highlighter-rouge">_topo_priors_dirty</code> to true. The destructor clears the vectors <code class="highlighter-rouge">_counts</code>, <code class="highlighter-rouge">_nfactors</code> and <code class="highlighter-rouge">_topology_prior</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    PolytomyTopoPriorCalculator::PolytomyTopoPriorCalculator() {    
+        _topo_priors_dirty            = true;
+        _is_rooted                    = false;
+        _is_resolution_class_prior    = true;
+        _C                            = 1.0;
+        _ntax                        = 4;
+        _counts_dirty                = true;
+        _log_scaling_factor          = 10.0;
+    }   
+
+    PolytomyTopoPriorCalculator::~PolytomyTopoPriorCalculator() {   
+        _counts.clear();
+        _topology_prior.clear();
+        _nfactors.clear();
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlognormalizedtopologyprior-member-function">The getLogNormalizedTopologyPrior member function</h2>
+
+<p>This is the function that delivers what you need: the log of the prior probability of a tree topology having <code class="highlighter-rouge">m</code> internal nodes. This represents the <em>resolution class prior</em> if
+<code class="highlighter-rouge">_is_resolution_class_prior</code> is true, otherwise it represents the <em>polytomy prior</em>.</p>
+
+<p>A flat <strong>resolution class prior</strong> places equal prior probability mass on every possible value of <code class="highlighter-rouge">m</code>. For example, for <code class="highlighter-rouge">N=7</code> taxa, the resolution class variable <code class="highlighter-rouge">m</code> can range from 1 (star tree) to <code class="highlighter-rouge">N-2 = 5</code> (fully-resolved tree) for the unrooted tree case. The prior probability of each resolution class is thus 0.2 and a particular tree in each class equals 0.2 divided by the number of distinct labeled tree topologies in that class:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">m</th>
+      <th style="text-align: center">ntopo</th>
+      <th style="text-align: center">ptree</th>
+      <th style="text-align: center">ntopo*ptree</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">0.2/1    = 0.200000000</td>
+      <td style="text-align: center">0.2</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">56</td>
+      <td style="text-align: center">0.2/56   = 0.003571429</td>
+      <td style="text-align: center">0.2</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">3</td>
+      <td style="text-align: center">490</td>
+      <td style="text-align: center">0.2/490  = 0.000408163</td>
+      <td style="text-align: center">0.2</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">4</td>
+      <td style="text-align: center">1260</td>
+      <td style="text-align: center">0.2/1260 = 0.00015873</td>
+      <td style="text-align: center">0.2</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">5</td>
+      <td style="text-align: center">945</td>
+      <td style="text-align: center">0.2/945  = 0.00021164</td>
+      <td style="text-align: center">0.2</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">total</td>
+      <td style="text-align: center">2752</td>
+      <td style="text-align: center"> </td>
+      <td style="text-align: center">1.0</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>where <code class="highlighter-rouge">m</code> is the resolution class (number of internal nodes), <code class="highlighter-rouge">ntopo</code> is the number of tree topologies in resolution class <code class="highlighter-rouge">m</code> (computed in the <code class="highlighter-rouge">recalcCountsAndPriorsImpl</code> function), and <code class="highlighter-rouge">ptree</code> is the probability of any given labeled tree topology in resolution class <code class="highlighter-rouge">m</code>.</p>
+
+<p>The flat <strong>polytomy prior</strong> is simpler: it assumes the same prior probability for each tree, regardless of the resolution class. Because the total number of tree topologies over all resolution class is <code class="highlighter-rouge">1+56+490+1260+945 = 2752</code> in the 7-taxon example above, the prior for each tree would be <code class="highlighter-rouge">1/2752 = 0.000363372</code> under the flat polytomy prior.</p>
+
+<p>The priors described above were flat priors. It is possible to make some resolution classes more probable in a resolution class prior, and trees with more or fewer internal nodes more probable in a polytomy prior. For example, suppose you wished resolution class <code class="highlighter-rouge">m = 1</code> (the star tree) to be twice as probable as the class of trees having 2 internal nodes (<code class="highlighter-rouge">m = 2</code>), class <code class="highlighter-rouge">m = 2</code> to be twice as probable as class <code class="highlighter-rouge">m = 3</code>, and so on. The data member <code class="highlighter-rouge">_C</code> determines the relative probability of resolution class <code class="highlighter-rouge">m</code> over resolution class <code class="highlighter-rouge">m+1</code>. Setting <code class="highlighter-rouge">_C = 2</code> yields this resolution class prior distribution:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">m</th>
+      <th style="text-align: center">ntopo</th>
+      <th style="text-align: center">ptree</th>
+      <th style="text-align: center">ntopo*ptree</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">(16/31)/1    = 0.516129032</td>
+      <td style="text-align: center">0.516129032</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">56</td>
+      <td style="text-align: center">(8/31)/56   = 0.004608295</td>
+      <td style="text-align: center">0.258064516</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">3</td>
+      <td style="text-align: center">490</td>
+      <td style="text-align: center">(4/31)/490  = 0.000263331</td>
+      <td style="text-align: center">0.129032258</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">4</td>
+      <td style="text-align: center">1260</td>
+      <td style="text-align: center">(2/31)/1260 = 0.000051203</td>
+      <td style="text-align: center">0.064516129</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">5</td>
+      <td style="text-align: center">945</td>
+      <td style="text-align: center">(1/31)/945  = 0.000034136</td>
+      <td style="text-align: center">0.032258065</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">total</td>
+      <td style="text-align: center">2752</td>
+      <td style="text-align: center"> </td>
+      <td style="text-align: center">1.0</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The data member <code class="highlighter-rouge">_C</code> in the case of a <em>polytomy</em> prior ensures that the probability of any particular tree in resolution class <code class="highlighter-rouge">m</code> is <code class="highlighter-rouge">_C</code> times more probable than any particular tree in resolution class <code class="highlighter-rouge">m+1</code>. To see how this prior is calculated, note that have these 5 constraints (again for the 7-taxon unrooted case):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>n_1 p_1 + n_2 p_2 + n_3 p_3 + n_4 p_4 + n_5 p_5 = 1.0
+p_1 = C p_2
+p_2 = C p_3
+p_3 = C p_4
+p_4 = C p_5
+</code></pre></div></div>
+
+<p>These constraints leave only p_5 to be determined:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>p_1 = C^4 p_5
+p_2 = C^3 p_5
+p_3 = C^2 p_5
+p_4 = C^1 p_5
+(n_1 C^4 + n_2 C^3 + n_3 C^2 + n_4 C^1 + n_5 C^0) p_5 = 1.0
+p_5 = 1/[n_1 C^4 + n_2 C^3 + n_3 C^2 + n_4 C^1 + n_5 C^0]
+</code></pre></div></div>
+
+<p>For<code class="highlighter-rouge"> _C = 2</code> and a polytomy prior, we have</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">m</th>
+      <th style="text-align: center">ntopo</th>
+      <th style="text-align: center">qtree</th>
+      <th style="text-align: center">ptree</th>
+      <th style="text-align: center">ntopo*ptree</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">1*2^4 = 16</td>
+      <td style="text-align: center">2^4/5889 = 0.00271693</td>
+      <td style="text-align: center">1*2^4/5889 = 0.00271693</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">56</td>
+      <td style="text-align: center">56*2^3 = 448</td>
+      <td style="text-align: center">2^3/5889 = 0.001358465</td>
+      <td style="text-align: center">56*2^3/5889 = 0.076074036</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">3</td>
+      <td style="text-align: center">490</td>
+      <td style="text-align: center">490*2^2 = 1960</td>
+      <td style="text-align: center">2^2/5889 = 0.000679232</td>
+      <td style="text-align: center">490*2^2/5889 = 0.332823909</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">4</td>
+      <td style="text-align: center">1260</td>
+      <td style="text-align: center">1260*2^1 = 2520</td>
+      <td style="text-align: center">2^1/5889 = 0.000339616</td>
+      <td style="text-align: center">1260*2^1/5889 = 0.427916454</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">5</td>
+      <td style="text-align: center">945</td>
+      <td style="text-align: center">945*2^0 = 945</td>
+      <td style="text-align: center">2^0/5889 = 0.000169808</td>
+      <td style="text-align: center">945*2^0/5889 = 0.16046867</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">total</td>
+      <td style="text-align: center">2752</td>
+      <td style="text-align: center">16+448+1960+2520+945 = 5889</td>
+      <td style="text-align: center"> </td>
+      <td style="text-align: center">1.0</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>where <code class="highlighter-rouge">qtree</code> is the unnormalized probability of a particular tree topology (i.e. ptree is qtree divided by the sum of qtree values).</p>
+
+<p>With this introduction, here is the deceptively simple <code class="highlighter-rouge">getLogNormalizedTopologyPrior</code> function. The hard part is computing the <code class="highlighter-rouge">_topology_prior</code> vector, which is described below in the explanation of the <code class="highlighter-rouge">recalcPriorsImpl</code> function. The log of the normalized topology prior is obtained as <code class="highlighter-rouge">_topology_prior[m]</code> minus <code class="highlighter-rouge">_topology_prior[0]</code> (the 0th element of <code class="highlighter-rouge">_topology_prior</code> holds the log of the normalization constant).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogNormalizedTopologyPrior(unsigned m) { 
+        if (_topo_priors_dirty)
+            reset();
+        assert(m &amp;lt; _topology_prior.size());
+        return (_topology_prior[m] - _topology_prior[0]);
+    }
+
+</code></pre></div></div>
+
+<h2 id="the-recalcpriorsimpl-member-function">The recalcPriorsImpl member function</h2>
+
+<p>This function is responsible for recomputing the <code class="highlighter-rouge">_topology_prior</code> vector. If <code class="highlighter-rouge">_is_resolution_class_prior</code> is true, this function requires knowledge of the number of tree topologies in each resolution class, so it is called inside the <code class="highlighter-rouge">recalcCountsAndPriorsImpl</code> after the counts are calculated.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::recalcPriorsImpl() {  
+        _topology_prior.clear();
+        _topology_prior.push_back(0.0);    // This will hold the normalizing constant in the end
+
+        // Figure out the maximum possible value for m, the number of internal nodes
+        unsigned maxm = _ntax - (_is_rooted ? 1 : 2);
+
+        if (_is_resolution_class_prior) {
+            // _counts vector should have length equal to maxm if everything is ok
+            assert(maxm == (unsigned)_counts.size());
+
+            double logC = std::log(_C);
+            double log_normalization_constant = 0.0;
+            if (_C == 1.0)
+                log_normalization_constant = std::log(maxm);
+            else if (_C &amp;gt; 1.0) {
+                // factor out largest value to avoid overflow
+                double term1  = logC*maxm;
+                double term2a = std::exp(-logC*maxm);
+                double term2b = std::log(1.0 - term2a);
+                double term3  = std::log(_C - 1.0);
+                log_normalization_constant = term1 + term2b + term3;
+            }
+            else {
+                log_normalization_constant = std::log(1.0 - std::exp(logC*maxm)) - std::log(1.0 - _C);
+            }
+            _topology_prior[0] = log_normalization_constant;
+            for (unsigned m = 1; m &amp;lt;= maxm; ++m) {
+                double logCterm = (double)(maxm - m)*logC;
+                double log_count_m = std::log(_counts[m - 1]) + _log_scaling_factor*(double)_nfactors[m - 1];
+                double log_v = logCterm - log_count_m;
+                _topology_prior.push_back(log_v);
+            }
+        }
+        else {
+            double total = 0.0;
+            double logC = std::log(_C);
+            for (unsigned m = 1; m &amp;lt;= maxm; ++m) {
+                double logCterm = (double)(maxm - m)*logC;
+                total += std::exp(logCterm);
+                _topology_prior.push_back(logCterm);
+            }
+            _topology_prior[0] = std::log(total);
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-recalccountsandpriorsimpl-member-function">The recalcCountsAndPriorsImpl member function</h2>
+
+<p>This function recomputes the <code class="highlighter-rouge">_counts</code> vector for the supplied number of internal nodes (<code class="highlighter-rouge">n</code>) using the method outlined by Joe Felsenstein in his 2004 book and also in Felsenstein (1978). Below I’ve reproduced the table from Felsenstein (2004) showing the number of possible rooted tree topologies for any number of internal nodes (rows) and up to 8 taxa (columns):</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>nodes</th>
+      <th>2</th>
+      <th>3</th>
+      <th>4</th>
+      <th>5</th>
+      <th>6</th>
+      <th>7</th>
+      <th>8</th>
+      <th>nfactors</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td> </td>
+      <td>3</td>
+      <td>10</td>
+      <td>25</td>
+      <td>56</td>
+      <td>119</td>
+      <td>246</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td> </td>
+      <td> </td>
+      <td>15</td>
+      <td>105</td>
+      <td>490</td>
+      <td>1918</td>
+      <td>6825</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td>0.0105</td>
+      <td>0.1260</td>
+      <td>0.945</td>
+      <td>5.6980</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td>0.0945</td>
+      <td>1.7325</td>
+      <td>19.0575</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td>1.0395</td>
+      <td>27.0270</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td> </td>
+      <td>13.5135</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The <code class="highlighter-rouge">recalcCountsAndPriorsImpl</code> function works from left to right, calculating each column in turn. Within a column, it works down. Each cell except the first in a given column requires knowledge of two cells from the column to its left: the cell to its immediate left as well as the cell above the cell to its immediate left. This is because in order to know how many tree topologies there are for <code class="highlighter-rouge">N</code> taxa, one needs to know how many places a taxon could be added to a tree with <code class="highlighter-rouge">N-1</code> taxa. The <code class="highlighter-rouge">N-1</code> taxon tree could have the same number of internal nodes as the new tree (the new taxon was added to an existing node, either creating a new polytomy or enlarging an existing one), or the <code class="highlighter-rouge">N-1</code> taxon tree could have one fewer internal nodes (in which case the new taxon inserts a new node).</p>
+
+<p>Note that this function calls <code class="highlighter-rouge">recalcPriorsImpl</code> before returning.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::recalcCountsAndPriorsImpl(unsigned n) {   
+        if (_is_resolution_class_prior)
+            _counts_dirty = true;
+        if (_counts_dirty) {
+            double scaling_factor = exp(_log_scaling_factor);
+
+            _counts.clear();
+            _counts.push_back(1.0); // _counts are always 1 for m = 1
+
+            int last_factor = 0;
+            _nfactors.clear();
+            _nfactors.push_back(last_factor); // never need to scale this one
+
+            // temporary variables
+            double a, b, c;
+            double max_log_double = log(DBL_MAX);
+            
+            // The value of epsilon is arbitrary, but must be larger than
+            // zero and less than scaling_factor
+            double epsilon = scaling_factor/10.0;
+
+            // Compute the vector of _counts for the number of internal nodes specified
+            // This is the main loop over columns. z is the number of taxa minus 1
+            // for rooted trees, and is the number of taxa minus 2 for unrooted trees
+            for (unsigned z = 2; z &amp;lt;= n; ++z) {
+                // This column is one element longer than the column to its left
+                _counts.push_back(0.0);
+                _nfactors.push_back(last_factor);
+                
+                // _counts[0] is always 1.0 because there is only one star tree topology
+                b = _counts[0];
+
+                // This is the loop over rows within the current column.
+                // m + 1 is the number of internal nodes.
+                for (unsigned m = 1; m &amp;lt; z; ++m) {
+                    unsigned num_internal_nodes = m + 1;
+                    double diff = (double)(_nfactors[m - 1] - _nfactors[m]);
+                    double log_factor = diff*_log_scaling_factor;
+                    assert(log_factor &amp;lt; max_log_double);
+                    a = b*exp(log_factor);
+                    b = _counts[m];
+                    c = a*((double)(z + num_internal_nodes - 1));
+                    if (num_internal_nodes &amp;lt; z) {
+                        c += b*(double)num_internal_nodes;
+                    }
+                    if (c &amp;gt; scaling_factor) {
+                        double incr = floor(log(c - epsilon)/_log_scaling_factor);
+                        _nfactors[m] += (unsigned)incr;
+                        last_factor = _nfactors[m];
+                        _counts[m] = exp(log(c) - incr*_log_scaling_factor);
+                        b = exp(log(b) - incr*_log_scaling_factor);
+                    }
+                    else
+                        _counts[m] = c;
+                }
+            }
+
+            // Now compute the log of the total number of tree topologies
+            // over all possible resolution classes (i.e. number of internal nodes)
+            // Begin by creating a vector of log _counts and finding the
+            // largest value (this will be factored out to avoid overflow)
+            std::vector&amp;lt;double&amp;gt; v;
+            unsigned sz = (unsigned)_nfactors.size();
+            assert(sz == _counts.size());
+            double max_log_count = 0.0;
+            for (unsigned i = 0; i &amp;lt; sz; ++i) {
+                double num_factors = (double)_nfactors[i];
+                double log_count = num_factors*_log_scaling_factor + log(_counts[i]);
+                if (log_count &amp;gt; max_log_count)
+                    max_log_count = log_count;
+                v.push_back(log_count);
+            }
+
+            // Compute log sum of _counts by factoring out the largest count.
+            // Underflow will occur, but only for _counts that are so much
+            // smaller than the dominant _counts that the underflow can be
+            // ignored for all practical purposes
+            double sum = 0.0;
+            for (std::vector&amp;lt;double&amp;gt;::const_iterator it = v.begin(); it != v.end(); ++it) {
+                double diff = (*it) - max_log_count;
+                sum += exp(diff);
+            }
+            assert(sum &amp;gt; 0.0);
+            _log_total_count = log(sum) + max_log_count;
+            _counts_dirty = false;
+        }
+        else {
+            _nfactors.clear();
+            _counts.clear();
+            
+            // _counts_dirty ensures that _counts will be calculated if requested,
+            // for example by calling getCount
+            _counts_dirty = true;
+        }
+
+        // Recalculate the _topology_prior vector too
+        recalcPriorsImpl();
+
+        _topo_priors_dirty = false;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-reset-member-function">The reset member function</h2>
+
+<p>This function forces recalculation of <code class="highlighter-rouge">polytomy_prior</code> if <code class="highlighter-rouge">_is_resolution_class_prior</code> is false, and both <code class="highlighter-rouge">_counts</code> and <code class="highlighter-rouge">polytomy_prior</code> if <code class="highlighter-rouge">_is_resolution_class_prior</code> is true (or if <code class="highlighter-rouge">_counts_dirty</code> is true).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::reset() { 
+        unsigned num_internal_nodes = (_is_rooted ? (_ntax - 1) : (_ntax - 2));
+        recalcCountsAndPriorsImpl(num_internal_nodes);
+    } 
+
+</code></pre></div></div>
+
+<h2 id="the-getlogcount-member-function">The getLogCount member function</h2>
+
+<p>This function returns the count of the number of distinct labeled tree topologies for <code class="highlighter-rouge">n</code> taxa and <code class="highlighter-rouge">m</code> internal nodes. It depends on the _counts vector being accurate, so it calls <code class="highlighter-rouge">recalcCountsAndPriors</code> function if <code class="highlighter-rouge">n</code> is not equal to <code class="highlighter-rouge">_ntax</code>. If <code class="highlighter-rouge">_is_rooted</code> is true, assumes <code class="highlighter-rouge">m</code> is less than <code class="highlighter-rouge">_ntax</code>. If <code class="highlighter-rouge">_is_rooted</code> is false, assumes <code class="highlighter-rouge">m</code> less than <code class="highlighter-rouge">_ntax</code> - 1.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogCount(unsigned n, unsigned m) {   
+        assert((_is_rooted &amp;&amp; (m &amp;lt; n)) || (!_is_rooted &amp;&amp; (m &amp;lt; n - 1)));
+        if (n != _ntax)
+            setNTax(n);
+        if (_counts_dirty)
+            reset();
+        double nf = (double)(_nfactors[m - 1]);
+        double log_count = nf*_log_scaling_factor + log(_counts[m - 1]);
+        return log_count;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlogsaturatedcount-member-function">The getLogSaturatedCount member function</h2>
+
+<p>Returns the number of saturated (i.e. fully-resolved and thus having as many internal nodes as possible) trees of <code class="highlighter-rouge">n</code> taxa. Calls <code class="highlighter-rouge">recalcCountsAndPriors</code> function if <code class="highlighter-rouge">n</code> is not equal to <code class="highlighter-rouge">_ntax</code> because that means that the <code class="highlighter-rouge">_counts</code> vector is no longer accurate and must be recalculated.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogSaturatedCount(unsigned n) {  
+        if (n != _ntax)
+            setNTax(n);
+        if (_counts_dirty)
+            reset();
+        unsigned last = (unsigned)(_counts.size() - 1);
+        double nf = (double)(_nfactors[last]);
+        double log_count = nf*_log_scaling_factor + log(_counts[last]);
+        return log_count;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlogcounts-member-function">The getLogCounts member function</h2>
+
+<p>This function constructs a vector in which the element having index <code class="highlighter-rouge">m</code> (i = 0, 1, …, maximum number of internal nodes) represents the natural logarithm of the number of tree topologies having <code class="highlighter-rouge">m</code> internal nodes. If <code class="highlighter-rouge">_counts_dirty</code> is true, it recomputes the <code class="highlighter-rouge">_counts</code> vectors first. The <code class="highlighter-rouge">0</code>th element of the returned vector holds the natural log of the total number of tree topologies (log of the sum of all other elements).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    std::vector&amp;lt;double&amp;gt; PolytomyTopoPriorCalculator::getLogCounts() {   
+        if (_is_resolution_class_prior)
+            _counts_dirty = true;
+        if (_counts_dirty)
+            reset();
+
+        std::vector&amp;lt;double&amp;gt; v;
+        unsigned sz = _ntax - (_is_rooted ? 0 : 1);
+        v.reserve(sz);
+        v.push_back(_log_total_count);
+
+        for (unsigned i = 1; i &amp;lt; sz; ++i) {
+            double log_Tnm = log(_counts[i - 1]) + _log_scaling_factor*(double)(_nfactors[i - 1]);
+            v.push_back(log_Tnm);
+        }
+
+        return v;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlogtotalcount-member-function">The getLogTotalCount member function</h2>
+
+<p>This function returns the natural log of the total number of trees for <code class="highlighter-rouge">n</code> taxa, including all resolution classes from the star tree to fully resolved (saturated) trees. Calls <code class="highlighter-rouge">recalcCountsAndPriors</code> function if <code class="highlighter-rouge">n</code> is not equal to <code class="highlighter-rouge">_ntax</code> or if not using the resolution class prior (in which case <code class="highlighter-rouge">_counts</code> have not been calculated).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogTotalCount(unsigned n) {  
+        if (n != _ntax)
+            setNTax(n);
+        if (_counts_dirty)
+            reset();
+        return _log_total_count;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getrealizedresclasspriorsvect-member-function">The getRealizedResClassPriorsVect member function</h2>
+
+<p>Constructs a vector of realized resolution class priors from the values in the <code class="highlighter-rouge">_topology_prior</code> vector. If <code class="highlighter-rouge">_topo_priors_dirty</code> is true, it recomputes the <code class="highlighter-rouge">_topology_prior</code> vectors first. The <code class="highlighter-rouge">m</code>th element of the returned vector is set to <code class="highlighter-rouge">T_{n,m}*_topology_prior[m] </code>for<code class="highlighter-rouge"> m &gt; 0</code>. The <code class="highlighter-rouge">0</code>th element of the returned vector holds the normalization constant (sum of all other elements). This function is not efficient because it is intended only to be used for providing information to the user on request. Table 2, p. 248, in the Lewis, Holder, and Holsinger (2005) presented (normalized) values from this vector, as do the columns labeled <code class="highlighter-rouge">ntopo*ptree</code> in the tables presented above in the documentation for the <code class="highlighter-rouge">getLogNormalizedTopologyPrior</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    std::vector&amp;lt;double&amp;gt; PolytomyTopoPriorCalculator::getRealizedResClassPriorsVect() {  
+        if (!_is_resolution_class_prior)
+            _counts_dirty = true;
+        if (_topo_priors_dirty || _counts_dirty)
+            reset();
+
+        std::vector&amp;lt;double&amp;gt; v;
+        v.reserve(_topology_prior.size());
+        v.push_back(0.0);
+
+        unsigned sz = (unsigned)_topology_prior.size();
+
+        // First loop will be to determine largest value, which will be factored out
+        // the second time through so that the total does not overflow
+        double log_factored_out = 0.0;
+        for (unsigned i = 1; i &amp;lt; sz; ++i) {
+            double c = _counts[i - 1];
+            double nf = (double)_nfactors[i - 1];
+            double log_Tnm = log(c) + _log_scaling_factor*nf;
+            double log_prior = log_Tnm + _topology_prior[i];
+            v.push_back(log_prior);
+            if (log_prior &amp;gt; log_factored_out)
+                log_factored_out = log_prior;
+        }
+
+        // Now we can compute the total
+        double total = 0.0;
+        std::vector&amp;lt;double&amp;gt;::const_iterator it = v.begin();
+        for (++it; it != v.end(); ++it) {
+            total += exp((*it) - log_factored_out);
+        }
+        v[0] = log(total) + log_factored_out;
+
+        return v;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-sample-member-function">The sample member function</h2>
+
+<p>Samples a resolution class (i.e. number of internal nodes) from the realized resolution class distribution. This function is not particularly efficient because it calls <code class="highlighter-rouge">PolytomyTopoPriorCalculator::getRealizedResClassPriorsVect</code>, resulting in an unnecessary vector copy operation.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    unsigned PolytomyTopoPriorCalculator::sample(Lot::SharedPtr rng) {  
+        std::vector&amp;lt;double&amp;gt; v = getRealizedResClassPriorsVect();
+        double u = rng-&amp;gt;uniform();
+        double z = v[0];
+        double cum = 0.0;
+        for (unsigned i = 1; i &amp;lt; v.size(); ++i) {
+            cum += exp(v[i] - z);
+            if (u &amp;lt;= cum)
+                return i;
+        }
+        assert(0);
+        return (unsigned)(v.size() - 1);
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setntax-setter-and-getntax-accessor">The setNTax setter and getNTax accessor</h2>
+
+<p>The <code class="highlighter-rouge">setNTax</code> function returns immediately if <code class="highlighter-rouge">_ntax</code> equals <code class="highlighter-rouge">new_ntax</code>; however, if <code class="highlighter-rouge">new_ntax</code> differs from <code class="highlighter-rouge">_ntax</code>, <code class="highlighter-rouge">setNTax</code> sets <code class="highlighter-rouge">_ntax</code> to <code class="highlighter-rouge">new_ntax</code> and sets <code class="highlighter-rouge">_topo_priors_dirty</code> to true so that subsequent requests for prior probabilities or counts will trigger recalculation. The <code class="highlighter-rouge">getNTax</code> function returns the value of the data member <code class="highlighter-rouge">_ntax</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::setNTax(unsigned new_ntax) {  
+        if (_ntax != new_ntax) {
+            // Set _ntax to the new value
+            assert(new_ntax &amp;gt; (unsigned)(_is_rooted ? 1 : 2));
+            _ntax = new_ntax;
+
+            _counts_dirty = true;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+    unsigned PolytomyTopoPriorCalculator::getNTax() const { 
+        return _ntax;
+    }  
+
+</code></pre></div></div>
+
+<h2 id="the-chooserooted-and-chooseunrooted-member-functions">The chooseRooted and chooseUnrooted member functions</h2>
+
+<p>The <code class="highlighter-rouge">chooseRooted</code> function sets the <code class="highlighter-rouge">_is_rooted</code> data member to <code class="highlighter-rouge">true</code>. There are more rooted than unrooted trees for the same value of <code class="highlighter-rouge">_ntax</code>, so this setting is important when asking questions that require knowledge of the numbers of possible trees. The <code class="highlighter-rouge">chooseUnrooted</code> function sets the <code class="highlighter-rouge">_is_rooted</code> data member to <code class="highlighter-rouge">false</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::chooseRooted() {  
+        if (!_is_rooted) {
+            _is_rooted = true;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+    void PolytomyTopoPriorCalculator::chooseUnrooted() {    
+        if (_is_rooted) {
+            _is_rooted = false;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-chooseresolutionclassprior-and-choosepolytomyprior-member-functions">The chooseResolutionClassPrior and choosePolytomyPrior member functions</h2>
+
+<p>These two functions can be used to choose between a resolution class prior or the alternative (the polytomy prior).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::chooseResolutionClassPrior() {    
+        if (!_is_resolution_class_prior) {
+            _is_resolution_class_prior = true;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+    void PolytomyTopoPriorCalculator::choosePolytomyPrior() {   
+        if (_is_resolution_class_prior) {
+            _is_resolution_class_prior = false;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setc-and-getc-member-functions">The setC and getC member functions</h2>
+
+<p>These two functions either set or return the value of the data member <code class="highlighter-rouge">_C</code>, which determines the nature of the resolution class or polytomy prior. For the resolution class prior, each resolution class <code class="highlighter-rouge">m</code> has probability <code class="highlighter-rouge">_C</code> times greater than resolution class <code class="highlighter-rouge">m+1</code>. For the polytomy prior, a particular tree with <code class="highlighter-rouge">m</code> internal nodes has probability  <code class="highlighter-rouge">_C</code> times greater than a particular tree with <code class="highlighter-rouge">m+1</code> internal nodes.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::setC(double c) {  
+        assert(c &amp;gt; 0.0);
+        if (c != _C) {
+            _C = c;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+    double PolytomyTopoPriorCalculator::getC() const {  
+        return _C;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-setlogscalingfactor-and-getlogscalingfactor-member-functions">The setLogScalingFactor and getLogScalingFactor member functions</h2>
+
+<p>These two functions set or return the value of the data member <code class="highlighter-rouge">_log_scaling_factor</code> data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    void PolytomyTopoPriorCalculator::setLogScalingFactor(double lnf) { 
+        assert(lnf &amp;gt; 0.0);
+        if (lnf != _log_scaling_factor) {
+            _log_scaling_factor = lnf;
+            _counts_dirty = true;
+            _topo_priors_dirty = true;
+        }
+    }   
+
+    double PolytomyTopoPriorCalculator::getLogScalingFactor() const {   
+        return _log_scaling_factor;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getcountsvect-member-function">The getCountsVect member function</h2>
+
+<p>Returns copy of the <code class="highlighter-rouge">_counts</code> vector, which contains in its <code class="highlighter-rouge">(m-1)</code>th element the number of tree topologies having exactly <code class="highlighter-rouge">m</code> internal nodes. Note that you will need to also call <code class="highlighter-rouge">getNFactorsVect</code> if there is any chance that some of the <code class="highlighter-rouge">_counts</code> are larger than <code class="highlighter-rouge">exp(_log_scaling_factor)</code>. In such cases, the actual log count equals <code class="highlighter-rouge">_nfactors[m]*_log_scaling_factor + log(count[m - 1]</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    std::vector&amp;lt;double&amp;gt; PolytomyTopoPriorCalculator::getCountsVect() {  
+        if (_counts_dirty)
+            reset();
+        return _counts;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getnfactorsvect-member-function">The getNFactorsVect member function</h2>
+
+<p>Returns copy of the <code class="highlighter-rouge">_nfactors</code> vector, which contains in its <code class="highlighter-rouge">(m-1)</code>th element the number of times <code class="highlighter-rouge">_counts[m]</code> has been rescaled by dividing by the scaling factor (the log of which is <code class="highlighter-rouge">_log_scaling_factor</code>).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    std::vector&amp;lt;int&amp;gt; PolytomyTopoPriorCalculator::getNFactorsVect() {   
+        if (_counts_dirty)
+            reset();
+        return _nfactors;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-gettopopriorvect-member-function">The getTopoPriorVect member function</h2>
+
+<p>Returns copy of the <code class="highlighter-rouge">_topology_prior</code> vector, which contains in its <code class="highlighter-rouge">m</code>th element the unnormalized prior for tree topologies having exactly <code class="highlighter-rouge">m</code> internal nodes. The <code class="highlighter-rouge">0</code>th element of <code class="highlighter-rouge">_topology_prior</code> holds the normalizing constant.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    std::vector&amp;lt;double&amp;gt; PolytomyTopoPriorCalculator::getTopoPriorVect() {   
+        //@POL this function could be const were it not for lazy evaluation
+        if (_topo_priors_dirty)
+            reset();
+        return _topology_prior;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlogtopoprob-member-function">The getLogTopoProb member function</h2>
+
+<p>Returns result of call to <code class="highlighter-rouge">getLogTopologyPrior(m)</code>, where <code class="highlighter-rouge">m</code> is the number of internal nodes in the supplied tree <code class="highlighter-rouge">t</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogTopoProb(Tree::SharedPtr t) { 
+        unsigned n = t-&amp;gt;numLeaves();
+        assert(n &amp;gt; 3);
+        if (n != getNTax())
+            setNTax(n);
+        unsigned m = t-&amp;gt;numInternals();
+        double topo_prior = getLogTopologyPrior(m);
+        return topo_prior;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlogtopologyprior-member-function">The getLogTopologyPrior member function</h2>
+
+<p>Returns the natural logarithm of the unnormalized topology prior. This represents the resolution class prior if <code class="highlighter-rouge">_is_resolution_class_prior</code> is true, otherwise it represents the polytomy prior.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogTopologyPrior(unsigned m) {   
+        if (_topo_priors_dirty)
+            reset();
+        assert(m &amp;lt; _topology_prior.size());
+        return _topology_prior[m];
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-getlognormconstant-member-function">The getLogNormConstant member function</h2>
+
+<p>Returns the natural logarithm of the normalizing constant for the topology prior. This value is stored in <code class="highlighter-rouge">_topology_prior[0]</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    double PolytomyTopoPriorCalculator::getLogNormConstant() {  
+        if (_topo_priors_dirty)
+            reset();
+        return _topology_prior[0];
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-isresolutionclassprior-and-ispolytomyprior-member-functions">The isResolutionClassPrior and isPolytomyPrior member functions</h2>
+
+<p>The <code class="highlighter-rouge">isResolutionClassPrior</code> function returns the current value of the data member <code class="highlighter-rouge">_is_resolution_class_prior</code> and <code class="highlighter-rouge">isPolytomyPrior</code> returns <code class="highlighter-rouge">!isResolutionClassPrior()</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    bool PolytomyTopoPriorCalculator::isResolutionClassPrior() const {  
+        return _is_resolution_class_prior;
+    }   
+
+    bool PolytomyTopoPriorCalculator::isPolytomyPrior() const { 
+        return !_is_resolution_class_prior;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-isrooted-and-isunrooted-member-functions">The isRooted and isUnrooted member functions</h2>
+
+<p>The <code class="highlighter-rouge">isRooted</code> function returns the current value of the data member <code class="highlighter-rouge">_is_rooted</code>, and <code class="highlighter-rouge">isUnrooted</code> returns <code class="highlighter-rouge">!isRooted()</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    bool PolytomyTopoPriorCalculator::isRooted() const {    
+        return _is_rooted;
+    }   
+
+    bool PolytomyTopoPriorCalculator::isUnrooted() const {  
+        return !_is_rooted;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="literature-cited">Literature Cited</h2>
+
+<p>Felsenstein, J. 1978. The number of evolutionary trees. Systematic Zoology 27:27-33 (see also the 1981 correction Systematic Zoology 30:122). <a href="https://doi.org/10.2307/2412810">https://doi.org/10.2307/2412810/</a></p>
+
+<p>Felsenstein, J. 2004. Inferring Phylogeny. Sinauer, Sunderland, Massachusetts. <a href="https://global.oup.com/ushe/product/inferring-phylogenies-9780878931774?q=Felsenstein&amp;cc=us&amp;lang=en">ISBN: 9780878931774</a></p>
+
+<p>Lewis, P. O., Holder, M. T., and Holsinger, K. E. 2005. Polytomies and bayesian phylogenetic inference. Systematic Biology 54(2):241–253. <a href="https://doi.org/10.1080/10635150590924208">https://doi.org/10.1080/10635150590924208</a></p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//win//steps/step-19/02-the-polytomyupdater-class.html">&lt;&nbsp;19.2</a> | 19.3 | <a href="//win//steps/step-19/04-adding-topo-prior-to-updater.html">19.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Allowing Polytomies</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.0 Allowing Polytomies</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//mac//steps/step-18/00-heated-chains.html">&lt;&nbsp;18.0</a> | 19.0 | <a href="//mac//steps/step-19/01-modifying-treeupdater.html">19.1&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>Forcing a Bayesian MCMC analysis to consider only binary (i.e. fully-resolved) tree topologies can result in the artefact known as the Star Tree Paradox (see Lewis, Holder, and Holsinger, 2005, and papers citing it) in which one of the possible resolutions of a polytomous node will end up with the highest posterior support, and the posterior probability associated with that arbitrary resolution may be quite high (or quite low, but we tend to notice only the high ones). It is as if the topological uncertainty resulting from the polytomy is manifested in a random degree of support for a few arbitrary resolutions rather than an even spread of posterior support over all possible resolutions.</p>
+
+<p>The solution implemented here is the one proposed by Lewis, Holder, and Holsinger (2005). This uses Green’s (1995) reversible-jump MCMC approach to move between trees in different resolution classes, where resolution class 1 is the star tree (only 1 internal node) and the highest resolution class has n-2 internal nodes (if unrooted) or n-1 internal nodes (if rooted).</p>
+
+<p>The benefit to implementing a polytomy-friendly rjMCMC sampler is that a tree with a polytomy is inferred to be a tree with a polytomy, not a fully-resolved tree with incorrect posterior support. You may feel that polytomies do not really exist in nature. Tree graphs are models that capture important features of the underlying history of the data being analyzed. If two sequential speciation events occurred so close together in time that no nucleotide substitutions were fixed in any gene analyzed, then it could be argued that a polytomy is a better representation of reality than an arbitrary resolution with a tiny internal edge length. At the very least, it offers a very straighforward example of how to implement reversible-jump MCMC, which is a very important tool in the arsenal of any Bayesian phylogenetic modeler.</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="19-1">
+		<td>Step 19.1</td>
+		<td><a href="/mac/steps/step-19/01-modifying-treeupdater.html">Modifying TreeUpdater</a></td>
+		<td><p>Modify the TreeUpdater class to allow polytomies.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-2">
+		<td>Step 19.2</td>
+		<td><a href="/mac/steps/step-19/02-the-polytomyupdater-class.html">Adding the PolytomyUpdater class</a></td>
+		<td><p>Create a PolytomyUpdater class to jump between resolution classes.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-3">
+		<td>Step 19.3</td>
+		<td><a href="/mac/steps/step-19/03-the-topo-prior-calculator.html">The TopoPriorCalculator class</a></td>
+		<td><p>Create the TopoPriorCalculator class for computing the topology prior.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-4">
+		<td>Step 19.4</td>
+		<td><a href="/mac/steps/step-19/04-adding-topo-prior-to-updater.html">Adding calcLogTopologyPrior to Updater</a></td>
+		<td><p>Move calcLogTopologyPrior from TreeUpdater to the base class Updater so that it can be shared with PolytomyUpdater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-5">
+		<td>Step 19.5</td>
+		<td><a href="/mac/steps/step-19/05-modifying-the-likelihood-class.html">Modifying the Likelihood class</a></td>
+		<td><p>Calculation of the likelihood for polytomous trees.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-6">
+		<td>Step 19.6</td>
+		<td><a href="/mac/steps/step-19/06-modifying-node-tree-manip-class.html">Modifying the Node, Tree, and TreeManip classes</a></td>
+		<td><p>Add to Node, Tree, and TreeManip to enable likelihood calculation on polytomous trees.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-7">
+		<td>Step 19.7</td>
+		<td><a href="/mac/steps/step-19/07-adding-polytomy-updater-to-chain.html">Adding PolytomyUpdater to the Chain class</a></td>
+		<td><p>Deploy PolytomyUpdater.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-8">
+		<td>Step 19.8</td>
+		<td><a href="/mac/steps/step-19/08-modifying-model-outputmanager.html">Modifying Model and OutputManager</a></td>
+		<td><p>Update the Model and OutputManager classes to accommodate polytomy analyses.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-9">
+		<td>Step 19.9</td>
+		<td><a href="/mac/steps/step-19/09-adding-polytomy-options-to-strom.html">Modifying Strom</a></td>
+		<td><p>Add polytomy-related command-line options to Strom.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="19-10">
+		<td>Step 19.10</td>
+		<td><a href="/mac/steps/step-19/10-testing-polytomies.html">Testing reversible-jump MCMC</a></td>
+		<td><p>Perform an MCMC analysis of the prior to demonstrate that the new polytomy-aware MCMC is working.</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+<h2 id="literature-cited">Literature Cited</h2>
+
+<p>Green, Peter J. 1995. Reversible jump Markov chain Monte Carlo computation and Bayesian model determination. Biometrika 82(4):711-732. <a href="https://www.jstor.org/stable/2337340">JSTOR</a></p>
+
+<p>Lewis, P. O., Holder, M. T., and Holsinger, K. E. 2005. Polytomies and bayesian phylogenetic inference. Systematic Biology 54(2):241–253. <a href="https://doi.org/10.1080/10635150590924208">https://doi.org/10.1080/10635150590924208</a></p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//mac//steps/step-18/00-heated-chains.html">&lt;&nbsp;18.0</a> | 19.0 | <a href="//mac//steps/step-19/01-modifying-treeupdater.html">19.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

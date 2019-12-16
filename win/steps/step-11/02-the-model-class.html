@@ -488,8 +488,49 @@ rmatrix = third:1,2,1,1,2,1
 
 <h2 id="accessors">Accessors</h2>
 
-<p>These 8 functions (<code class="highlighter-rouge">getNumPatterns</code>, <code class="highlighter-rouge">getSubsetNumSites</code>, <code class="highlighter-rouge">getNumSites</code>, <code class="highlighter-rouge">getNumSubsets</code>, <code class="highlighter-rouge">getSubsetNumCateg</code>, <code class="highlighter-rouge">getSubsetIsInvarModel</code>, <code class="highlighter-rouge">getQMatrix</code>, and <code class="highlighter-rouge">getASRV</code>) simply provide a way to peek at the values of private data members.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<p>These 8 functions (<code class="highlighter-rouge">getSubsetNumPatterns</code>, <code class="highlighter-rouge">getSubsetNumSites</code>, <code class="highlighter-rouge">getNumSites</code>, <code class="highlighter-rouge">getNumSubsets</code>, <code class="highlighter-rouge">getSubsetNumCateg</code>, <code class="highlighter-rouge">getSubsetIsInvarModel</code>, <code class="highlighter-rouge">getQMatrix</code>, and <code class="highlighter-rouge">getASRV</code>) simply provide a way to peek at the values of private data members.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Model::getSubsetNumPatterns(unsigned subset) const { 
+        assert(subset &amp;lt; _num_subsets);
+        return _subset_npatterns[subset];
+    } 
+    
+    inline unsigned Model::getSubsetNumSites(unsigned subset) const { 
+        assert(subset &amp;lt; _num_subsets);
+        return _subset_sizes[subset];
+    }    
+    
+    inline unsigned Model::getNumSites() const {    
+        return _num_sites;
+    }   //end_getNumSites
+    
+    inline unsigned Model::getNumSubsets() const { 
+        return _num_subsets;
+    } 
+    
+    inline unsigned Model::getSubsetNumCateg(unsigned subset) const { 
+        assert(subset &amp;lt; _num_subsets);
+        assert(_asrv.size() == _num_subsets);
+        assert(_asrv[subset]);
+        return _asrv[subset]-&amp;gt;getNumCateg();
+    } 
+    
+    inline bool Model::getSubsetIsInvarModel(unsigned subset) const { 
+        assert(subset &amp;lt; _num_subsets);
+        assert(_asrv.size() == _num_subsets);
+        assert(_asrv[subset]);
+        return _asrv[subset]-&amp;gt;getIsInvarModel();
+    } 
+    
+    inline const QMatrix &amp; Model::getQMatrix(unsigned subset) const { 
+        assert(subset &amp;lt; _num_subsets);
+        return *(_qmatrix[subset]);
+    } 
+    
+    inline const ASRV &amp; Model::getASRV(unsigned subset) const { 
+        assert(subset &amp;lt; _num_subsets);
+        return *(_asrv[subset]);
+    } 
+
 </code></pre></div></div>
 
 <h2 id="the-calcnormalizingconstantforsubsetrelrates-member-function">The calcNormalizingConstantForSubsetRelRates member function</h2>

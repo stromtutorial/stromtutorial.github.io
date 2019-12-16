@@ -46,7 +46,7 @@
 </div>
 
 
-<p>The <code class="highlighter-rouge">TreeLengthUpdater</code> class encapsulates an <code class="highlighter-rouge">Updater</code> that can modify the length of all edges of the tree simultaneously, effectively rescaling the tree to make it larger or smaller. This updater is needed for good mixing because the only other updater that changes edge lengths (<code class="highlighter-rouge">TreeUpdater</code>) only changes 3 edges at a time.</p>
+<p>The <code class="highlighter-rouge">TreeLengthUpdater</code> class encapsulates an <code class="highlighter-rouge">Updater</code> that can modify the length of all edges of the tree simultaneously, effectively rescaling the tree to make it larger or smaller. This updater is needed for good mixing because the only other updater that changes edge lengths (<code class="highlighter-rouge">TreeUpdater</code>) only changes edge length proportions, not edge lengths.</p>
 
 <p>Create a new file named <em>tree_length_updater.hpp</em> and fill it with the following class declaration.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
@@ -114,7 +114,7 @@ namespace strom {
 
 <h2 id="the-calclogprior-member-function">The calcLogPrior member function</h2>
 
-<p>This overrides the base class version and calls the base class function <code class="highlighter-rouge">calcEdgeLengthPrior</code> to do the work. Edge lengths are the only parameters changed when this updater is invoked, so the only component of the prior that needs to be calculated is the joint edge length prior.</p>
+<p>This overrides the base class version and calls the base class function <code class="highlighter-rouge">calcEdgeLengthPrior</code> to do the work. Edge lengths are the only parameters changed when this updater is invoked, so the only component of the prior that needs to be calculated is the joint prior on tree length and edge length proportions. We will need to be careful, however, because <code class="highlighter-rouge">TreeUpdater</code> returns a joint prior for tree topology, tree length, and edge length proportions, and if both updaters’ <code class="highlighter-rouge">calcLogPrior</code> function is called in the process of generating the overall prior, we will end up including the tree lengths and edge length proportions twice. We will handle this in a crude way now (by simply excluding one of these updaters when generating the prior), but will be forced to create a more sophisticated system in Step 19 when we add yet another updater that modifies tree topology and edge length proportions.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double TreeLengthUpdater::calcLogPrior() {   
         return Updater::calcEdgeLengthPrior();
     }   
@@ -123,7 +123,7 @@ namespace strom {
 
 <h2 id="the-pullfrommodel-and-pushtomodel-member-functions">The pullFromModel and pushToModel member functions</h2>
 
-<p>The <code class="highlighter-rouge">pullFromModel</code> function stores the current tree length in its <code class="highlighter-rouge">_curr_point</code> data member. The value of <code class="highlighter-rouge">_curr_point</code> changes when <code class="highlighter-rouge">proposeNewState</code> is called (after a copy is stored in <code class="highlighter-rouge">_prev_point</code>), and the function <code class="highlighter-rouge">pushToModel</code> rescales the tree based on the ratio of the new tree length (<code class="highlighter-rouge">_curr_point</code>) and the previous tree length (<code class="highlighter-rouge">_prev_point</code>).</p>
+<p>The <code class="highlighter-rouge">pullFromModel</code> function stores the current tree length in its <code class="highlighter-rouge">_curr_point</code> data member. The value of <code class="highlighter-rouge">_curr_point</code> changes when <code class="highlighter-rouge">proposeNewState</code> is called (after a copy is stored in <code class="highlighter-rouge">_prev_point</code>), and the function <code class="highlighter-rouge">pushToModel</code> rescales the tree based on the ratio of the new tree length (<code class="highlighter-rouge">_curr_point</code>) to the previous tree length (<code class="highlighter-rouge">_prev_point</code>).</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::pullFromModel() {    
         _curr_point = _tree_manipulator-&amp;gt;calcTreeLength();
     }   
@@ -137,7 +137,7 @@ namespace strom {
 
 <h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
 
-<p>This function proposes a new tree length by multiplying the old tree length by a factor that is either slightly greater than, or slightly less than, 1.0. with the magnitude of the factor determined by the <code class="highlighter-rouge">Updater</code> data member <code class="highlighter-rouge">_lambda</code>. This is the same technique we used in previous steps tp update omega and the rate variance.</p>
+<p>This function proposes a new tree length by multiplying the old tree length by a factor that is either slightly greater than, or slightly less than, 1.0. with the magnitude of the factor determined by the <code class="highlighter-rouge">Updater</code> data member <code class="highlighter-rouge">_lambda</code>. This is the same technique we used in previous steps tp update omega and the rate variance. The calculation of the Hastings ratio for a proposal like this is discussed in Holder et al. (2005), but note that the Hastings ratio calculated there was m^3 because three separate edge length parameters were being modified. Here, there is only one parameter (the tree length) that is being modified, so the Hastings ratio is, in this case, simply m^1.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::proposeNewState() {  
         // Save copy of _curr_point in case revert is necessary.
         pullFromModel();
@@ -160,7 +160,7 @@ namespace strom {
 
 <h2 id="the-revert-member-function">The revert member function</h2>
 
-<p>This function simply copies the old tree length (stored in <code class="highlighter-rouge">_prev_point</code>) into <code class="highlighter-rouge">_curr_point</code> so that when <code class="highlighter-rouge">pushToModel</code> is called no change will take place to edge lengths because the proposal was rejected.</p>
+<p>This function swaps <code class="highlighter-rouge">_prev_point</code> with <code class="highlighter-rouge">_curr_point</code> so that, when <code class="highlighter-rouge">pushToModel</code> is called, the tree length will revert to the value it had before the change was proposed.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::revert() {   
         // swap _curr_point and _prev_point so that edge length scaler
         // in pushCurrentStateToModel will be correctly calculated

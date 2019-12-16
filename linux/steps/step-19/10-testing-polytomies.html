@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Testing reversible-jump MCMC</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">19.10 Testing reversible-jump MCMC</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//linux//steps/step-19/09-adding-polytomy-options-to-strom.html">&lt;&nbsp;19.9</a> | 19.10 | <a href="/linux/steps/">Table of Contents</a></h3>
+</div>
+
+
+<p>Replace your <code class="highlighter-rouge">strom.conf</code> file with the following version.</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile        = rbcl10.nex
+treefile        = rbcl10.tre
+tree            = default:1
+subset          = default[nucleotide]:1-1314
+statefreq       = default:[0.296038, 0.190571, 0.202137, 0.311254]
+ratevar         = default:[4.08241581]
+rmatrix         = default:[1.21774, 5.72420, 1.25796, 1.24770, 9.51219, 1.0]
+ncateg          = default:4
+pinvar          = default:[0.0]
+nchains         = 1
+burnin          = 10000
+niter           = 10000000
+samplefreq      = 100
+printfreq       = 1000000
+seed            = 171395
+expectedLnL     = -6736.701
+usedata         = no
+gpu             = no
+ambigmissing    = yes
+allowpolytomies = yes
+resclassprior   = yes
+topopriorC      = 1.0
+</code></pre></div></div>
+
+<h2 id="expectations">Expectations</h2>
+
+<p>This version is set up to perform an MCMC analysis of the 10-taxon rbcL data set, but note that <code class="highlighter-rouge">usedata = no</code> so the prior, not the posterior, will be analyzed. Setting <code class="highlighter-rouge">allowpolytomies = yes</code>, <code class="highlighter-rouge">resclassprior = yes</code>, and <code class="highlighter-rouge">topopriorC = 1.0</code> means that the star tree should appear as often in the sample as all fully-resolved trees combined. This is not easy to verify by hand, but you could easily verify that this is true by inspection if you substitute rbcl10.nex with a 4-taxon example where the length of the tree description in the resulting <em>trees.tre</em> file provides a means of counting star trees vs. fully-resolved trees.</p>
+
+<h2 id="a-challenge">A challenge</h2>
+
+<p>You can also think about modifying your <code class="highlighter-rouge">TreeSummary</code> class to summarize the trees in <code class="highlighter-rouge">trees.tre</code>. One thing you will need to do is be sure that the final boolean argument in calls to the <code class="highlighter-rouge">TreeManip::buildFromNewick</code> function is set to <code class="highlighter-rouge">true</code> so that polytomies are allowed. You can revisit Step 7 (Summarizing tree topologies) for hints about how to go about reading the tree file and outputting a summary.</p>
+
+<p>Once you get the basic <code class="highlighter-rouge">TreeSummary::showSummary()</code> working, consider adding a <code class="highlighter-rouge">showResolutionClassSummary</code> function to <code class="highlighter-rouge">TreeSummary</code> that tallies up the number of sampled trees in each resolution class.</p>
+
+<h2 id="the-end">The end!</h2>
+
+<p>This is the current end of the tutorial. I continue to add to it, however, so more steps will be added in future editions. I hope you have found this tutorial to be helpful, and please feel free to contact me (<code class="highlighter-rouge">paul.lewis@uconn.edu</code>) if you find errors or have difficulty understanding something.</p>
+
+<p>If I fix errors, I will increment the minor version number and describe (as best I can) what changed in the Version History section of the source branch README file.</p>
+
+<p>Also, remember that the source code is available separately for each step of the tutorial on the GitHub repository. Visit <a href="https://github.com/stromtutorial/stromtutorial.github.io">https://github.com/stromtutorial/stromtutorial.github.io</a> and select the <code class="highlighter-rouge">source</code> branch, then look for the source for the step in question in the <code class="highlighter-rouge">src</code> directory for that step. You can also checkout the entire repository and switch to the source branch as follows:</p>
+
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/stromtutorial/stromtutorial.github.io.git
+cd stromtutorial
+git checkout source
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="//linux//steps/step-19/09-adding-polytomy-options-to-strom.html">&lt;&nbsp;19.9</a> | 19.10 | <a href="/linux/steps/">Table of Contents</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

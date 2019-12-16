@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/win/steps/">Table of Contents</a></h3>
+	<h3 class="subsection"><a href="//win//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="//win//steps/step-19/00-polytomies.html">19.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -51,12 +51,12 @@
 treefile    = rbcl10.tre
 ncateg      = default:4
 pinvar      = default:0.1
-seed        = 13579
+seed        = 13579 
 usedata     = no
 nchains     = 4
 burnin      = 10000
 niter       = 100000
-printfreq   = 1000
+printfreq   = 10000
 samplefreq  = 10    
 
 </code></pre></div></div>
@@ -67,43 +67,43 @@ samplefreq  = 10
 
 <p>Note that chain summaries are provided for all four chains.</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Chain 0 (power 1.00000)
-                       Updater   Tuning Param.        Accept %     No. Updates
-             State Frequencies        1000.000           100.0            4091
-             Exchangeabilities        1000.000           100.0            4077
-           Gamma Rate Variance          14.496            27.0            4152
-Proportion of Invariable Sites           1.000           100.0            4154
-         Tree and Edge Lengths           7.189            30.0           79353
-                   Tree Length          14.111            32.5            4173
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies        1000.000           100.0            4167
+                  Exchangeabilities        1000.000           100.0            4155
+                Gamma Rate Variance          10.317            30.1            4161
+     Proportion of Invariable Sites           1.000           100.0            4279
+ Tree Topology and Edge Proportions        1000.000           100.0           79038
+                        Tree Length          10.929            31.5            4200
 
 Chain 1 (power 0.66667)
-                       Updater   Tuning Param.        Accept %     No. Updates
-             State Frequencies        1000.000           100.0            4110
-             Exchangeabilities        1000.000           100.0            4250
-           Gamma Rate Variance          12.001            26.4            4318
-Proportion of Invariable Sites           1.000           100.0            4171
-         Tree and Edge Lengths           6.932            29.7           79013
-                   Tree Length           9.822            33.4            4138
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies        1000.000           100.0            4169
+                  Exchangeabilities        1000.000           100.0            4221
+                Gamma Rate Variance          14.331            29.9            4230
+     Proportion of Invariable Sites           1.000           100.0            4119
+ Tree Topology and Edge Proportions        1000.000           100.0           79054
+                        Tree Length          10.682            30.6            4207
 
 Chain 2 (power 0.50000)
-                       Updater   Tuning Param.        Accept %     No. Updates
-             State Frequencies        1000.000           100.0            4234
-             Exchangeabilities        1000.000           100.0            4152
-           Gamma Rate Variance          15.390            26.7            4203
-Proportion of Invariable Sites           1.000           100.0            4127
-         Tree and Edge Lengths           6.902            29.8           79094
-                   Tree Length          10.265            33.8            4190
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies        1000.000           100.0            4204
+                  Exchangeabilities        1000.000           100.0            4218
+                Gamma Rate Variance          13.999            29.3            4221
+     Proportion of Invariable Sites           1.000           100.0            4203
+ Tree Topology and Edge Proportions        1000.000           100.0           79096
+                        Tree Length          12.619            31.6            4058
 
 Chain 3 (power 0.40000)
-                       Updater   Tuning Param.        Accept %     No. Updates
-             State Frequencies        1000.000           100.0            4179
-             Exchangeabilities        1000.000           100.0            4149
-           Gamma Rate Variance          15.177            26.1            4195
-Proportion of Invariable Sites           1.000           100.0            4126
-         Tree and Edge Lengths           7.104            29.7           79189
-                   Tree Length          10.590            32.9            4162
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies        1000.000           100.0            4201
+                  Exchangeabilities        1000.000           100.0            4255
+                Gamma Rate Variance          11.183            30.0            4250
+     Proportion of Invariable Sites           1.000           100.0            4205
+ Tree Topology and Edge Proportions        1000.000           100.0           78946
+                        Tree Length          12.456            31.5            4143
 </code></pre></div></div>
 
-<p>The acceptance fractions are all near 30% (which is what we specified as the target acceptance percentage in the <code class="highlighter-rouge">Chain::createUpdaters</code> function) with the exception of State Frequencies, Exchangeabilities, and Pinvar. For the first two of these, the tuning parameter has maxed out at a boldness of 1000 and the acceptance percentages are both 100%. For Pinvar, the acceptance percentage is also 100% but the tuning parameter maxed out at 1.0 rather than 1000. Why is this? These three parameters are the only parameters with a truly flat prior, and under a flat prior, all possible combinations have equal probability density. Because there are no downhill moves when updating State Frequencies, Exchangeabilities, or Pinvar, all proposals are accepted. It is impossible to tune the samplers in this case because the proposal will be accepted regardless of how far away the proposed point is from the current point. You should not see this behavior when analyzing real data because sequence data contains information about these parameters that results in a posterior that is not perfectly flat. The fact that the Pinvar tuning parameter maxes out at 1 rather than 1000 is due to the highlighted lines at the beginning of the <code class="highlighter-rouge">PinvarUpdater::proposeNewState</code> function:</p>
+<p>The acceptance fractions are near 30% (which is what we specified as the target acceptance percentage in the <code class="highlighter-rouge">Chain::createUpdaters</code> function) for <em>Gamma Rate Variance</em> and <em>Tree Length</em>. For <em>State Frequencies</em>, <em>Exchangeabilities</em>, and <em>Tree Topology and Edge Proportions</em>, the tuning parameter has maxed out at a boldness of 1000 and the acceptance percentages are both 100%. For <em>Proportion of Invariable Sites</em>, the acceptance percentage is also 100% but the tuning parameter maxed out at 1.0 rather than 1000. Why is this? The parameters modified by these four updaters are the only parameters with truly flat priors, and, under a flat prior, all possible combinations have equal probability density. Because there are no downhill moves when updating state frequencies, exchangeabilities, tree topology, edge length proportions, or the proportion of invariable sites, all proposals are accepted. It is impossible to tune the samplers in this case because the proposal will be accepted regardless of how far away the proposed point is from the current point. You should not see this behavior when analyzing real data because sequence data contains information about these parameters that results in a posterior that is not perfectly flat. The fact that the <em>Proportion of Invariable Sites</em> tuning parameter maxes out at 1 rather than 1000 is due to the highlighted lines at the beginning of the <code class="highlighter-rouge">PinvarUpdater::proposeNewState</code> function:</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PinvarUpdater::proposeNewState() { 
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_lambda &amp;gt; 1.0)&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_lambda = 1.0;&lt;/strong&gt;&lt;/span&gt;
@@ -129,27 +129,28 @@ Proportion of Invariable Sites           1.000           100.0            4126
 </code></pre></div></div>
 <p>Because the proposal method used for pinvar is a window of width <code class="highlighter-rouge">_lambda</code>, it is prudent to limit <code class="highlighter-rouge">_lambda</code> to the maximum possible window width, namely 1.0. Allowing <code class="highlighter-rouge">_lambda</code> to get larger than 1.0 risks having to reflect multiple times if the proposed new state lies outside the valid inteval 0.0 to 1.0.</p>
 
-<p>The swap summary shows that more than 16000 swaps were attempted between each pair of chains, fewer swaps were successful between chains that differed substantially in their heating power. For example, 12934/16854 = 77% of swaps were accepted between the two hottest chains whereas only 4608/16789 = 27% were accepted between the cold chain and the hottest chain. This is explained by the fact that the hottest chain is often far away from a peak while the cold chain never strays far from a peak; the probability that the cold chain will accept a jump from the peak to the lowlands is small, so, despite the fact that the heated chain can accept the swap because it is uphill, fewer swaps succeed between the coldest and hottest chains than between chains visiting more similar landscapes. The reason that even 27% of such swaps succeed has a lot to do with the fact that the landscape is determined entirely by the prior in this case, so there is not a huge difference between the altitude of the peak compared to the lowlands.</p>
+<p>The swap summary shows that more than 16000 swaps were attempted between each pair of chains, fewer swaps were successful between chains that differed substantially in their heating power. For example, 100<em>12381/16377 = 76% of swaps were accepted between the two hottest chains whereas only 100</em>4118/16876 = 24% were accepted between the cold chain and the hottest chain. This is explained by the fact that the hottest chain is often far away from a peak while the cold chain never strays far from a peak; the probability that the cold chain will accept a jump from the peak to the lowlands is small, so, despite the fact that the heated chain can accept the swap because it is uphill, fewer swaps succeed between the coldest and hottest chains than between chains visiting more similar landscapes. The reason that even 24% of such swaps succeed has a lot to do with the fact that the landscape is determined entirely by the prior in this case, so there is not a huge difference between the altitude of the peak compared to the lowlands.</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
 </span>                        0            1            2            3
 <span class="gd">----------------------------------------------------------------
-</span>           0          ---        16664        16427        16789
-           1        10631          ---        16524        16742
-           2         6831        12050          ---        16854
-           3         4608         8644        12934          ---
+</span>           0          ---        16481        16646        16991
+           1        11517          ---        16703        16646
+           2         8490        13087          ---        16533
+           3         6718        10472        13723          ---
 <span class="gd">----------------------------------------------------------------
 </span></code></pre></div></div>
 
 <p>Feel free to run the program again, this time setting <code class="highlighter-rouge">usedata=yes</code> (or leaving out the <code class="highlighter-rouge">usedata</code> program altogether, which will default to using the data).</p>
 
-<h2 id="the-end">The End!</h2>
+<h2 id="almost-there">Almost there!</h2>
 
-<p>This is the end of the current version of the tutorial. You now have a program that can carry out a Bayesian phylogenetic analysis using either a GTR+I+G or a codon model, allowing data to be partitioned, and can use multiple chains during MCMC. With slight modification, your program can make use of the GPU version of BeagleLib when computing likelihoods, which greatly speeds up the codon model if GPUs are available.</p>
+<p>You now have a program that can carry out a Bayesian phylogenetic analysis using either a GTR+I+G or a codon model, allowing data to be partitioned, and can use multiple chains during MCMC. With slight modification, your program can make use of the GPU version of BeagleLib when computing likelihoods, which greatly speeds up the codon model if GPUs are available.</p>
 
-<p>I plan to extend the tutorial in the next version to allow polytomous and/or rooted trees, and estimation of marginal likelihoods.</p>
+<p>In the final step in the tutorial, we will implement reversible-jump MCMC to make it possible to explore trees containing polytomies. We will also add options so that the user can choose different parameters for the prior distributions.</p>
+
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/win/steps/">Table of Contents</a></h3>
+	<h3 class="subsection"><a href="//win//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="//win//steps/step-19/00-polytomies.html">19.0&nbsp;&gt;</a></h3>
 </div>
 
 
