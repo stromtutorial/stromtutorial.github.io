@@ -108,22 +108,18 @@ The explanation of terms is largely the same as above for the add-edge move exce
 
 ## The computePolytomyDistribution member function
 
-The add-edge move splits the edges of a polytomy across a new edge. This function computes the probability distribution of possible partitionings and stores it in the map member variable `_poly_prob` under a key equal to the number of "spokes" in the polytomy where a spoke is an edge radiating from the polytomous node. The value of `_poly_prob[6]`, as an example, is the following vector of length 3:
+The add-edge move splits the edges of a polytomy across a new edge. This function computes the probability distribution of possible partitionings and stores it in the map member variable `_poly_prob` under a key equal to the number of "spokes" in the polytomy where a spoke is an edge radiating from the polytomous node. The value of `_poly_prob[6]`, as an example, is the following vector of length 2:
 ~~~~~~
-                      6!
-_poly_prob[6][0] = -------
-                   2! 4! C
+                     6!
+_poly_prob[6][0] = ----- C   = 3/5
+                   2! 4!
 
                       6!
-_poly_prob[6][1] = -------
-                   3! 3! C
-
-                      6!
-_poly_prob[6][2] = -------
-                   4! 2! C
+_poly_prob[6][1] = ------- C = 2/5
+                   3! 3! 2
 ~~~~~~
 {:.bash-output}
-where `C` is the normalizing constant, which equals `2^6 - 2*6 - 2`.
+where `C` is the normalizing constant, which equals `1/(2^5 - 6 - 1) = 1/25`. Note that the final probability must be divided by 2 in the case of an even number of spokes. This means that 2 of 6 spokes will be moved to the new node with probability 0.6 and 3 spokes will be moved with probability 0.4.
 ~~~~~~
 {{ "steps/step-19/src/polytomy_updater.hpp" | polcodesnippet:"begin_computePolytomyDistribution-end_computePolytomyDistribution","" }}
 ~~~~~~

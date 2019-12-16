@@ -11,8 +11,6 @@
 #include "tree.hpp"
 #include "xstrom.hpp"
 
-#include "debug_stuff.hpp"
-
 namespace strom {
 
     class TreeManip {
@@ -25,9 +23,9 @@ namespace strom {
             Tree::SharedPtr             getTree();
 
             double                      calcTreeLength() const;
-            unsigned                    calcResolutionClass() const;
+            unsigned                    calcResolutionClass() const;    ///!a
             unsigned                    countEdges() const;
-            unsigned                    countInternals() const;
+            unsigned                    countInternals() const; ///!b
             void                        scaleAllEdgeLengths(double scaler);
 
             void                        createTestTree();
@@ -38,18 +36,21 @@ namespace strom {
             void                        rerootAtNodeNumber(int node_number);
         
             void                        LargetSimonSwap(Node * a, Node * b);
-            void                        nniNodeSwap(Node * a, Node * b);    ///!a
+            Node *                      randomInternalEdge(double uniform01);
+
+            void                        nniNodeSwap(Node * a, Node * b);    ///!c
             unsigned                    countChildren(Node * nd) const;
             Node *                      findLeftSib(Node * nd);
             Node *                      findNextPreorder(Node * nd);
-            Node *                      randomInternalEdge(double uniform01);   ///!b
             Node *                      findRightmostChild(Node * nd);
             Node *                      findLastPreorderInClade(Node * start);
             void                        insertSubtreeOnLeft(Node * s, Node * u);
             void                        insertSubtreeOnRight(Node * s, Node * u);
             void                        detachSubtree(Node * s);
-            
             void                        rectifyNumInternals(int incr);
+            void                        refreshNavigationPointers();
+            Node *                      getUnusedNode();
+            void                        putUnusedNode(Node * nd);      ///!d
             
             void                        selectAll();
             void                        deselectAll();
@@ -63,11 +64,6 @@ namespace strom {
 
             void                        clear();
             
-            void                        refreshNavigationPointers();
-
-            Node *                      getUnusedNode();
-            void                        putUnusedNode(Node * nd);
-
         private:
 
             void                        refreshPreorder();
@@ -86,9 +82,7 @@ namespace strom {
 
             typedef std::shared_ptr< TreeManip > SharedPtr;
     };
-    ///end_class_declaration
-    // This is where function bodies go
-
+///end_class_declaration
     inline TreeManip::TreeManip() {
         //std::cerr << "Constructing a TreeManip" << std::endl;
         clear();
@@ -125,22 +119,22 @@ namespace strom {
         return TL;
     }
 
-    inline unsigned TreeManip::calcResolutionClass() const {
+    inline unsigned TreeManip::calcResolutionClass() const {    ///begin_calcResolutionClass
         return _tree->_ninternals;
-    }
+    }   ///end_calcResolutionClass
 
     inline unsigned TreeManip::countEdges() const {
         return (unsigned)_tree->_preorder.size();
     }
 
-    inline unsigned TreeManip::countInternals() const {
+    inline unsigned TreeManip::countInternals() const { ///begin_countInternals
         unsigned m = 0;
         for (auto nd : _tree->_preorder) {
             if (nd->_left_child)
                 m++;
         }
         return m;
-    }
+    }   ///end_countInternals
 
     inline unsigned TreeManip::countChildren(Node * nd) const {
         assert(nd);
@@ -358,7 +352,7 @@ namespace strom {
         newick = std::regex_replace(newick, commentexpr, std::string(""));
     }
     
-    inline void TreeManip::refreshPreorder() {
+    inline void TreeManip::refreshPreorder() {  ///begin_refreshPreorder
         // Create vector of node pointers in preorder sequence
         _tree->_preorder.clear();
         _tree->_preorder.reserve(_tree->_nodes.size() - 1); // _preorder does not include root node
@@ -375,47 +369,13 @@ namespace strom {
         _tree->_preorder.push_back(nd);
 
         while (true) {
-#if 1
-            nd = findNextPreorder(nd);
+            nd = findNextPreorder(nd);  ///!e
             if (nd)
                 _tree->_preorder.push_back(nd);
             else
-                break;
-#else
-            if (!nd->_left_child && !nd->_right_sib) {
-                // nd has no children and no siblings, so next preorder is the right sibling of
-                // the first ancestral node that has a right sibling.
-                Node * anc = nd->_parent;
-                while (anc && !anc->_right_sib)
-                    anc = anc->_parent;
-                if (anc) {
-                    // We found an ancestor with a right sibling
-                    _tree->_preorder.push_back(anc->_right_sib);
-                    nd = anc->_right_sib;
-                }
-                else {
-                    // nd is last preorder node in the tree
-                    break;
-                }
-            }
-            else if (nd->_right_sib && !nd->_left_child) {
-                // nd has no children (it is a tip), but does have a sibling on its right
-                _tree->_preorder.push_back(nd->_right_sib);
-                nd = nd->_right_sib;
-            }
-            else if (nd->_left_child && !nd->_right_sib) {
-                // nd has children (it is an internal node) but no siblings on its right
-                _tree->_preorder.push_back(nd->_left_child);
-                nd = nd->_left_child;
-            }
-            else {
-                // nd has both children and siblings on its right
-                _tree->_preorder.push_back(nd->_left_child);
-                nd = nd->_left_child;
-            }
-#endif
+                break;  ///!f
         }   // end while loop
-    }
+    }   ///end_refreshPreorder
 
     //                            1. start by adding only descendant of root node to buffer queue
     //                               queue = [1], stack = []
@@ -480,7 +440,6 @@ namespace strom {
         }   // end while loop
     }
 
-        
     inline void TreeManip::renumberInternals() {    ///begin_renumberInternals
         assert(_tree->_preorder.size() > 0);
         
@@ -500,23 +459,14 @@ namespace strom {
             
         _tree->_ninternals = curr_internal - _tree->_nleaves;
         
-        //POLTMP - this has changed since step 18
-        //std::cerr << "*** TreeManip::renumberInternals ***" << std::endl;  //POLTMP
-        assert(_tree->_unused_nodes.empty());
-        //while (!_tree->_unused_nodes.empty())
-        //    _tree->_unused_nodes.pop();
+        assert(_tree->_unused_nodes.empty());   ///!g
         for (; curr_internal < _tree->_nodes.size(); curr_internal++) {
             Node * curr = &_tree->_nodes[curr_internal];
             putUnusedNode(curr);
             assert(curr->_number == -1);
             curr->_number = curr_internal;
-        }
+        }   ///!h
         
-        //POLTMP
-        for (unsigned node_index = 0; node_index < _tree->_nodes.size(); node_index++) {
-            assert(_tree->_nodes[node_index]._number > -1);
-            //DebugStuff::debugShowNodeSummary(&_tree->_nodes[node_index], "na");   //DEBUGSTUFF
-        }
     }   ///end_renumberInternals
     
     inline bool TreeManip::canHaveSibling(Node * nd, bool rooted, bool allow_polytomies) {
@@ -904,7 +854,7 @@ namespace strom {
         }
     }
 
-    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {   ///begin_randomInternalEdge
+    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {
         assert(uniform_deviate >= 0.0);
         assert(uniform_deviate < 1.0);
 
@@ -953,9 +903,9 @@ namespace strom {
         }
         assert(chosen_node);
         return chosen_node;
-    }   ///end_randomInternalEdge
+    }
 
-    inline void TreeManip::nniNodeSwap(Node * a, Node * b) {    ///begin_nniNodeSwap
+    inline void TreeManip::nniNodeSwap(Node * a, Node * b) { 
         //     a                  b
         //      \   /              \   /
         //       \ /                \ /
@@ -1008,9 +958,9 @@ namespace strom {
         
         refreshPreorder();
         refreshLevelorder();
-    }   ///end_nniNodeSwap
+    }
     
-    inline void TreeManip::LargetSimonSwap(Node * a, Node * b) {    ///nniPolytomyAwareSwap
+    inline void TreeManip::LargetSimonSwap(Node * a, Node * b) {
         // a and b are the ends of the selected 3-edge path in a Larget-Simon move
         // The 3-edge path is indicated by parentheses around the nodes involved.
         // x is always the parent of a
@@ -1171,7 +1121,7 @@ namespace strom {
         
         refreshPreorder();
         refreshLevelorder();
-    }   //end_nniPolytomyAwareSwap
+    }
     
     inline void TreeManip::selectAll() {
         for (auto & nd : _tree->_nodes) {
@@ -1188,8 +1138,6 @@ namespace strom {
     inline void TreeManip::selectAllPartials() {
         for (auto & nd : _tree->_nodes)
             nd.selectPartial();
-        //if (!_tree->isRooted())
-        //    _tree->_root->deselectPartial();
     }
 
     inline void TreeManip::deselectAllPartials() {
@@ -1201,7 +1149,6 @@ namespace strom {
     inline void TreeManip::selectAllTMatrices() {
         for (auto & nd : _tree->_nodes)
             nd.selectTMatrix();
-        //_tree->_root->deselectTMatrix();
     }
 
     inline void TreeManip::deselectAllTMatrices() {
@@ -1236,7 +1183,7 @@ namespace strom {
         }
     }
     
-    inline Node * TreeManip::findNextPreorder(Node * nd) {
+    inline Node * TreeManip::findNextPreorder(Node * nd) {  ///begin_findNextPreorder
         assert(nd);
         Node * next = 0;
         if (!nd->_left_child && !nd->_right_sib) {
@@ -1267,26 +1214,26 @@ namespace strom {
             next = nd->_left_child;
         }
         return next;
-    }
+    }   ///end_findNextPreorder
     
-    inline Node * TreeManip::findLeftSib(Node * nd) {
+    inline Node * TreeManip::findLeftSib(Node * nd) {   ///begin_findLeftSib
         assert(nd);
         assert(nd->_parent);
         Node * child = nd->_parent->_left_child;
         while (child && child->_right_sib != nd)
             child = child->_right_sib;
         return child;
-    }
+    }   ///end_findLeftSib
     
-    inline Node * TreeManip::findRightmostChild(Node * nd) {
+    inline Node * TreeManip::findRightmostChild(Node * nd) {    ///begin_findRightmostChild
         assert(nd);
         Node * child = nd->getLeftChild();
         while (child->getRightSib())
             child = child->getRightSib();
         return child;
-    }
+    }   ///end_findRightmostChild
     
-    inline Node * TreeManip::findLastPreorderInClade(Node * start) {
+    inline Node * TreeManip::findLastPreorderInClade(Node * start) {    ///begin_findLastPreorderInClade
         assert(start);
         Node * curr = start;
         Node * rchild = findRightmostChild(curr);
@@ -1295,17 +1242,17 @@ namespace strom {
             rchild = findRightmostChild(curr);
         }
         return curr;
-    }
+    }   ///end_findLastPreorderInClade
     
-    inline void TreeManip::insertSubtreeOnLeft(Node * s, Node * u) {
+    inline void TreeManip::insertSubtreeOnLeft(Node * s, Node * u) {    ///begin_insertSubtreeOnLeft
         assert(u);
         assert(s);
         s->_right_sib  = u->_left_child;
         s->_parent     = u;
         u->_left_child = s;
-    }
+    }   ///end_insertSubtreeOnLeft
 
-    inline void TreeManip::insertSubtreeOnRight(Node * s, Node * u) {
+    inline void TreeManip::insertSubtreeOnRight(Node * s, Node * u) {   ///begin_insertSubtreeOnRight
         assert(u);
         assert(s);
 
@@ -1317,9 +1264,9 @@ namespace strom {
         }
         else
             u->_left_child = s;
-    }
+    }   ///end_insertSubtreeOnRight
     
-    inline void TreeManip::detachSubtree(Node * s) {
+    inline void TreeManip::detachSubtree(Node * s) {    ///begin_detachSubtree
         assert(s);
         assert(s->_parent);
         
@@ -1335,37 +1282,28 @@ namespace strom {
             s_leftsib->_right_sib = s_rightsib;
         else
             s_parent->_left_child = s_rightsib;
-    }
+    }   ///end_detachSubtree
     
-    inline void TreeManip::rectifyNumInternals(int incr) {
-        unsigned a = (unsigned)_tree->_nodes.size();
-        unsigned b = (unsigned)_tree->_unused_nodes.size();
-        unsigned c = _tree->_nleaves;
-        unsigned d = _tree->_ninternals;
-        unsigned e = incr;
-        if (a != b+c+d+e)
-            std::cerr << boost::str(boost::format("%3d = _nodes\n%3d = _unused_nodes\n%3d = _nleaves\n%3d = _ninternals\n%3d = incr") % a % b % c % d % e) << std::endl;
+    inline void TreeManip::rectifyNumInternals(int incr) {  ///begin_rectifyNumInternals
         assert(_tree->_nodes.size() == _tree->_unused_nodes.size() + _tree->_nleaves + _tree->_ninternals + incr);
         _tree->_ninternals += incr;
-    }
+    }   ///end_rectifyNumInternals
     
-    inline void TreeManip::refreshNavigationPointers() {
+    inline void TreeManip::refreshNavigationPointers() {    ///begin_refreshNavigationPointers
         refreshPreorder();
         refreshLevelorder();
-    }
+    }   ///end_refreshNavigationPointers
     
-    inline Node * TreeManip::getUnusedNode() {
+    inline Node * TreeManip::getUnusedNode() {  ///begin_getUnusedNode
         assert(_tree->_unused_nodes.size() > 0);
         Node * nd = _tree->_unused_nodes.top();
         _tree->_unused_nodes.pop();
         nd->clearPointers();
-        //std::cerr << "***    getUnusedNode: contains " << _tree->_unused_nodes.size() << " now ***" << std::endl;  //POLTMP
         return nd;
-    }
+    }   ///end_getUnusedNode
     
-    inline void TreeManip::putUnusedNode(Node * nd) {
+    inline void TreeManip::putUnusedNode(Node * nd) {   ///begin_putUnusedNode
         _tree->_unused_nodes.push(nd);
-        //std::cerr << "***    putUnusedNode: contains " << _tree->_unused_nodes.size() << " now ***" << std::endl;  //POLTMP
-    }
+    }   ///end_putUnusedNode
     
 }

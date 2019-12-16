@@ -359,7 +359,6 @@ namespace strom {
     inline void Chain::start() { ///begin_start
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-        DebugStuff::debugSaveTree("start", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
         //std::cerr << "DebugStuff::debugSaveTree: start" << std::endl; //POLTMP
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
@@ -369,9 +368,7 @@ namespace strom {
     inline void Chain::stop() { ///begin_stop
     } ///end_stop
 
-    inline void Chain::nextStep(int iteration) { ///begin_nextStep
-        DebugStuff::_which_iter = iteration;    //DEBUGSTUFF
-        
+    inline void Chain::nextStep(int iteration) { ///begin_nextStep        
         assert(_lot);
         double u = _lot->uniform();
         double cumprob = 0.0;

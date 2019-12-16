@@ -2,8 +2,6 @@
 
 #include "updater.hpp"
 
-#define POLOLDWAY 0
-
 namespace strom {
 
     class Chain;
@@ -14,12 +12,8 @@ namespace strom {
 
         public:
 
-#if POLOLDWAY
-            typedef std::map<unsigned, std::vector<double> >    _polytomy_distr_map_t;
-#else
             typedef std::vector<double>                         _partition_vect_t;
             typedef std::map<unsigned, _partition_vect_t >      _partition_map_t;
-#endif
             typedef std::vector<Node *>                         _polytomy_vect_t;
             typedef std::shared_ptr< PolytomyUpdater >          SharedPtr;
 
@@ -37,18 +31,10 @@ namespace strom {
             void                                proposeAddEdgeMove(Node * nd);
             void                                proposeDeleteEdgeMove(Node * nd);
             
-#if POLOLDWAY
-            void                                computePolytomyDistribution(unsigned nspokes);
-#else
             _partition_vect_t &                 computePolytomyDistribution(unsigned nspokes);
-#endif
             void                                refreshPolytomies();
 
-#if POLOLDWAY
-            _polytomy_distr_map_t               _poly_prob;
-#else
             _partition_map_t                    _poly_prob;
-#endif
             _polytomy_vect_t                    _polytomies;
             
             Node *                              _orig_par;
@@ -96,27 +82,6 @@ namespace strom {
         return log_prior;
     }   ///end_calcLogPrior
 
-#if POLOLDWAY
-    inline void PolytomyUpdater::computePolytomyDistribution(unsigned nspokes) {    ///begin_computePolytomyDistribution
-        assert(nspokes > 2);
-                
-        // Only compute it if it isn't already stored in the _poly_prob map
-        auto i = _poly_prob.find(nspokes);
-        if (i == _poly_prob.end()) {
-            // There is no existing probability distribution vector corresponding to nspokes
-            double ln_denom = std::log(pow(2.0,nspokes) - 2.0*nspokes - 2.0);
-            std::vector<double> v(nspokes - 3);
-            for (unsigned x = 2; x <= nspokes - 2; ++x) {
-                double ln_numer = std::lgamma(nspokes + 1) - std::lgamma(x + 1) - std::lgamma(nspokes - x + 1);
-                double prob_x = exp(ln_numer - ln_denom);
-                if (prob_x > 1.0)
-                    prob_x = 1.0;
-                v[x-2] = prob_x;
-                }
-            _poly_prob[nspokes] = v;
-        }
-    } ///end_computePolytomyDistribution
-#else
 inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDistribution(unsigned nspokes) {    ///begin_computePolytomyDistribution
     assert(nspokes > 2);
             
@@ -145,7 +110,6 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
     }
     return _poly_prob[nspokes];
 } ///end_computePolytomyDistribution
-#endif
         
     inline void PolytomyUpdater::proposeNewState() {    ///begin_proposeNewState
         Tree::SharedPtr tree = _tree_manipulator->getTree();
@@ -273,24 +237,6 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
         assert(u);
 
         // Calculate (if necessary) the probability of each possible partitioning of the chosen polytomy
-#if POLOLDWAY
-        computePolytomyDistribution(_polytomy_size);
-        const std::vector<double> & prob_n = _poly_prob[_polytomy_size];
-
-        // Select number of spokes to move over to new node
-        // Note that 0, 1 and _polytomy_size, _polytomy_size-1 are not allowed
-        // because any of these would leave the tree in an incorrect state
-        double p = _lot->uniform();
-        double cum = 0.0;
-        unsigned k = 2;
-        for (; k <= _polytomy_size - 2; ++k) {
-            double prob_k_given_n = prob_n[k-2];
-            cum += prob_k_given_n;
-            if (p < cum)
-                break;
-        }
-        assert(k < _polytomy_size - 1);
-#else
         // Select number of spokes to move over to new node
         // Note that 0 and 1 are not allowed because they
         // would leave the tree in an invalid state
@@ -309,7 +255,6 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
         }
         assert(found);
         k += 2;
-#endif
 
         // Create the new node that will receive the k randomly-chosen spokes
         Node * v = _tree_manipulator->getUnusedNode();

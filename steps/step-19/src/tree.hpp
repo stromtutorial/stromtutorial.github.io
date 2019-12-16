@@ -35,11 +35,6 @@ namespace strom {
             unsigned                    numInternals() const;
             unsigned                    numNodes() const;
         
-            //Node *                      getNodeWithIndex(unsigned i);
-            //unsigned                    getUnusedNode();
-            //void                        putUnusedNodeIndex(unsigned num);
-            //void                        putUnusedNodePtr(Node * nd);
-
         private:
 
             void                        clear();

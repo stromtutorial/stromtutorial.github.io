@@ -1,9 +1,9 @@
 ---
 layout: steps
-title: Modifying the Strom and Chain classes
+title: Testing reversible-jump MCMC
 partnum: 19
-subpart: 4
-description: Deploy PolytomyUpdater and add prior options to Strom.
+subpart: 8
+description: Perform an MCMC analysis allowing polytomous trees.
 ---
 {% comment %}
 {{ page.description | markdownify }}

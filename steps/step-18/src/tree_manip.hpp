@@ -857,16 +857,20 @@ namespace strom {
         //        \   /                                 \   /
         //         \ /                                   \ /
         //          6   nleaves = 5                       5   nleaves = 4
-        //          |   num_internal_edges = 2            |   num_internal_edges = 2
-        //          |   choose node 7 or node 8           |   choose node 6 or node 7
-        //          1                                    root
+        //          |   preorder length = 7               |    preorder length = 7
+        //          |   num_internal_edges = 7 - 5 = 2    |    num_internal_edges = 7 - 4 - 1 = 2
+        //          1   choose node 7 or node 8          root  choose node 6 or node 7
         //
         // _preorder = [6, 7, 8, 2, 3, 4, 5]     _preorder = [5, 6, 7, 1, 2, 3, 4]
         //
         // Note: _preorder is actually a vector of T *, but is shown here as a
         // vector of integers solely to illustrate the algorithm below
         
-        unsigned num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 0 : 1);
+        int num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 1 : 0); //BUGFIX: was (_tree->_is_rooted ? 0 : 1)
+        if (num_internal_edges == 0) {
+            // Star tree: return hub node, which is the first node in the preorder sequence
+            return _tree->_preorder[0];
+        }
 
         // Add one to skip first node in _preorder vector, which is an internal node whose edge
         // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
