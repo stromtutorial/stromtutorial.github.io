@@ -166,7 +166,7 @@ namespace strom {
             ("usedata",       boost::program_options::value(&_using_stored_data)->default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)")
             ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data")
-            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
+            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(true),          "scale site-likelihoods to prevent underflow (slower but safer)")
         ;   ///end_add_options
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
@@ -479,9 +479,9 @@ namespace strom {
                     std::vector<double> accepts    = c.getAcceptPercentages();
                     std::vector<unsigned> nupdates = c.getNumUpdates();
                     unsigned n = (unsigned)names.size();
-                    _output_manager->outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
+                    _output_manager->outputConsole(boost::str(boost::format("%35s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
                     for (unsigned i = 0; i < n; ++i) {
-                        _output_manager->outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
+                        _output_manager->outputConsole(boost::str(boost::format("%35s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
                     }
                 }
             }
@@ -769,6 +769,9 @@ namespace strom {
 
             // Create an output manager and open output files
             _output_manager.reset(new OutputManager);
+#if 1 //POLTMP
+            Updater::_om = _output_manager;
+#endif
             _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
             _output_manager->openTreeFile("trees.tre", _data);
             _output_manager->openParameterFile("params.txt", _chains[0].getModel());

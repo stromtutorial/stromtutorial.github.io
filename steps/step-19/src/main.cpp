@@ -2,26 +2,11 @@
 #include <iostream>
 #include "strom.hpp"
 
-#include "debug_stuff.hpp"  //DEBUGSTUFF
-
 using namespace strom;
 
-//POLTMP
-unsigned DebugStuff::_debug_add_tries   = 0;  //POLTMP
-unsigned DebugStuff::_debug_add_accepts = 0;  //POLTMP
-unsigned DebugStuff::_debug_del_tries   = 0;  //POLTMP
-unsigned DebugStuff::_debug_del_accepts = 0;  //POLTMP
-
-// static data member initializations
-#if DEBUG_POLY  //POLY //POLTMP
-bool     DebugStuff::_ignore         = false;    //DEBUGSTUFF
-#else
-bool     DebugStuff::_ignore         = true;    //DEBUGSTUFF
+#if 1 //POLTMP
+OutputManager::SharedPtr Updater::_om = 0;
 #endif
-unsigned DebugStuff::_partial_offset = 0;       //DEBUGSTUFF
-unsigned DebugStuff::_tmatrix_offset = 0;       //DEBUGSTUFF
-unsigned DebugStuff::_which_iter     = 0;       //DEBUGSTUFF
-unsigned DebugStuff::_tree_index     = 0;       //DEBUGSTUFF
 
 std::string  Strom::_program_name        = "strom";
 unsigned     Strom::_major_version       = 1;
@@ -50,9 +35,6 @@ GeneticCode::genetic_code_definitions_t GeneticCode::_definitions = { // codon o
 
 int main(int argc, const char * argv[]) {
 
-    DebugStuff::_tree_index = 0;        //DEBUGSTUFF
-    DebugStuff::debugOpenTreeFile();    //DEBUGSTUFF
-    
     Strom strom;
     try {
         strom.processCommandLineOptions(argc, argv);
@@ -65,19 +47,6 @@ int main(int argc, const char * argv[]) {
     catch(...) {
         std::cerr << "Exception of unknown type!\n";
     }
-
-    DebugStuff::debugCloseTreeFile();    //DEBUGSTUFF
-    
-#if DEBUG_POLY  //POLY //POLTMP
-    std::cerr << "Add-edge move:\n";
-    std::cerr << boost::str(boost::format("%12d attempts") % DebugStuff::_debug_add_tries) << std::endl;
-    std::cerr << boost::str(boost::format("%12d accepts") % DebugStuff::_debug_add_accepts) << std::endl;
-    std::cerr << boost::str(boost::format("%12.1f acccept %%") % (100.0*DebugStuff::_debug_add_accepts/DebugStuff::_debug_add_tries)) << std::endl;
-    std::cerr << "Del-edge move:\n";
-    std::cerr << boost::str(boost::format("%12d attempts") % DebugStuff::_debug_del_tries) << std::endl;
-    std::cerr << boost::str(boost::format("%12d accepts") % DebugStuff::_debug_del_accepts) << std::endl;
-    std::cerr << boost::str(boost::format("%12.1f acccept %%") % (100.0*DebugStuff::_debug_del_accepts/DebugStuff::_debug_del_tries)) << std::endl;
-#endif
 
     return 0;
 }   ///end

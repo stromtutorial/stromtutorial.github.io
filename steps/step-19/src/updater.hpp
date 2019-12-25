@@ -7,6 +7,10 @@
 #include "likelihood.hpp"
 #include "topo_prior_calculator.hpp"    ///!a
 
+#if 1 //POLTMP
+#include "output_manager.hpp"
+#endif
+
 namespace strom {
     class Chain;
 
@@ -79,6 +83,11 @@ namespace strom {
             mutable PolytomyTopoPriorCalculator     _topo_prior_calculator; ///!f
             
             static const double                     _log_zero;
+
+#if 1 //POLTMP
+        public:
+            static OutputManager::SharedPtr         _om;
+#endif
     };
  
     // member function bodies go here
@@ -209,7 +218,7 @@ namespace strom {
         // whose partials and/or transition probabilities need to be recalculated
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
-        
+                
         // Set model to proposed state and calculate _log_hastings_ratio
         proposeNewState();
         
@@ -239,9 +248,15 @@ namespace strom {
             accept = false;
 
         if (accept) {
+#if 1 //POLTMP
+            _om->outputParameterDebugInfo(boost::str(boost::format("updater: %s (accepted)") % _name));
+#endif
             _naccepts++;
         }
         else {
+#if 1 //POLTMP
+            _om->outputParameterDebugInfo(boost::str(boost::format("updater: %s (rejected)") % _name));
+#endif
             revert();
             _tree_manipulator->flipPartialsAndTMatrices();
             log_likelihood = prev_lnL;

@@ -12,6 +12,8 @@
 #include "model.hpp"
 #include "xstrom.hpp"
 
+#define POLNEWWAY 1
+
 namespace strom {
 
     class Likelihood {
@@ -68,6 +70,9 @@ namespace strom {
 
             bool                                    isPolytomy(Node * nd) const;    ///!b
             unsigned                                countChildren(Node * nd) const; ///!c
+#if POLNEWWAY //POLTMP
+            unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;
+#endif
             unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;
             void                                    updateInstanceMap(instance_pair_t & p, unsigned subset);
@@ -346,8 +351,10 @@ namespace strom {
         long requirementFlags = 0;
 
         long preferenceFlags = BEAGLE_FLAG_PRECISION_SINGLE | BEAGLE_FLAG_THREADING_CPP;
-        if (_underflow_scaling)
+        if (_underflow_scaling) {
             preferenceFlags |= BEAGLE_FLAG_SCALING_MANUAL;
+            preferenceFlags |= BEAGLE_FLAG_SCALERS_LOG;     //POLNEW    //POLTMP
+        }
         if (_prefer_gpu)
             preferenceFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
         else
@@ -355,6 +362,9 @@ namespace strom {
         
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
+#if POLNEWWAY //POLTMP
+        unsigned nscalers = num_internals;  // one for every internal node
+#endif
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;
@@ -370,7 +380,11 @@ namespace strom {
              num_subsets,                   // models (one for each distinct eigen decomposition)
              2*num_subsets*num_transition_probs, // transition matrices (one for each edge in each subset)
              ngammacat,                     // rate categories
+#if POLNEWWAY //POLTMP
+             (_underflow_scaling ? 2*nscalers + 1 : 0),  // scale buffers (+1 is for the cumulative scaler at index 0)
+#else
              (_underflow_scaling ? num_internals + num_subsets : 0),    // scale buffers
+#endif
              NULL,                          // resource restrictions
              0,                             // length of resource list
              preferenceFlags,               // preferred flags
@@ -652,6 +666,16 @@ namespace strom {
         return nchildren;
     }   ///end_countChildren
     
+#if POLNEWWAY //POLTMP
+    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {
+        assert(nd->_parent && nd->_left_child); // nd is supposed to be an internal node and not the tip root node
+        unsigned sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
+        if (nd->isAltPartial())
+            sindex += info.partial_offset;
+        return sindex;
+    }
+#endif
+    
     inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const {
         unsigned pindex = nd->_number;
         // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
@@ -673,15 +697,24 @@ namespace strom {
         assert(nd);
         assert(lchild);
         assert(rchild);
+#if POLNEWWAY //POLTMP
+#else
         unsigned num_subsets = (unsigned)info.subsets.size();
+#endif
 
         // 1. destination partial to be calculated
         int partial = getPartialIndex(nd, info);
         _operations[info.handle].push_back(partial);
 
         // 2. destination scaling buffer index to write to
-        if (_underflow_scaling)
-            _operations[info.handle].push_back(nd->_number - _ntaxa + num_subsets);
+        if (_underflow_scaling) {
+#if POLNEWWAY //POLTMP
+            double scaler_index = getScalerIndex(nd, info);
+#else
+            double scaler_index = nd->_number - _ntaxa + num_subsets;
+#endif
+            _operations[info.handle].push_back(scaler_index);   // +1 to skip over cumulative
+        }
         else
             _operations[info.handle].push_back(BEAGLE_OP_NONE);
 
@@ -709,10 +742,14 @@ namespace strom {
             _operations[info.handle].push_back(subset_index);
             
             // 9. cumulative scale index
+#if POLNEWWAY //POLTMP
+            _operations[info.handle].push_back(BEAGLE_OP_NONE); // accumulate in calcInstanceLogLikelihood
+#else
             if (_underflow_scaling)
                 _operations[info.handle].push_back(subset_index);
             else
                 _operations[info.handle].push_back(BEAGLE_OP_NONE);
+#endif
         }
     }
     
@@ -866,6 +903,8 @@ namespace strom {
             unsigned nsubsets = (unsigned)info.subsets.size();
 
             if (nsubsets > 1) {
+#if POLNEWWAY   //POLTMP
+#else
                 if (_underflow_scaling) {
                     for (unsigned s = 0; s < nsubsets; ++s) {
                         code = beagleResetScaleFactorsByPartition(info.handle, s, s);
@@ -873,30 +912,86 @@ namespace strom {
                             throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
                     }
                 }
+#endif
                 code = beagleUpdatePartialsByPartition(
                     info.handle,                                                    // Instance number
                     (BeagleOperationByPartition *) &_operations[info.handle][0],    // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/9));                      // Number of operations
+                    
+#if 0   //POLTMP
+                // Output partials
+                int code = 0;
+                unsigned buffer_index = 5;
+                unsigned scale_index = BEAGLE_OP_NONE;
+                std::vector<double> tmp(3*4, 0.0);
+                std::cerr << "\nPartials:" << std::endl;
+                for (auto & info : _instances) {
+                    buffer_index = 5;
+                    scale_index = 1;
+                    std::cerr << boost::str(boost::format("instance %d, buffer index %d, scale index %d:") % info.handle % buffer_index % scale_index) << std::endl;
+                    code = beagleGetPartials(info.handle, buffer_index, scale_index, &tmp[0]);
+                    assert(code == 0);
+                    for (unsigned k = 0; k < 3*4; k++) {
+                        std::cerr << boost::str(boost::format("%12d %12.5f") % (k+1) % tmp[k]) << std::endl;
+                    }
+                                        
+                    buffer_index = 6;
+                    scale_index = 2;
+                    std::cerr << boost::str(boost::format("instance %d, buffer index %d, scale index %d:") % info.handle % buffer_index % scale_index) << std::endl;
+                    code = beagleGetPartials(info.handle, buffer_index, scale_index, &tmp[0]);
+                    assert(code == 0);
+                    for (unsigned k = 0; k < 3*4; k++) {
+                        std::cerr << boost::str(boost::format("%12d %12.5f") % (k+1) % tmp[k]) << std::endl;
+                    }
+                                        
+                    buffer_index = 7;
+                    scale_index = 3;
+                    std::cerr << boost::str(boost::format("instance %d, buffer index %d, scale index %d:") % info.handle % buffer_index % scale_index) << std::endl;
+                    code = beagleGetPartials(info.handle, buffer_index, scale_index, &tmp[0]);
+                    assert(code == 0);
+                    for (unsigned k = 0; k < 3*4; k++) {
+                        std::cerr << boost::str(boost::format("%12d %12.5f") % (k+1) % tmp[k]) << std::endl;
+                    }
+                    
+                    buffer_index = 7;
+                    scale_index = 0;
+                    std::cerr << boost::str(boost::format("instance %d, buffer index %d, scale index %d:") % info.handle % buffer_index % scale_index) << std::endl;
+                    code = beagleGetPartials(info.handle, buffer_index, scale_index, &tmp[0]);
+                    assert(code == 0);
+                    for (unsigned k = 0; k < 3*4; k++) {
+                        std::cerr << boost::str(boost::format("%12d %12.5f") % (k+1) % tmp[k]) << std::endl;
+                    }
+                    
+                }
+                std::cerr << std::endl;
+#endif
             }
             else {
                 // no partitioning, just one data subset
+#if POLNEWWAY   //POLTMP
+#else
                 if (_underflow_scaling) {
                     code = beagleResetScaleFactors(info.handle, 0);
                     if (code != 0)
                         throw XStrom(boost::str(boost::format("failed to reset scale factors in calculatePartials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
                 }
-                
+#endif
+
                 code = beagleUpdatePartials(
                     info.handle,                                        // Instance number
                     (BeagleOperation *) &_operations[info.handle][0],   // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/7),           // Number of operations
+#if POLNEWWAY   //POLTMP
+                    BEAGLE_OP_NONE);                                    // Index number of scaleBuffer to store accumulated factors
+#else
                     (_underflow_scaling ? 0 : BEAGLE_OP_NONE));         // Index number of scaleBuffer to store accumulated factors
+#endif
             }
             
             if (code != 0) {
                 throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
             }
-        }
+        }   // instance loop
     }
     
     inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {
@@ -927,12 +1022,44 @@ namespace strom {
             _subset_indices.resize(nsubsets);
             _freqs_indices.resize(nsubsets);
             _tmatrix_indices.resize(nsubsets);
+
+#if POLNEWWAY //POLTMP
+            if (_underflow_scaling) {
+                for (unsigned s = 0; s < nsubsets; ++s) {
+                    code = beagleResetScaleFactorsByPartition(info.handle, s, cumulativeScalingIndex);
+                    if (code != 0)
+                        throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
+                }
+                
+                // Create vector of all scaling vector indices in current use
+                std::vector<int> internal_node_scaler_indices;
+                for (auto nd : t->_preorder) {
+                    if (nd->_left_child) {
+                        unsigned s = getScalerIndex(nd, info);
+                        internal_node_scaler_indices.push_back(s);
+                    }
+                }
+                
+                // Accumulate all scalers
+                code = beagleAccumulateScaleFactors(
+                     info.handle,
+                     &internal_node_scaler_indices[0],
+                     (int)internal_node_scaler_indices.size(),
+                     cumulativeScalingIndex);
+            }
+#endif
+
             for (unsigned s = 0; s < nsubsets; s++) {
+#if POLNEWWAY //POLTMP
+                _scaling_indices[s]  = (_underflow_scaling ? 0 : BEAGLE_OP_NONE);
+#else
                 _scaling_indices[s]  = (_underflow_scaling ? s : BEAGLE_OP_NONE);
+#endif
                 _subset_indices[s]  = s;
                 _freqs_indices[s]   = s;
                 _tmatrix_indices[s] = getTMatrixIndex(t->_preorder[0], info, s); //index_focal_child + s*tmatrix_skip;
             }
+            
             code = beagleCalculateEdgeLogLikelihoodsByPartition(
                 info.handle,                 // instance number
                 &_parent_indices[0],         // indices of parent partialsBuffers
@@ -952,8 +1079,38 @@ namespace strom {
                 NULL,                        // destination for first derivative
                 NULL,                        // destination for vector of second derivatives (one for each subset)
                 NULL);                       // destination for second derivative
+#if 0 //POLTMP
+            std::cerr << "logL for subset 0: " << subset_log_likelihoods[0] << std::endl;
+            std::cerr << "logL for subset 1: " << subset_log_likelihoods[1] << std::endl;
+            std::cerr << std::endl;
+#endif
         }
         else {
+#if POLNEWWAY //POLTMP
+            if (_underflow_scaling) {
+                for (unsigned s = 0; s < nsubsets; ++s) {
+                    code = beagleResetScaleFactors(info.handle, cumulativeScalingIndex);
+                    if (code != 0)
+                        throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
+                }
+                
+                // Create vector of all scaling vector indices in current use
+                std::vector<int> internal_node_scaler_indices;
+                for (auto nd : t->_preorder) {
+                    if (nd->_left_child) {
+                        unsigned s = getScalerIndex(nd, info);
+                        internal_node_scaler_indices.push_back(s);
+                    }
+                }
+                
+                // Accumulate all scalers
+                code = beagleAccumulateScaleFactors(
+                     info.handle,
+                     &internal_node_scaler_indices[0],
+                     (int)internal_node_scaler_indices.size(),
+                     cumulativeScalingIndex);
+            }
+#endif
             code = beagleCalculateEdgeLogLikelihoods(
                 info.handle,                 // instance number
                 &parent_partials_index,      // indices of parent partialsBuffers
@@ -1070,6 +1227,64 @@ namespace strom {
         for (auto & info : _instances) {
             log_likelihood += calcInstanceLogLikelihood(info, t);
         }
+        
+#if 0   //POLTMP
+        // Output pattern log-likelihoods
+        for (auto & info : _instances) {
+            std::vector<double> site_loglikes(info.npatterns, 0.0);
+            beagleGetSiteLogLikelihoods(info.handle, &site_loglikes[0]);
+            std::cout << std::endl;
+            std::cout << "Pattern log-likelihoods:" << std::endl;
+            for (unsigned i = 0; i < info.npatterns; i++) {
+                double pattern_lnL = site_loglikes[i];
+                std::cout << boost::format("%6d %12.8f") % (i+1) % pattern_lnL << std::endl;
+            }
+            std::cout << std::endl;
+        }
+
+        // Output partials
+        unsigned buffer_index = 0;
+        unsigned scale_index = 0;
+        unsigned code = 0;
+        std::vector<double> tmp(3*4, 0.0);
+        std::cerr << "\nPartials:" << std::endl;
+        for (auto & info : _instances) {
+            buffer_index = 7; scale_index = 3;
+            std::cerr << boost::str(boost::format("subset %d buffer %d scale %d:") % info.handle % buffer_index % scale_index) << std::endl;
+            code = beagleGetPartials(info.handle, buffer_index, scale_index, &tmp[0]);
+            assert(code == 0);
+            for (unsigned k = 0; k < 3*4; k++) {
+                std::cerr << boost::str(boost::format("%12d %12.5f") % (k+1) % tmp[k]) << std::endl;
+            }
+
+            buffer_index = 7; scale_index = 0;
+            std::cerr << boost::str(boost::format("subset %d buffer %d scale %d:") % info.handle % buffer_index % scale_index) << std::endl;
+            code = beagleGetPartials(info.handle, buffer_index, scale_index, &tmp[0]);
+            assert(code == 0);
+            for (unsigned k = 0; k < 3*4; k++) {
+                std::cerr << boost::str(boost::format("%12d %12.5f") % (k+1) % tmp[k]) << std::endl;
+            }
+        }
+
+        // Output scale buffers
+        //unsigned num_internals = calcNumInternalsInFullyResolvedTree();
+        //for (auto & info : _instances) {
+        //    std::cerr << "\nSubset scaling factors for instance " << info.handle << std::endl;
+        //    unsigned nsubsets = (unsigned)info.subsets.size();
+        //    std::vector<double> scaling_factors(num_internals + nsubsets, 0.0);
+        //    int code = 0;
+        //
+        //    for (unsigned j = 0; j < 1000; j++) {
+        //        scaling_factors.assign(num_internals + nsubsets, 0.0);
+        //        code = beagleGetScaleFactors(info.handle, j, &scaling_factors[0]);
+        //        assert(code == 0);
+        //        std::cerr << "*** index = " << j << std::endl;
+        //        for (unsigned i = 0; i < num_internals + nsubsets; i++) {
+        //            std::cerr << boost::str(boost::format("%12d %12.5f") % (i+1) % scaling_factors[i]) << std::endl;
+        //        }
+        //    }
+        //}
+#endif
         
         return log_likelihood;
     }   ///end_calcLogLikelihood

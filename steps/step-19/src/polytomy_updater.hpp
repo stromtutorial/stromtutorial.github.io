@@ -2,6 +2,8 @@
 
 #include "updater.hpp"
 
+#define POLNEWWAY 1
+
 namespace strom {
 
     class Chain;
@@ -188,8 +190,13 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             _log_jacobian += (total_edges_before - 1)*std::log(1.0 - _new_edge_proportion);
 
             // flag partials and transition matrices for recalculation
+#if POLNEWWAY
+            _tree_manipulator->selectAllPartials();
+            _tree_manipulator->selectAllTMatrices();
+#else
             _tree_manipulator->selectPartialsHereToRoot(new_nd);
             new_nd->selectTMatrix();
+#endif
         }
         else {
             // Choose an internal edge at random and delete it to create a polytomy
@@ -224,7 +231,12 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             _log_jacobian -= (total_edges_before - 2)*std::log(1.0 - _orig_edge_proportion);
 
             // flag partials and transition matrices for recalculation
-            _tree_manipulator->selectPartialsHereToRoot(nd);
+#if POLNEWWAY
+            _tree_manipulator->selectAllPartials();
+            _tree_manipulator->selectAllTMatrices();
+#else
+            _tree_manipulator->selectPartialsHereToRoot(_orig_par);
+#endif
         }
     }   ///end_proposeNewState
     

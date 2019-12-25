@@ -287,6 +287,10 @@ namespace strom {
             // In these cases b is above y, so it is b's edge that is modified
             _b->selectTMatrix();
         }
+#if 0 //POLTMP
+    _tree_manipulator->selectAllPartials();
+    //_tree_manipulator->selectAllTMatrices();
+#endif
     }   ///end_proposeNewState
     
     inline void TreeUpdater::revert() { ///begin_revert

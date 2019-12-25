@@ -27,6 +27,9 @@ namespace strom {
             void                                                outputConsole(std::string s);
             void                                                outputTree(unsigned iter, TreeManip::SharedPtr tm);
             void                                                outputParameters(unsigned iter, double lnL, double lnP, double TL, unsigned m, Model::SharedPtr model); ///!a
+#if 1 //POLTMP
+            void                                                outputParameterDebugInfo(std::string info);
+#endif
             
 
         private:
@@ -100,5 +103,12 @@ namespace strom {
         assert(_parameterfile.is_open());
         _parameterfile << boost::str(boost::format("%d\t%.5f\t%.5f\t%.5f\t%d\t%s") % iter % lnL % lnP % TL % m % model->paramValuesAsString("\t")) << std::endl; ///!c
     }///end_outputParameters
+    
+#if 1 //POLTMP
+    inline void OutputManager::outputParameterDebugInfo(std::string info) {
+        assert(_parameterfile.is_open());
+        _parameterfile << info << std::endl;
+    }
+#endif
 
 }

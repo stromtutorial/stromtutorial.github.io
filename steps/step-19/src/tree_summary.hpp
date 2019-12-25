@@ -54,7 +54,7 @@ namespace strom {
         TreeManip tm;
 
         // build the tree
-        tm.buildFromNewick(_newicks[index], false, true);   //POLTMP: second bool (allow_polytomies) set to true
+        tm.buildFromNewick(_newicks[index], false, true);
 
         return tm.getTree();
     }
@@ -107,7 +107,7 @@ namespace strom {
                         unsigned tree_index = (unsigned)_newicks.size() - 1;
 
                         // build the tree
-                        tm.buildFromNewick(newick, false, true);   //POLTMP: second bool (allow_polytomies) set to true
+                        tm.buildFromNewick(newick, false, true);
 
                         // store set of splits
                         splitset.clear();
