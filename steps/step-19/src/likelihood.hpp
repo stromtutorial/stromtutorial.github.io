@@ -668,6 +668,12 @@ namespace strom {
     
 #if POLNEWWAY //POLTMP
     inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {
+        if (!nd->_parent) {
+            std::cerr << "oops1" << std::endl;
+        }
+        if (!nd->_left_child) {
+            std::cerr << "oops2" << std::endl;
+        }
         assert(nd->_parent && nd->_left_child); // nd is supposed to be an internal node and not the tip root node
         unsigned sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
         if (nd->isAltPartial())
@@ -709,9 +715,9 @@ namespace strom {
         // 2. destination scaling buffer index to write to
         if (_underflow_scaling) {
 #if POLNEWWAY //POLTMP
-            double scaler_index = getScalerIndex(nd, info);
+            int scaler_index = getScalerIndex(nd, info);
 #else
-            double scaler_index = nd->_number - _ntaxa + num_subsets;
+            int scaler_index = nd->_number - _ntaxa + num_subsets;
 #endif
             _operations[info.handle].push_back(scaler_index);   // +1 to skip over cumulative
         }
@@ -1013,6 +1019,39 @@ namespace strom {
         // storage for results of the likelihood calculation
         std::vector<double> subset_log_likelihoods(nsubsets, 0.0);
         double log_likelihood = 0.0;
+        
+#if POLNEWWAY //POLTMP
+        if (_underflow_scaling) {
+            if (nsubsets == 1) {
+                code = beagleResetScaleFactors(info.handle, cumulativeScalingIndex);
+                if (code != 0)
+                    throw XStrom(boost::str(boost::format("failed to reset scale factors in calculatePartials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+            }
+            else {
+                for (unsigned s = 0; s < nsubsets; ++s) {
+                    code = beagleResetScaleFactorsByPartition(info.handle, s, cumulativeScalingIndex);
+                    if (code != 0)
+                        throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
+                }
+            }
+            
+            // Create vector of all scaling vector indices in current use
+            std::vector<int> internal_node_scaler_indices;
+            for (auto nd : t->_preorder) {
+                if (nd->_left_child) {
+                    unsigned s = getScalerIndex(nd, info);
+                    internal_node_scaler_indices.push_back(s);
+                }
+            }
+            
+            // Accumulate all scalers
+            code = beagleAccumulateScaleFactors(
+                 info.handle,
+                 &internal_node_scaler_indices[0],
+                 (int)internal_node_scaler_indices.size(),
+                 cumulativeScalingIndex);
+        }
+#endif
 
         if (nsubsets > 1) {
             _parent_indices.assign(nsubsets, parent_partials_index);
@@ -1022,32 +1061,6 @@ namespace strom {
             _subset_indices.resize(nsubsets);
             _freqs_indices.resize(nsubsets);
             _tmatrix_indices.resize(nsubsets);
-
-#if POLNEWWAY //POLTMP
-            if (_underflow_scaling) {
-                for (unsigned s = 0; s < nsubsets; ++s) {
-                    code = beagleResetScaleFactorsByPartition(info.handle, s, cumulativeScalingIndex);
-                    if (code != 0)
-                        throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
-                }
-                
-                // Create vector of all scaling vector indices in current use
-                std::vector<int> internal_node_scaler_indices;
-                for (auto nd : t->_preorder) {
-                    if (nd->_left_child) {
-                        unsigned s = getScalerIndex(nd, info);
-                        internal_node_scaler_indices.push_back(s);
-                    }
-                }
-                
-                // Accumulate all scalers
-                code = beagleAccumulateScaleFactors(
-                     info.handle,
-                     &internal_node_scaler_indices[0],
-                     (int)internal_node_scaler_indices.size(),
-                     cumulativeScalingIndex);
-            }
-#endif
 
             for (unsigned s = 0; s < nsubsets; s++) {
 #if POLNEWWAY //POLTMP
@@ -1086,31 +1099,6 @@ namespace strom {
 #endif
         }
         else {
-#if POLNEWWAY //POLTMP
-            if (_underflow_scaling) {
-                for (unsigned s = 0; s < nsubsets; ++s) {
-                    code = beagleResetScaleFactors(info.handle, cumulativeScalingIndex);
-                    if (code != 0)
-                        throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
-                }
-                
-                // Create vector of all scaling vector indices in current use
-                std::vector<int> internal_node_scaler_indices;
-                for (auto nd : t->_preorder) {
-                    if (nd->_left_child) {
-                        unsigned s = getScalerIndex(nd, info);
-                        internal_node_scaler_indices.push_back(s);
-                    }
-                }
-                
-                // Accumulate all scalers
-                code = beagleAccumulateScaleFactors(
-                     info.handle,
-                     &internal_node_scaler_indices[0],
-                     (int)internal_node_scaler_indices.size(),
-                     cumulativeScalingIndex);
-            }
-#endif
             code = beagleCalculateEdgeLogLikelihoods(
                 info.handle,                 // instance number
                 &parent_partials_index,      // indices of parent partialsBuffers

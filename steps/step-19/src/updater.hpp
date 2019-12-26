@@ -248,13 +248,13 @@ namespace strom {
             accept = false;
 
         if (accept) {
-#if 1 //POLTMP
+#if 0 //POLTMP
             _om->outputParameterDebugInfo(boost::str(boost::format("updater: %s (accepted)") % _name));
 #endif
             _naccepts++;
         }
         else {
-#if 1 //POLTMP
+#if 0 //POLTMP
             _om->outputParameterDebugInfo(boost::str(boost::format("updater: %s (rejected)") % _name));
 #endif
             revert();

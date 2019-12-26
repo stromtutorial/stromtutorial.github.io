@@ -72,7 +72,12 @@ namespace strom {
 
     inline double Lot::logUniform() {
         double u = (*_uniform_variate_generator)();
+#if 1 //POLNEWWAY
+        while (u <= 0.0)
+            u = (*_uniform_variate_generator)();
+#else
         assert(u > 0.0);
+#endif
         return std::log(u);
     }
     

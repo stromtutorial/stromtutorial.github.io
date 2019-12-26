@@ -120,14 +120,29 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
         // that a newly created edge could have
         if (_lambda > 1000.0)
             _lambda = 1000.0;
+#if 0 //POLTMP
+        else if (_lambda < 0.1)
+            _lambda = 0.1;
+#else
         else if (_lambda < 1.0)
             _lambda = 1.0;
+#endif
         _phi = 1.0 - std::exp(-_lambda);
+        
+#if 1 //POLTMP
+        double num_edges_in_fully_resolved_tree = 0;
+        if (tree->isRooted())
+            num_edges_in_fully_resolved_tree = 2*tree->numLeaves() - 2;
+        else
+            num_edges_in_fully_resolved_tree = 2*tree->numLeaves() - 3;
+        _phi = 1.0/num_edges_in_fully_resolved_tree;
+        const double pradd = 0.9; // probability of choosing and add-edge move if both add-edge and delete-edge are possible
+#endif
 
         // Compute number of internal nodes in a fully resolved tree
         unsigned num_internals_in_fully_resolved_tree = 0;
         if (tree->isRooted())
-            num_internals_in_fully_resolved_tree = tree->numLeaves();
+            num_internals_in_fully_resolved_tree = tree->numLeaves(); // remember: root node is internal (has lchild)
         else
             num_internals_in_fully_resolved_tree = tree->numLeaves() - 2;
             
@@ -152,8 +167,12 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
         else if (fully_resolved_before)
             _add_edge_proposed = false;
         else
+#if 1 //POLTMP
+            _add_edge_proposed = (_lot->uniform() < pradd);
+#else
             _add_edge_proposed = (_lot->uniform() < 0.5);
-            
+#endif
+
         Node * nd = 0;
         if (_add_edge_proposed) {
             // Choose a polytomy at random to split
@@ -179,11 +198,25 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             unsigned num_internals_after = tree->numInternals();
             assert(num_internals_after == num_internals_before + 1);
             const bool fully_resolved_after = (num_internals_after == num_internals_in_fully_resolved_tree);
+            double tmp = 0.0;
+#if 1 //POLTMP
             if (star_tree_before && !fully_resolved_after)
-                _log_hastings_ratio -= log(2.0);
+                tmp += log(1.0 - pradd);
             else if (fully_resolved_after && !star_tree_before)
-                _log_hastings_ratio += log(2.0);
-                
+                tmp -= log(pradd);
+            else if (!star_tree_before && !fully_resolved_after) {
+                tmp += log(1.0 - pradd);
+                tmp -= log(pradd);
+            }
+#else
+            if (star_tree_before && !fully_resolved_after)
+                tmp -= log(2.0);
+            else if (fully_resolved_after && !star_tree_before)
+                tmp += log(2.0);
+#endif
+            //Updater::_om->outputParameterDebugInfo(boost::str(boost::format("tmp (add) = %.5f") % tmp));
+            _log_hastings_ratio += tmp;
+
             // Compute the log of the Jacobian
             _log_jacobian = 0.0;
             _log_jacobian += std::log(_phi);
@@ -218,12 +251,24 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             unsigned num_internals_after = tree->numInternals();
             assert(num_internals_after == num_internals_before - 1);
             const bool star_tree_after = (num_internals_after == (tree->isRooted() ? 2 : 1));
-            if (fully_resolved_before && !star_tree_after) {
-                _log_hastings_ratio -= log(2.0);
+            double tmp = 0.0;
+#if 1 //POLTMP
+            if (fully_resolved_before && !star_tree_after)
+                tmp = log(pradd);
+            else if (star_tree_after && !fully_resolved_before)
+                tmp -= log(1.0 - pradd);
+            else if (!fully_resolved_before && !star_tree_after) {
+                tmp += log(pradd);
+                tmp -= log(1.0 - pradd);
             }
-            else if (star_tree_after && !fully_resolved_before) {
-                _log_hastings_ratio += log(2.0);
-            }
+#else
+            if (fully_resolved_before && !star_tree_after)
+                tmp -= log(2.0);
+            else if (star_tree_after && !fully_resolved_before)
+                tmp += log(2.0);
+#endif
+            //Updater::_om->outputParameterDebugInfo(boost::str(boost::format("tmp (del) = %.5f") % tmp));
+            _log_hastings_ratio += tmp;
 
             // Compute the log Jacobian
             _log_jacobian = 0.0;

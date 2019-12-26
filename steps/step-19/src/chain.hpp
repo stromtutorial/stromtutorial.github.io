@@ -236,7 +236,7 @@ namespace strom {
                 u->setLikelihood(likelihood);
                 u->setLot(lot);
                 u->setLambda(0.05);
-                u->setTargetAcceptanceRate(0.3);
+                u->setTargetAcceptanceRate(0.5);
                 u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
                 u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC());
                 u->setWeight(wpolytomy); sum_weights += wpolytomy;

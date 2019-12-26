@@ -38,7 +38,9 @@ SOFTWARE.
             // See https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute
 
             var showplotarea = false;
-            var showlabels = false;
+            var showplotlabels = false;
+            var showbincounts = false;
+            var plotbins = sbins;    // should be either bins (observed data) or sbins (simulated data)
 
             function download(filename, text) {
                 var element = document.createElement('a');
@@ -73,21 +75,21 @@ SOFTWARE.
                 }
 
             // width and height of svg
-            var plotw = 2000;
-            var ploth = 1000;
-            var lmargin = 50;
-            var tmargin = 5;
-            var bmargin = 25;
-            var lshift = 30;
-            var nplots = bins.length;
-            var nbins = bins[0].length;
+            var plotw   = 2000;
+            var ploth   = 2000;
+            var lmargin =  100;
+            var tmargin =    5;
+            var bmargin =   25;
+            var lshift  =   50;
+            var nplots  = plotbins.length;
+            var nbins   = plotbins[0].length;
             var subplotw = (plotw - lmargin)/nplots;
             var mean_color = "lavender";
             var std_color = "lavender";
 
             var maxbin = 0;
-            for (var b in bins) {
-                var m = Math.max.apply(null, bins[b]);
+            for (var b in plotbins) {
+                var m = Math.max.apply(null, plotbins[b]);
                 if (m > maxbin)
                     maxbin = m;
                 }
@@ -157,7 +159,7 @@ SOFTWARE.
                 .style("shape-rendering", "crispEdges");
             plot_svg.selectAll("g#yaxis g.tick text")
                 .style("font-family", "Verdana")
-                .style("font-size", "40px");
+                .style("font-size", "28px");
 
             // For debugging, this is a rect surrounding the entire plot area
             if (showplotarea) {
@@ -186,8 +188,8 @@ SOFTWARE.
                 var posterior_mean = 0.0;
                 var sample_size = 0.0;
                 for (var j = 0; j < nbins; j++) {
-                    sample_size += bins[k][j];
-                    posterior_mean += (j+1)*bins[k][j];
+                    sample_size += plotbins[k][j];
+                    posterior_mean += (j+1)*plotbins[k][j];
                     }
                 posterior_mean /= sample_size;
                 var posterior_mean_resolution_class = Math.round(posterior_mean);
@@ -204,7 +206,7 @@ SOFTWARE.
                     .attr("fill", "none");
 
                 // show the label in the bottom margin
-                if (showlabels) {
+                if (showplotlabels) {
                     var histlabel = plot_svg.append("text")
                         .attr("class","label")
                         .attr("x",0)
@@ -226,7 +228,7 @@ SOFTWARE.
                 // x - xscale(d)/2      x       x + xscale(d)/2
                 //
                 plot_svg.selectAll("rect.plot" + (k+1))
-                    .data(bins[k])
+                    .data(plotbins[k])
                     .enter()
                     .append("rect")
                     .attr("class", "plot" + (k+1))
@@ -238,7 +240,7 @@ SOFTWARE.
                     .attr("fill", function(d,i)   {return (i == posterior_mean_resolution_class) ? mean_color : std_color;});
                 
                 plot_svg.selectAll("text.binlabel" + (k+1))
-                    .data(bins[k])
+                    .data(plotbins[k])
                     .enter()
                     .append("text")
                     .attr("class", function(d,i) {return "binlabel" + (k+1) + " bin" + i;})
@@ -246,9 +248,10 @@ SOFTWARE.
                     .attr("y",      function(d,i) {return yscale(i+1) + yscale.bandwidth()/2;})
                     .style("font-family", "Verdana")
                     .style("font-size","40px")
-                    .text(function(d,i) {return bins[k][i];});
+                    .style("visibility", showbincounts ? "visible" : "hidden")
+                    .text(function(d,i) {return plotbins[k][i];});
 
-                for (let i in bins[k]) {    
+                for (let i in plotbins[k]) {    
                     console.log("i = " + i);  
                     var b = plot_svg.select("text.bin" + i);              
                     centerLabel(b, x, yscale(parseInt(i)+1) + yscale.bandwidth()/2);
