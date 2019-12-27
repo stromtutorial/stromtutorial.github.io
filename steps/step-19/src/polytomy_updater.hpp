@@ -136,7 +136,7 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
         else
             num_edges_in_fully_resolved_tree = 2*tree->numLeaves() - 3;
         _phi = 1.0/num_edges_in_fully_resolved_tree;
-        const double pradd = 0.9; // probability of choosing and add-edge move if both add-edge and delete-edge are possible
+        const double pradd = 0.5; // probability of choosing and add-edge move if both add-edge and delete-edge are possible
 #endif
 
         // Compute number of internal nodes in a fully resolved tree
