@@ -23,6 +23,12 @@ namespace strom {
             void                                    clear();
             void                                    processCommandLineOptions(int argc, const char * argv[]);
             void                                    run();
+            
+#if 1 //POLTMP
+            typedef std::vector< std::vector<double> >      mmap_element_t;
+            typedef std::map< unsigned, mmap_element_t >    mmap_t;
+            mmap_t                                          mmap;
+#endif
         
         private:
             bool                                    processAssignmentString(Model::SharedPtr m, const std::string & which, const std::string & definition);
@@ -157,6 +163,8 @@ namespace strom {
             ("relrate", boost::program_options::value(&partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
             ("tree", boost::program_options::value(&partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
             ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(1.0), "topology prior C: tree (or resolution class) with m internal nodes has probability C time greater than tree (or resolution class) with m+1 internal nodes.") ///!e
+            ("phi", boost::program_options::value(&PolytomyUpdater::_phi)->default_value(1.0), "maximum fraction of tree length allowed for new edges in an add-edge polytomy proposal.")
+            ("pradd", boost::program_options::value(&PolytomyUpdater::_prob_add_edge)->default_value(0.5), "probability of an add-edge move given both add-edge and delete-edge moves are both possible.") ///!e
             ("allowpolytomies", boost::program_options::value(&_allow_polytomies)->default_value(true), "yes or no; if yes, then topopriorC and polytomyprior are used, otherwise topopriorC and polytomyprior are ignored")
             ("resclassprior", boost::program_options::value(&_resolution_class_prior)->default_value(true), "if yes, topologypriorC will apply to resolution classes; if no, topologypriorC will apply to individual tree topologies") ///!f
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
@@ -452,6 +460,56 @@ namespace strom {
             if (time_to_sample) {
                 _output_manager->outputTree(iteration, chain.getTreeManip());
                 _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());   ///!h
+                
+#if 1   //POLTMP
+                Tree::SharedPtr t = chain.getTreeManip()->getTree();
+                unsigned internal_index = t->_nleaves;
+                std::vector<Node *> nodes_in_order(t->_preorder.size());
+                for (auto nd : t->_preorder) {
+                    if (nd->_parent == t->_root)
+                        nodes_in_order[t->_root->_number] = nd;
+                    else if (nd->_left_child)
+                        nodes_in_order[internal_index++] = nd;
+                    else
+                        nodes_in_order[nd->_number] = nd;
+                }
+
+                std::string fn = boost::str(boost::format("edgelens%d.txt") % m);
+                std::ifstream f(fn.c_str());
+                bool first = !f.good();
+                std::ofstream tmpf(fn, std::ios::out | std::ios::app);
+                if (first) {
+                    tmpf << boost::str(boost::format("%s\t%s") % "var" % "TL");
+                    for (auto nd : nodes_in_order) {
+                        if (nd->_parent == t->_root)
+                            tmpf << boost::str(boost::format("\tleaf-%d") % nd->_parent->_number);
+                        else if (nd->_left_child)
+                            tmpf << boost::str(boost::format("\tstem-%d") % nd->_number);
+                        else
+                            tmpf << boost::str(boost::format("\tleaf-%d") % nd->_number);
+                    }
+                    tmpf << std::endl;
+                }
+                std::vector<double> vvect;
+                double sumv = 0.0;
+                double sumsqv = 0.0;
+                double nv = 0.0;
+                for (auto nd : nodes_in_order) {
+                    double v = nd->getEdgeLength()/TL;
+                    vvect.push_back(v);
+                    sumv += v;
+                    sumsqv += v*v;
+                    nv += 1.0;
+                }
+                mmap[m].push_back(vvect);
+                double variance = (sumsqv - sumv*sumv/nv)/(nv - 1.0);
+                tmpf << boost::str(boost::format("%.5f\t%.5f") % variance % TL);
+                for (auto nd : nodes_in_order) {
+                    tmpf << boost::str(boost::format("\t%.5f") % (nd->_edge_length/TL));
+                }
+                tmpf << std::endl;
+                tmpf.close();
+#endif
             }
         }
     }   ///end_sample
@@ -804,6 +862,33 @@ namespace strom {
         }
 
         std::cout << "\nFinished!" << std::endl;
+        
+#if 1
+        std::ofstream tmpf("m.js");
+        unsigned ntax = _data->getNumTaxa();
+        unsigned mlast = ntax - 2;
+        for (unsigned m = 1; m <= mlast; m++) {
+            tmpf << "m" << m << " = [";
+            unsigned i = 0;
+            for (auto v : mmap[m]) {
+                std::vector<std::string> vstr;
+                double cum = 0.0;
+                for (double x : v) {
+                    cum += x;
+                    vstr.push_back(boost::str(boost::format("%g") % cum));
+                }
+                std::string tmp = boost::algorithm::join(vstr, ",");
+                if (i == 0)
+                    tmpf << "[" << tmp << "]";
+                else
+                    tmpf << ",[" << tmp << "]";
+                ++i;
+            }
+            tmpf << "];" << std::endl;
+        }
+        tmpf.close();
+#endif
+
     }
 
 }

@@ -8,6 +8,15 @@ using namespace strom;
 OutputManager::SharedPtr Updater::_om = 0;
 #endif
 
+#if 0 //POLTMP
+bool Likelihood::_debugnow = false;
+#endif
+
+#if 1   //POLTMP
+double PolytomyUpdater::_phi = 1.0;
+double PolytomyUpdater::_prob_add_edge = 0.5;
+#endif
+
 std::string  Strom::_program_name        = "strom";
 unsigned     Strom::_major_version       = 1;
 unsigned     Strom::_minor_version       = 0;

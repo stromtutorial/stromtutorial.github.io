@@ -46,9 +46,16 @@ namespace strom {
             double                              _new_edge_proportion;
             double                              _orig_edge_proportion;
             double                              _tree_length;
+#if 0 //POLTMP
             double                              _phi;
+#endif
             unsigned                            _polytomy_size;
             unsigned                            _num_polytomies;
+            
+        public:
+        
+            static double                       _prob_add_edge;
+            static double                       _phi;
     };
 
     // Member function bodies go here
@@ -68,7 +75,9 @@ namespace strom {
         _tree_length          = 0.0;
         _new_edge_proportion  = 0.0;
         _orig_edge_proportion = 0.0;
+#if 0   //POLTMP
         _phi                  = 0.5;
+#endif
         _orig_par             = 0;
         _orig_lchild          = 0;
         _polytomy_size        = 0;
@@ -127,16 +136,19 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
         else if (_lambda < 1.0)
             _lambda = 1.0;
 #endif
+
+#if 0 //POLTMP
         _phi = 1.0 - std::exp(-_lambda);
-        
-#if 1 //POLTMP
+#endif
+
+#if 0 //POLTMP
         double num_edges_in_fully_resolved_tree = 0;
         if (tree->isRooted())
             num_edges_in_fully_resolved_tree = 2*tree->numLeaves() - 2;
         else
             num_edges_in_fully_resolved_tree = 2*tree->numLeaves() - 3;
         _phi = 1.0/num_edges_in_fully_resolved_tree;
-        const double pradd = 0.5; // probability of choosing and add-edge move if both add-edge and delete-edge are possible
+        const double _prob_add_edge = 0.5; // probability of choosing and add-edge move if both add-edge and delete-edge are possible
 #endif
 
         // Compute number of internal nodes in a fully resolved tree
@@ -168,7 +180,7 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             _add_edge_proposed = false;
         else
 #if 1 //POLTMP
-            _add_edge_proposed = (_lot->uniform() < pradd);
+            _add_edge_proposed = (_lot->uniform() < _prob_add_edge);
 #else
             _add_edge_proposed = (_lot->uniform() < 0.5);
 #endif
@@ -201,12 +213,12 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             double tmp = 0.0;
 #if 1 //POLTMP
             if (star_tree_before && !fully_resolved_after)
-                tmp += log(1.0 - pradd);
+                tmp += log(1.0 - _prob_add_edge);
             else if (fully_resolved_after && !star_tree_before)
-                tmp -= log(pradd);
+                tmp -= log(_prob_add_edge);
             else if (!star_tree_before && !fully_resolved_after) {
-                tmp += log(1.0 - pradd);
-                tmp -= log(pradd);
+                tmp += log(1.0 - _prob_add_edge);
+                tmp -= log(_prob_add_edge);
             }
 #else
             if (star_tree_before && !fully_resolved_after)
@@ -254,12 +266,12 @@ inline PolytomyUpdater::_partition_vect_t & PolytomyUpdater::computePolytomyDist
             double tmp = 0.0;
 #if 1 //POLTMP
             if (fully_resolved_before && !star_tree_after)
-                tmp = log(pradd);
+                tmp = log(_prob_add_edge);
             else if (star_tree_after && !fully_resolved_before)
-                tmp -= log(1.0 - pradd);
+                tmp -= log(1.0 - _prob_add_edge);
             else if (!fully_resolved_before && !star_tree_after) {
-                tmp += log(pradd);
-                tmp -= log(1.0 - pradd);
+                tmp += log(_prob_add_edge);
+                tmp -= log(1.0 - _prob_add_edge);
             }
 #else
             if (fully_resolved_before && !star_tree_after)

@@ -12,6 +12,9 @@ namespace strom {
     class Updater;
     class TreeUpdater;
     class PolytomyUpdater;  ///!b
+#if 1 //POLTMP
+    class Strom;
+#endif
 
     class Tree {
 
@@ -20,6 +23,10 @@ namespace strom {
             friend class Updater;
             friend class TreeUpdater;
             friend class PolytomyUpdater;   ///!c
+            
+#if 1 //POLTMP
+            friend class Strom;
+#endif
         
         public:
 

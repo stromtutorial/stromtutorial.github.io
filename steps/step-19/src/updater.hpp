@@ -227,6 +227,12 @@ namespace strom {
         _tree_manipulator->flipPartialsAndTMatrices();
 
         // Calculate the log-likelihood and log-prior for the proposed state
+#if 0 //POLTMP
+        if (_name == "Polytomies")
+            Likelihood::_debugnow = true;
+        else
+            Likelihood::_debugnow = false;
+#endif
         double log_likelihood = calcLogLikelihood();
         double log_prior = calcLogPrior();
         

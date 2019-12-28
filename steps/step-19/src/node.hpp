@@ -11,13 +11,21 @@ namespace strom {
     class TreeManip;
     class Likelihood;
     class Updater;
-    
+
+#if 1 //POLTMP
+    class Strom;
+#endif
+
     class Node {
         friend class Tree;
         friend class TreeManip;
         friend class Likelihood;
         friend class Updater;
-        
+
+#if 1 //POLTMP
+        friend class Strom;
+#endif
+
         public:
                                         Node();
                                         ~Node();

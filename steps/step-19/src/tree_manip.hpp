@@ -27,7 +27,7 @@ namespace strom {
             unsigned                    countEdges() const;
             unsigned                    countInternals() const; ///!b
             void                        scaleAllEdgeLengths(double scaler);
-
+            
             void                        createTestTree();
             std::string                 makeNewick(unsigned precision) const;
 
