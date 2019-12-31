@@ -18,6 +18,7 @@
 #include "tree_updater.hpp"
 #include "polytomy_updater.hpp" ///!a
 #include "tree_length_updater.hpp"
+#include "debug_stuff.hpp"  //DEBUGSTUFF
 ///end_includes
 
 namespace strom {
@@ -351,6 +352,7 @@ namespace strom {
     inline void Chain::start() {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
+        DebugStuff::debugSaveTree("start", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
@@ -360,6 +362,7 @@ namespace strom {
     } 
 
     inline void Chain::nextStep(int iteration) {
+        DebugStuff::_which_iter = iteration;    //DEBUGSTUFF
         assert(_lot);
         double u = _lot->uniform();
         double cumprob = 0.0;

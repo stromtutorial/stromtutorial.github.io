@@ -86,7 +86,7 @@ namespace strom {
         
         // Choose random child index
         unsigned upper = n + (parent_included ? 1 : 0);
-        unsigned chosen = _lot->randint(0,upper - 1);
+        unsigned chosen = (unsigned)_lot->randint(0,upper - 1);
         
         // If chosen < n, then find and return that particular child
         if (chosen < n) {
@@ -206,13 +206,13 @@ namespace strom {
         _log_hastings_ratio = 0.0;
 
         // Decide where along focal path (starting from top) to place moved node
-        double new_focal_path_length = _orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom;
+        double focal_path_length = _orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom;
         double u = _lot->uniform();
-        double new_attachment_point = u*new_focal_path_length;
+        double new_attachment_point = u*focal_path_length;
         if (new_attachment_point <= Node::_smallest_edge_length)
             new_attachment_point = Node::_smallest_edge_length;
-        else if (new_focal_path_length - new_attachment_point <= Node::_smallest_edge_length)
-            new_attachment_point = new_focal_path_length - Node::_smallest_edge_length;
+        else if (focal_path_length - new_attachment_point <= Node::_smallest_edge_length)
+            new_attachment_point = focal_path_length - Node::_smallest_edge_length;
 
         // Decide which node(s) to move, and whether the move involves a topology change
         u = _lot->uniform();
@@ -224,24 +224,31 @@ namespace strom {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-                    _a->setEdgeLength(new_focal_path_length - new_attachment_point);
+#if 1
+                    _a->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
+                    _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
+                    _b->setEdgeLength(focal_path_length - new_attachment_point);
+#else
+                    _a->setEdgeLength(focal_path_length - new_attachment_point);
                     _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
                     _b->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
+#endif
                     _case = 1;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
                     _a->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
                     _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
-                    _y->setEdgeLength(new_focal_path_length - new_attachment_point);
-                    _case = 2;                }
+                    _y->setEdgeLength(focal_path_length - new_attachment_point);
+                    _case = 2;
+                }
             } else {
                 _a->setEdgeLength(new_attachment_point);
                 _x->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle - new_attachment_point);
                 if (b_is_child_of_y) {
-                    _b->setEdgeLength(_orig_edgelen_bottom);
+                    _b->setEdgeLength(_orig_edgelen_bottom);    // not really necessary
                     _case = 3;
                 } else {
-                    _y->setEdgeLength(_orig_edgelen_bottom);
+                    _y->setEdgeLength(_orig_edgelen_bottom);    // not really necessary
                     _case = 4;
                 }
             }
@@ -252,9 +259,15 @@ namespace strom {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
+#if 1
+                    _a->setEdgeLength(new_attachment_point);
+                    _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
+                    _b->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
+#else
                     _a->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
                     _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
                     _b->setEdgeLength(new_attachment_point);
+#endif
                     _case = 5;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
@@ -267,10 +280,10 @@ namespace strom {
                 _a->setEdgeLength(_orig_edgelen_top);
                 _x->setEdgeLength(new_attachment_point - _orig_edgelen_top);
                 if (b_is_child_of_y) {
-                    _b->setEdgeLength(new_focal_path_length - new_attachment_point);
+                    _b->setEdgeLength(focal_path_length - new_attachment_point);
                     _case = 7;
                 } else {
-                    _y->setEdgeLength(new_focal_path_length - new_attachment_point);
+                    _y->setEdgeLength(focal_path_length - new_attachment_point);
                     _case = 8;
                 }
             }
@@ -287,10 +300,6 @@ namespace strom {
             // In these cases b is above y, so it is b's edge that is modified
             _b->selectTMatrix();
         }
-#if 0 //POLTMP
-    _tree_manipulator->selectAllPartials();
-    //_tree_manipulator->selectAllTMatrices();
-#endif
     }   ///end_proposeNewState
     
     inline void TreeUpdater::revert() { ///begin_revert
@@ -307,9 +316,9 @@ namespace strom {
             _a->setEdgeLength(_orig_edgelen_top);
             _x->setEdgeLength(_orig_edgelen_middle);
             if (_case == 1 || _case == 3 || _case == 5 || _case == 7)
-                _b->setEdgeLength(_orig_edgelen_bottom);
+                _b->setEdgeLength(_orig_edgelen_bottom);    // not necessary for case 3
             else
-                _y->setEdgeLength(_orig_edgelen_bottom);
+                _y->setEdgeLength(_orig_edgelen_bottom);    // not necessary for case 4
         }   ///!j
     }   ///end_revert
 

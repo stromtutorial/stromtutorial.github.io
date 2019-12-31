@@ -1,5 +1,7 @@
 #pragma once    ///start
 
+#define POLYNEW 1
+
 #include <string>
 #include <vector>
 #include  <iostream>
@@ -11,20 +13,14 @@ namespace strom {
     class TreeManip;
     class Likelihood;
     class Updater;
-
-#if 1 //POLTMP
-    class Strom;
-#endif
+    class DebugStuff;   //DEBUGSTUFF
 
     class Node {
         friend class Tree;
         friend class TreeManip;
         friend class Likelihood;
         friend class Updater;
-
-#if 1 //POLTMP
-        friend class Strom;
-#endif
+        friend class DebugStuff;   //DEBUGSTUFF
 
         public:
                                         Node();
@@ -56,6 +52,11 @@ namespace strom {
                     bool                isAltTMatrix()              {return _flags & Flag::AltTMatrix;}
                     void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}
                     void                clearAltTMatrix()           {_flags &= ~Flag::AltTMatrix;}
+                    
+#if POLYNEW
+                    void                flipTMatrix()               {isAltTMatrix() ? clearAltTMatrix() : setAltTMatrix();}
+                    void                flipPartial()               {isAltPartial() ? clearAltPartial() : setAltPartial();}
+#endif
 
                     double              getEdgeLength()             {return _edge_length;}
                     void                setEdgeLength(double v);

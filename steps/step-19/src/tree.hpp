@@ -12,9 +12,7 @@ namespace strom {
     class Updater;
     class TreeUpdater;
     class PolytomyUpdater;  ///!b
-#if 1 //POLTMP
-    class Strom;
-#endif
+    class DebugStuff;   //DEBUGSTUFF
 
     class Tree {
 
@@ -23,11 +21,8 @@ namespace strom {
             friend class Updater;
             friend class TreeUpdater;
             friend class PolytomyUpdater;   ///!c
-            
-#if 1 //POLTMP
-            friend class Strom;
-#endif
-        
+            friend class DebugStuff;   //DEBUGSTUFF
+
         public:
 
                                         Tree();
@@ -49,7 +44,7 @@ namespace strom {
             Node::PtrVector             _preorder;
             Node::PtrVector             _levelorder;
             Node::Vector                _nodes;
-            std::stack<Node *>          _unused_nodes;  ///!d
+            std::vector<Node *>         _unused_nodes;  ///!d
 
         public:
 

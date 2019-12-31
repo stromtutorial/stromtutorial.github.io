@@ -1,20 +1,20 @@
 #include <limits>   ///start
 #include <iostream>
 #include "strom.hpp"
+#include "debug_stuff.hpp"  //DEBUGSTUFF
 
 using namespace strom;
 
-#if 1 //POLTMP
-OutputManager::SharedPtr Updater::_om = 0;
-#endif
+// static data member initializations
+bool     DebugStuff::_ignore         = false;    //DEBUGSTUFF
+unsigned DebugStuff::_partial_offset = 0;       //DEBUGSTUFF
+unsigned DebugStuff::_tmatrix_offset = 0;       //DEBUGSTUFF
+unsigned DebugStuff::_which_iter     = 0;       //DEBUGSTUFF
+unsigned DebugStuff::_tree_index     = 0;       //DEBUGSTUFF
 
-#if 0 //POLTMP
-bool Likelihood::_debugnow = false;
-#endif
-
-#if 1   //POLTMP
-double PolytomyUpdater::_phi = 1.0;
-double PolytomyUpdater::_prob_add_edge = 0.5;
+#if 0 //POLYNEW
+Node *       Updater::_tmatrix_dirty     = 0;
+std::vector<Node *> Updater::_partials_dirty;
 #endif
 
 std::string  Strom::_program_name        = "strom";
@@ -43,6 +43,8 @@ GeneticCode::genetic_code_definitions_t GeneticCode::_definitions = { // codon o
 };
 
 int main(int argc, const char * argv[]) {
+    DebugStuff::_tree_index = 0;        //DEBUGSTUFF
+    DebugStuff::debugOpenTreeFile();    //DEBUGSTUFF
 
     Strom strom;
     try {
@@ -56,6 +58,8 @@ int main(int argc, const char * argv[]) {
     catch(...) {
         std::cerr << "Exception of unknown type!\n";
     }
+
+    DebugStuff::debugCloseTreeFile();    //DEBUGSTUFF
 
     return 0;
 }   ///end

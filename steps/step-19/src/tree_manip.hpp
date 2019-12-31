@@ -49,7 +49,7 @@ namespace strom {
             void                        detachSubtree(Node * s);
             void                        rectifyNumInternals(int incr);
             void                        refreshNavigationPointers();
-            Node *                      getUnusedNode();
+            Node *                      getUnusedNode(Node * sought = 0);
             void                        putUnusedNode(Node * nd);      ///!d
             
             void                        selectAll();
@@ -1167,19 +1167,11 @@ namespace strom {
 
     inline void TreeManip::flipPartialsAndTMatrices() {
         for (auto & nd : _tree->_nodes) {
-            if (nd.isSelPartial()) {
-                if (nd.isAltPartial())
-                    nd.clearAltPartial();
-                else
-                    nd.setAltPartial();
-            }
+            if (nd.isSelPartial())
+                nd.flipPartial();
             
-            if (nd.isSelTMatrix()) {
-                if (nd.isAltTMatrix())
-                    nd.clearAltTMatrix();
-                else
-                    nd.setAltTMatrix();
-            }
+            if (nd.isSelTMatrix())
+                nd.flipTMatrix();
         }
     }
     
@@ -1294,16 +1286,31 @@ namespace strom {
         refreshLevelorder();
     }   ///end_refreshNavigationPointers
     
-    inline Node * TreeManip::getUnusedNode() {  ///begin_getUnusedNode
-        assert(_tree->_unused_nodes.size() > 0);
-        Node * nd = _tree->_unused_nodes.top();
-        _tree->_unused_nodes.pop();
+    inline Node * TreeManip::getUnusedNode(Node * sought) {  ///begin_getUnusedNode
+        assert(!_tree->_unused_nodes.empty());
+        Node * nd = 0;
+        if (sought) {
+            unsigned i = 0;
+            for (Node * und : _tree->_unused_nodes) {
+                if (und == sought) {
+                    nd = und;
+                    _tree->_unused_nodes.erase(_tree->_unused_nodes.begin()+i);
+                    break;
+                }
+                ++i;
+            }
+            assert(nd);
+        }
+        else {
+            nd = _tree->_unused_nodes.back();
+            _tree->_unused_nodes.pop_back();
+        }
         nd->clearPointers();
         return nd;
     }   ///end_getUnusedNode
     
     inline void TreeManip::putUnusedNode(Node * nd) {   ///begin_putUnusedNode
-        _tree->_unused_nodes.push(nd);
+        _tree->_unused_nodes.push_back(nd);
     }   ///end_putUnusedNode
     
 }

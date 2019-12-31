@@ -1,15 +1,14 @@
 #pragma once    ///start
 
+#define POLYNEW 1
+
 #include "tree.hpp"
 #include "tree_manip.hpp"
 #include "lot.hpp"
 #include "xstrom.hpp"
 #include "likelihood.hpp"
 #include "topo_prior_calculator.hpp"    ///!a
-
-#if 1 //POLTMP
-#include "output_manager.hpp"
-#endif
+#include "debug_stuff.hpp"  //DEBUGSTUFF
 
 namespace strom {
     class Chain;
@@ -79,15 +78,14 @@ namespace strom {
             std::vector<double>                     _prior_parameters;
             
             double                                  _heating_power;
-
             mutable PolytomyTopoPriorCalculator     _topo_prior_calculator; ///!f
             
-            static const double                     _log_zero;
-
-#if 1 //POLTMP
-        public:
-            static OutputManager::SharedPtr         _om;
+#if 0   //POLYNEW
+            static Node *                           _tmatrix_dirty;
+            static std::vector<Node *>              _partials_dirty;
 #endif
+
+            static const double                     _log_zero;
     };
  
     // member function bodies go here
@@ -212,13 +210,44 @@ namespace strom {
     } ///end_calcLogLikelihood
 
     inline double Updater::update(double prev_lnL) { ///begin_update
-        double prev_log_prior = calcLogPrior();
+#if 1   //POLTMP
+        std::string moveabbr = "?";
+        if (_name == "Tree Topology and Edge Proportions")
+            moveabbr = "T";
+        else if (_name == "Tree Length")
+            moveabbr = "L";
+        else if (_name == "Polytomies")
+            moveabbr = "P";
+#endif
 
+        double prev_log_prior = calcLogPrior();
+        
         // Clear any nodes previously selected so that we can detect those nodes
         // whose partials and/or transition probabilities need to be recalculated
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
-                
+        
+#if 1   //POLTMP
+        if (DebugStuff::_which_iter == 9) {
+            std::cerr  << "hey!" << std::endl;
+        }
+#endif
+
+#if 0   //POLTMP
+        // If _tmatrix_dirty is not NULL, it means that this node's transition matrix
+        // should be flagged for recalculation (and not cleared with the other nodes)
+        if (Updater::_tmatrix_dirty) {
+            Updater::_tmatrix_dirty->selectTMatrix();
+            Updater::_tmatrix_dirty = 0;
+        }
+        for (Node * pnd : Updater::_partials_dirty) {
+            pnd->selectPartial();
+        }
+        Updater::_partials_dirty.clear();
+#endif
+
+        DebugStuff::debugSaveTree(boost::str(boost::format("pre-%s-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
+
         // Set model to proposed state and calculate _log_hastings_ratio
         proposeNewState();
         
@@ -226,13 +255,12 @@ namespace strom {
         // This allows us to easily revert to the previous values if the move is rejected
         _tree_manipulator->flipPartialsAndTMatrices();
 
+        DebugStuff::_tree_index++;
+        DebugStuff::debugSaveTree(boost::str(boost::format("%s-proposed-flipfwd-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
+
         // Calculate the log-likelihood and log-prior for the proposed state
-#if 0 //POLTMP
-        if (_name == "Polytomies")
-            Likelihood::_debugnow = true;
-        else
-            Likelihood::_debugnow = false;
-#endif
+        //_tree_manipulator->selectAllTMatrices();
+        //_tree_manipulator->selectAllPartials();
         double log_likelihood = calcLogLikelihood();
         double log_prior = calcLogPrior();
         
@@ -254,18 +282,122 @@ namespace strom {
             accept = false;
 
         if (accept) {
-#if 0 //POLTMP
-            _om->outputParameterDebugInfo(boost::str(boost::format("updater: %s (accepted)") % _name));
-#endif
             _naccepts++;
+#if 0 //POLTMP
+            std::cerr << "~~~> ACCEPT: " << _name << std::endl;
+            std::ofstream tmpf("tmplike-after-accept.nex");
+            tmpf << "#nexus" << std::endl;
+            tmpf << std::endl;
+            tmpf << "begin paup;" << std::endl;
+            tmpf << "  log start replace file=pauplog.txt;" << std::endl;
+            tmpf << "  exe rbcl10.nex;" << std::endl;
+            tmpf << "  set crit=like forcepolyt storebrlen increase=auto autoinc=1000;" << std::endl;
+            tmpf << "end;" << std::endl;
+            tmpf << std::endl;
+            tmpf << "begin trees;" << std::endl;
+            tmpf << "  translate" << std::endl;
+            tmpf << "    1 Chlamydomonas_moewusii_M15842.1," << std::endl;
+            tmpf << "    2 Mnium_hornum_AF226820.1," << std::endl;
+            tmpf << "    3 Lycopodium_digitatum_L11055.1," << std::endl;
+            tmpf << "    4 Adiantum_capillus_veneris_AY178864.1," << std::endl;
+            tmpf << "    5 Gnetum_gnemon_L12680.2," << std::endl;
+            tmpf << "    6 Pinus_radiata_AY497250.1_Monterrey_Pine," << std::endl;
+            tmpf << "    7 Zea_mays_Z11973.1_Corn," << std::endl;
+            tmpf << "    8 Coffea_arabica_X83631.1_Coffee," << std::endl;
+            tmpf << "    9 Theobroma_cacao_AF022125.1_Chocolate," << std::endl;
+            tmpf << "    10 Acer_saccharum_L01881.2_Sugar_Maple" << std::endl;
+            tmpf << "  ;" << std::endl;
+            tmpf << boost::str(boost::format("  tree test [%.5f] = %s;") % log_likelihood % _tree_manipulator->makeNewick(8)) << std::endl;
+            tmpf << "end;" << std::endl;
+            tmpf << std::endl;
+            tmpf << "begin paup;" << std::endl;
+            tmpf << "  lset nst=1 basefreq=equal rates=equal userbrlens;" << std::endl;
+            tmpf << "  lscores 1;" << std::endl;
+            tmpf << "  log stop;" << std::endl;
+            tmpf << "  quit;" << std::endl;
+            tmpf << "end;" << std::endl;
+            tmpf.close();
+#endif
         }
         else {
 #if 0 //POLTMP
-            _om->outputParameterDebugInfo(boost::str(boost::format("updater: %s (rejected)") % _name));
+            std::cerr << "~~~> REJECT: " << _name << std::endl;
+            std::ofstream tmpf("tmplike-before-revert.nex");
+            tmpf << "#nexus" << std::endl;
+            tmpf << std::endl;
+            tmpf << "begin paup;" << std::endl;
+            tmpf << "  log start replace file=pauplog.txt;" << std::endl;
+            tmpf << "  exe rbcl10.nex;" << std::endl;
+            tmpf << "  set crit=like forcepolyt storebrlen increase=auto autoinc=1000;" << std::endl;
+            tmpf << "end;" << std::endl;
+            tmpf << std::endl;
+            tmpf << "begin trees;" << std::endl;
+            tmpf << "  translate" << std::endl;
+            tmpf << "    1 Chlamydomonas_moewusii_M15842.1," << std::endl;
+            tmpf << "    2 Mnium_hornum_AF226820.1," << std::endl;
+            tmpf << "    3 Lycopodium_digitatum_L11055.1," << std::endl;
+            tmpf << "    4 Adiantum_capillus_veneris_AY178864.1," << std::endl;
+            tmpf << "    5 Gnetum_gnemon_L12680.2," << std::endl;
+            tmpf << "    6 Pinus_radiata_AY497250.1_Monterrey_Pine," << std::endl;
+            tmpf << "    7 Zea_mays_Z11973.1_Corn," << std::endl;
+            tmpf << "    8 Coffea_arabica_X83631.1_Coffee," << std::endl;
+            tmpf << "    9 Theobroma_cacao_AF022125.1_Chocolate," << std::endl;
+            tmpf << "    10 Acer_saccharum_L01881.2_Sugar_Maple" << std::endl;
+            tmpf << "  ;" << std::endl;
+            tmpf << boost::str(boost::format("  tree test [%.5f] = %s;") % log_likelihood % _tree_manipulator->makeNewick(8)) << std::endl;
+            tmpf << "end;" << std::endl;
+            tmpf << std::endl;
+            tmpf << "begin paup;" << std::endl;
+            tmpf << "  lset nst=1 basefreq=equal rates=equal userbrlens;" << std::endl;
+            tmpf << "  lscores 1;" << std::endl;
+            tmpf << "  log stop;" << std::endl;
+            tmpf << "  quit;" << std::endl;
+            tmpf << "end;" << std::endl;
+            tmpf.close();
 #endif
             revert();
+#if 0   //POLTMP
+            std::ofstream tmpf2("tmplike-after-revert.nex");
+            tmpf2 << "#nexus" << std::endl;
+            tmpf2 << std::endl;
+            tmpf2 << "begin paup;" << std::endl;
+            tmpf2 << "  log start replace file=pauplog.txt;" << std::endl;
+            tmpf2 << "  exe rbcl10.nex;" << std::endl;
+            tmpf2 << "  set crit=like forcepolyt storebrlen increase=auto autoinc=1000;" << std::endl;
+            tmpf2 << "end;" << std::endl;
+            tmpf2 << std::endl;
+            tmpf2 << "begin trees;" << std::endl;
+            tmpf2 << "  translate" << std::endl;
+            tmpf2 << "    1 Chlamydomonas_moewusii_M15842.1," << std::endl;
+            tmpf2 << "    2 Mnium_hornum_AF226820.1," << std::endl;
+            tmpf2 << "    3 Lycopodium_digitatum_L11055.1," << std::endl;
+            tmpf2 << "    4 Adiantum_capillus_veneris_AY178864.1," << std::endl;
+            tmpf2 << "    5 Gnetum_gnemon_L12680.2," << std::endl;
+            tmpf2 << "    6 Pinus_radiata_AY497250.1_Monterrey_Pine," << std::endl;
+            tmpf2 << "    7 Zea_mays_Z11973.1_Corn," << std::endl;
+            tmpf2 << "    8 Coffea_arabica_X83631.1_Coffee," << std::endl;
+            tmpf2 << "    9 Theobroma_cacao_AF022125.1_Chocolate," << std::endl;
+            tmpf2 << "    10 Acer_saccharum_L01881.2_Sugar_Maple" << std::endl;
+            tmpf2 << "  ;" << std::endl;
+            tmpf2 << boost::str(boost::format("  tree test [%.5f] = %s;") % log_likelihood % _tree_manipulator->makeNewick(8)) << std::endl;
+            tmpf2 << "end;" << std::endl;
+            tmpf2 << std::endl;
+            tmpf2 << "begin paup;" << std::endl;
+            tmpf2 << "  lset nst=1 basefreq=equal rates=equal userbrlens;" << std::endl;
+            tmpf2 << "  lscores 1;" << std::endl;
+            tmpf2 << "  log stop;" << std::endl;
+            tmpf2 << "  quit;" << std::endl;
+            tmpf2 << "end;" << std::endl;
+            tmpf2.close();
+            
+            std::cerr << boost::str(boost::format("tmplike-before-revert: %.5f") % log_likelihood) << std::endl;
+            std::cerr << boost::str(boost::format("tmplike-after-revert: %.5f") % prev_lnL) << std::endl;
+#endif
             _tree_manipulator->flipPartialsAndTMatrices();
             log_likelihood = prev_lnL;
+            
+            DebugStuff::_tree_index++;
+            DebugStuff::debugSaveTree(boost::str(boost::format("%s-reverted-flipback-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
         }
 
         tune(accept);

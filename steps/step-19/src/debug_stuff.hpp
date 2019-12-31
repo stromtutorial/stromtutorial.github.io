@@ -44,7 +44,13 @@ namespace strom {
     inline void DebugStuff::debugSaveTree(std::string treename, std::string description) {
         if (!_ignore) {
             std::ofstream treef("newicks.js", std::ios::out | std::ios::app);
-            treef << boost::str(boost::format("     {name:\"%s_%d\", relrate:1.0, newick:\"%s\"},") % treename % _tree_index % description) << std::endl;
+            
+            // this version displays _tree_index
+            //treef << boost::str(boost::format("     {name:\"%s_%d\", relrate:1.0, newick:\"%s\"},") % treename % _tree_index % description) << std::endl;
+            
+            // this version ignores _tree_index
+            treef << boost::str(boost::format("     {name:\"%s\", relrate:1.0, newick:\"%s\"},") % treename  % description) << std::endl;
+            
             treef.close();
             _tree_index++;
         }
