@@ -1,7 +1,5 @@
 #pragma once    ///start
 
-#define POLYNEW 1
-
 #include "tree.hpp"
 #include "tree_manip.hpp"
 #include "lot.hpp"
@@ -80,11 +78,6 @@ namespace strom {
             double                                  _heating_power;
             mutable PolytomyTopoPriorCalculator     _topo_prior_calculator; ///!f
             
-#if 0   //POLYNEW
-            static Node *                           _tmatrix_dirty;
-            static std::vector<Node *>              _partials_dirty;
-#endif
-
             static const double                     _log_zero;
     };
  
@@ -227,23 +220,10 @@ namespace strom {
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
         
-#if 1   //POLTMP
-        if (DebugStuff::_which_iter == 9) {
+#if 0  //POLTMP
+        if (DebugStuff::_which_iter == 12) {
             std::cerr  << "hey!" << std::endl;
         }
-#endif
-
-#if 0   //POLTMP
-        // If _tmatrix_dirty is not NULL, it means that this node's transition matrix
-        // should be flagged for recalculation (and not cleared with the other nodes)
-        if (Updater::_tmatrix_dirty) {
-            Updater::_tmatrix_dirty->selectTMatrix();
-            Updater::_tmatrix_dirty = 0;
-        }
-        for (Node * pnd : Updater::_partials_dirty) {
-            pnd->selectPartial();
-        }
-        Updater::_partials_dirty.clear();
 #endif
 
         DebugStuff::debugSaveTree(boost::str(boost::format("pre-%s-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
@@ -283,7 +263,7 @@ namespace strom {
 
         if (accept) {
             _naccepts++;
-#if 0 //POLTMP
+#if 1 //POLTMP
             std::cerr << "~~~> ACCEPT: " << _name << std::endl;
             std::ofstream tmpf("tmplike-after-accept.nex");
             tmpf << "#nexus" << std::endl;
@@ -317,10 +297,13 @@ namespace strom {
             tmpf << "  quit;" << std::endl;
             tmpf << "end;" << std::endl;
             tmpf.close();
+            
+            std::cerr << boost::str(boost::format("tmplike-after-accept: %.5f") % log_likelihood);
+            std::cerr << std::endl;
 #endif
         }
         else {
-#if 0 //POLTMP
+#if 1 //POLTMP
             std::cerr << "~~~> REJECT: " << _name << std::endl;
             std::ofstream tmpf("tmplike-before-revert.nex");
             tmpf << "#nexus" << std::endl;
@@ -356,7 +339,7 @@ namespace strom {
             tmpf.close();
 #endif
             revert();
-#if 0   //POLTMP
+#if 1   //POLTMP
             std::ofstream tmpf2("tmplike-after-revert.nex");
             tmpf2 << "#nexus" << std::endl;
             tmpf2 << std::endl;

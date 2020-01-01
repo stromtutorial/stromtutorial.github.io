@@ -1,7 +1,5 @@
 #pragma once    ///start
 
-#define POLYNEW 1
-
 #include <string>
 #include <vector>
 #include  <iostream>
@@ -53,16 +51,14 @@ namespace strom {
                     void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}
                     void                clearAltTMatrix()           {_flags &= ~Flag::AltTMatrix;}
                     
-#if POLYNEW
                     void                flipTMatrix()               {isAltTMatrix() ? clearAltTMatrix() : setAltTMatrix();}
                     void                flipPartial()               {isAltPartial() ? clearAltPartial() : setAltPartial();}
-#endif
 
                     double              getEdgeLength()             {return _edge_length;}
                     void                setEdgeLength(double v);
 
                     void                clearPointers()             {_left_child = _right_sib = _parent = 0;}   ///!a
-                    
+                                        
             static const double _smallest_edge_length;
 
             typedef std::vector<Node>    Vector;

@@ -1310,6 +1310,7 @@ namespace strom {
     }   ///end_getUnusedNode
     
     inline void TreeManip::putUnusedNode(Node * nd) {   ///begin_putUnusedNode
+        nd->clearPointers();
         _tree->_unused_nodes.push_back(nd);
     }   ///end_putUnusedNode
     

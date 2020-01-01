@@ -47,6 +47,10 @@ namespace strom {
             
             unsigned                                calcNumEdgesInFullyResolvedTree() const;
             unsigned                                calcNumInternalsInFullyResolvedTree() const;
+            
+#if 1   //POLYTMP
+            static std::set<unsigned>               _trashed;
+#endif
 
         private:
         
@@ -81,7 +85,7 @@ namespace strom {
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
             void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
-            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, bool polytomy);
+            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy = 0);
             void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
@@ -116,7 +120,9 @@ namespace strom {
             bool                                    _underflow_scaling;
             bool                                    _using_data;
 
-            std::vector<Node *>                     _polytomy_helpers;    ///!d
+            std::vector<Node *>                     _polytomy_helpers;
+            std::map<int, std::vector<int> >        _polytomy_map;
+            
             std::vector<double>                     _identity_matrix;   ///!e
 
         public:
@@ -681,10 +687,17 @@ namespace strom {
     inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const {
         unsigned pindex = nd->_number;
         // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
+#if 1   //POLYTMP
+        if (nd->_number >= _ntaxa) {
+            if (nd->isAltPartial())
+                pindex += info.partial_offset;
+        }
+#else
         if (nd->_parent && nd->_left_child) {
             if (nd->isAltPartial())
                 pindex += info.partial_offset;
         }
+#endif
         return pindex;
     }
     
@@ -738,7 +751,7 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, bool polytomy) {   ///begin_queuePartialsRecalculation
+    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {   ///begin_queuePartialsRecalculation
         // Loop through all instances
         for (auto & info : _instances) {
             // Loop through all subsets assigned to this instance
@@ -746,15 +759,49 @@ namespace strom {
             for (unsigned s : info.subsets) {
             
                 if (polytomy) {
-                    // nd has been pulled out of tree's _unused_nodes vector to break up polytomy
-                    // Set the transition matrix for nd to the identity matrix
-                    nd->setEdgeLength(0.0);
+#if 1  //POLYTMP
+                    unsigned pindex = getPartialIndex(nd, info);
+                    _trashed.insert(pindex);
+#endif
+                    // nd has been pulled out of tree's _unused_nodes vector to break up the polytomy
+                    // Note that the parameter "polytomy" is the polytomous node itself
+                    
+                    // First get the transition matrix index
                     unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
-                    int code = beagleSetTransitionMatrix(info.handle, tindex, &_identity_matrix[0], 1);
+
+                    // Set the transition matrix for nd to the identity matrix
                     // note: last argument 1 is the value used for ambiguous states (should be 1 for transition matrices)
+                    int code = beagleSetTransitionMatrix(info.handle, tindex, &_identity_matrix[0], 1);
                     if (code != 0)
                         throw XStrom(boost::str(boost::format("Failed to set transition matrix for instance %d. BeagleLib error code was %d (%s)") % info.handle % code % _beagle_error[code]));
+                    
+                    // Set the edgelength to 0.0 to maintain consistency with the transition matrix
+                    nd->setEdgeLength(0.0);
+                    
+                    // If employing underflow scaling, the scaling factors for these fake nodes need to be
+                    // transferred to the polytomous node, as that will be the only node remaining after the
+                    // likelihood has been calculated. Save the scaling factor index, associating it with
+                    // the scaling factor index of the polytomy node.
+                    if (_underflow_scaling) {
+                        // Get the polytomy's scaling factor index
+                        int spolytomy = getScalerIndex(polytomy, info);
+                        
+                        // Get nd's scaling factor index
+                        int snd = getScalerIndex(nd, info);
+                        
+                        // Save nd's index in the vector associated with polytomy's index
+                        _polytomy_map[spolytomy].push_back(snd);
+                    }
+                    
                 }
+#if 1  //POLYTMP
+                else {
+                    unsigned pindex = getPartialIndex(nd, info);
+                    auto iter = _trashed.find(pindex);
+                    if (iter != _trashed.end())
+                        _trashed.erase(iter);
+                }
+#endif
                 
                 addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
                 ++instance_specific_subset_index;
@@ -787,7 +834,8 @@ namespace strom {
         assert(_instances.size() > 0);
         assert(t);
         assert(t->isRooted() == _rooted);
-        assert(_polytomy_helpers.empty());    ///!i
+        assert(_polytomy_helpers.empty());
+        assert(_polytomy_map.empty());
 
         _relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates();
 
@@ -827,9 +875,9 @@ namespace strom {
                         for (unsigned k = 0; k < nchildren - 2; k++) {
                             c = tm.getUnusedNode();
                             c->_left_child = a;
-                            _polytomy_helpers.push_back(c);    ///!k
+                            _polytomy_helpers.push_back(c);
 
-                            queuePartialsRecalculation(c, a, b, true);
+                            queuePartialsRecalculation(c, a, b, nd);
                             
                             // Tackle next arm of the polytomy  ///!p
                             b = b->_right_sib;
@@ -837,7 +885,7 @@ namespace strom {
                         }   ///!q
                         
                         // Now add operation to compute the partial for the real internal node  ///!r
-                        queuePartialsRecalculation(nd, a, b, false);
+                        queuePartialsRecalculation(nd, a, b);
                     }
                     else {
                         // Internal node is not a polytomy
@@ -845,7 +893,7 @@ namespace strom {
                         assert(lchild);
                         Node * rchild = lchild->_right_sib;
                         assert(rchild);
-                        queuePartialsRecalculation(nd, lchild, rchild, false);
+                        queuePartialsRecalculation(nd, lchild, rchild);
                     }   ///!s
                 }   // isSelPartial
             }   // internal node
@@ -895,39 +943,54 @@ namespace strom {
         if (_operations.size() == 0)
             return;
         int code = 0;
-        int cumulative_scale_index = 0;
         
         // Loop through all instances
         for (auto & info : _instances) {
             unsigned nsubsets = (unsigned)info.subsets.size();
 
             if (nsubsets > 1) {
-                if (_underflow_scaling) {
-                    for (unsigned s = 0; s < nsubsets; ++s) {
-                        code = beagleResetScaleFactorsByPartition(info.handle, cumulative_scale_index, s);
-                        if (code != 0)
-                            throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
-                    }
-                }
                 code = beagleUpdatePartialsByPartition(
                     info.handle,                                                    // Instance number
                     (BeagleOperationByPartition *) &_operations[info.handle][0],    // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/9));                      // Number of operations
-                    
+                if (code != 0) {
+                    throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+                }
+                
+                if (_underflow_scaling) {
+                    // Accumulate scaling factors across polytomy helpers and assign them to their parent node
+                    for (auto & m : _polytomy_map) {
+                        for (unsigned subset = 0; subset < nsubsets; subset++) {
+                            code = beagleAccumulateScaleFactorsByPartition(info.handle, &m.second[0], (int)m.second.size(), m.first, subset);
+                            if (code != 0) {
+                                throw XStrom(boost::format("failed to transfer scaling factors to polytomous node. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+                            }
+                        }
+                    }
+                }
             }
             else {
                 // no partitioning, just one data subset
-
                 code = beagleUpdatePartials(
                     info.handle,                                        // Instance number
                     (BeagleOperation *) &_operations[info.handle][0],   // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/7),           // Number of operations
                     BEAGLE_OP_NONE);                                    // Index number of scaleBuffer to store accumulated factors
+                if (code != 0) {
+                    throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+                }
+                
+                if (_underflow_scaling) {
+                    // Accumulate scaling factors across polytomy helpers and assign them to their parent node
+                    for (auto & m : _polytomy_map) {
+                        code = beagleAccumulateScaleFactors(info.handle, &m.second[0], (int)m.second.size(), m.first);
+                        if (code != 0) {
+                            throw XStrom(boost::format("failed to transfer scaling factors to polytomous node. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+                        }
+                    }
+                }
             }
             
-            if (code != 0) {
-                throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
-            }
         }   // instance loop
     }
     
@@ -959,15 +1022,6 @@ namespace strom {
                     unsigned s = getScalerIndex(nd, info);
                     internal_node_scaler_indices.push_back(s);
                 }
-            }
-
-            // Some of the scaling vectors are associated with the fake internal
-            // nodes used to compute partials for polytomies. Pack up these fake
-            // nodes after harvesting their scaling factors.
-            TreeManip tm(t);
-            for (Node * h : _polytomy_helpers) {
-                unsigned s = getScalerIndex(h, info);
-                internal_node_scaler_indices.push_back(s);
             }
             
             if (nsubsets == 1) {
@@ -1139,9 +1193,53 @@ namespace strom {
 
         setModelRateMatrix();
         setAmongSiteRateHeterogenetity();
+#if 1   //POLTMP
+        if (DebugStuff::_which_iter == 2)
+            std::cerr << std::endl;
+#endif
         defineOperations(t);
         updateTransitionMatrices();
         calculatePartials(t);
+        
+#if 0   //POLTMP
+        if (DebugStuff::_which_iter == 1) {
+            int code = beagleResetScaleFactors(0, 0);
+            assert(code == 0);
+
+            unsigned npatterns = 424;
+            unsigned nstates = 4;
+            std::vector<double> outpartials(npatterns*nstates, 0);
+
+            //beagleGetPartials(0, 12, BEAGLE_OP_NONE, &outpartials[0]);
+            //std::ofstream tmpf("partials12noscaling.txt");
+
+            //beagleGetPartials(0, 12, 3, &outpartials[0]);
+            //std::ofstream tmpf("partials12scaling.txt");
+
+            //beagleGetPartials(0, 12, 0, &outpartials[0]);
+            //std::ofstream tmpf("partials12scaling0.txt");
+            
+            beagleGetPartials(0, 18, 9, &outpartials[0]);
+            std::ofstream tmpf("partials18scaling9.txt");
+
+            for (unsigned i = 0; i < npatterns; ++i) {
+                tmpf << boost::str(boost::format("%6d A %12.5f\n") % (i+1) % outpartials[4*i+0]);
+                tmpf << boost::str(boost::format("%6d C %12.5f\n") % (i+1) % outpartials[4*i+1]);
+                tmpf << boost::str(boost::format("%6d G %12.5f\n") % (i+1) % outpartials[4*i+2]);
+                tmpf << boost::str(boost::format("%6d T %12.5f\n") % (i+1) % outpartials[4*i+3]);
+                tmpf << std::endl;
+            }
+            tmpf.close();
+            
+            std::vector<double> outscalers(npatterns, 0);
+            beagleGetScaleFactors(0, 3, &outscalers[0]);
+            std::ofstream tmpf2("scalers9.txt");
+            for (unsigned i = 0; i < npatterns; ++i) {
+                tmpf2 << boost::str(boost::format("%6d %12.5f\n") % (i+1) % outscalers[i]);
+            }
+            tmpf2.close();
+        }
+#endif
         
         double log_likelihood = 0.0;
         for (auto & info : _instances) {
@@ -1154,9 +1252,10 @@ namespace strom {
             tm.putUnusedNode(h);
         }
         _polytomy_helpers.clear();
+        _polytomy_map.clear();
         
-#if 1 //POLTMP
-        // look for nodes that were polytomy helpers in the past that did got their transiton matrices updated
+#if 1  //POLYTMP
+        // look for nodes that were polytomy helpers in the past whose transiton matrices were not updated
         std::vector<double> P(16, 0.0);
         std::vector<double> Pref(16, 0.0);
         Pref[0] = Pref[5] = Pref[10] = Pref[15] = 1.0;
@@ -1166,10 +1265,15 @@ namespace strom {
                 // Loop through all subsets assigned to this instance
                 unsigned instance_specific_subset_index = 0;
                 for (unsigned s : info.subsets) {
-                    unsigned index = getTMatrixIndex(nd, info, 0);
-                    beagleGetTransitionMatrix(info.handle, index, &P[0]);
+                    unsigned pindex = getPartialIndex(nd, info);
+                    if (_trashed.find(pindex) != _trashed.end()) {
+                        std::cerr << "########## nd = " << nd->_number << ", index = " << pindex << ", partials trashed" << std::endl;
+                    }
+
+                    unsigned tindex = getTMatrixIndex(nd, info, 0);
+                    beagleGetTransitionMatrix(info.handle, tindex, &P[0]);
                     if (P == Pref)
-                        std::cerr << "########## nd = " << nd->_number << ", index = " << index << ", tmatrix = identity matrix" << std::endl;
+                        std::cerr << "########## nd = " << nd->_number << ", index = " << tindex << ", tmatrix = identity matrix" << std::endl;
                 }
             }
             

@@ -2,8 +2,6 @@
 
 #include "updater.hpp"
 
-#define POLYNEW 1
-
 namespace strom {
 
     class Chain;
@@ -42,13 +40,11 @@ namespace strom {
             Node *                              _orig_par;
             Node *                              _orig_lchild;
             
-#if POLYNEW
             Node *                              _first_child;
             Node *                              _chosen_node;
             double                              _chosen_edgelen;
             double                              _chosen_proportion;
             double                              _remainder_proportion;
-#endif
 
             bool                                _add_edge_proposed;
             double                              _new_edge_proportion;
@@ -78,10 +74,8 @@ namespace strom {
         _orig_edge_proportion = 0.0;
         _orig_par             = 0;
         _orig_lchild          = 0;
-#if POLYNEW
         _chosen_node          = 0;
         _first_child          = 0;
-#endif
         _polytomy_size        = 0;
         _num_polytomies       = 0;
         _add_edge_proposed    = false;
@@ -127,17 +121,6 @@ namespace strom {
     inline void PolytomyUpdater::proposeNewState() {    ///begin_proposeNewState
         Tree::SharedPtr tree = _tree_manipulator->getTree();
         
-#if POLYNEW
-#else
-        // Translate tuning parameter _lambda into the maximum possible proportion
-        // that a newly created edge could have
-        if (_lambda > 1000.0)
-            _lambda = 1000.0;
-        else if (_lambda < 1.0)
-            _lambda = 1.0;
-        _phi = 1.0 - std::exp(-_lambda);
-#endif
-
         // probability of choosing and add-edge move if both add-edge and delete-edge are possible
         const double _prob_add_edge = 0.5;
 
@@ -157,10 +140,6 @@ namespace strom {
         unsigned num_internals_before = tree->numInternals();
         unsigned num_leaves_before = tree->numLeaves();
         unsigned num_internal_edges_before = num_internals_before - (tree->isRooted() ? 2 : 1);
-#if POLYNEW
-#else
-        unsigned total_edges_before = num_leaves_before + num_internal_edges_before;
-#endif
         bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
         bool star_tree_before = (tree->numInternals() == 1);
         
@@ -212,7 +191,6 @@ namespace strom {
             _log_hastings_ratio += tmp;
 
             // Compute the log of the Jacobian
-#if POLYNEW
             _log_jacobian = std::log(_orig_edge_proportion);
 
             // flag partials for recalculation
@@ -228,17 +206,8 @@ namespace strom {
             // node in a likelihood calculation for a polytomous tree. In this case, its transition matrix
             // is still the identity matrix and thus needs to be scheduled for recalculation.
             //_orig_par->selectTMatrix();
-#else
-            _log_jacobian = 0.0;
-            _log_jacobian += std::log(_phi);
-            _log_jacobian += (total_edges_before - 1)*std::log(1.0 - _new_edge_proportion);
-            
-            // flag partials and transition matrices for recalculation
-            _tree_manipulator->selectAllPartials();
-            _tree_manipulator->selectAllTMatrices();
-#endif
 
-#if 0   //POLTMP
+#if 1   //POLTMP
             std::cerr << "Add-edge:" << std::endl;
             std::cerr << boost::str(boost::format("  _orig_par:                                %d") % _orig_par->getNumber()) << std::endl;
             std::cerr << boost::str(boost::format("  _orig_lchild:                             %d") % _orig_lchild->getNumber()) << std::endl;
@@ -288,7 +257,6 @@ namespace strom {
             _log_hastings_ratio += tmp;
 
             // Compute the log Jacobian
-#if POLYNEW
             _log_jacobian = -std::log(_orig_edge_proportion);
 
             // flag partials and transition matrices for recalculation
@@ -301,17 +269,8 @@ namespace strom {
             // so that a revert will retain the original tmatrix and partial
             _orig_lchild->selectTMatrix();
             _orig_lchild->selectPartial();
-#else
-            _log_jacobian = 0.0;
-            _log_jacobian -= std::log(_phi);
-            _log_jacobian -= (total_edges_before - 2)*std::log(1.0 - _orig_edge_proportion);
 
-            // flag partials and transition matrices for recalculation
-            _tree_manipulator->selectAllPartials();
-            _tree_manipulator->selectAllTMatrices();
-#endif
-
-#if 0  //POLTMP
+#if 1  //POLTMP
             std::cerr << "Delete-edge:" << std::endl;
             std::cerr << boost::str(boost::format("  _orig_par:                                %d")   % _orig_par->getNumber()) << std::endl;
             std::cerr << boost::str(boost::format("  _orig_lchild:                             %d")   % _orig_lchild->getNumber()) << std::endl;
@@ -343,13 +302,6 @@ namespace strom {
         _tree_manipulator->insertSubtreeOnLeft(v, u);
         assert(u->getLeftChild() == v);
         _tree_manipulator->rectifyNumInternals(+1);
-
-#if POLYNEW
-#else
-        _new_edge_proportion = _lot->uniform()*_phi;
-        _tree_manipulator->scaleAllEdgeLengths(1.0 - _new_edge_proportion);
-        v->setEdgeLength(_new_edge_proportion*_tree_length);
-#endif
 
         // Save u and v. If revert is necessary, all of orig_lchild's nodes will be returned
         // to orig_par, and orig_lchild will be deleted.
@@ -394,7 +346,6 @@ namespace strom {
         }
         assert (uspokes.size() == _polytomy_size);
         
-#if POLYNEW
         // Choose one of the candidates as the edge to break
         unsigned i = (unsigned)_lot->randint(0, (int)uspokes.size()-1);
         _chosen_node = uspokes[i];
@@ -410,7 +361,6 @@ namespace strom {
 
         _chosen_node->setEdgeLength(_new_edge_proportion*_tree_length);
         _orig_lchild->setEdgeLength(_remainder_proportion*_tree_length);
-#endif
 
         bool reverse_polarity = false;
         std::vector<Node *> vspokes;
@@ -507,7 +457,6 @@ namespace strom {
         
         _tree_manipulator->refreshNavigationPointers();
         
-#if POLYNEW
         // Create vector of valid spokes
         std::vector<Node *> spokes;
         spokes.push_back(_orig_par->getParent());
@@ -526,11 +475,6 @@ namespace strom {
         _chosen_proportion = _chosen_edgelen/_tree_length;
         _chosen_node->setEdgeLength(_chosen_edgelen + _orig_edge_proportion*_tree_length);
         _new_edge_proportion = _chosen_node->getEdgeLength()/_tree_length;
-#else
-        assert(_orig_edge_proportion < 1.0);
-        double scaler = 1.0/(1.0 - _orig_edge_proportion);
-        _tree_manipulator->scaleAllEdgeLengths(scaler);
-#endif
     }   ///end_proposeDeleteEdgeMove
     
     inline void PolytomyUpdater::revert() { ///begin_revert
@@ -548,29 +492,14 @@ namespace strom {
             _tree_manipulator->rectifyNumInternals(-1);
             
             _tree_manipulator->refreshNavigationPointers();
-#if 0 //POLYNEW
-            Updater::_partials_dirty.clear();
-            Updater::_partials_dirty.push_back(_orig_par);
-#endif
-
-#if POLYNEW
             _chosen_node->setEdgeLength(_orig_edge_proportion*_tree_length);
-#else
-            assert(_new_edge_proportion < 1.0);
-            double scaler = 1.0/(1.0 - _new_edge_proportion);
-            _tree_manipulator->scaleAllEdgeLengths(scaler);
-#endif
             double TL_after_revert_add_edge = _tree_manipulator->calcTreeLength();
             assert(std::fabs(_tree_length -TL_after_revert_add_edge) < 1.e-8);
         }
         else {
             Node * v = _tree_manipulator->getUnusedNode(_orig_lchild);
             _tree_manipulator->rectifyNumInternals(+1);
-#if POLYNEW
             _chosen_node->setEdgeLength(_chosen_edgelen);
-#else
-            _tree_manipulator->scaleAllEdgeLengths(1.0 - _orig_edge_proportion);
-#endif
             v->setEdgeLength(_orig_edge_proportion*_tree_length);
             for (Node * child = _first_child; child;) {
                 Node * child_rsib = child->getRightSib();
@@ -579,14 +508,6 @@ namespace strom {
                 child = child_rsib;
             }
             _tree_manipulator->insertSubtreeOnRight(v, _orig_par);
-            
-#if 0 //POLYNEW
-            Updater::_tmatrix_dirty = v;
-            Updater::_partials_dirty.clear();
-            Updater::_partials_dirty.push_back(v);
-            Updater::_partials_dirty.push_back(_orig_par);
-#endif
-
             _tree_manipulator->refreshNavigationPointers();
             
             double TL_after_revert_del_edge = _tree_manipulator->calcTreeLength();

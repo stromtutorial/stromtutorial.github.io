@@ -12,9 +12,8 @@ unsigned DebugStuff::_tmatrix_offset = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_which_iter     = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_tree_index     = 0;       //DEBUGSTUFF
 
-#if 0 //POLYNEW
-Node *       Updater::_tmatrix_dirty     = 0;
-std::vector<Node *> Updater::_partials_dirty;
+#if 1  //POLYTMP
+std::set<unsigned> Likelihood::_trashed;
 #endif
 
 std::string  Strom::_program_name        = "strom";
