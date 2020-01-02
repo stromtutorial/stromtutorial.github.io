@@ -6,15 +6,11 @@
 using namespace strom;
 
 // static data member initializations
-bool     DebugStuff::_ignore         = false;    //DEBUGSTUFF
+bool     DebugStuff::_ignore         = true;    //DEBUGSTUFF
 unsigned DebugStuff::_partial_offset = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_tmatrix_offset = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_which_iter     = 0;       //DEBUGSTUFF
 unsigned DebugStuff::_tree_index     = 0;       //DEBUGSTUFF
-
-#if 1  //POLYTMP
-std::set<unsigned> Likelihood::_trashed;
-#endif
 
 std::string  Strom::_program_name        = "strom";
 unsigned     Strom::_major_version       = 1;
@@ -59,6 +55,19 @@ int main(int argc, const char * argv[]) {
     }
 
     DebugStuff::debugCloseTreeFile();    //DEBUGSTUFF
+    
+#if 0   //POLTMP
+    TreeSummary sumt;
+    try {
+        sumt.readTreefile("trees.tre", 1);
+        }
+    catch(NxsException x) {
+        std::cerr << "Program aborting due to errors encountered reading tree file." << std::endl;
+        std::cerr << x.what() << std::endl;
+        std::exit(0);
+        }
+    sumt.showResClassSummary();
+#endif
 
     return 0;
 }   ///end

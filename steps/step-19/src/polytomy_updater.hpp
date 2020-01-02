@@ -45,6 +45,7 @@ namespace strom {
             double                              _chosen_edgelen;
             double                              _chosen_proportion;
             double                              _remainder_proportion;
+            double                              _fraction;
 
             bool                                _add_edge_proposed;
             double                              _new_edge_proportion;
@@ -53,6 +54,11 @@ namespace strom {
             double                              _phi;
             unsigned                            _polytomy_size;
             unsigned                            _num_polytomies;
+            
+#if 0   //POLTMP
+            double                              _sum_chosen;
+            double                              _num_chosen;
+#endif
     };
 
     // Member function bodies go here
@@ -62,6 +68,10 @@ namespace strom {
         Updater::clear();
         _name = "Polytomies";
         reset();
+#if 0   //POLTMP
+        _sum_chosen = 0.0;
+        _num_chosen = 0.0;
+#endif
     }   ///end_constructor
 
     inline PolytomyUpdater::~PolytomyUpdater() {    ///begin_destructor
@@ -138,7 +148,7 @@ namespace strom {
 
         // Determine whether starting tree is fully resolved or the star tree
         unsigned num_internals_before = tree->numInternals();
-        unsigned num_leaves_before = tree->numLeaves();
+        //unsigned num_leaves_before = tree->numLeaves();
         unsigned num_internal_edges_before = num_internals_before - (tree->isRooted() ? 2 : 1);
         bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
         bool star_tree_before = (tree->numInternals() == 1);
@@ -174,7 +184,7 @@ namespace strom {
             _log_hastings_ratio += std::log(_num_polytomies);
             _log_hastings_ratio += std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
             _log_hastings_ratio -= std::log(num_internal_edges_before + 1);
-            
+
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
             unsigned num_internals_after = tree->numInternals();
             assert(num_internals_after == num_internals_before + 1);
@@ -191,7 +201,8 @@ namespace strom {
             _log_hastings_ratio += tmp;
 
             // Compute the log of the Jacobian
-            _log_jacobian = std::log(_orig_edge_proportion);
+            //_log_jacobian = std::log(_orig_edge_proportion) - std::log(1.-_fraction);
+            _log_jacobian = std::log(_orig_edge_proportion);    //POLTMP temporary!
 
             // flag partials for recalculation
             _tree_manipulator->selectPartialsHereToRoot(_orig_lchild);
@@ -200,39 +211,62 @@ namespace strom {
             _orig_lchild->selectTMatrix();
             _chosen_node->selectTMatrix();
 
-            // This one is less obvious - it was the original hub node of the polytomy that was split up
-            // If the previous move was a rejected delete-edge move, then _orig_par has just been brought
-            // out of storage (to restore the node deleted), and its last job was to assist as a fake
-            // node in a likelihood calculation for a polytomous tree. In this case, its transition matrix
-            // is still the identity matrix and thus needs to be scheduled for recalculation.
-            //_orig_par->selectTMatrix();
+#if 0   //POLTMP
+            if (star_tree_before) {
+                _sum_chosen += _orig_edge_proportion;
+                _num_chosen += 1.0;
+                std::cerr << "avg. chosen = " << (_sum_chosen/_num_chosen) << std::endl;
+            }
+#endif
 
-#if 1   //POLTMP
-            std::cerr << "Add-edge:" << std::endl;
-            std::cerr << boost::str(boost::format("  _orig_par:                                %d") % _orig_par->getNumber()) << std::endl;
-            std::cerr << boost::str(boost::format("  _orig_lchild:                             %d") % _orig_lchild->getNumber()) << std::endl;
-            std::cerr << boost::str(boost::format("  _num_polytomies:                          %d") % _num_polytomies) << std::endl;
-            std::cerr << boost::str(boost::format("  _polytomy_size (before):                  %d") % _polytomy_size) << std::endl;
-            std::cerr << boost::str(boost::format("  spokes moved:                             %d") % _tree_manipulator->countChildren(_orig_lchild)) << std::endl;
-            std::cerr << boost::str(boost::format("  _chosen_node:                             %d") % _chosen_node->getNumber()) << std::endl;
-            std::cerr << boost::str(boost::format("  _tree_length:                             %.5f") % _tree_length) << std::endl;
-            std::cerr << boost::str(boost::format("  _orig_edge_proportion (p):                %.5f") % _orig_edge_proportion) << std::endl;
-            std::cerr << boost::str(boost::format("  _new_edge_proportion (p1: chosen):        %.5f") % _new_edge_proportion) << std::endl;
-            std::cerr << boost::str(boost::format("  _remainder_proportion (p2: _orig_lchild): %.5f") % _remainder_proportion) << std::endl;
-            std::cerr << boost::str(boost::format("  _log_hastings_ratio:                      %.5f") % _log_hastings_ratio) << std::endl;
-            std::cerr << boost::str(boost::format("  _log_jacobian:                            %.5f") % _log_jacobian) << std::endl;
-            std::cerr << std::endl;
+#if 0   //POLTMP
+            //if (star_tree_before) {
+                std::cerr << "Add-edge:" << std::endl;
+                std::cerr << boost::str(boost::format("  _orig_par:                                %d") % _orig_par->getNumber()) << std::endl;
+                std::cerr << boost::str(boost::format("  _orig_lchild:                             %d") % _orig_lchild->getNumber()) << std::endl;
+                std::cerr << boost::str(boost::format("  _num_polytomies (before):                 %d") % _num_polytomies) << std::endl;
+                std::cerr << boost::str(boost::format("  _polytomy_size (before):                  %d") % _polytomy_size) << std::endl;
+                std::cerr << boost::str(boost::format("  spokes moved:                             %d") % _tree_manipulator->countChildren(_orig_lchild)) << std::endl;
+                std::cerr << boost::str(boost::format("  _chosen_node:                             %d") % _chosen_node->getNumber()) << std::endl;
+                std::cerr << boost::str(boost::format("  _tree_length:                             %.5f") % _tree_length) << std::endl;
+                std::cerr << boost::str(boost::format("  _fraction (uniform):                      %.5f") % _fraction) << std::endl;
+                std::cerr << boost::str(boost::format("  _new_edge_proportion (p1: chosen):        %.5f (%.5f)") % _new_edge_proportion % (_new_edge_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  _remainder_proportion (p2: _orig_lchild): %.5f (%.5f)") % _remainder_proportion % (_remainder_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  p1 + p2:                                  %.5f (%.5f)") % (_new_edge_proportion + _remainder_proportion) % ((_new_edge_proportion + _remainder_proportion)*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  _orig_edge_proportion (p):                %.5f (%.5f)") % _orig_edge_proportion % (_orig_edge_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  _log_hastings_ratio:                      %.5f") % _log_hastings_ratio) << std::endl;
+                std::cerr << boost::str(boost::format("     pr(rev)/pr(for):                       %.5f") % std::exp(tmp)) << std::endl;
+                std::cerr << boost::str(boost::format("     _num_polytomies (before):              %d") % _num_polytomies) << std::endl;
+                std::cerr << boost::str(boost::format("     num ways (nspokes before):             %.5f (%d)") % (pow(2.0, _polytomy_size - 1) - _polytomy_size - 1) % _polytomy_size) << std::endl;
+                std::cerr << boost::str(boost::format("     (num_internal_edges_before:            %d)") % num_internal_edges_before) << std::endl;
+                std::cerr << boost::str(boost::format("     1/(num_internal_edges_before + 1):     %.5f") % (1./(num_internal_edges_before+1))) << std::endl;
+                std::cerr << boost::str(boost::format("  _log_jacobian:                            %.5f") % _log_jacobian) << std::endl;
+                std::cerr << boost::str(boost::format("     _orig_edge_proportion:                 %.5f (%.5f)") % _orig_edge_proportion % (_orig_edge_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("     _fraction (1 - _fraction):             %.5f (%.5f)") % _fraction % (1. - _fraction)) << std::endl;
+                std::cerr << std::endl;
+            //}
 #endif
         }
         else {
             // Choose an internal edge at random and delete it to create a polytomy
             // (or a bigger polytomy if there is already a polytomy)
             nd = _tree_manipulator->randomInternalEdge(_lot->uniform());
+            assert(nd->getParent() && nd->getParent()->getParent());
             
             proposeDeleteEdgeMove(nd);
 
             double TL_after_del_edge = _tree_manipulator->calcTreeLength();
             assert(std::fabs(_tree_length - TL_after_del_edge) < 1.e-8);
+
+#if 0 //POLTMP
+            unsigned npoly_check = 0;
+            for (auto nd : tree->_preorder) {
+                unsigned s = _tree_manipulator->countChildren(nd);
+                if (s > 2)
+                    npoly_check++;
+            }
+            assert(_num_polytomies == npoly_check);
+#endif
 
             // Compute the log of the Hastings ratio
             _log_hastings_ratio  = 0.0;
@@ -257,7 +291,8 @@ namespace strom {
             _log_hastings_ratio += tmp;
 
             // Compute the log Jacobian
-            _log_jacobian = -std::log(_orig_edge_proportion);
+            //_log_jacobian = std::log(1.-_fraction) - std::log(_new_edge_proportion);
+            _log_jacobian = -std::log(_new_edge_proportion);    //POLTMP temporary!
 
             // flag partials and transition matrices for recalculation
             _tree_manipulator->selectPartialsHereToRoot(_orig_par);
@@ -270,21 +305,39 @@ namespace strom {
             _orig_lchild->selectTMatrix();
             _orig_lchild->selectPartial();
 
-#if 1  //POLTMP
-            std::cerr << "Delete-edge:" << std::endl;
-            std::cerr << boost::str(boost::format("  _orig_par:                                %d")   % _orig_par->getNumber()) << std::endl;
-            std::cerr << boost::str(boost::format("  _orig_lchild:                             %d")   % _orig_lchild->getNumber()) << std::endl;
-            std::cerr << boost::str(boost::format("  _num_polytomies (after):                  %d")   % _num_polytomies) << std::endl;
-            std::cerr << boost::str(boost::format("  _polytomy_size (after):                   %d")   % _polytomy_size) << std::endl;
-            std::cerr << boost::str(boost::format("  _chosen_node:                             %d")   % _chosen_node->getNumber()) << std::endl;
-            std::cerr << boost::str(boost::format("  _chosen_edgelen:                          %.5f") % _chosen_edgelen) << std::endl;
-            std::cerr << boost::str(boost::format("  _tree_length:                             %.5f") % _tree_length) << std::endl;
-            std::cerr << boost::str(boost::format("  _chosen_proportion (p1: chosen before):    %.5f") % _chosen_proportion) << std::endl;
-            std::cerr << boost::str(boost::format("  _orig_edge_proportion (p2: _orig_lchild): %.5f") % _orig_edge_proportion) << std::endl;
-            std::cerr << boost::str(boost::format("  _new_edge_proportion (p: chosen after):   %.5f") % _new_edge_proportion) << std::endl;
-            std::cerr << boost::str(boost::format("  _log_hastings_ratio:                      %.5f") % _log_hastings_ratio) << std::endl;
-            std::cerr << boost::str(boost::format("  _log_jacobian:                            %.5f") % _log_jacobian) << std::endl;
-            std::cerr << std::endl;
+#if 0   //POLTMP
+            if (fully_resolved_before) {
+                _sum_chosen += _new_edge_proportion;
+                _num_chosen += 1.0;
+                std::cerr << "avg. chosen = " << (_sum_chosen/_num_chosen) << std::endl;
+            }
+#endif
+
+#if 0  //POLTMP
+            //if (fully_resolved_before) {
+                std::cerr << "Delete-edge:" << std::endl;
+                std::cerr << boost::str(boost::format("  _orig_par:                                %d")   % _orig_par->getNumber()) << std::endl;
+                std::cerr << boost::str(boost::format("  _orig_lchild:                             %d")   % _orig_lchild->getNumber()) << std::endl;
+                std::cerr << boost::str(boost::format("  _num_polytomies (after):                  %d")   % _num_polytomies) << std::endl;
+                std::cerr << boost::str(boost::format("  _polytomy_size (after):                   %d")   % _polytomy_size) << std::endl;
+                std::cerr << boost::str(boost::format("  _chosen_node:                             %d")   % _chosen_node->getNumber()) << std::endl;
+                std::cerr << boost::str(boost::format("  _chosen_edgelen:                          %.5f") % _chosen_edgelen) << std::endl;
+                std::cerr << boost::str(boost::format("  _tree_length:                             %.5f") % _tree_length) << std::endl;
+                std::cerr << boost::str(boost::format("  _fraction (uniform):                      %.5f") % _fraction) << std::endl;
+                std::cerr << boost::str(boost::format("  _chosen_proportion (p1: chosen before):   %.5f (%.5f)") % _chosen_proportion % (_chosen_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  _orig_edge_proportion (p2: _orig_lchild): %.5f (%.5f)") % _orig_edge_proportion % (_orig_edge_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  p1 + p2:                                  %.5f (%.5f)") % (_chosen_proportion + _orig_edge_proportion) % ((_chosen_proportion + _orig_edge_proportion)*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  _new_edge_proportion (p: chosen after):   %.5f (%.5f)") % _new_edge_proportion % (_new_edge_proportion*_tree_length)) << std::endl;
+                std::cerr << boost::str(boost::format("  _log_hastings_ratio:                      %.5f") % _log_hastings_ratio) << std::endl;
+                std::cerr << boost::str(boost::format("     pr(rev)/pr(for):                       %.5f") % std::exp(tmp)) << std::endl;
+                std::cerr << boost::str(boost::format("     num_internal_edges_before:             %d") % num_internal_edges_before) << std::endl;
+                std::cerr << boost::str(boost::format("     1/_num_polytomies_after:               %d") % (1./_num_polytomies)) << std::endl;
+                std::cerr << boost::str(boost::format("     1/num ways (nspokes after):            %.5f (%d)") % (1./(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1)) % _polytomy_size) << std::endl;
+                std::cerr << boost::str(boost::format("  _log_jacobian:                            %.5f") % _log_jacobian) << std::endl;
+                std::cerr << boost::str(boost::format("     _fraction (1 - _fraction):             %.5f (%.5f)") % _fraction % (1. - _fraction)) << std::endl;
+                std::cerr << boost::str(boost::format("     _orig_edge_proportion:                 %.5f") % (1./_orig_edge_proportion)) << std::endl;
+                std::cerr << std::endl;
+            //}
 #endif
         }
     }   ///end_proposeNewState
@@ -355,9 +408,9 @@ namespace strom {
         // Break _chosen_node's edge in a random place
         _orig_edge_proportion = _chosen_node->getEdgeLength()/_tree_length;
 
-        double fraction = _lot->uniform();
-        _new_edge_proportion = fraction*_orig_edge_proportion;
-        _remainder_proportion = (1.0 - fraction)*_orig_edge_proportion;
+        _fraction = _lot->uniform();
+        _new_edge_proportion = _fraction*_orig_edge_proportion;
+        _remainder_proportion = _orig_edge_proportion - _new_edge_proportion;
 
         _chosen_node->setEdgeLength(_new_edge_proportion*_tree_length);
         _orig_lchild->setEdgeLength(_remainder_proportion*_tree_length);
@@ -374,18 +427,24 @@ namespace strom {
                 reverse_polarity = true;
             vspokes.push_back(s);
             uspokes.erase(uspokes.begin() + (vec_it_diff)j);
+            
+#if 0  //POLTMP sanity check
+            for (auto uspoke : uspokes) {
+                assert(s != uspoke);
             }
+#endif
+        }
         assert(uspokes.size() + vspokes.size() == _polytomy_size);
 
         if (reverse_polarity) {
-            // transfer nodes in uspokes to v
+            // transfer nodes in uspokes to _orig_lchild
             for (auto s = uspokes.begin(); s != uspokes.end(); ++s) {
                 _tree_manipulator->detachSubtree(*s);
                 _tree_manipulator->insertSubtreeOnRight(*s, _orig_lchild);
             }
         }
         else {
-            // transfer nodes in vspokes to v
+            // transfer nodes in vspokes to _orig_lchild
             for (auto s = vspokes.begin(); s != vspokes.end(); ++s) {
                 _tree_manipulator->detachSubtree(*s);
                 _tree_manipulator->insertSubtreeOnRight(*s, _orig_lchild);
@@ -425,9 +484,10 @@ namespace strom {
         // Save _orig_lchild's edge length in case we need to revert
         _orig_edge_proportion = _orig_lchild->getEdgeLength()/_tree_length;
 
-        // Compute size of polytomy after the delete-edge move, a quantity that is needed for computing the Hastings ratio.
-        // Note that one of u's children (i.e. _orig_lchild) is deleted but this is made up for by considering u->par, which is
-        // also a spoke that counts.
+        // Compute size of polytomy after the delete-edge move, a quantity needed
+        // for computing the Hastings ratio. Note that one of u's children
+        // (i.e. _orig_lchild) is deleted but this is made up for by considering u->par,
+        // which is also a spoke that counts.
         unsigned v_children = _tree_manipulator->countChildren(_orig_lchild);
         unsigned u_children = _tree_manipulator->countChildren(_orig_par);
         _polytomy_size = v_children + u_children;
@@ -443,7 +503,7 @@ namespace strom {
             ++_num_polytomies;
         }
 
-        // Make all of _orig_lchild's children siblings of _orig_lchild (i.e. children of _orig_lchild->par)
+        // Make all of _orig_lchild's children children of _orig_par
         _first_child = _orig_lchild->getLeftChild();
         while (_orig_lchild->getLeftChild() != NULL) {
             Node * tmp = _orig_lchild->getLeftChild();
@@ -454,6 +514,17 @@ namespace strom {
         _tree_manipulator->detachSubtree(_orig_lchild);
         _tree_manipulator->putUnusedNode(_orig_lchild);
         _tree_manipulator->rectifyNumInternals(-1);
+        
+#if 0 //POLTMP sanity check
+        Tree::SharedPtr tmptree = _tree_manipulator->getTree();
+        unsigned check_npoly = 0;
+        for (auto tmpnd : tmptree->_preorder) {
+            unsigned s = _tree_manipulator->countChildren(tmpnd);
+            if (s > 2)
+                check_npoly++;
+        }
+        assert(check_npoly == _num_polytomies);
+#endif
         
         _tree_manipulator->refreshNavigationPointers();
         
@@ -475,6 +546,7 @@ namespace strom {
         _chosen_proportion = _chosen_edgelen/_tree_length;
         _chosen_node->setEdgeLength(_chosen_edgelen + _orig_edge_proportion*_tree_length);
         _new_edge_proportion = _chosen_node->getEdgeLength()/_tree_length;
+        _fraction = _chosen_proportion/_new_edge_proportion;
     }   ///end_proposeDeleteEdgeMove
     
     inline void PolytomyUpdater::revert() { ///begin_revert

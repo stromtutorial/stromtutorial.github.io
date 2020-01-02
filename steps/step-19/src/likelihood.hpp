@@ -48,10 +48,6 @@ namespace strom {
             unsigned                                calcNumEdgesInFullyResolvedTree() const;
             unsigned                                calcNumInternalsInFullyResolvedTree() const;
             
-#if 1   //POLYTMP
-            static std::set<unsigned>               _trashed;
-#endif
-
         private:
         
             struct InstanceInfo {
@@ -685,19 +681,12 @@ namespace strom {
     }
     
     inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const {
+        // Note: do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
         unsigned pindex = nd->_number;
-        // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
-#if 1   //POLYTMP
         if (nd->_number >= _ntaxa) {
             if (nd->isAltPartial())
                 pindex += info.partial_offset;
         }
-#else
-        if (nd->_parent && nd->_left_child) {
-            if (nd->isAltPartial())
-                pindex += info.partial_offset;
-        }
-#endif
         return pindex;
     }
     
@@ -759,10 +748,6 @@ namespace strom {
             for (unsigned s : info.subsets) {
             
                 if (polytomy) {
-#if 1  //POLYTMP
-                    unsigned pindex = getPartialIndex(nd, info);
-                    _trashed.insert(pindex);
-#endif
                     // nd has been pulled out of tree's _unused_nodes vector to break up the polytomy
                     // Note that the parameter "polytomy" is the polytomous node itself
                     
@@ -794,14 +779,6 @@ namespace strom {
                     }
                     
                 }
-#if 1  //POLYTMP
-                else {
-                    unsigned pindex = getPartialIndex(nd, info);
-                    auto iter = _trashed.find(pindex);
-                    if (iter != _trashed.end())
-                        _trashed.erase(iter);
-                }
-#endif
                 
                 addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
                 ++instance_specific_subset_index;
@@ -1193,93 +1170,24 @@ namespace strom {
 
         setModelRateMatrix();
         setAmongSiteRateHeterogenetity();
-#if 1   //POLTMP
-        if (DebugStuff::_which_iter == 2)
-            std::cerr << std::endl;
-#endif
         defineOperations(t);
         updateTransitionMatrices();
         calculatePartials(t);
-        
-#if 0   //POLTMP
-        if (DebugStuff::_which_iter == 1) {
-            int code = beagleResetScaleFactors(0, 0);
-            assert(code == 0);
-
-            unsigned npatterns = 424;
-            unsigned nstates = 4;
-            std::vector<double> outpartials(npatterns*nstates, 0);
-
-            //beagleGetPartials(0, 12, BEAGLE_OP_NONE, &outpartials[0]);
-            //std::ofstream tmpf("partials12noscaling.txt");
-
-            //beagleGetPartials(0, 12, 3, &outpartials[0]);
-            //std::ofstream tmpf("partials12scaling.txt");
-
-            //beagleGetPartials(0, 12, 0, &outpartials[0]);
-            //std::ofstream tmpf("partials12scaling0.txt");
-            
-            beagleGetPartials(0, 18, 9, &outpartials[0]);
-            std::ofstream tmpf("partials18scaling9.txt");
-
-            for (unsigned i = 0; i < npatterns; ++i) {
-                tmpf << boost::str(boost::format("%6d A %12.5f\n") % (i+1) % outpartials[4*i+0]);
-                tmpf << boost::str(boost::format("%6d C %12.5f\n") % (i+1) % outpartials[4*i+1]);
-                tmpf << boost::str(boost::format("%6d G %12.5f\n") % (i+1) % outpartials[4*i+2]);
-                tmpf << boost::str(boost::format("%6d T %12.5f\n") % (i+1) % outpartials[4*i+3]);
-                tmpf << std::endl;
-            }
-            tmpf.close();
-            
-            std::vector<double> outscalers(npatterns, 0);
-            beagleGetScaleFactors(0, 3, &outscalers[0]);
-            std::ofstream tmpf2("scalers9.txt");
-            for (unsigned i = 0; i < npatterns; ++i) {
-                tmpf2 << boost::str(boost::format("%6d %12.5f\n") % (i+1) % outscalers[i]);
-            }
-            tmpf2.close();
-        }
-#endif
         
         double log_likelihood = 0.0;
         for (auto & info : _instances) {
             log_likelihood += calcInstanceLogLikelihood(info, t);
         }
 
-        // We no longer need fake internal nodes used to compute partials for polytomies    ///!t
+        // We no longer need the internal nodes brought out of storage
+        // and used to compute partials for polytomies
         TreeManip tm(t);
         for (Node * h : _polytomy_helpers) {
             tm.putUnusedNode(h);
         }
         _polytomy_helpers.clear();
         _polytomy_map.clear();
-        
-#if 1  //POLYTMP
-        // look for nodes that were polytomy helpers in the past whose transiton matrices were not updated
-        std::vector<double> P(16, 0.0);
-        std::vector<double> Pref(16, 0.0);
-        Pref[0] = Pref[5] = Pref[10] = Pref[15] = 1.0;
-        for (auto nd : t->_preorder) {
-            // Loop through all instances
-            for (auto & info : _instances) {
-                // Loop through all subsets assigned to this instance
-                unsigned instance_specific_subset_index = 0;
-                for (unsigned s : info.subsets) {
-                    unsigned pindex = getPartialIndex(nd, info);
-                    if (_trashed.find(pindex) != _trashed.end()) {
-                        std::cerr << "########## nd = " << nd->_number << ", index = " << pindex << ", partials trashed" << std::endl;
-                    }
-
-                    unsigned tindex = getTMatrixIndex(nd, info, 0);
-                    beagleGetTransitionMatrix(info.handle, tindex, &P[0]);
-                    if (P == Pref)
-                        std::cerr << "########## nd = " << nd->_number << ", index = " << tindex << ", tmatrix = identity matrix" << std::endl;
-                }
-            }
-            
-        }
-#endif
-        
+                
         return log_likelihood;
     }   ///end_calcLogLikelihood
 

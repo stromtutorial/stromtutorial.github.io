@@ -26,6 +26,9 @@ namespace strom {
             typename Tree::SharedPtr    getTree(unsigned index);
             std::string                 getNewick(unsigned index);
             void                        clear();
+            
+            
+            void                        showResClassSummary() const;
 
         private:
 
@@ -162,6 +165,26 @@ namespace strom {
             unsigned n = ntrees_topol_pair.first;
             unsigned t = ntrees_topol_pair.second;
             std::cout << boost::str(boost::format("%20d %20d") % t % n) << std::endl;
+        }
+    }
+
+    inline void TreeSummary::showResClassSummary() const {
+        std::set<unsigned> mset;
+        std::map<unsigned, std::vector<unsigned> > mmap;
+        for (auto & key_value_pair : _treeIDs) {
+            Split::treeid_t splitset = key_value_pair.first;
+            unsigned m = (unsigned)splitset.size();
+            mset.insert(m);
+            unsigned ntrees = (unsigned)key_value_pair.second.size();
+            mmap[m].push_back(ntrees);
+        }
+        
+        for (auto m : mset) {
+            std::vector<unsigned> & v = mmap[m];
+            unsigned msum = std::accumulate(v.begin(), v.end(), 0);
+            std::cerr << boost::str(boost::format("m = %d (%d): barplot(c(") % m % msum);
+            std::copy(v.begin(), v.end(), std::ostream_iterator<unsigned>(std::cout, ","));
+            std::cerr << "))" << std::endl;
         }
     }
 

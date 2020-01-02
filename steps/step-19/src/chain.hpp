@@ -116,6 +116,29 @@ namespace strom {
         _tree_manipulator->buildFromNewick(newick, false, true); ///!b
         for (auto u : _updaters)
             u->setTreeManip(_tree_manipulator);
+            
+#if 0 //POLTMP
+        std::map<unsigned, unsigned> nnmap;
+        for (unsigned i = 0; i < 1000; i++) {
+            Node * nd = _tree_manipulator->randomInternalEdge(_lot->uniform());
+            unsigned n = nd->getNumber();
+            nnmap[n]++;
+        }
+        for (auto iter : nnmap) {
+            std::cerr << boost::str(boost::format("%d -> %d") % iter.first % iter.second) << std::endl;
+        }
+        std::cerr << std::endl;
+        
+        nnmap.clear();
+        for (unsigned i = 0; i < 1000; i++) {
+            unsigned x = _lot->randint(0,19);
+            nnmap[x]++;
+        }
+        for (auto iter : nnmap) {
+            std::cerr << boost::str(boost::format("%d -> %d") % iter.first % iter.second) << std::endl;
+        }
+        std::cerr << std::endl;
+#endif
     } ///end_setTreeFromNewick
 
     inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { ///begin_createUpdaters
@@ -132,8 +155,8 @@ namespace strom {
         if (_model->isAllowPolytomies()) {  ///!c
             wstd             = 1.0;
             wtreelength      = 2.0;
-            wtreetopology    = 10.0;
-            wpolytomy        = 5.0;
+            wtreetopology    = 9.0;
+            wpolytomy        = 9.0;
         }   ///!d
         
         //...
