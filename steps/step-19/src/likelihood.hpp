@@ -324,12 +324,16 @@ namespace strom {
     }
     
     inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices) { ///begin_newInstance
+    
+        bool is_invar_model = (nrates < 0 ? true : false);
+        unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
+    
         // Create an identity matrix used for computing partials    ///!g
         // for polytomies (represents the transition matrix
         // for the zero-length edges inserted to arbitrarily 
         // resolve each polytomy)
-        _identity_matrix.assign(nstates*nstates*nrates, 0.0);
-        for (unsigned k = 0; k < nrates; k++) {
+        _identity_matrix.assign(nstates*nstates*ngammacat, 0.0);
+        for (unsigned k = 0; k < ngammacat; k++) {
             unsigned offset = k*nstates*nstates;
             _identity_matrix[0+offset]  = 1.0;
             _identity_matrix[5+offset]  = 1.0;
@@ -341,9 +345,6 @@ namespace strom {
         //...   
         ///after_identity_matrix_init
                 
-        bool is_invar_model = (nrates < 0 ? true : false);
-        unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
-        
         unsigned num_patterns = 0;
         for (auto s : subset_indices) {
             num_patterns += _data->getNumPatternsInSubset(s);

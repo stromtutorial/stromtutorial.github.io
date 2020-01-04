@@ -41,6 +41,15 @@ int main(int argc, const char * argv[]) {
     DebugStuff::_tree_index = 0;        //DEBUGSTUFF
     DebugStuff::debugOpenTreeFile();    //DEBUGSTUFF
 
+#if 0
+    TreeManip tm;
+    Lot::SharedPtr lot = Lot::SharedPtr(new Lot);
+    lot->setSeed(13579);
+    std::vector<std::string> taxa = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"};
+    tm.createRandomTree(lot, 20, 3.7, 1, 1, taxa);
+    //tm.createRandomTree(lot, 5, 3.7, 1, 1, taxa);
+    std::cerr << "tree random = [&U] " << tm.makeNewick(5, true) << ";" << std::endl;
+#else
     Strom strom;
     try {
         strom.processCommandLineOptions(argc, argv);
@@ -53,9 +62,9 @@ int main(int argc, const char * argv[]) {
     catch(...) {
         std::cerr << "Exception of unknown type!\n";
     }
-
+#endif
     DebugStuff::debugCloseTreeFile();    //DEBUGSTUFF
-    
+
 #if 0   //POLTMP
     TreeSummary sumt;
     try {
