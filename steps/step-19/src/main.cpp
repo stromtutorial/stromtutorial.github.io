@@ -46,8 +46,7 @@ int main(int argc, const char * argv[]) {
     Lot::SharedPtr lot = Lot::SharedPtr(new Lot);
     lot->setSeed(13579);
     std::vector<std::string> taxa = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"};
-    tm.createRandomTree(lot, 20, 3.7, 1, 1, taxa);
-    //tm.createRandomTree(lot, 5, 3.7, 1, 1, taxa);
+    tm.createPolytomousTree(lot, 20, 0, 2.8, 0, 0, taxa, true);
     std::cerr << "tree random = [&U] " << tm.makeNewick(5, true) << ";" << std::endl;
 #else
     Strom strom;

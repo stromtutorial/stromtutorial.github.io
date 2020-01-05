@@ -12,7 +12,7 @@ namespace strom {
             typedef std::shared_ptr<PolytomyTopoPriorCalculator> SharedPtr;
                                             
                                             PolytomyTopoPriorCalculator();
-                                            ~PolytomyTopoPriorCalculator();
+            virtual                         ~PolytomyTopoPriorCalculator();
 
             bool                            isResolutionClassPrior() const;
             bool                            isPolytomyPrior() const;

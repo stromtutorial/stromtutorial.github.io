@@ -33,7 +33,8 @@ namespace strom {
             
             void                        createTestTree();
 #if 1   //POLNEW
-            void                        createRandomTree(Lot::SharedPtr lot, unsigned ntaxa, double tree_length, double internal_dirparam, double external_dirparam, std::vector<std::string> & taxon_names);
+            void                        createPolytomousTree(Lot::SharedPtr lot, unsigned ntaxa, unsigned ninternals, double tree_length, double internal_dirparam, double external_dirparam, std::vector<std::string> & taxon_names, bool seqgenize = false);
+            void                        createRandomTree(Lot::SharedPtr lot, unsigned ntaxa, unsigned m, double tree_length, double internal_dirparam, double external_dirparam, std::vector<std::string> & taxon_names);
             std::string                 makeNewick(unsigned precision, bool use_names = false) const;
 #else
             std::string                 makeNewick(unsigned precision) const;
@@ -252,20 +253,276 @@ namespace strom {
     }
     
 #if 1
-    inline void TreeManip::createRandomTree(Lot::SharedPtr lot, unsigned ntaxa, double tree_length, double internal_dirparam, double external_dirparam, std::vector<std::string> & taxon_names) {
+    inline void TreeManip::createPolytomousTree(Lot::SharedPtr lot, unsigned ntaxa, unsigned ninternals, double tree_length, double internal_dirparam, double external_dirparam, std::vector<std::string> & taxon_names, bool seqgenize) {
+        if (ntaxa < 4)
+            throw XStrom("createPolytomousTree function requires ntaxa to be 4 or greater");
+        if (ninternals > ntaxa - 2)
+            throw XStrom("createPolytomousTree function requires ninternals to be less than ntaxa - 1");
+        if (ninternals == 0)
+            ninternals = ntaxa - 2;
+
+        bool equal_edge_proportions = false;
+        if (internal_dirparam == 0 && external_dirparam == 0)
+            equal_edge_proportions = true;
+
+        if (!taxon_names.empty()) {
+            assert(taxon_names.size() == ntaxa);
+            std::smatch match_obj;
+            for (auto nm : taxon_names)
+                if (std::regex_search(nm, match_obj, std::regex("\\s+")))
+                    throw XStrom("taxon names supplied to TreeManip::createRandomTree should not have embedded spaces");
+        }
+
+        typedef std::pair<unsigned, unsigned> nmpair_t;
+        typedef std::map<nmpair_t, double> weights_t;
+        
+        // Downpass
+        weights_t wh, wd, w;
+        unsigned nstar = ntaxa-1;   // subtract 1 because the algorithm builds a rooted tree
+        unsigned mstar = ninternals;
+        unsigned n, m;
+        nmpair_t nm = std::make_pair(nstar,mstar);
+        wh[nm] = 0.5;
+        wd[nm] = 0.5;
+        w[nm] = 1.0;
+        for (n = nstar - 1; n > 1; n--) {
+            for (m = n - 1; m > 0; m--) {
+                nm = std::make_pair(n,m);
+                wh[nm] = 0.0;
+                if (mstar - m >= 0.0 && mstar - m < nstar - n) {
+                    nmpair_t nplus1_m = std::make_pair(n+1,m);
+                    wh[nm] = m*w[nplus1_m];
+                }
+                wd[nm] = 0.0;
+                if (mstar - m > 0.0 && mstar - m <= nstar - n) {
+                    nmpair_t nplus1_mplus1 = std::make_pair(n+1,m+1);
+                    wd[nm] = (n+m)*w[nplus1_mplus1];
+                }
+                w[nm] = wd[nm] + wh[nm];
+            }
+        }
+
+        // Uppass
+        
+        unsigned curr_nd = 0;
+
+        // Create a tree with the proper number of nodes
+        clear();
+        _tree = Tree::SharedPtr(new Tree());
+        _tree->_is_rooted = false;
+        _tree->_nleaves = ntaxa;
+        _tree->_ninternals = mstar;
+        _tree->_nodes.resize(2*ntaxa - 2);
+        
+        // Create the root node
+        _tree->_root = &_tree->_nodes[curr_nd++];
+        _tree->_root->setEdgeLength(1.0);
+
+        // Create only child of the root node
+        Node * nd = &_tree->_nodes[curr_nd++];
+        nd->setEdgeLength(1.0);
+        _tree->_root->_left_child = nd;
+        nd->_parent = _tree->_root;
+
+        // Create 2 more tips to create a 3-tip unrooted tree
+        Node * left_child = &_tree->_nodes[curr_nd++];
+        left_child->setEdgeLength(1.0);
+        nd->_left_child = left_child;
+        left_child->_parent = nd;
+        
+        Node * right_child = &_tree->_nodes[curr_nd++];
+        right_child->setEdgeLength(1.0);
+        left_child->_right_sib = right_child;
+        right_child->_parent = nd;
+
+        n = 2;
+        m = 1;
+        while (n < nstar) {
+            refreshPreorder();
+            nm = std::make_pair(n,m);
+            double p = 1.0*wh[nm]/w[nm];
+            double u = lot->uniform();
+            if (u < p) {
+                unsigned k = lot->randint(0,m - 1);
+                
+                // Create a new tip node attached to internal node k
+                Node * new_tip = &_tree->_nodes[curr_nd++];
+                new_tip->setEdgeLength(1.0);
+                
+                // Add new_tip to internal node k
+                unsigned which = 0;
+                for (auto nd_selected : _tree->_preorder) {
+                    if (nd_selected->_left_child) {
+                        if (which == k) {
+                            insertSubtreeOnLeft(new_tip, nd_selected);
+                            break;
+                        }
+                        which++;
+                    }
+                }
+
+                // Move across in Felsenstein matrix
+                n++;
+            }
+            else {
+                unsigned k = lot->randint(0, n + m - 1);
+                
+                // Create a new internal node
+                Node * new_internal = &_tree->_nodes[curr_nd++];
+                new_internal->setEdgeLength(1.0);
+                
+                // Create a new tip node attached to new_internal
+                Node * new_tip = &_tree->_nodes[curr_nd++];
+                new_tip->setEdgeLength(1.0);
+                insertSubtreeOnLeft(new_tip, new_internal);
+
+                // Insert new_internal into edge k
+                Node * nd_selected = _tree->_preorder[k];
+                Node * nd_below = nd_selected->_parent;
+                assert(nd_below);
+                detachSubtree(nd_selected);
+                insertSubtreeOnLeft(nd_selected, new_internal);
+                insertSubtreeOnLeft(new_internal, nd_below);
+                
+                // Move down and right in Felsenstein matrix
+                n++;
+                m++;
+            }
+        }
+        
+        refreshPreorder();
+        refreshLevelorder();
+        renumberInternals();
+
+        // Make a list of candidate tip node numbers
+        std::vector<unsigned> tip_numbers(ntaxa);
+        for (unsigned i = 0; i < ntaxa; i++) {
+            tip_numbers[i] = i+1;
+        }
+        
+        // Sanity check: make vector filled with 1s to check whether all taxon names were used
+        std::vector<unsigned> taxon_name_check(taxon_names.size(), 1);
+
+        // Create lists of internal and external edge length proportions
+        std::vector<double> external_edge_proportions(ntaxa, 0.0);
+        std::vector<double> internal_edge_proportions(mstar - 1, 0.0);
+        if (equal_edge_proportions) {
+            double proportion = 1.0/(ntaxa + mstar - 1);
+            external_edge_proportions.assign(ntaxa, proportion);
+            internal_edge_proportions.assign(mstar - 1, proportion);
+            
+            double check = 0.0;
+            check += std::accumulate(external_edge_proportions.begin(), external_edge_proportions.end(), 0.0);
+            check += std::accumulate(internal_edge_proportions.begin(), internal_edge_proportions.end(), 0.0);
+            assert(std::fabs(check - 1.0) < 1.e-12);
+        }
+        else {
+            double sum_edge_lengths = 0.0;
+            for (unsigned i = 0; i < ntaxa; i++) {
+                double x = lot->gamma(external_dirparam, 1.0);
+                sum_edge_lengths += x;
+                external_edge_proportions[i] = x;
+            }
+            for (unsigned i = 0; i < mstar - 1; i++) {
+                double x = lot->gamma(internal_dirparam, 1.0);
+                sum_edge_lengths += x;
+                internal_edge_proportions[i] = x;
+            }
+            std::transform(internal_edge_proportions.begin(), internal_edge_proportions.end(), internal_edge_proportions.begin(), [sum_edge_lengths](double x) {return x/sum_edge_lengths;});
+            std::transform(external_edge_proportions.begin(), external_edge_proportions.end(), external_edge_proportions.begin(), [sum_edge_lengths](double x) {return x/sum_edge_lengths;});
+        }
+
+        // Number each tip with a random tip number and assign edge lengths
+        unsigned curr_tip_edge = 0;
+        unsigned curr_internal_edge = 0;
+        for (auto nd : _tree->_preorder) {
+            if (nd->_parent == _tree->_root) {
+                nd->setEdgeLength(external_edge_proportions[curr_tip_edge++]*tree_length);
+                unsigned which = lot->randint(0, (unsigned)tip_numbers.size()-1);
+                nd->_parent->_number = tip_numbers[which];
+                if (!taxon_names.empty()) {
+                    taxon_name_check[nd->_parent->_number - 1] = 0;
+                    nd->_parent->_name = taxon_names[nd->_parent->_number - 1];
+                }
+                tip_numbers.erase(tip_numbers.begin() + which);
+            }
+            else if (nd->_left_child) {
+                nd->setEdgeLength(internal_edge_proportions[curr_internal_edge++]*tree_length);
+            }
+            else {
+                nd->setEdgeLength(external_edge_proportions[curr_tip_edge++]*tree_length);
+                unsigned which = lot->randint(0, (unsigned)tip_numbers.size()-1);
+                nd->_number = tip_numbers[which];
+                if (!taxon_names.empty()) {
+                    taxon_name_check[nd->_number - 1] = 0;
+                    nd->_name = taxon_names[nd->_number - 1];
+                }
+                tip_numbers.erase(tip_numbers.begin() + which);
+            }
+        }
+        assert(curr_tip_edge == ntaxa);
+        assert(curr_internal_edge == mstar - 1);
+        assert(std::accumulate(taxon_name_check.begin(), taxon_name_check.end(), 0) == 0);
+        assert(tip_numbers.empty());
+        
+        if (seqgenize) {
+            // Resolve polytomies arbitrarily with zero-length edges
+            std::stack<Node *> polytomies;
+            for (auto nd : _tree->_preorder) {
+                if (countChildren(nd) > 2)
+                    polytomies.push(nd);
+            }
+            while (!polytomies.empty()) {
+                Node * nd = polytomies.top();
+                unsigned nchildren = countChildren(nd);
+                while (nchildren > 2) {
+                    Node * lchild = nd->_left_child;
+                    detachSubtree(lchild);
+
+                    Node * rchild = nd->_left_child;
+                    detachSubtree(rchild);
+
+                    Node * tmp = _tree->_unused_nodes.back();
+                    _tree->_unused_nodes.pop_back();
+                    tmp->setEdgeLength(0.0);
+
+                    insertSubtreeOnLeft(rchild, tmp);
+                    insertSubtreeOnLeft(lchild, tmp);
+                    insertSubtreeOnLeft(tmp, nd);
+                    
+                    nchildren--;
+                }
+                polytomies.pop();
+            }
+            refreshPreorder();
+            refreshLevelorder();
+            renumberInternals();
+        }
+    }
+    
+    
+    inline void TreeManip::createRandomTree(Lot::SharedPtr lot, unsigned ntaxa, unsigned ninternals, double tree_length, double internal_dirparam, double external_dirparam, std::vector<std::string> & taxon_names) {
         // This function creates a random unrooted equiprobable tree in which the sum of all edge lengths is tree_length
         // Edge length proportions represent a random draw from a flat Dirichlet distribution.
         // Use createYuleTree to create a random rooted Markovian tree.
         // Parameters:
         //   lot:               pseudorandom number generator
         //   ntaxa:             the number of taxa in the generated tree
+        //   ninternals:        the number of internal nodes in the generated tree (0 means saturated)
         //   tree_length:       the sum of all edge lengths
         //   internal_dirparam: the dirichlet parameter for internal edge length proportions
         //   external_dirparam: the dirichlet parameter for external edge length proportions
-        //   taxon_names:       vector of taxon names (may be empty, in which case numbers will be used)
+        //   taxon_names:       vector of taxon names (an empty vector means node numbers will be used)
+        if (ninternals > 0)
+            return createPolytomousTree(lot, ntaxa, ninternals, tree_length, internal_dirparam, external_dirparam, taxon_names);
+            
         if (ntaxa < 4)
             throw XStrom("createRandomTree function requires ntaxa to be 4 or greater");
             
+        bool equal_edge_proportions = false;
+        if (internal_dirparam == 0 && external_dirparam == 0)
+            equal_edge_proportions = true;
+
         if (!taxon_names.empty()) {
             assert(taxon_names.size() == ntaxa);
             std::smatch match_obj;
@@ -274,23 +531,6 @@ namespace strom {
                     throw XStrom("taxon names supplied to TreeManip::createRandomTree should not have embedded spaces");
         }
             
-        // First create a list of 2*ntaxa-3 edge lengths
-        double sum_edge_lengths = 0.0;
-        std::vector<double> external_edge_proportions(ntaxa, 0.0);
-        for (unsigned i = 0; i < ntaxa; i++) {
-            double x = lot->gamma(external_dirparam, 1.0);
-            sum_edge_lengths += x;
-            external_edge_proportions[i] = x;
-        }
-        std::vector<double> internal_edge_proportions(ntaxa-3, 0.0);
-        for (unsigned i = 0; i < ntaxa - 3; i++) {
-            double x = lot->gamma(internal_dirparam, 1.0);
-            sum_edge_lengths += x;
-            internal_edge_proportions[i] = x;
-        }
-        std::transform(internal_edge_proportions.begin(), internal_edge_proportions.end(), internal_edge_proportions.begin(), [sum_edge_lengths](double x) {return x/sum_edge_lengths;});
-        std::transform(external_edge_proportions.begin(), external_edge_proportions.end(), external_edge_proportions.begin(), [sum_edge_lengths](double x) {return x/sum_edge_lengths;});
-
         unsigned curr_nd = 0;
 
         // Create a tree with the proper number of nodes
@@ -299,7 +539,7 @@ namespace strom {
         _tree->_is_rooted = false;
         _tree->_nodes.resize(2*ntaxa - 2);
         
-        // Create the root node and its only child
+        // Create the root node
         _tree->_root = &_tree->_nodes[curr_nd++];
         _tree->_root->setEdgeLength(1.0);
         _tree->_root->_number = curr_nd;
@@ -372,8 +612,37 @@ namespace strom {
             tip_numbers[i] = i+1;
         }
         
-        // Sanity check: make vectors filled with 1s to check whether all taxon names were used
+        // Sanity check: make vector filled with 1s to check whether all taxon names were used
         std::vector<unsigned> taxon_name_check(taxon_names.size(), 1);
+
+        // Create lists of internal and external edge length proportions
+        std::vector<double> external_edge_proportions(ntaxa, 0.0);
+        std::vector<double> internal_edge_proportions(ntaxa-3, 0.0);
+        if (equal_edge_proportions) {
+            double proportion = 1.0/(2*ntaxa-3);
+            external_edge_proportions.assign(ntaxa, proportion);
+            internal_edge_proportions.assign(ntaxa-3, proportion);
+            
+            double check = 0.0;
+            check += std::accumulate(external_edge_proportions.begin(), external_edge_proportions.end(), 0.0);
+            check += std::accumulate(internal_edge_proportions.begin(), internal_edge_proportions.end(), 0.0);
+            assert(std::fabs(check - 1.0) < 1.e-12);
+        }
+        else {
+            double sum_edge_lengths = 0.0;
+            for (unsigned i = 0; i < ntaxa; i++) {
+                double x = lot->gamma(external_dirparam, 1.0);
+                sum_edge_lengths += x;
+                external_edge_proportions[i] = x;
+            }
+            for (unsigned i = 0; i < ntaxa - 3; i++) {
+                double x = lot->gamma(internal_dirparam, 1.0);
+                sum_edge_lengths += x;
+                internal_edge_proportions[i] = x;
+            }
+            std::transform(internal_edge_proportions.begin(), internal_edge_proportions.end(), internal_edge_proportions.begin(), [sum_edge_lengths](double x) {return x/sum_edge_lengths;});
+            std::transform(external_edge_proportions.begin(), external_edge_proportions.end(), external_edge_proportions.begin(), [sum_edge_lengths](double x) {return x/sum_edge_lengths;});
+        }
 
         // Number each tip with a random tip number and assign edge lengths
         unsigned curr_tip = 0;
@@ -677,7 +946,7 @@ namespace strom {
         assert(_tree->_preorder.size() > 0);
         
         // Renumber internal nodes in postorder sequence
-        int curr_internal = _tree->_nleaves;
+        unsigned curr_internal = _tree->_nleaves;
         for (auto nd : boost::adaptors::reverse(_tree->_preorder)) {
             if (nd->_left_child) {
                 // nd is an internal node
@@ -692,8 +961,8 @@ namespace strom {
             
         _tree->_ninternals = curr_internal - _tree->_nleaves;
         
-        assert(_tree->_unused_nodes.empty());   ///!g
-        for (; curr_internal < _tree->_nodes.size(); curr_internal++) {
+        _tree->_unused_nodes.clear();   ///!g
+        for (; curr_internal < (unsigned)_tree->_nodes.size(); curr_internal++) {
             Node * curr = &_tree->_nodes[curr_internal];
             putUnusedNode(curr);
             assert(curr->_number == -1);

@@ -683,8 +683,9 @@ namespace strom {
     
     inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const {
         // Note: do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
+        assert(nd->_number >= 0);
         unsigned pindex = nd->_number;
-        if (nd->_number >= _ntaxa) {
+        if (pindex >= _ntaxa) {
             if (nd->isAltPartial())
                 pindex += info.partial_offset;
         }
