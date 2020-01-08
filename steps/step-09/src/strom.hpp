@@ -22,7 +22,9 @@ namespace strom {
 
             std::string                 _data_file_name;
             std::string                 _tree_file_name;
+            
             Partition::SharedPtr        _partition;         ///!d
+            Data::SharedPtr             _data;              ///!l
 
             TreeSummary::SharedPtr      _tree_summary;
 
@@ -99,13 +101,13 @@ namespace strom {
         
         try {   ///!begin_try
             std::cout << "\n*** Reading and storing the data in the file " << _data_file_name << std::endl;
-            Data d;
-            d.setPartition(_partition);
-            d.getDataFromFile(_data_file_name);
+            _data = Data::SharedPtr(new Data());
+            _data->setPartition(_partition);
+            _data->getDataFromFile(_data_file_name);
 
             // Report information about data partition subsets
-            unsigned nsubsets = d.getNumSubsets();
-            std::cout << "\nNumber of taxa: " << d.getNumTaxa() << std::endl;
+            unsigned nsubsets = _data->getNumSubsets();
+            std::cout << "\nNumber of taxa: " << _data->getNumTaxa() << std::endl;
             std::cout << "Number of partition subsets: " << nsubsets << std::endl;
             for (unsigned subset = 0; subset < nsubsets; subset++) {
                 DataType dt = _partition->getDataTypeForSubset(subset);

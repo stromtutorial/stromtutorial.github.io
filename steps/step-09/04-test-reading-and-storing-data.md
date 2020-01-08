@@ -10,7 +10,7 @@ description: Test the Data class by reading and storing data from a nexus-format
 ## Add the subset command line option
 To test the new `Partition` and `Data` classes, we'll need to modify {% indexfile strom.hpp %} to input partition subset specifications from the user. Begin by including some additional header files in {% indexfile strom.hpp %} and a shared pointer to a `Partition` object in the `Strom` class declaration:
 ~~~~~~
-{{ "steps/step-09/src/strom.hpp" | polcodesnippet:"start-end_class_declaration,end","a,b,c,d" }}
+{{ "steps/step-09/src/strom.hpp" | polcodesnippet:"start-end_class_declaration,end","a,b,c,d,l" }}
 ~~~~~~
 {:.cpp}
 
@@ -61,7 +61,7 @@ Here is a Nexus-formatted data file containing 60 sites from the large subunit o
 [//]: ################################### LINUX #########################################
 In order to get {% indexfile rbcL.nex %} installed to the same directory as the strom executable file, we need to add one more `install_data` line to the very end of our {% indexfile meson.build %} file:
 ~~~~~~
-{{ "steps/step-09/src/meson.build" | polcodesnippet:"start-!near_end ","a,b,c,near_end" }}
+{{ "steps/step-09/src/meson.build" | polcodesnippet:"start-!near_end","a,b,c,near_end" }}
 ~~~~~~
 {:.meson}
 I've also highlighted 3 other lines here. The new line that defines the dependency `lib_filesystem` and the addition of this dependency to the `executable` command are both needed in order to show the current working directory (see below). Also highlighted is a line that copies the `strom.conf` to the install directory.
