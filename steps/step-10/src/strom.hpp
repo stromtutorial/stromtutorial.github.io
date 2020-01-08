@@ -27,7 +27,7 @@ namespace strom {
             std::string                             _tree_file_name;
             Partition::SharedPtr                    _partition;
 
-            Data::SharedPtr                         _data;              ///!b
+            Data::SharedPtr                         _data; 
             Likelihood::SharedPtr                   _likelihood;        ///!c
             TreeSummary::SharedPtr                  _tree_summary;
 

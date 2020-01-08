@@ -13,7 +13,7 @@
 
 namespace strom {
 
-    class TreeManip {   ///start_class_declaration
+    class TreeManip {
         public:
                                         TreeManip();
                                         TreeManip(Tree::SharedPtr t);
@@ -32,16 +32,6 @@ namespace strom {
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAtNodeNumber(int node_number);
-
-            void                        selectAll();                         ///!a
-            void                        deselectAll();
-            void                        selectAllPartials();
-            void                        deselectAllPartials();
-            void                        selectAllTMatrices();
-            void                        deselectAllTMatrices();
-
-            void                        selectPartialsHereToRoot(Node * a);
-            void                        flipPartialsAndTMatrices();         ///!aa
 
             void                        clear();
 
@@ -62,7 +52,7 @@ namespace strom {
         public:
 
             typedef std::shared_ptr< TreeManip > SharedPtr;
-    };   ///end_class_declaration
+    };
 
     // This is where function bodies go
 
@@ -853,65 +843,5 @@ namespace strom {
             }
         }
     }
-
-    inline void TreeManip::selectAll() {    ///begin_selectAll
-        for (auto & nd : _tree->_nodes) {
-            nd.select();
-        }
-    }
-
-    inline void TreeManip::deselectAll() {
-        for (auto & nd : _tree->_nodes) {
-            nd.deselect();
-        }
-    }
-
-    inline void TreeManip::selectAllPartials() {
-        for (auto & nd : _tree->_nodes)
-            nd.selectPartial();
-    }
-
-    inline void TreeManip::deselectAllPartials() {
-        for (auto & nd : _tree->_nodes) {
-            nd.deselectPartial();
-        }
-    }
-
-    inline void TreeManip::selectAllTMatrices() {
-        for (auto & nd : _tree->_nodes)
-            nd.selectTMatrix();
-    }
-
-    inline void TreeManip::deselectAllTMatrices() {
-        for (auto & nd : _tree->_nodes) {
-            nd.deselectTMatrix();
-        }
-    }
-
-    inline void TreeManip::selectPartialsHereToRoot(Node * a) {
-        a->selectPartial();
-        while (a->_parent) {
-            a = a->_parent;
-            a->selectPartial();
-        }
-    }
-
-    inline void TreeManip::flipPartialsAndTMatrices() {
-        for (auto & nd : _tree->_nodes) {
-            if (nd.isSelPartial()) {
-                if (nd.isAltPartial())
-                    nd.clearAltPartial();
-                else
-                    nd.setAltPartial();
-            }
-            
-            if (nd.isSelTMatrix()) {
-                if (nd.isAltTMatrix())
-                    nd.clearAltTMatrix();
-                else
-                    nd.setAltTMatrix();
-            }
-        }
-    }   ///end_flipPartialsAndTMatrices
 
 }

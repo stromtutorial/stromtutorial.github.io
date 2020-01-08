@@ -1,0 +1,22 @@
+#nexus
+
+begin taxa;
+  dimensions ntax=5;
+  taxlabels taxon0 taxon1 taxon2 taxon3 taxon4;
+end;
+
+begin trees;
+	tree t = [&U] (taxon0:.15,taxon3:.38,(taxon1:.23,(taxon2:.11,taxon4:.10)node5:.12)node6:.13);
+end;
+
+begin data;
+  dimensions ntax=5 nchar=8;
+  format datatype=dna;
+  matrix
+     taxon0 CC T TTTTT
+     taxon1 CC G TTTTT
+     taxon2 CC A TTTTT
+     taxon3 AA Y TTTTT
+     taxon4 CC A TTTTT
+  ;
+end;

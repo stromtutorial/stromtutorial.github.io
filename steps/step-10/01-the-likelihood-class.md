@@ -127,11 +127,38 @@ Before diving into calling the BeagleLib functions that will set the stage for a
 {:.center-image-caption}
 *Figure 10.1: Unpartitioned example*
 
-The 7 transition probability matrices needed (one for each edge) are labeled with their indices (0,1,...,6). Each of these transition matrices is determined by a common eigensystem (eigenvectors and their corresponding eigenvalues), a common set of state frequencies (all 0.25 for the JC model), and the length of the edge to which the transition probability matrix belongs. There are 8 partials arrays (one for each node) and the partials arrays corresponding to leaf nodes (including the root, which is a leaf in this unrooted tree) are filled in with values corresponding to the 3 observed data patterns.
+Seven transition probability matrices are needed (one for each edge); however, 8 are allocated within BeagleLib. The transition matrix corresponding to the root node (0) will not be used, which introduces a slight inefficiency but has the benefit that the transition matrix used for a node can be easily determined from the node number (no exception needs to be made for the branch directly above the root node). These 8 transition matrices are labeled with their indices (0,1,...,7). Each of these transition matrices is determined by a common eigensystem (eigenvectors and their corresponding eigenvalues), a common set of state frequencies (all 0.25 for the JC model), and the length of the edge to which the transition probability matrix belongs. There are 8 partials arrays (one for each node) and the partials arrays corresponding to leaf nodes (including the root, which is a leaf in this unrooted tree) are filled in with values corresponding to the 3 observed data patterns.
 
 ## Graphical overview for the partitioned case
 
-Here is the same example data but with a partition defined that separates the data into two subsets, with the first 2 patterns in subset 0 and the third pattern in subset 1. Furthermore, I've assumed an JC model for subset 0, and an F81 model with state frequencies 0.1, 0.2, 0.3, 0.4 for subset 1. Everything related to subset 1 is shown with lavender shading. This version of the example will help in understanding paths in the code that pertain to partitioned data. ([PDF version of this figure]({{ "assets/img/partitioned.pdf" | absolute_url }}))
+Here is the same example data but with a partition defined that separates the data into two subsets, with the first 2 patterns in subset 0 and the third pattern in subset 1. Here is an example of a NEXUS-formatted data block and trees block consistent with the example. Note that the first 2 sites correspond to the first pattern, the third site corresponds to the second pattern, and the final 5 sites correspond to the third pattern. (There is of course no rule that says sites must be grouped by pattern, but I've contrived a data set that does that to make it easy to see the correspondence between sites and site patterns.) 
+~~~~~~
+#nexus
+
+begin taxa;
+  dimensions ntax=5;
+  taxlabels taxon0 taxon1 taxon2 taxon3 taxon4;
+end;
+
+begin trees;
+	tree t = [&U] (taxon0:.15,taxon3:.38,(taxon1:.23,(taxon2:.11,taxon4:.10)node5:.12)node6:.13);
+end;
+
+begin data;
+  dimensions ntax=5 nchar=8;
+  format datatype=dna;
+  matrix
+     taxon0 CC T TTTTT
+     taxon1 CC G TTTTT
+     taxon2 CC A TTTTT
+     taxon3 AA Y TTTTT
+     taxon4 CC A TTTTT
+  ;
+end;
+~~~~~~
+{:.bash-output}
+
+I've assumed a JC model for subset 0, and an F81 model with state frequencies 0.1, 0.2, 0.3, 0.4 for subset 1. Everything related to subset 1 is shown with lavender shading. This version of the example will help in understanding paths in the code that pertain to partitioned data. ([PDF version of this figure]({{ "assets/img/partitioned.pdf" | absolute_url }}))
 <a name="fig10-2">
 ![data elements needed by BeagleLib to compute the likelihood]({{ "/assets/img/partitioned.png" | absolute_url }} "Figure 10.2"){:.center-image}
 
@@ -145,11 +172,11 @@ Note that the edge lengths have been adjusted using subset relative rates 2.5 (s
 {:.bash-output}
 The 3/8 and 5/8 terms in the calculation come from the fact that 3/8 of sites fall into subset 0 and 5/8 of sites fall into subset 1.
 
-Note also that twice as many transition probability matrices are needed in this partitioned example because there are two subsets and the edge lengths (as well as the eigenvectors, eigenvalues, and state frequencies) differ for each subset. The indices for the subset 1 transition probability matrices are offset by 7 from their subset 0 counterparts because there are 7 edge lengths. 
+Note also that twice as many transition probability matrices are needed in this partitioned example because there are two subsets and the edge lengths (as well as the eigenvectors, eigenvalues, and state frequencies) differ for each subset. The indices for the subset 1 transition probability matrices are offset by 7 from their subset 0 counterparts because there are 8 transition matrices allocated for each subset, one for every node (see the note above about why there is not one transition matrix for every edge). 
 
 There are also two eigen decompositions and state frequency arrays needed because the substitution model differs between subsets.
 
-Finally, we still need just one set of partials (one partial array for each node). The part of each partial array pertaining to subset 1 is shown with lavender shading.
+Finally, we still need just one set of partials (one partial array for each node) because each partial accommodates all patterns regardless of the subset to which a pattern belongs. The part of each partial array pertaining to subset 1 is shown with lavender shading.
 
 ## What does BeagleLib need?
 
@@ -161,7 +188,7 @@ __Partial likelihood arrays__
 
 __Edge lengths__
 
-> The edge lengths are shown as white text on solid black boxes (or white text on solid purple boxes in the partitioned example).
+> The edge lengths are shown as white text on solid black (or purple) boxes. Note that the edge lengths for the partitioned example have already been multiplied by the appropriate subset relative rate.
 
 __Transition probability matrices__
 
@@ -199,7 +226,7 @@ __State frequencies__
 
 BeagleLib handles tips in one of two ways. We are currently allocating and using _tip partials_ to store the observed data. In the figures above, this is clear from the fact that each state at a tip (leaf node) requires 4 values, all but one of which are zero if the state is unambiguous. This requires a lot of memory (and extra computation) but allows ambiguous observed states to be handled correctly. The alternative, which is possible only if states are unambiguous or completely ambiguous (i.e. missing data), is called _tip states_. If using tip states, we save only a single value for each observed state (e.g. 0 for A, 1 for C, 2 for G, and 3 for T; missing data is represented by a value equal to the number of states, which is 4 for nucleotide data) and save having to sum over four values for each tip state. Using tip states can lead to quite substantial savings computationally. Remember that more than half of the nodes in a tree are tips. Later in the tutorial, we will give users of our program an option that causes all ambiguities to be treated as missing data, which makes it possible to use tip states for every tip. BeagleLib makes it possible to use tip partials for some tips (those having ambiguous states for some sites) and tip states for other tips, but we will allow only all or none for purposes of this tutorial. Setting the data member `_ambiguity_equals_missing` to `true` (its value can be set using the member function `setAmbiguityEqualsMissing`) forces the use of tip _states_ by converting all partial ambiguities to be completely missing data. 
 
-Importantly, in BeagleLib, the indexing system used for internal node partials is the same whether tip states or tip partials are used. You might be lead to assume that, if tip states are used, internal node partials should be indexed starting at zero rather than the number of tips, but you would be wrong! If there are 5 tips (as in the figures above), then your first internal node partial should have index 5, not 0, even if you are using tip states. Internally, BeagleLib always allocates partials vectors as if tip partials was going to be used. If tips states are used, the first (number of tips) elements of these vectors are NULL (not allocated), so using an index of 0 when tip states are being used will lead to a memory fault as there is no memory allocated for partials at index 0.
+**Importantly**, the indexing system used in BeagleLib for internal node partials is the same whether tip states or tip partials are used. You might assume that, if tip states are used, internal node partials should be indexed starting at zero rather than the number of tips, but you would be wrong! If there are 5 tips (as in the figures above), then your first internal node partial should have index 5, not 0, even if you are using tip states. Internally, BeagleLib always allocates partials vectors as if tip partials was going to be used. If tips states are used, the first (number of tips) elements of these vectors are NULL (not allocated), so using an index of 0 when tip states are being used will lead to a memory fault as there is no memory allocated for partials at index 0.
 
 ## The initBeagleLib member function
 
@@ -233,11 +260,11 @@ __Number of tips__
 
 __Number of partials__
 
-> This is twice the number of partials (also known as partials arrays or conditional likelihood arrays), and should equal the number of internal nodes _plus_ the number of tips (if tip partials are being used) or twice the number of internal nodes (if tip states are being used). Why twice? Planning ahead, we will eventually want two copies of every partial so that we can revert from failed Metropolis-Hastings proposals without having to recalculate partials (which is expensive). Right now, we don't need the extra copies, but it seems prudent to write code now with the ultimate goal of MCMC in mind.
+> This is the number of partials (also known as partials arrays or conditional likelihood arrays), and should equal the number of internal nodes _plus_ the number of tips (if tip partials are being used) or the number of internal nodes (if tip states are being used). 
 
 __Number of sequences__
 
-> This is the number of observed sequences, which would equal the number of taxa if we were storing leaf states directly. Because the leaf states are being supplied as partials, however, we set this value to 0.
+> This is the number of observed sequences, which equals the number of taxa if we are using tip states or 0 if using tip partials.
 
 __Number of states__
 
@@ -245,7 +272,7 @@ __Number of states__
 
 __Number of patterns__
 
-> This is the number of unique data patterns (you will later tell BeagleLib how many sites have each pattern). In [Fig. 10.1](#fig10-1) and [10.2](#fig10-2), the number of patterns is 3.
+> This is the number of unique data patterns (you will later tell BeagleLib how many sites have each pattern). In [Figs. 10.1](#fig10-1) and [10.2](#fig10-2), the number of patterns is 3.
 
 __Number of models__
 
@@ -253,7 +280,7 @@ __Number of models__
 
 __Number of transition matrices__
 
-> This is twice the number of transition matrices needed, which would equal twice the number of edges in the tree if no partitioning is done. In the example shown in [Fig. 10.1](#fig10-1), there are 7 edges and thus 14 transition probability matrices. In the partitioned example shown in [Fig. 10.2](#fig10-2), there are 7 edges and 2 data subsets, which have different subset relative rates as well as different models, necessitating separate edge lengths and transition matrices. The number supplied in the partitioned example would be 2*7*2=28 (and note in [Fig. 10.2](#fig10-2) that the 28 transition matrices are indexed 0...27). Why twice? Again, we are planning ahead to when our program is performing MCMC analyses in which, often, a majority of proposed parameter updates fail. When a proposed update fails, it is much more computationally efficient to simply revert to the old transition matrices (and partials) than to recalcuate everything again (we've already done this work once, why repeat it?). Thus, we will always allocate twice as many transition matrices as we actually need to calculate the likelihood.
+> This is the number of transition matrices to be allocated, which equals the number of nodes in the tree if no partitioning is done. In the example shown in [Fig. 10.1](#fig10-1), there are 8 nodes and thus 8 transition probability matrices. In the partitioned example shown in [Fig. 10.2](#fig10-2), there are 8 nodes and 2 data subsets, which have different subset relative rates as well as different models, necessitating separate edge lengths and transition matrices. The number supplied in the partitioned example would be 2*8=16 (and note in [Fig. 10.2](#fig10-2) that the 16 transition matrices are indexed 0...15).
 
 __Number of rate categories__
 
@@ -348,7 +375,7 @@ As in `setTipStates`, the data are stored in a `Data` object and made available 
 
 In the examples shown in Figures [10.1](#fig10-1) and [10.2](#fig10-2), the original data set had 8 sites, compressed into just 3 patterns. (Yes, this is way smaller than any real data set, but having only 3 patterns allows me to show you complete leaf partials arrays!) The 3 site patterns are stored in the `data_matrix` retrieved from the `Data` object using the function call `_data->getDataMatrix()`. Each of the 3 states stored for each leaf requires `_nstates=4` floating point values, which explains why the vector `partials` defined at the top of this function has length `_states*_npatterns`. 
 
-Consider the case of the second pattern in taxon 4 (leaf index 3), which has an ambiguous state Y that could be either a C or a T (i.e. either pyrimidine). The four floating point _partial likelihoods_ used to store this information are 0.0, 1.0, 0.0, 1.0. The first and third values (both 0.0) correspond to A and G, respectively, while the second and fourth values (both 1.0) correspond to C and T. 
+Consider the case of the second pattern in taxon 3, which has an ambiguous state Y that could be either a C or a T (i.e. either pyrimidine). The four floating point _partial likelihoods_ used to store this information are 0.0, 1.0, 0.0, 1.0. The first and third values (both 0.0) correspond to A and G, respectively, while the second and fourth values (both 1.0) correspond to C and T. 
 
 The four partials corresponding to one state are set in these four lines:
 ~~~~~~
@@ -368,13 +395,13 @@ Thus, the tests for C and T both result in `true` values (anything except 0) whi
 
 The best way to think about the meaning of these partial likelihood values is to imagine a point (X) immediately below the leaf Y (zero branch length separates X from Y). The four values 0.0, 1.0, 0.0, and 1.0, correspond to the probabilities of the state at Y given the state at X. The first 0.0 corresponds to state A at X and says that the probability of seeing a pyrimidine at Y given that there is an A at point X is 0.0 (because the zero branch length means there is no chance that the A at X could change into either a C or T at Y). The second 1.0 value corresponds to state C at X and says that the probability of seeing a pyrimidine at Y is 1.0 (certain) because there is already a pyrimidine at X and the zero branch length between X and Y means this pyrimidine cannot change to anything else.
 
-Partial likelihood arrays will also be calculated at internal nodes of the tree. Here, each cell  in the partials vector holds the likelihood (probability of all observed data) above that node in the tree given one particular state at that internal node. These internal node partials can be something other than 0.0 or 1.0 because there is length > 0 associated with the edges in the subtree rooted at that internal node.
+Partial likelihood arrays will also be calculated at internal nodes of the tree. For an internal node, each cell in the partials vector holds the likelihood (probability of all observed data) above that node in the tree given one particular state at that internal node. These internal node partials can be something other than 0.0 or 1.0 because there is length > 0 associated with the edges in the subtree rooted at that internal node.
 
 ## The setPatternPartitionAssignments member function
 
 This function specifies the subset to which every pattern belongs. The only tricky part is that there may be several BeagleLib instances, and BeagleLib wants pattern and subset indices to be relative to a particular instance.
 
-For example, supposed there are 3 data subsets, and the first (index 0) and third (index 2) are in instance 0 and contain 5 and 6 patterns, respectively, while the second (index 1) is in a separate instance 1 and has 7 patterns. If these are the actual subset and pattern indices,
+For example, suppose there are 3 data subsets, and the first (index 0) and third (index 2) are in instance 0 and contain 5 and 6 patterns, respectively, while the second (index 1) is in a separate instance 1 and has 7 patterns. If these are the actual subset and pattern indices,
 ~~~~~~
 subset  | <----- 0 -----> | <-------- 1 ---------> | <--------- 2 -------> |
 pattern | 0  1  2  3  4   | 6  7  8  9  10  11  12 | 15  16  17  18  19  20|
@@ -437,14 +464,51 @@ BeagleLib handles the specification of a substitution model in a very general wa
 
 ## The defineOperations member function
 
-{% comment %}
-TODO: Calculation of num_edges assumes no polytomies.
-{% endcomment %}
 BeagleLib does not define or use trees _per se_. Instead, we must tell BeagleLib exactly which transition matrices to compute and which partial likelihoods to calculate in order to compute the likelihood. To do this, we traverse a tree (passed in using the shared pointer `t` to a `Tree` object) in reverse level-order sequence (i.e. visiting all descendants of an upper level before visiting any of the nodes at the next lower level) and create a list of "operations" for BeagleLib to carry out. We could visit nodes in postorder sequence (by visiting the `_preorder` vector in reverse order), but that would be less efficient (as explained earlier in the tutorial when we created the `_preorder` and `_levelorder` vectors) because all nodes at a given level can be calculated at the same time, yet postorder sequence makes us wait for some of these until dependent nodes at lower levels are finished.
 
-If data are _unpartitioned_, then the number of operations needed for a full likelihood calculation must equal the number of internal nodes. If data are _partitioned_, then the number of operations equals the number of internals multiplied by the number of subsets.
+While we are traversing the tree, we will create a vector of node numbers (stored in the data member `_pmatrix_index`) and edge lengths (`_edge_lengths`) as they are encountered for use in the `calcLogLikelihood` function defined below. We will also precalculate `_eigen_indices` and `_category_rate_indices`, which are used in `updateTransitionMatrices`. These are all {% indexcode std::map %} variables with keys equal to the instance handle and value equal to a {% indexcode std::vector %} (of `int` except for `_edge_lengths`, which is a double-valued vector). These 4 vectors, along with `_operations`, are initialized (for every BeagleLib instance) near the beginning of the `defineOperations` function.
 
-Each operation is defined by providing 7 (unpartitioned data) or 9 (if data is partitioned) values in a particular sequence for each internal node. Here is a description of these values:
+The member function `queueTMatrixRecalculation` handles additions to `_pmatrix_index`, `_edge_lengths`, `_eigen_indices`, and `_category_rate_indices`, while the member function `queuePartialsRecalculation` is used to create the entries that will be added to the `_operations` vector. I will discuss these two queuing functions next.
+
+Here is the body of the `defineOperations` member function:
+~~~~~~
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-end_defineOperations","" }}
+~~~~~~
+{:.cpp}
+
+## The queueTMatrixRecalculation member function
+
+The `updateTransitionMatrices` function (discussed below) will update all the transition matrices needed to compute the likelihood, but it requires, at the very least, a vector of edge lengths (`_edge_lengths`) and a vector of transition matrix indices (`_pmatrix_index`) for each instance. In addition, if the instance has more than one subset, `updateTransitionMatrices` also requires a vectors of eigensystem indices (`_eigen_indices`) and a vector of among-site rate heterogeneity indices (`_category_rate_indices`). This function adds to all of these vectors, essentially queuing up a recalculation of all transition matrices associated with the `Node` object passed in as `nd`.
+
+The function involves looping over every instance and, within each instance, all subsets. The index of a particular transition matrix depends on the index of the node as well as the subset index, and the function `getTMatrixIndex` calculates that for us.
+
+Different subsets can have different relative rates of substitution, but, initially, we will assume that all subsets evolve at the same relative rate (1.0).
+~~~~~~
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_queueTMatrixRecalculation-end_queueTMatrixRecalculation","" }}
+~~~~~~
+{:.cpp}
+
+## The queuePartialsRecalculation member function
+
+This function adds an entry to the` _operations` vector for each BeagleLib instance. It calls another helper function, `addOperation`, to add each operation.
+~~~~~~
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_queuePartialsRecalculation-end_queuePartialsRecalculation","" }}
+~~~~~~
+{:.cpp}
+
+## The addOperation member function
+
+{% comment %}
+If data are _unpartitioned_, then the number of operations needed for a full likelihood calculation must equal the number of internal nodes. If data are _partitioned_, then the number of operations equals the number of internals multiplied by the number of subsets.
+{% endcomment %}
+   
+The operations are provided to BeagleLib as a single-dimension (flat) vector. If 3 operations are defined for a particular BeagleLib instance, the `_operations` vector for that instance will be comprise 21 elements (for the simplest case of unpartitioned data). 
+
+**Important!** When I say _unpartitioned_ in the context of defining operations, what I really mean is _single data subset for a given BeagleLib instance_. If each subset of your partition is assigned to a different BeagleLib instance (because they all have a distinct combination of number of states and number of rate categories), then each instance still considers the data to be unpartitioned because the instances "sees" only the single data subset assigned to it.
+
+Each operation is defined by providing 7 (unpartitioned data) or 9 (if data is partitioned) values in a particular sequence for each internal node. 
+
+Here is a description of these values:
 
 __Destination partials__
 
@@ -482,18 +546,14 @@ __Subset index__
 __Cumulative scale index__
 
 > This is the second of the two values only used if data are partitioned. We provide the value `BEAGLE_OP_NONE` to indicate we are not scaling site likelihoods.
-   
-{% comment %}
-TODO: rearrange loops so that loop over nodes is on the outside to take more advantage of
-the reverse level ordering in partitioned data
-{% endcomment %}
-The operations array is flat, meaning that, if 3 operations are defined, the operations array will be a single-dimensional array having 21 elements (for unpartitioned data). While we are traversing the tree, we create a vector of node numbers (stored in the data member `_pmatrix_index`) and edge lengths (stored in the data member `_edge_lengths`) as they are encountered for use in the `calcLogLikelihood` function defined below.
 
-Important! When I say _unpartitioned_ in the context of defining operations, what I really mean is _single data subset for a given BeagleLib instance_. Here is the body of the `defineOperations` member function: note that `_operations`, `_pmatrix_index`, and `_edge_lengths` are all {% indexcode std::map %} variables with keys equal to the instance handle and value equal to a {% indexcode std::vector %} (of `int` in the case of `_operations` and `_pmatrix_index`, and `double` in the case of `_edge_lengths`). Note also that the extra elements needed for "partitioned" data are only added to the `_operations` vector if there is more than one subset attached to a given instance. If there is just one subset for a given instance, even if there are multiple subsets total, then, for that instance, BeagleLib considers the data to be unpartitioned.
 ~~~~~~
-{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-end_defineOperations","" }}
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_addOperation-end_addOperation","" }}
 ~~~~~~
 {:.cpp}
+
+## Summary of operations for unpartitioned and partitioned examples
+
 In the 5-taxon example illustrated in [Fig. 10.1](#fig10-1) above, there are 3 internal partial arrays that need to be calculated and the data are unpartitioned, so the operations array will comprise `3*7=21` values. Here are the 21 values corresponding to the example shown in [Fig. 10.1](#fig10-1):
 ~~~~~~
 index      value         description
@@ -524,7 +584,7 @@ index      value         description
 ~~~~~~
 {:.bash-output}
 
-In the 5-taxon partitioned example illustrated in [Fig. 10.2](#fig10-2) above, there are 3 internal partial arrays that need to be calculated, but the data are partitioned, so the operations array will comprise `3*2*9=54` values. Here are the 54 values corresponding to the example shown in [Fig. 10.2](#fig10-2):
+In the 5-taxon partitioned example illustrated in [Fig. 10.2](#fig10-2) above, there are 3 internal partial arrays that need to be calculated, but the data are partitioned with 2 subsets, so the operations array will comprise `3*2*9=54` values. Here are the 54 values corresponding to the example shown in [Fig. 10.2](#fig10-2):
 ~~~~~~
 index      value         description
 -------------------------------------------------------
@@ -542,9 +602,9 @@ index      value         description
   10   BEAGLE_OP_NONE    destination scale write
   11   BEAGLE_OP_NONE    destination scale read
   12         4           left child partials
-  13        11           left child transition matrix
+  13        12           left child transition matrix
   14         2           right child partials
-  15         9           right child transition matrix
+  15        10           right child transition matrix
   16         1           subset index
   17   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
    
@@ -562,9 +622,9 @@ index      value         description
   28   BEAGLE_OP_NONE    destination scale write
   29   BEAGLE_OP_NONE    destination scale read
   30         1           left child partials
-  31         8           left child transition matrix
+  31         9           left child transition matrix
   32         5           right child partials
-  33        12           right child transition matrix
+  33        13           right child transition matrix
   34         1           subset index
   35   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
 
@@ -582,38 +642,48 @@ index      value         description
   46   BEAGLE_OP_NONE    destination scale write
   47   BEAGLE_OP_NONE    destination scale read
   48         6           left child partials
-  49        13           left child transition matrix
+  49        14           left child transition matrix
   50         3           right child partials
-  51        10           right child transition matrix
+  51        11           right child transition matrix
   52         1           subset index
   53   BEAGLE_OP_NONE    index of scaleBuffer to store accumulated factors
 ~~~~~~
 {:.bash-output}
 
-## Make Likelihood a friend of Tree and Node 
+## The getPartialIndex member function
 
-The `defineOperations` member function body above accesses private data members of both the `Tree` and `Node` classes. To avoid compile-time errors, you will thus need to declare the `Likelihood` class to be a friend of both `Tree` and `Node`. In the {% indexfile node.hpp %} file, you should uncomment the 2 lines highlighted below:
+This function returns the index of a particular partials buffer, which is simply the node number. You may wonder why we have invented a member function just to return the node number. The answer is that determining the partials index will become more complex later steps in the tutorial, and creating this function now means that we will need only to update this function later rather than change all the places that call `getPartialIndex`.
 ~~~~~~
-{{ "steps/step-10/src/node.hpp" | polcodesnippet:"start-end_friends","a,b" }}
-~~~~~~
-{:.cpp}
-Uncomment the same 2 lines in the {% indexfile tree.hpp %} file:
-~~~~~~
-{{ "steps/step-10/src/tree.hpp" | polcodesnippet:"start-end_friends","a,b" }}
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_getPartialIndex-end_getPartialIndex","" }}
 ~~~~~~
 {:.cpp}
+
+## The getTMatrixIndex member function
+
+This function returns the index of a particular transition probability matrix buffer. This index will be simply the node number if the instance is managing only one subset. If the instance manages more than one subsets, then the subset index is needed in the calculation of the index.
+~~~~~~
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_getTMatrixIndex-end_getTMatrixIndex","" }}
+~~~~~~
+{:.cpp}
+
+## The getScalerIndex member function
+
+This function returns the index of the buffer holding scalers for each pattern for node `nd` in the specified BeagleLib instance. For now, because we are not correcting for underflow and thus not using scalers, just return `BEAGLE_OP_NONE`.
+
+~~~~~~
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_getScalerIndex-end_getScalerIndex","" }}
+~~~~~~
+{:.cpp}
+
 
 ## The updateTransitionMatrices member function
 
-This function recalculates all transition matrices. In the `defineOperations` member function, we created a vector (`_pmatrix_index`) for each instance containing the indices of all nodes that have a transition matrix needing to be recomputed, and we also created instance-specific vectors of `_edge_lengths` containing the edge lengths corresponding to the nodes listed in `_pmatrix_index`, so here all we need do is provide these lists to BeagleLib.
+This function recalculates all transition matrices. In the `queueTMatrixRecalculation` member function, we built a vector (`_pmatrix_index`) for each instance containing the indices of all nodes that have a transition matrix needing to be recomputed, and we also created instance-specific vectors of `_edge_lengths` containing the edge lengths corresponding to the nodes listed in `_pmatrix_index`, so here all we need do is provide these lists to BeagleLib. The `queueTMatrixRecalculation` member function also built up `_eigen_indices` and `_category_rate_indices` vectors if the instance manages more than one subset.
 
 There are two functions in BeagleLib that are concerned with updating transition matrices: `beagleUpdateTransitionMatrices` and `beagleUpdateTransitionMatricesWithMultipleModels`.  The function `beagleUpdateTransitionMatrices` is used when not partitioning, while `beagleUpdateTransitionMatricesWithMultipleModels` is used when partitioning. Again, partitioning is considered on an individual instance basis: if data are partitioned, but a particular instance only deals with one data subset, then, from the perspective of that instance, the data are _unpartitioned_ and `beagleUpdateTransitionMatrices` would be used, not `beagleUpdateTransitionMatricesWithMultipleModels`.
 
-The first argument must be a valid BeagleLib instance, the second argument is the index of the eigen decomposition to use (0 in our case because there is only one), the third argument is the address of the first element of the array of node indices specifying the transition matrices to be computed, the fourth and fifth arguments are `NULL` because we are not concerned with calculating first and second deriviatives, the sixth argument is the address of the first element of the array of edge lengths, and the seventh and final argument is the number of transition probabilities to calculate.
-~~~~~~
-{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_updateTransitionMatrices-end_updateTransitionMatrices","" }}
-~~~~~~
-{:.cpp}
+For `beagleUpdateTransitionMatrices` (unpartitioned case), the first argument must be a valid BeagleLib instance, the second argument is the index of the eigen decomposition to use (0 in our case because there is only one), the third argument is the address of the first element of the array of node indices specifying the transition matrices to be computed, the fourth and fifth arguments are `NULL` because we are not concerned with calculating first and second deriviatives, the sixth argument is the address of the first element of the array of edge lengths, and the seventh and final argument is the number of transition probabilities to calculate.
+
 The values of the arrays `_pmatrix_index`, and `_edge_lengths` that would be supplied to the `beagleUpdateTransitionMatrices` function for the example shown in [Fig. 10.1](#fig10-1) are given below. Note that the values are in reverse level order sequence.
 ~~~~~~
 index  _pmatrix_index  _edge_lengths
@@ -628,30 +698,36 @@ index  _pmatrix_index  _edge_lengths
 ~~~~~~
 {:.bash-output}
 
-{% comment %}
-TODO: this will need updating if loops are rearranged
-{% endcomment %}
+The `beagleUpdateTransitionMatricesWithMultipleModels` (partitioned case) has a similar list of arguments, with the exception that `_eigen_indices` and `_category_rate_indices` vectors are supplied to provide values for each subset.
+
 The corresponding arrays for the partitioned example shown in [Fig. 10.2](#fig10-2) are given below.
 ~~~~~~
-index  _pmatrix_index  _edge_lengths
-------------------------------------
-  0           3            0.950      
-  1           2            0.275      
-  2           4            0.205      
-  3           1            0.575      
-  4           5            0.300      
-  5           6            0.325      
-  6           7            0.375      
-
-  7          10            0.038      
-  8           9            0.011      
-  9          11            0.010      
- 10           8            0.023      
- 11          12            0.012      
- 12          13            0.013      
- 13          14            0.015      
+index _pmatrix_index  _edge_lengths _eigen_indices _category_rate_indices
+-------------------------------------------------------------------------
+  0           3            0.950          0                 0
+  1          11            0.038          1                 1      
+  2           2            0.275          0                 0
+  3          10            0.011          1                 1      
+  4           4            0.250          0                 0
+  5          12            0.010          1                 1      
+  6           1            0.575          0                 0
+  7           9            0.023          1                 1      
+  8           5            0.300          0                 0
+  9          13            0.012          1                 1      
+ 10           6            0.325          0                 0
+ 11          14            0.013          1                 1      
+ 12           7            0.375          0                 0
+ 13          15            0.015          1                 1      
 ~~~~~~
 {:.bash-output}
+
+You may be puzzled why thee are two sets of rates and probabilities, one for each subset, when the number of rate categories is 1 for this example. After all, the rates and probabilities must both be 1 in this case, so why duplicate the storage? The answer is that it is not necessary, but, to keep things simple, the tutorial will always allocate a separate set of rates and probs for each subset. For simple cases like this it is indeed wasteful, so you were correct in being puzzled.
+
+Here is the body of the `updateTransitionMatrices` member function:
+~~~~~~
+{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_updateTransitionMatrices-end_updateTransitionMatrices","" }}
+~~~~~~
+{:.cpp}
 
 ## The calculatePartials member function
 
@@ -667,8 +743,10 @@ The first argument of either of these functions must be a valid BeagleLib instan
 
 ## The calcInstanceLogLikelihood member function
 
-This member function does the work of computing the log-likelihood for just the data managed by a single BeagleLib instance. The `calcLogLikelihood` function (next) adds the log-likelihoods computed for each instance together to yield the overall log-likelihood.
+This member function does the work of computing the log-likelihood for just the data managed by a single BeagleLib instance. The `calcLogLikelihood` function (discussed next) adds the log-likelihoods computed for each instance together to yield the overall log-likelihood.
 
+I will describe in detail below only the unpartitioned case.
+ 
 The only remaining BeagleLib function that needs to be called is `beagleCalculateEdgeLogLikelihoods`. We have computed partials for the tree down to the bottom-most internal node (node 7 in the examples shown in Figs. [10.1](#fig10-1) and [10.2](#fig10-2)), which will be considered the "parent" in the `beagleCalculateEdgeLogLikelihoods` function call (even though it is actually the only _descendant_ of the root). The leaf node serving as the root (node 0 in the examples shown in Figs. [10.1](#fig10-1) and [10.2](#fig10-2)) in this unrooted tree will be considered the "child" in the `beagleCalculateEdgeLogLikelihoods` function call. There is thus one edge left that has not been accounted for, and that is the edge connecting the parent to the child.
 
 The 13 arguments supplied to the `beagleCalculateEdgeLogLikelihoods` function are:
@@ -697,15 +775,15 @@ __List of indices of second derivative matrices__
 
 > We do not need to calculate second derivatives, so NULL is supplied for this.
 
-__List of weights to apply to each partials buffer__
+__List of indices of weights to apply to each partials buffer__
 
 > This list supplies the relative rates and probabilities, of which there is only one set in our case, so we supply the index 0 here.
 
-__List of state frequencies for each partials buffer__
+__List of indices of state frequencies for each partials buffer__
 
 > This list supplies the state frequencies, of which there is only one set in our case, so we supply the index 0 here.
 
-__List of scale buffers containing accumulated factors to apply to each partials buffer__
+__List of indices of scale buffers containing accumulated factors to apply to each partials buffer__
 
 > Because we are not protecting site likelihoods from underflow yet, we supply BEAGLE_OP_NONE here.
 
@@ -725,6 +803,7 @@ __Destination for second derivative value__
 
 > This is the address of a `double` value in which will be stored the second derivative (we supply NULL because we do not need second derivatives to be calculated).
 
+Here is the function body:
 ~~~~~~
 {{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_calcInstanceLogLikelihood-end_calcInstanceLogLikelihood","" }}
 ~~~~~~
@@ -734,9 +813,11 @@ __Destination for second derivative value__
 
 The final member function we need to define is the one that returns the log-likelihood for a tree. For now, we only consider unrooted trees, so the beginning of this function is concerned with ensuring that this is true. After that, the member functions `setModelRateMatrix`, `setAmongSiteRateHeterogenetity`, `defineOperations`, `updateTransitionMatrices` and `calculatePartials` are called: see the description of those functions above for an explanation of what they do. 
 
-After everything is set up, all that is left to do is call the calcInstanceLogLikelihood member function, which returns the log-likelihood for just the data managed by a single BeagleLib instance. These instance-specific log-likelihoods are added together to produce the overall log-likelihood, which is then returned.
+After everything is set up, all that is left to do is call the `calcInstanceLogLikelihood` member function, which returns the log-likelihood for just the data managed by a single BeagleLib instance. These instance-specific log-likelihoods are added together to produce the overall log-likelihood, which is then returned.
 ~~~~~~
 {{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_calcLogLikelihood-end_calcLogLikelihood","" }}
 ~~~~~~
 {:.cpp}
+
+
 

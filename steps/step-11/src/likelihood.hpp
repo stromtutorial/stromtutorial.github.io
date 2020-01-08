@@ -64,6 +64,7 @@ namespace strom {
 
             typedef std::pair<unsigned, int>        instance_pair_t;
 
+            unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;
             void                                    updateInstanceMap(instance_pair_t & p, unsigned subset);
@@ -75,6 +76,8 @@ namespace strom {
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
             void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
+            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild);
+            void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
             void                                    calculatePartials();
@@ -86,6 +89,9 @@ namespace strom {
             std::map<int, std::vector<int> >        _operations;
             std::map<int, std::vector<int> >        _pmatrix_index;
             std::map<int, std::vector<double> >     _edge_lengths;
+            std::map<int, std::vector<int> >        _eigen_indices;
+            std::map<int, std::vector<int> >        _category_rate_indices;
+            double                                  _relrate_normalizing_constant;
 
             std::vector<int>                        _subset_indices;
             std::vector<int>                        _parent_indices;
@@ -102,7 +108,6 @@ namespace strom {
             bool                                    _rooted;
             bool                                    _prefer_gpu;
             bool                                    _ambiguity_equals_missing;
-            bool                                    _underflow_scaling;
             bool                                    _using_data;
 
         public:
@@ -161,6 +166,9 @@ namespace strom {
         _operations.clear();
         _pmatrix_index.clear();
         _edge_lengths.clear();
+        _eigen_indices.clear();
+        _category_rate_indices.clear();
+        _relrate_normalizing_constant = 1.0;
         _subset_indices.assign(1, 0);
         _parent_indices.assign(1, 0);
         _child_indices.assign(1, 0);
@@ -600,10 +608,19 @@ namespace strom {
         }
     } ///end_setModelRateMatrix
     
+    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {
+        //assert(nd->_parent && nd->_left_child); // nd is supposed to be an internal node and not the tip root node
+        unsigned sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
+        if (nd->isAltPartial())
+            sindex += info.partial_offset;
+        return sindex;
+    }
+    
     inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const {
+        // Note: do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
+        assert(nd->_number >= 0);
         unsigned pindex = nd->_number;
-        // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
-        if (nd->_parent && nd->_left_child) {
+        if (pindex >= _ntaxa) {
             if (nd->isAltPartial())
                 pindex += info.partial_offset;
         }
@@ -621,33 +638,33 @@ namespace strom {
         assert(nd);
         assert(lchild);
         assert(rchild);
-        unsigned num_subsets = (unsigned)info.subsets.size();
 
         // 1. destination partial to be calculated
-        int partial = getPartialIndex(nd, info);
-        _operations[info.handle].push_back(partial);
+        int partial_dest = getPartialIndex(nd, info);
+        _operations[info.handle].push_back(partial_dest);
 
         // 2. destination scaling buffer index to write to
-        _operations[info.handle].push_back(BEAGLE_OP_NONE);
+        int scaler_index = getScalerIndex(nd, info);
+        _operations[info.handle].push_back(scaler_index);
 
         // 3. destination scaling buffer index to read from
         _operations[info.handle].push_back(BEAGLE_OP_NONE);
 
         // 4. left child partial index
-        partial = getPartialIndex(lchild, info);
-        _operations[info.handle].push_back(partial);
+        int partial_lchild = getPartialIndex(lchild, info);
+        _operations[info.handle].push_back(partial_lchild);
 
         // 5. left child transition matrix index
-        unsigned tindex = getTMatrixIndex(lchild, info, subset_index);
-        _operations[info.handle].push_back(tindex);
+        unsigned tindex_lchild = getTMatrixIndex(lchild, info, subset_index);
+        _operations[info.handle].push_back(tindex_lchild);
 
         // 6. right child partial index
-        partial = getPartialIndex(rchild, info);
-        _operations[info.handle].push_back(partial);
+        int partial_rchild = getPartialIndex(rchild, info);
+        _operations[info.handle].push_back(partial_rchild);
 
         // 7. right child transition matrix index
-        tindex = getTMatrixIndex(rchild, info, subset_index);
-        _operations[info.handle].push_back(tindex);
+        unsigned tindex_rchild = getTMatrixIndex(rchild, info, subset_index);
+        _operations[info.handle].push_back(tindex_rchild);
 
         if (info.subsets.size() > 1) {
             // 8. index of partition subset
@@ -658,68 +675,87 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   ///begin_defineOperations
+    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild) {
+        // Loop through all instances
+        for (auto & info : _instances) {
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
+                ++instance_specific_subset_index;
+        }
+    }
+    
+    inline void Likelihood::queueTMatrixRecalculation(Node * nd) {
+        Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();
+
+        // Loop through all instances
+        for (auto & info : _instances) {
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                double subset_relative_rate = subset_relrates[s]/_relrate_normalizing_constant;
+
+                unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                _pmatrix_index[info.handle].push_back(tindex);
+                _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
+                _eigen_indices[info.handle].push_back(s);
+                _category_rate_indices[info.handle].push_back(s);
+
+                ++instance_specific_subset_index;
+            }   // subsets loop
+        } // instances loop
+        }
+    }   ///end_addOperation
+    
+    inline void Likelihood::defineOperations(Tree::SharedPtr t) {///begin_defineOperations
         assert(_instances.size() > 0);
         assert(t);
         assert(t->isRooted() == _rooted);
 
-        double relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates(); ///!k
-        Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();   ///!kk
+        _relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates();
 
-        // Loop through all instances
+        // Start with a clean slate
         for (auto & info : _instances) {
             _operations[info.handle].clear();
             _pmatrix_index[info.handle].clear();
             _edge_lengths[info.handle].clear();
-            
-            // Loop through all subsets assigned to this instance
-            unsigned instance_specific_subset_index = 0;
-            for (unsigned s : info.subsets) {
-                double subset_relative_rate = subset_relrates[s]/relrate_normalizing_constant;   ///!l
+            _eigen_indices[info.handle].clear();
+            _category_rate_indices[info.handle].clear();
+        }
 
                 // Loop through all nodes in reverse level order
                 for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
                     assert(nd->_number >= 0);
                     if (!nd->_left_child) {
                         // This is a leaf
-                        if (nd->isSelTMatrix()) {
-                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
-                            _pmatrix_index[info.handle].push_back(tindex);
-                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
-                        }
+                if (nd->isSelTMatrix())
+                    queueTMatrixRecalculation(nd);
                     }
-                    //...   ///ellipsis
+                    // ...
                     else {
                         // This is an internal node
-                        if (nd->isSelTMatrix()) {
-                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
-                            _pmatrix_index[info.handle].push_back(tindex);
-                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
-                        }
+                        if (nd->isSelTMatrix())
+                            queueTMatrixRecalculation(nd);
 
                         // Internal nodes have partials to be calculated, so define
                         // an operation to compute the partials for this node
                         if (nd->isSelPartial()) {
+                            // Internal node is not a polytomy
                             Node * lchild = nd->_left_child;
                             assert(lchild);
                             Node * rchild = lchild->_right_sib;
                             assert(rchild);
-                            addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
+                            queuePartialsRecalculation(nd, lchild, rchild);
                         }   // isSelPartial
                     }   // internal node
                 }   // nd loop
-                ++instance_specific_subset_index;
-            }   // subsets loop
-        } // instances loop
-    }
+    }   ///end_defineOperations
     
     inline void Likelihood::updateTransitionMatrices() {
         assert(_instances.size() > 0);
         if (_pmatrix_index.size() == 0)
             return;
-        unsigned num_edges = calcNumEdgesInFullyResolvedTree();
-        std::vector<int> eigen_indices;
-        std::vector<int> category_rate_indices;
         
         // Loop through all instances
         for (auto & info : _instances) {
@@ -727,20 +763,10 @@ namespace strom {
 
             unsigned nsubsets = (unsigned)info.subsets.size();
             if (nsubsets > 1) {
-                eigen_indices.resize(nsubsets*num_edges, 0);
-                category_rate_indices.resize(nsubsets*num_edges, 0);
-                unsigned k = 0;
-                for (unsigned s = 0; s < nsubsets; s++) {
-                    for (unsigned v = 0; v < num_edges; v++) {
-                        eigen_indices[k] = s;
-                        category_rate_indices[k] = s;
-                        k++;
-                    }
-                }
                 code = beagleUpdateTransitionMatricesWithMultipleModels(
                     info.handle,                                // Instance number
-                    &eigen_indices[0],                          // Index of eigen-decomposition buffer
-                    &category_rate_indices[0],                  // category rate indices
+                    &_eigen_indices[info.handle][0],            // Index of eigen-decomposition buffer
+                    &_category_rate_indices[info.handle][0],    // category rate indices
                     &_pmatrix_index[info.handle][0],            // transition probability matrices to update
                     NULL,                                       // first derivative matrices to update
                     NULL,                                       // second derivative matrices to update
@@ -764,7 +790,7 @@ namespace strom {
         }   // instance loop
     }
     
-    inline void Likelihood::calculatePartials() {
+    inline void Likelihood::calculatePartials() { ///begin_calculatePartials
         assert(_instances.size() > 0);
         if (_operations.size() == 0)
             return;
@@ -779,6 +805,9 @@ namespace strom {
                     info.handle,                                                    // Instance number
                     (BeagleOperationByPartition *) &_operations[info.handle][0],    // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/9));                      // Number of operations
+                if (code != 0) {
+                    throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
+                }
             }
             else {
                 // no partitioning, just one data subset
@@ -787,15 +816,16 @@ namespace strom {
                     (BeagleOperation *) &_operations[info.handle][0],   // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/7),           // Number of operations
                     BEAGLE_OP_NONE);                                    // Index number of scaleBuffer to store accumulated factors
+                if (code != 0) {
+                    throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
             }
-            
-            if (code != 0) {
-                throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
-            }
-        }
+\        }
+    } ///end_calculatePartials
+    
+        }   // instance loop
     }
     
-    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {   ///begin_calcInstanceLogLikelihood
+    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {
         int code = 0;
         unsigned nsubsets = (unsigned)info.subsets.size();
         assert(nsubsets > 0);
@@ -803,9 +833,9 @@ namespace strom {
         // Assuming there are as many transition matrices as there are edge lengths
         assert(_pmatrix_index[info.handle].size() == _edge_lengths[info.handle].size());
 
-        int stateFrequencyIndex    = 0;
-        int categoryWeightsIndex   = 0;
-        int cumulativeScalingIndex = BEAGLE_OP_NONE;
+        int state_frequency_index  = 0;
+        int category_weights_index = 0;
+        int cumulative_scale_index = BEAGLE_OP_NONE;
         int child_partials_index   = getPartialIndex(t->_root, info);
         int parent_partials_index  = getPartialIndex(t->_preorder[0], info);
         int parent_tmatrix_index   = getTMatrixIndex(t->_preorder[0], info, 0);
@@ -817,13 +847,14 @@ namespace strom {
         if (nsubsets > 1) {
             _parent_indices.assign(nsubsets, parent_partials_index);
             _child_indices.assign(nsubsets, child_partials_index);
-            _weights_indices.assign(nsubsets, categoryWeightsIndex);
+            _weights_indices.assign(nsubsets, category_weights_index);
             _scaling_indices.resize(nsubsets);
             _subset_indices.resize(nsubsets);
             _freqs_indices.resize(nsubsets);
             _tmatrix_indices.resize(nsubsets);
+
             for (unsigned s = 0; s < nsubsets; s++) {
-                _scaling_indices[s]  = BEAGLE_OP_NONE; 
+                _scaling_indices[s]  = BEAGLE_OP_NONE;
                 _subset_indices[s]  = s;
                 _freqs_indices[s]   = s;
                 _tmatrix_indices[s] = getTMatrixIndex(t->_preorder[0], info, s); //index_focal_child + s*tmatrix_skip;
@@ -856,19 +887,22 @@ namespace strom {
                 &parent_tmatrix_index,       // transition probability matrices for this edge
                 NULL,                        // first derivative matrices
                 NULL,                        // second derivative matrices
-                &categoryWeightsIndex,       // weights to apply to each partialsBuffer
-                &stateFrequencyIndex,        // state frequencies for each partialsBuffer
-                &cumulativeScalingIndex,     // scaleBuffers containing accumulated factors
+                &category_weights_index,     // weights to apply to each partialsBuffer
+                &state_frequency_index,      // state frequencies for each partialsBuffer
+                &cumulative_scale_index,     // scaleBuffers containing accumulated factors
                 1,                           // Number of partialsBuffer
                 &log_likelihood,             // destination for log likelihood
                 NULL,                        // destination for first derivative
                 NULL);                       // destination for second derivative
         }
 
-        if (code != 0)
-            throw XStrom(boost::str(boost::format("failed to calculate edge logLikelihoods in CalcLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+        // ... ///dots
         
-        if (info.invarmodel) {  ///!n
+        if (code != 0) {
+            throw XStrom(boost::str(boost::format("failed to calculate edge log-likelihoods in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
+        }
+        
+        if (info.invarmodel) {
             auto monomorphic = _data->getMonomorphic();
             auto counts = _data->getPatternCounts();
             std::vector<double> site_log_likelihoods(info.npatterns, 0.0);
@@ -900,7 +934,7 @@ namespace strom {
                     double log_one_minus_pinvar = log(1.0 - pinvar);
                     auto interval = _data->getSubsetBeginEnd(s);
                     for (unsigned p = interval.first; p < interval.second; p++) {
-                        // Loop through all states for this pattern             ///begin_states_loop
+                        // Loop through all states for this pattern
                         double invar_like = 0.0;
                         if (monomorphic[p] > 0) {
                             for (unsigned k = 0; k < info.nstates; ++k) {
@@ -909,8 +943,8 @@ namespace strom {
                                 double basefreq = freq[k];
                                 invar_like += condlike*basefreq;
                             }
-                        }                                                       ///end_states_loop
-                        double site_lnL = site_log_likelihoods[i++];            ///begin_sitelnL
+                        }
+                        double site_lnL = site_log_likelihoods[i++];
                         double log_like_term = log_one_minus_pinvar + site_lnL;
                         if (invar_like > 0.0) {
                             double log_invar_term = log_pinvar + log(invar_like);
@@ -919,17 +953,17 @@ namespace strom {
                         }
                         else {
                             lnL += counts[p]*log_like_term;
-                        }                                                       ///end_sitelnL
+                        }
                     }
                 }
             }
             log_likelihood = lnL;
-        }   ///!o
+        }
 
         return log_likelihood;
-    }   ///end_calcInstanceLogLikelihood
+    } 
     
-    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {    ///begin_calcLogLikelihood
+    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {
         assert(_instances.size() > 0);
         
         if (!_using_data)
@@ -937,7 +971,7 @@ namespace strom {
 
         // Must call setData and setModel before calcLogLikelihood
         assert(_data);
-        assert(_model); ///!p
+        assert(_model);
         
         if (t->_is_rooted)
             throw XStrom("This version of the program can only compute likelihoods for unrooted trees");
@@ -957,6 +991,6 @@ namespace strom {
         }
         
         return log_likelihood;
-    }   ///end_calcLogLikelihood
+    }
 
 }

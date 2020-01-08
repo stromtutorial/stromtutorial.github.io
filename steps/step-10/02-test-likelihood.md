@@ -11,7 +11,7 @@ To test the `Likelihood` class, we need both a data set and a tree. You have alr
 
 {% if OS == "linux" %}
 [//]: ################################### LINUX #########################################
-Create a file containing the text below and name it {% indexfile rbcLjc.tre %}. This file does not need to be in your project, so you can use any text editor to create it (e.g. TextEditor, nano, vi, etc.).
+Create a file containing the text below and name it {% indexfile rbcLjc.tre %}.
 {% elsif OS == "mac" %}
 [//]: #################################### MAC ##########################################
 Create a file containing the text below and name it {% indexfile rbcLjc.tre %}. This file does not need to be in your project, so you can use any text editor to create it (e.g. [BBEdit](https://www.barebones.com/products/bbedit/)).
@@ -56,7 +56,7 @@ You will need to specify the data file and tree file either on the command line 
 
 Add the highlighted lines to the `Strom` class declaration in {% indexfile strom.hpp %}.
 ~~~~~~
-{{ "steps/step-10/src/strom.hpp" | polcodesnippet:"start-end_class_declaration","a,b-c,d-e" }}
+{{ "steps/step-10/src/strom.hpp" | polcodesnippet:"start-end_class_declaration","a,c,d-e" }}
 ~~~~~~
 {:.cpp}
 
@@ -74,39 +74,16 @@ Replace the body of the `Strom::run` function in the file {% indexfile strom.hpp
 ~~~~~~
 {:.cpp}
 
-## Modifying the Node class
+## Make Likelihood a friend of Tree and Node 
 
-Add the highlighted lines to the `Node` class in {% indexfile node.hpp %}.
+The `defineOperations` member function body above accesses private data members of both the `Tree` and `Node` classes. To avoid compile-time errors, you will thus need to declare the `Likelihood` class to be a friend of both `Tree` and `Node`. In the {% indexfile node.hpp %} file, you should uncomment the 2 lines highlighted below:
 ~~~~~~
-{{ "steps/step-10/src/node.hpp" | polcodesnippet:"","c-cc,d-dd,e,f" }}
+{{ "steps/step-10/src/node.hpp" | polcodesnippet:"start-end_friends","a,b" }}
 ~~~~~~
 {:.cpp}
-
-## Modifying the Likelihood class
-
-Add the highlighted lines to the `Likelihood` class declaration in {% indexfile likelihood.hpp %}.
+Uncomment the same 2 lines in the {% indexfile tree.hpp %} file:
 ~~~~~~
-{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_class_declaration-end_class_declaration","a,b,c" }}
-~~~~~~
-{:.cpp}
-
-Add the bodies of these four `Likelihood` member functions somewhere before the terminating right curly bracket ending the `strom` namespace:
-~~~~~~
-{{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_addOperation-end_addOperation,begin_getPartialIndex-end_getTMatrixIndex","" }}
-~~~~~~
-{:.cpp}
-
-## Modifying the TreeManip class
-
-Add the highlighted lines to the `TreeManip` class declaration in {% indexfile tree_manip.hpp %}.
-~~~~~~
-{{ "steps/step-10/src/tree_manip.hpp" | polcodesnippet:"start_class_declaration-end_class_declaration","a-aa" }}
-~~~~~~
-{:.cpp}
-
-Add the bodies of these `TreeManip` member functions just above the right curly bracket character that closes the `strom` namespace:
-~~~~~~
-{{ "steps/step-10/src/tree_manip.hpp" | polcodesnippet:"begin_selectAll-end_flipPartialsAndTMatrices","" }}
+{{ "steps/step-10/src/tree.hpp" | polcodesnippet:"start-end_friends","a,b" }}
 ~~~~~~
 {:.cpp}
 
@@ -193,11 +170,11 @@ The easiest way to ensure that LD_LIBRARY_PATH is set before calling strom is to
 ~~~~~~
 #!/bin/bash
 
-LD_LIBRARY_PATH="$HOME/lib" ./strom $@
+LD_LIBRARY_PATH="$HOME/lib:$LD_LIBRARY_PATH" ./strom $@
 ~~~~~~
 {:.bash}
 
-The first line of this script tells the operating system to run it using the bash interpreter. The only other line sets the LD_LIBRARY_PATH environmental variable to the location where you installed the BeagleLib dynamic link library files (a.k.a. so files) and then calls strom. The `$@` causes bash to pass along any command line arguments supplied to the {% indexfile go.sh %} script on to the strom executable. This allows you to override settings in the {% indexfile strom.conf %} file, if needed.
+The first line of this script tells the operating system to run it using the bash interpreter. The only other line sets the LD_LIBRARY_PATH environmental variable to the location where you installed the BeagleLib dynamic link library files (and also merges in any LD_LIBRARY_PATH that already exists) and then calls strom. The `$@` causes bash to pass along any command line arguments supplied to the {% indexfile go.sh %} script on to the strom executable. This allows you to override settings in the {% indexfile strom.conf %} file, if needed.
 
 In order for your {% indexfile go.sh %} script to be treated as an executable file and not just a plain text file, use the `chmod` command as follows (navigating first to the {% indexfile src %} directory):
 ~~~~~~
@@ -402,8 +379,6 @@ Instead of specifying {% indexcode NxsReader::WARNINGS_TO_STDERR %} here, you ca
 Finally, the `calcLogLikelihood` function of the `Likelihood` object is called to obtain the log-likelihood. This is output along with a hard-coded statement of what the log-likelihood is expected to be so that it is easy to confirm that the program is working:
 ~~~~~~
 *** Calculating the likelihood of the tree
-Instance 0
-logL for subset 1 is -278.83767
 log likelihood = -278.83767
       (expecting -278.83767)
 ~~~~~~
@@ -461,9 +436,6 @@ storing implied block: TAXA
 storing read block: TREES
 
 *** Calculating the likelihood of the tree
-logL for subset 1 (instance 0) is -57.11217
-logL for subset 2 (instance 0) is -49.30584
-logL for subset 3 (instance 0) is -172.41965
 log likelihood = -278.83767
       (expecting -278.83767)
 
