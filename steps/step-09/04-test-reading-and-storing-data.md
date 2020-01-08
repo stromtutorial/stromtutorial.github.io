@@ -87,7 +87,7 @@ You will need to specify the data file and partition information either on the c
 ## Finding the current working directory
 We've already arranged for the data file to be in the working directory when strom is run, but users of your program may not know where strom is expecting data files to reside. You can help your future users by getting the program to tell you its current working directory when it starts up. We accomplish this by placing the following (highlighted) line just inside the `Strom::run` function:
 ~~~~~~
-{{ "steps/step-09/src/strom.hpp" | polcodesnippet:"begin_run-!l","l" }}
+{{ "steps/step-09/src/strom.hpp" | polcodesnippet:"begin_run-!cwd","cwd" }}
 ~~~~~~
 {:.cpp}
 

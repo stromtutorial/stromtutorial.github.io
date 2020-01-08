@@ -52,9 +52,9 @@ namespace strom {
         _normal_variate_generator = std::shared_ptr<normal_variate_generator_t>(new normal_variate_generator_t(_generator, boost::random::normal_distribution<>()));
         _gamma_variate_generator = std::shared_ptr<gamma_variate_generator_t>(new gamma_variate_generator_t(_generator, boost::random::gamma_distribution<>(_gamma_shape)));
         _uniform_int_generator = std::shared_ptr<uniform_int_generator_t>(new uniform_int_generator_t(_generator, boost::random::uniform_int_distribution<>(_low, _high)));
-    }  ///end_constructor
+    }
         
-    inline Lot::~Lot() {  ///begin_destructor
+    inline Lot::~Lot() {
         //std::cout << "Destroying a Lot" << std::endl;
         _uniform_variate_generator.reset();
         _normal_variate_generator.reset();

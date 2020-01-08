@@ -18,10 +18,11 @@ namespace strom {
             Tree::SharedPtr             getTree();
 
             double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
             void                        scaleAllEdgeLengths(double scaler);
 
             void                        createTestTree();
-            std::string                 makeNewick(unsigned precision) const;   ///!a
+            std::string                 makeNewick(unsigned precision, bool use_names = false) const;   ///!a
 
             void                        clear();
 
@@ -72,6 +73,10 @@ namespace strom {
         return TL;
     }
 
+    inline unsigned TreeManip::countEdges() const {
+        return (unsigned)_tree->_preorder.size();
+    }
+
     inline void TreeManip::scaleAllEdgeLengths(double scaler) {
         for (auto nd : _tree->_preorder) {
             nd->setEdgeLength(scaler*nd->_edge_length);
@@ -112,42 +117,42 @@ namespace strom {
         root_node->_left_child = first_internal;
         root_node->_right_sib = 0;
         root_node->_number = 5;
-        root_node->_name = "root node";
+        root_node->_name = "root_node";
         root_node->_edge_length = 0.0;
 
         first_internal->_parent = root_node;
         first_internal->_left_child = second_internal;
         first_internal->_right_sib = 0;
         first_internal->_number = 4;
-        first_internal->_name = "first internal node";
+        first_internal->_name = "first_internal_node";
         first_internal->_edge_length = 0.1;
 
         second_internal->_parent = first_internal;
         second_internal->_left_child = first_leaf;
         second_internal->_right_sib = third_leaf;
         second_internal->_number = 3;
-        second_internal->_name = "second internal node";
+        second_internal->_name = "second_internal_node";
         second_internal->_edge_length = 0.1;
 
         first_leaf->_parent = second_internal;
         first_leaf->_left_child = 0;
         first_leaf->_right_sib = second_leaf;
         first_leaf->_number = 0;
-        first_leaf->_name = "first leaf";
+        first_leaf->_name = "first_leaf";
         first_leaf->_edge_length = 0.1;
 
         second_leaf->_parent = second_internal;
         second_leaf->_left_child = 0;
         second_leaf->_right_sib = 0;
         second_leaf->_number = 1;
-        second_leaf->_name = "second leaf";
+        second_leaf->_name = "second_leaf";
         second_leaf->_edge_length = 0.1;
 
         third_leaf->_parent = first_internal;
         third_leaf->_left_child = 0;
         third_leaf->_right_sib = 0;
         third_leaf->_number = 2;
-        third_leaf->_name = "third leaf";
+        third_leaf->_name = "third_leaf";
         third_leaf->_edge_length = 0.2;
 
         _tree->_is_rooted = true;
@@ -170,9 +175,10 @@ namespace strom {
 
     //...   ///dots
     
-    inline std::string TreeManip::makeNewick(unsigned precision) const {    ///!b
+    inline std::string TreeManip::makeNewick(unsigned precision, bool use_names) const {    ///!b
         std::string newick;
-        const boost::format tip_node_format( boost::str(boost::format("%%d:%%.%df") % precision) );
+        const boost::format tip_node_name_format( boost::str(boost::format("%%s:%%.%df") % precision) );    ///tip_name_format
+        const boost::format tip_node_number_format( boost::str(boost::format("%%d:%%.%df") % precision) );  ///tip_number_format
         const boost::format internal_node_format( boost::str(boost::format("):%%.%df") % precision) );
         std::stack<Node *> node_stack;
 
@@ -183,13 +189,29 @@ namespace strom {
                 newick += "(";
                 node_stack.push(nd);    ///end_stack
                 if (root_tip) {
-                    newick += boost::str(boost::format(tip_node_format) % (root_tip->_number + 1) % nd->_edge_length);  ///tip_format
+                    if (use_names) {
+                        newick += boost::str(boost::format(tip_node_name_format)
+                            % root_tip->_name
+                            % nd->_edge_length);
+                    } else {
+                        newick += boost::str(boost::format(tip_node_number_format)
+                            % (root_tip->_number + 1)
+                            % nd->_edge_length);
+                    }
                     newick += ",";
                     root_tip = 0;
                 }
             }
             else {
-                newick += boost::str(boost::format(tip_node_format) % (nd->_number + 1) % nd->_edge_length);
+                if (use_names) {
+                    newick += boost::str(boost::format(tip_node_name_format)
+                        % nd->_name
+                        % nd->_edge_length);
+                } else {
+                    newick += boost::str(boost::format(tip_node_number_format)
+                        % (nd->_number + 1)
+                        % nd->_edge_length);
+                }
                 if (nd->_right_sib)
                     newick += ",";
                 else {

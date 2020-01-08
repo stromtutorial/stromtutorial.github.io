@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "dirichlet_updater.hpp"
 
@@ -11,7 +11,7 @@ namespace strom {
                                             SubsetRelRateUpdater(Model::SharedPtr model);
                                             ~SubsetRelRateUpdater();
         
-            double                          calcLogPrior();
+            virtual double                  calcLogPrior();
 
         private:
         
@@ -22,19 +22,18 @@ namespace strom {
         };
 
     // member function bodies go here
-    ///end_class_declaration
-    inline SubsetRelRateUpdater::SubsetRelRateUpdater(Model::SharedPtr model) {   ///begin_constructor
+    inline SubsetRelRateUpdater::SubsetRelRateUpdater(Model::SharedPtr model) {
         //std::cout << "Creating a SubsetRelRateUpdater" << std::endl;
         DirichletUpdater::clear();
         _name = "Subset Relative Rates";
         _model = model;
-    }   ///end_constructor
+    }
 
-    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {  ///begin_destructor
+    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {
         //std::cout << "Destroying a SubsetRelRateUpdater" << std::endl;
-    }   ///end_destructor
+    }
 
-    inline double SubsetRelRateUpdater::calcLogPrior() {  ///begin_calcLogPrior
+    inline double SubsetRelRateUpdater::calcLogPrior() {
         Model::subset_sizes_t & subset_sizes = _model->getSubsetSizes();
         double log_num_sites = std::log(_model->getNumSites());
         unsigned num_subsets = _model->getNumSubsets();
@@ -43,9 +42,9 @@ namespace strom {
             log_prior += std::log(subset_sizes[i]) - log_num_sites;
         }
         return log_prior;
-    }  ///end_calcLogPrior
+    }
 
-    inline void SubsetRelRateUpdater::pullFromModel() {  ///begin_pullFromModel
+    inline void SubsetRelRateUpdater::pullFromModel() {
         Model::subset_relrate_vect_t & relative_rates = _model->getSubsetRelRates();
         Model::subset_sizes_t &        subset_sizes   = _model->getSubsetSizes();
         unsigned num_sites   = _model->getNumSites();
@@ -56,9 +55,9 @@ namespace strom {
         for (unsigned i = 0; i < num_subsets; i++) {
             _curr_point[i] = relative_rates[i]*subset_sizes[i]/num_sites;
         }
-    }   ///end_pullFromModel
+    }
     
-    inline void SubsetRelRateUpdater::pushToModel() {  ///begin_pushToModel
+    inline void SubsetRelRateUpdater::pushToModel() {
         Model::subset_sizes_t & subset_sizes = _model->getSubsetSizes();
         unsigned num_sites   = _model->getNumSites();
         unsigned num_subsets = _model->getNumSubsets();
@@ -67,6 +66,6 @@ namespace strom {
             tmp[i] = _curr_point[i]*num_sites/subset_sizes[i];
         }
         _model->setSubsetRelRates(tmp, false);
-    }   ///end_pushToModel
+    }
     
-}   ///end
+}

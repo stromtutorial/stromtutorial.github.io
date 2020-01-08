@@ -67,35 +67,35 @@ namespace strom {
     inline Partition::Partition() : _infinity(std::numeric_limits<unsigned>::max()) {   ///begin_constructor
         //std::cout << "Constructing a Partition" << std::endl;
         clear();
-    }   ///end_constructor
+    }  
 
-    inline Partition::~Partition() {    ///begin_destructor
+    inline Partition::~Partition() {
         //std::cout << "Destroying a Partition" << std::endl;
     }   ///end_destructor
 
     inline unsigned Partition::getNumSites() const {    ///begin_getNumSites
         return _num_sites;
-    }    ///end_getNumSites
+    }
     
-    inline unsigned Partition::getNumSubsets() const {    ///begin_getNumSubsets
+    inline unsigned Partition::getNumSubsets() const {
         return _num_subsets;
-    }    ///end_getNumSubsets
+    }
     
-    inline std::string Partition::getSubsetName(unsigned subset) const {    ///begin_getSubsetName
+    inline std::string Partition::getSubsetName(unsigned subset) const {
         assert(subset < _num_subsets);
         return _subset_names[subset];
-    }    ///end_getSubsetName
+    }
     
-    inline const Partition::partition_t & Partition::getSubsetRangeVect() const {    ///begin_getSubsetRangeVect
+    inline const Partition::partition_t & Partition::getSubsetRangeVect() const {
         return _subset_ranges;
-    }    ///end_getSubsetRangeVect
+    }
     
-    inline DataType Partition::getDataTypeForSubset(unsigned subset_index) const {    ///begin_getDataTypeForSubset
+    inline DataType Partition::getDataTypeForSubset(unsigned subset_index) const {
         assert(subset_index < _subset_data_types.size());
         return _subset_data_types[subset_index];
-    }    ///end_getDataTypeForSubset
+    }
 
-    inline const std::vector<DataType> & Partition::getSubsetDataTypes() const {    ///begin_getSubsetDataTypes
+    inline const std::vector<DataType> & Partition::getSubsetDataTypes() const {
         return _subset_data_types;
     }    ///end_getSubsetDataTypes
 

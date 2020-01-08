@@ -97,13 +97,13 @@ namespace strom {
     inline Model::Model() { ///begin_constructor
         //std::cout << "Constructing a Model" << std::endl;
         clear();
-    }   ///end_constructor
+    } 
 
-    inline Model::~Model() {    ///begin_destructor
+    inline Model::~Model() {
         //std::cout << "Destroying a Model" << std::endl;
-    }   ///end_destructor
+    }
 
-    inline void Model::clear() {    ///begin_clear
+    inline void Model::clear() {
         _num_subsets = 0;
         _num_sites = 0;
         _tree_index = 0;
@@ -381,41 +381,41 @@ namespace strom {
     inline unsigned Model::getSubsetNumPatterns(unsigned subset) const { ///begin_getSubsetNumPatterns
         assert(subset < _num_subsets);
         return _subset_npatterns[subset];
-    } ///end_getSubsetNumPatterns
+    }
     
-    inline unsigned Model::getSubsetNumSites(unsigned subset) const { ///begin_getSubsetNumSites
+    inline unsigned Model::getSubsetNumSites(unsigned subset) const {
         assert(subset < _num_subsets);
         return _subset_sizes[subset];
-    }   ///end_getSubsetNumSites 
+    } 
     
-    inline unsigned Model::getNumSites() const {    ///begin_getNumSites
+    inline unsigned Model::getNumSites() const {
         return _num_sites;
-    }   //end_getNumSites
+    }
     
-    inline unsigned Model::getNumSubsets() const { ///begin_getNumSubsets
+    inline unsigned Model::getNumSubsets() const {
         return _num_subsets;
-    } ///end_getNumSubsets
+    }
     
-    inline unsigned Model::getSubsetNumCateg(unsigned subset) const { ///begin_getSubsetNumRateCategories
+    inline unsigned Model::getSubsetNumCateg(unsigned subset) const {
         assert(subset < _num_subsets);
         assert(_asrv.size() == _num_subsets);
         assert(_asrv[subset]);
         return _asrv[subset]->getNumCateg();
-    } ///end_getSubsetNumRateCategories
+    } 
     
-    inline bool Model::getSubsetIsInvarModel(unsigned subset) const { ///begin_getSubsetIsInvarModel
+    inline bool Model::getSubsetIsInvarModel(unsigned subset) const {
         assert(subset < _num_subsets);
         assert(_asrv.size() == _num_subsets);
         assert(_asrv[subset]);
         return _asrv[subset]->getIsInvarModel();
-    } ///end_getSubsetIsInvarModel
+    }
     
-    inline const QMatrix & Model::getQMatrix(unsigned subset) const { ///begin_getQMatrix
+    inline const QMatrix & Model::getQMatrix(unsigned subset) const {
         assert(subset < _num_subsets);
         return *(_qmatrix[subset]);
-    } ///end_getQMatrix
+    } 
     
-    inline const ASRV & Model::getASRV(unsigned subset) const { ///begin_getASRV
+    inline const ASRV & Model::getASRV(unsigned subset) const {
         assert(subset < _num_subsets);
         return *(_asrv[subset]);
     } ///end_getASRV
@@ -540,9 +540,9 @@ namespace strom {
     inline void Model::activate() { ///begin_activate
         for (auto q : _qmatrix)
             q->setActive(true);
-    } ///end_activate
+    }
 
-    inline void Model::inactivate() { ///begin_inactivate
+    inline void Model::inactivate() {
         for (auto q : _qmatrix)
             q->setActive(false);
     } ///end_inactivate
@@ -616,13 +616,13 @@ namespace strom {
     inline void Model::setTreeIndex(unsigned i, bool fixed) {   ///begin_setTreeIndex
         _tree_index = i;
         _tree_fixed = fixed;
-    }   ///end_setTreeIndex
+    }
     
-    inline unsigned Model::getTreeIndex() const {   ///begin_getTreeIndex
+    inline unsigned Model::getTreeIndex() const {
         return _tree_index;
-    }   ///end_getTreeIndex
+    }
     
-    inline bool Model::isFixedTree() const {  ///begin_isFixedTree
+    inline bool Model::isFixedTree() const {
         return _tree_fixed;
     }  ///end_isFixedTree
     

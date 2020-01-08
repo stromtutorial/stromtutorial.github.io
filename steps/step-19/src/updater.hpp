@@ -6,7 +6,6 @@
 #include "xstrom.hpp"
 #include "likelihood.hpp"
 #include "topo_prior_calculator.hpp"    ///!a
-#include "debug_stuff.hpp"  //DEBUGSTUFF
 
 namespace strom {
     class Chain;
@@ -203,16 +202,6 @@ namespace strom {
     } ///end_calcLogLikelihood
 
     inline double Updater::update(double prev_lnL) { ///begin_update
-#if 1   //POLTMP
-        std::string moveabbr = "?";
-        if (_name == "Tree Topology and Edge Proportions")
-            moveabbr = "T";
-        else if (_name == "Tree Length")
-            moveabbr = "L";
-        else if (_name == "Polytomies")
-            moveabbr = "P";
-#endif
-
         double prev_log_prior = calcLogPrior();
         
         // Clear any nodes previously selected so that we can detect those nodes
@@ -220,17 +209,12 @@ namespace strom {
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
         
-        DebugStuff::debugSaveTree(boost::str(boost::format("pre-%s-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
-
         // Set model to proposed state and calculate _log_hastings_ratio
         proposeNewState();
         
         // Use alternative partials and transition probability buffer for any selected nodes
         // This allows us to easily revert to the previous values if the move is rejected
         _tree_manipulator->flipPartialsAndTMatrices();
-
-        DebugStuff::_tree_index++;
-        DebugStuff::debugSaveTree(boost::str(boost::format("%s-proposed-flipfwd-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
 
         // Calculate the log-likelihood and log-prior for the proposed state
         //_tree_manipulator->selectAllTMatrices();
@@ -246,13 +230,6 @@ namespace strom {
             log_R += _heating_power*(log_prior - prev_log_prior);
             log_R += _log_hastings_ratio;
             
-#if 0 //POLTMP
-            if (moveabbr == "P") {
-                Tree::SharedPtr tmptree = _tree_manipulator->getTree();
-                std::cerr << boost::str(boost::format("m = %d, logR = %.5f") % tmptree->_ninternals % log_R) << std::endl;
-            }
-#endif
-
             log_R += _log_jacobian; ///!j
             
             double logu = _lot->logUniform();
@@ -270,9 +247,6 @@ namespace strom {
             revert();
             _tree_manipulator->flipPartialsAndTMatrices();
             log_likelihood = prev_lnL;
-            
-            DebugStuff::_tree_index++;
-            DebugStuff::debugSaveTree(boost::str(boost::format("%s-reverted-flipback-%d") % moveabbr % DebugStuff::_which_iter), DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
         }
 
         tune(accept);

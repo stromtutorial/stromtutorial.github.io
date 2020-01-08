@@ -11,14 +11,12 @@ namespace strom {
     class TreeManip;
     class Likelihood;
     class Updater;
-    class DebugStuff;   //DEBUGSTUFF
 
     class Node {
         friend class Tree;
         friend class TreeManip;
         friend class Likelihood;
         friend class Updater;
-        friend class DebugStuff;   //DEBUGSTUFF
 
         public:
                                         Node();

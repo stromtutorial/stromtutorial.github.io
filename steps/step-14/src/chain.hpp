@@ -76,9 +76,9 @@ namespace strom {
     inline Chain::Chain() { ///begin_constructor
         //std::cout << "Chain being created" << std::endl;
         clear();
-    } ///end_constructor
+    }
 
-    inline Chain::~Chain() { ///begin_destructor
+    inline Chain::~Chain() {
         //std::cout << "Chain being destroyed" << std::endl;
     } ///end_destructor
 
@@ -93,9 +93,9 @@ namespace strom {
     inline void Chain::startTuning() { ///begin_startTuning
         for (auto u : _updaters)
             u->setTuning(true);
-    } ///end_startTuning
+    }
 
-    inline void Chain::stopTuning() { ///begin_stopTuning
+    inline void Chain::stopTuning() {
         for (auto u : _updaters)
             u->setTuning(false);
     } ///end_stopTuning
@@ -147,9 +147,9 @@ namespace strom {
 
     inline double Chain::getHeatingPower() const { ///begin_getHeatingPower
         return _heating_power;
-    } ///end_getHeatingPower
+    }
 
-    inline void Chain::setHeatingPower(double p) { ///begin_setHeatingPower
+    inline void Chain::setHeatingPower(double p) {
         _heating_power = p;
         for (auto u : _updaters)
             u->setHeatingPower(p);
@@ -157,9 +157,9 @@ namespace strom {
 
     inline double Chain::getChainIndex() const { ///begin_getChainIndex
         return _chain_index;
-    } ///end_getChainIndex
+    }
 
-    inline void Chain::setChainIndex(unsigned idx) { ///begin_setChainIndex
+    inline void Chain::setChainIndex(unsigned idx) {
         _chain_index = idx;
     } ///end_setChainIndex
         
@@ -201,9 +201,9 @@ namespace strom {
         for (auto u : _updaters)
             v.push_back(u->getLambda());
         return v;
-    } ///end_getLambdas
+    }
 
-    inline void Chain::setLambdas(std::vector<double> & v) { ///begin_setLambdas
+    inline void Chain::setLambdas(std::vector<double> & v) {
         assert(v.size() == _updaters.size());
         unsigned index = 0;
         for (auto u : _updaters) {
@@ -229,9 +229,9 @@ namespace strom {
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
-    } ///end_start
+    }
 
-    inline void Chain::stop() { ///begin_stop
+    inline void Chain::stop() {
     } ///end_stop
 
     inline void Chain::nextStep(int iteration) { ///begin_nextStep

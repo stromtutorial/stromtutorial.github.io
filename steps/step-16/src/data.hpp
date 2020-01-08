@@ -17,7 +17,7 @@
 
 namespace strom {
 
-    class Data {    ///begin_data
+    class Data {
         public:
             typedef std::vector<std::string>            taxon_names_t;
             typedef unsigned long long                  state_t;
@@ -59,8 +59,8 @@ namespace strom {
             const monomorphic_vect_t &                  getMonomorphic() const;
             const partition_key_t &                     getPartitionKey() const;
 
-            std::string                                 createTaxaBlock() const;            ///!a
-            std::string                                 createTranslateStatement() const;   ///!b
+            std::string                                 createTaxaBlock() const;
+            std::string                                 createTranslateStatement() const;
 
             void                                        clear();
 
@@ -80,7 +80,7 @@ namespace strom {
             taxon_names_t                               _taxon_names;
             data_matrix_t                               _data_matrix;
             subset_end_t                                _subset_end;
-    };  ///end_data
+    };
 
     // Member function bodies go below here but above the right curly bracket that ends the namespace block
 
@@ -459,7 +459,7 @@ namespace strom {
         }
     }
     
-    inline std::string Data::createTaxaBlock() const {    ///begin_createTaxaBlock
+    inline std::string Data::createTaxaBlock() const {
         std::string s = "";
         s += "begin taxa;\n";
         s += boost::str(boost::format("  dimensions ntax=%d;\n") % _taxon_names.size());
@@ -471,9 +471,9 @@ namespace strom {
         s += "    ;\n";
         s += "end;\n";
         return s;
-    }    ///end_createTaxaBlock
+    }
     
-    inline std::string Data::createTranslateStatement() const {    ///begin_createTranslateStatement
+    inline std::string Data::createTranslateStatement() const {
         std::string s = "";
         s += "  translate\n";
         unsigned t = 1;
@@ -484,6 +484,6 @@ namespace strom {
             }
         s += "  ;\n";
         return s;
-    }    ///end_createTranslateStatement
+    }
     
 }

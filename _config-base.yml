@@ -1,6 +1,7 @@
 title: "Strom Phylogenetics C++ Tutorial"
 baseurl: ""
 operatingsystem: 'none'
+testing: 'yes'
 doindex: false
 
 defaults:

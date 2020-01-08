@@ -27,18 +27,18 @@ namespace strom {
         _name = "State Frequencies";
         assert(qmatrix);
         _qmatrix = qmatrix;
-    }   ///end_constructor
+    }
 
-    inline StateFreqUpdater::~StateFreqUpdater() {  ///begin_destructor
+    inline StateFreqUpdater::~StateFreqUpdater() {
         //std::cout << "Destroying a StateFreqUpdater" << std::endl;
     }   ///end_destructor
 
     inline void StateFreqUpdater::pullFromModel() {  ///begin_pullFromModel
         QMatrix::freq_xchg_ptr_t freqs = _qmatrix->getStateFreqsSharedPtr();
         _curr_point.assign(freqs->begin(), freqs->end());
-    }   ///end_pullFromModel
+    }
     
-    inline void StateFreqUpdater::pushToModel() {  ///begin_pushToModel
+    inline void StateFreqUpdater::pushToModel() {
         _qmatrix->setStateFreqs(_curr_point);
     }   ///end_pushToModel
     

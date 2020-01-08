@@ -90,7 +90,7 @@ Add the highlighted lines to the `Likelihood` class declaration in {% indexfile 
 ~~~~~~
 {:.cpp}
 
-Add the bodies of these three `Likelihood` member functions somewhere before the terminating right curly bracket ending the `strom` namespace:
+Add the bodies of these four `Likelihood` member functions somewhere before the terminating right curly bracket ending the `strom` namespace:
 ~~~~~~
 {{ "steps/step-10/src/likelihood.hpp" | polcodesnippet:"begin_addOperation-end_addOperation,begin_getPartialIndex-end_getTMatrixIndex","" }}
 ~~~~~~

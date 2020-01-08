@@ -6,11 +6,12 @@ subpart: 2
 description: Here you will test your new makeNewick function
 ---
 {% assign OS = site.operatingsystem %}
-Add the following highlighted line to {% indexfile main.cpp %} (after `createTestTree()`):
+Add the following two highlighted lines to {% indexfile main.cpp %} (after `createTestTree()`):
 ~~~~~~
 {{ "steps/step-05/src/main.cpp" | polcodesnippet:"start-end","a" }}
 ~~~~~~
 {:.cpp}
+The first of these lines will generate a newick tree description using numbers (because the default value of the `makeNewick` parameter `use_names` is `false`), while the second one will generate a newick descriptions in which the names stored in each tip node are used.
 
 ## Installing the Boost header files
 {% indexhide boost, installing headers %}
@@ -44,7 +45,7 @@ tar zxvf ~/boost_1_71_0.tar.gz
 
 We now need to modify the {% indexfile meson.build %} file to tell meson where to find the boost headers:
 ~~~~~~
-{{ "steps/step-05/src/meson.build" | polcodesnippet:"",""}}
+{{ "steps/step-05/src/meson.build" | polcodesnippet:"start-end",""}}
 ~~~~~~
 {:.meson}
 
@@ -100,9 +101,10 @@ C:\Users\Paul Lewis\Documents\libraries\boost_1_71_0
 [//]: ##################################### ENDIF #####################################
 
 ## Compile and run
-Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional line appear in the output when the program is run:
+Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional lines appear in the output when the program is run:
 ~~~~~
 ((1:0.100,2:0.100):0.100,3:0.200)
+((first_leaf:0.100,second_leaf:0.100):0.100,third_leaf:0.200)
 ~~~~~
 {:.bash-output}
 

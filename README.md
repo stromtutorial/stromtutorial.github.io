@@ -29,3 +29,7 @@ Second, the Gamma-Dirichlet prior on tree length and edge length proportions was
 Third, it was pointed out to me (thanks James McCulloch!) that section 11.2 asked you to insert 8 member functions but a glitch in my code prevented you from seeing those functions. This has now been fixed. Please contact me if you encounter other such glitches and I will repair the tutorial web site as soon as possible so that you can continue.
 
 Finally, I have added a 19th step to the tutorial showing how to modify strom to allow polytomy-aware MCMC analyses. This may be further than you wish to go with this tutorial (it is a significant amount of work to add polytomy-awareness), but Step 19 is there if you are interested.
+
+#### 3.2
+
+This (major) update fixes numerous bugs relating to the calculation of the likelihood and the new polytomy-aware MCMC code (step 19). If you have begun the tutorial already, please obtain the source code for the particular step you are currently working on to ensure that you have the fixes implemented in this update. You can download the source code for any step by visiting [the GitHub repository](https://github.com/stromtutorial/stromtutorial.github.io) and clone the tutorial in its entirety (be sure to switch to the _source_ branch to get access to the source code). If you wish to view/download the source files for just step 10, for example, you could visit [the src directory](https://github.com/stromtutorial/stromtutorial.github.io/tree/source/steps/step-10/src) for step 10 directly.

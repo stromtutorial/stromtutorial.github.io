@@ -59,8 +59,9 @@ namespace strom {
 
             typedef std::pair<unsigned, int>        instance_pair_t;
 
-            unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;  ///!a
-            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;   ///!b
+            unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;   ///!a
+            unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;  ///!b
+            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;   ///!c
             void                                    updateInstanceMap(instance_pair_t & p, unsigned subset);
             void                                    newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices);
             void                                    setTipStates();
@@ -69,7 +70,7 @@ namespace strom {
             void                                    setPatternWeights();
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
-            void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);  ///!c
+            void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);  ///!d
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
             void                                    calculatePartials();
@@ -178,9 +179,9 @@ namespace strom {
 
     inline std::string Likelihood::beagleLibVersion() const {  ///begin_beagleLibVersion
         return std::string(beagleGetVersion());
-    }  ///end_beagleLibVersion
+    } 
     
-    inline std::string Likelihood::availableResources() const {  ///begin_availableResources
+    inline std::string Likelihood::availableResources() const {
         BeagleResourceList * rsrcList = beagleGetResourceList();
         std::string s;
         for (int i = 0; i < rsrcList->length; ++i) {
@@ -193,9 +194,9 @@ namespace strom {
         }
         boost::trim_right(s);
         return s;
-    }  ///end_availableResources
+    }
     
-    inline std::string Likelihood::usedResources() const {  ///begin_usedResources
+    inline std::string Likelihood::usedResources() const {
         std::string s;
         for (unsigned i = 0; i < _instances.size(); i++) {
             s += boost::str(boost::format("  instance %d: %s (resource %d)\n") % _instances[i].handle % _instances[i].resourcename % _instances[i].resourcenumber);
@@ -205,9 +206,9 @@ namespace strom {
     
     inline Data::SharedPtr Likelihood::getData() {  ///begin_getData
         return _data;
-    }  ///end_getData
+    }
     
-    inline void Likelihood::setData(Data::SharedPtr data) {  ///begin_setData
+    inline void Likelihood::setData(Data::SharedPtr data) {
         assert(_instances.size() == 0);
         assert(!data->getDataMatrix().empty());
         _data = data;
@@ -620,6 +621,10 @@ namespace strom {
         }
     } ///end_setModelRateMatrix
     
+    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {  ///begin_getScalerIndex
+        return BEAGLE_OP_NONE;
+    }   ///end_getScalerIndex
+    
     inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const { ///begin_getPartialIndex
         unsigned pindex = nd->_number;
         // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
@@ -628,16 +633,16 @@ namespace strom {
                 pindex += info.partial_offset;
         }
         return pindex;
-    }   ///end_getPartialIndex
+    } 
     
-    inline unsigned Likelihood::getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const {  ///begin_getTMatrixIndex
+    inline unsigned Likelihood::getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const { 
         unsigned tindex = 2*subset_index*info.tmatrix_offset + nd->_number;
         if (nd->isAltTMatrix())
             tindex += info.tmatrix_offset;
         return tindex;
     }   ///end_getTMatrixIndex
-     ///begin_addOperation    
-    inline void Likelihood::addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) {
+      
+    inline void Likelihood::addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) { ///begin_addOperation  
         assert(nd);
         assert(lchild);
         assert(rchild);
@@ -647,7 +652,8 @@ namespace strom {
         _operations[info.handle].push_back(partial);
 
         // 2. destination scaling buffer index to write to
-        _operations[info.handle].push_back(BEAGLE_OP_NONE);
+        int scaler_index = getScalerIndex(nd, info);
+        _operations[info.handle].push_back(scaler_index);
 
         // 3. destination scaling buffer index to read from
         _operations[info.handle].push_back(BEAGLE_OP_NONE);
@@ -704,7 +710,7 @@ namespace strom {
                         if (nd->isSelTMatrix()) {
                             unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
                             _pmatrix_index[info.handle].push_back(tindex);
-                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);; ///!m
+                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
                         }
                     }
                     else {
@@ -919,24 +925,3 @@ namespace strom {
     }  ///end_calcLogLikelihood
 
 }   ///end
-
-        // Output site log-likelihoods
-//        const Data::pattern_counts_t & counts = _data->getPatternCounts();
-//        const Data::partition_key_t & subset = _data->getPartitionKey();
-//        unsigned npatterns = _data->getNumPatterns();
-//        double* siteLogLs = (double*) malloc(sizeof(double) * npatterns);
-//        beagleGetSiteLogLikelihoods(_instances, siteLogLs);
-//        std::cout << "Site log-likelihoods:" << std::endl;
-//        std::cout << boost::format("%6s %6s %6s %12s %12s") % "site" % "count" % "subset" % "siteLogL" % "cumlogL" << std::endl;
-//        double cumlogL = 0.0;
-//        unsigned current_subset = 0;
-//        for (unsigned i = 0; i < npatterns; i++) {
-//            if (subset[i] != (int)current_subset) {
-//                current_subset = subset[i];
-//                cumlogL = 0.0;
-//                std::cout << std::endl;
-//            }
-//            double pattern_lnL = counts[i]*siteLogLs[i];
-//            cumlogL += pattern_lnL;
-//            std::cout << boost::format("%6d %6d %6d %12.8f %12.8f") % (i+1) % counts[i] % subset[i] % siteLogLs[i] % cumlogL << std::endl;
-//        }

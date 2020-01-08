@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "updater.hpp"
 
@@ -42,19 +42,18 @@ namespace strom {
     };
 
     // Member function bodies go here
-    ///end_class_declaration
-    inline TreeUpdater::TreeUpdater() { ///begin_constructor
+    inline TreeUpdater::TreeUpdater() {
         // std::cout << "Creating a TreeUpdater" << std::endl;
         Updater::clear();
         _name = "Tree Topology and Edge Proportions";
         reset();
-    }   ///end_constructor
+    }
 
-    inline TreeUpdater::~TreeUpdater() {    ///begin_destructor
+    inline TreeUpdater::~TreeUpdater() {
         // std::cout << "Destroying a TreeUpdater" << std::endl;
-    }   ///end_destructor
+    }
     
-    inline void TreeUpdater::reset() {  ///begin_reset
+    inline void TreeUpdater::reset() {
         _topology_changed       = false;
         _orig_edgelen_top       = 0.0;
         _orig_edgelen_middle    = 0.0;
@@ -65,9 +64,9 @@ namespace strom {
         _y                      = 0;
         _a                      = 0;
         _b                      = 0;
-    }   ///end_reset
+    }
 
-    inline double TreeUpdater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
+    inline double TreeUpdater::calcLogTopologyPrior() const {
         typename Tree::SharedPtr tree = _tree_manipulator->getTree();
         assert(tree);
         double n = tree->numLeaves();
@@ -75,13 +74,13 @@ namespace strom {
             n += 1.0;
         double log_num_topologies = lgamma(2.0*n - 5.0 + 1.0) - (n - 3.0)*log(2.0) - lgamma(n - 3.0 + 1.0);
         return -log_num_topologies;
-    }   ///end_calcLogTopologyPrior
+    }
 
-    inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
-        double log_topology_prior    = calcLogTopologyPrior();
+    inline double TreeUpdater::calcLogPrior() {
+        double log_topology_prior    = Updater::calcLogTopologyPrior();
         double log_edge_length_prior = Updater::calcLogEdgeLengthPrior();
         return log_topology_prior + log_edge_length_prior;
-    }   ///end_calcLogPrior
+    }
 
     inline Node * TreeUpdater::chooseRandomChild(Node * x, Node * avoid, bool parent_included) {
         // Count number of children of x
@@ -95,7 +94,7 @@ namespace strom {
         
         // Choose random child index
         unsigned upper = n + (parent_included ? 1 : 0);
-        unsigned chosen = _lot->randint(0,upper - 1);
+        unsigned chosen = (unsigned)_lot->randint(0,upper - 1);
         
         // If chosen < n, then find and return that particular child
         if (chosen < n) {
@@ -115,7 +114,7 @@ namespace strom {
     }
 
     // This version uses a polytomy-aware NNI swap
-    inline void TreeUpdater::proposeNewState() {    ///begin_proposeNewState
+    inline void TreeUpdater::proposeNewState() {
         _case = 0;
         _topology_changed = false;
         assert(!_tree_manipulator->getTree()->isRooted());
@@ -242,9 +241,9 @@ namespace strom {
             // In these cases b is above y, so it is b's edge that is modified
             _b->selectTMatrix();
         }
-    }   ///end_proposeNewState
+    }
     
-    inline void TreeUpdater::revert() { ///begin_revert
+    inline void TreeUpdater::revert() {
         assert(_case > 0 && _case < 9);
         if (_case == 2 || _case == 6)
             _tree_manipulator->LargetSimonSwap(_a, _b);
@@ -256,6 +255,6 @@ namespace strom {
             _b->setEdgeLength(_orig_edgelen_bottom);
         else
             _y->setEdgeLength(_orig_edgelen_bottom);
-    }   ///end_revert
+    }
 
-}   ///end
+}

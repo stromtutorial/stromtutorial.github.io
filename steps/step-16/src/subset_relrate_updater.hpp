@@ -28,9 +28,9 @@ namespace strom {
         DirichletUpdater::clear();
         _name = "Subset Relative Rates";
         _model = model;
-    }   ///end_constructor
+    }
 
-    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {  ///begin_destructor
+    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {
         //std::cout << "Destroying a SubsetRelRateUpdater" << std::endl;
     }   ///end_destructor
 
@@ -56,9 +56,9 @@ namespace strom {
         for (unsigned i = 0; i < num_subsets; i++) {
             _curr_point[i] = relative_rates[i]*subset_sizes[i]/num_sites;
         }
-    }   ///end_pullFromModel
+    }
     
-    inline void SubsetRelRateUpdater::pushToModel() {  ///begin_pushToModel
+    inline void SubsetRelRateUpdater::pushToModel() {
         Model::subset_sizes_t & subset_sizes = _model->getSubsetSizes();
         unsigned num_sites   = _model->getNumSites();
         unsigned num_subsets = _model->getNumSubsets();

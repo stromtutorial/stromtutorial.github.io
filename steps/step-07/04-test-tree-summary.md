@@ -302,6 +302,15 @@ The expected output is shown below. Keep in mind that tree topologies are ordere
 ~~~~~~
 {:.bash-output}
 
+## "test.tre" does not refer to a valid file
+
+If you get the error message above, it means that you have tried to run `strom` from a directory other than the directory containing the tree file ({% indexfile test.tre %}). The {% indexfile test.tre %} file should have been installed in the same directory as the strom executable when you issued the command `meson install`. If you used a command like this to run strom:
+~~~~~~
+../../distr/strom
+~~~~~~
+{:.bash}
+then you will get the error because `strom` will look for the {% indexfile test.tre %} file in the current working directory, which differs from the directory where {% indexfile test.tre %} resides.
+
 ## Lost at sea
 Important! The lines of output above will be lost in a sea of constructor and destructor notifications unless you comment those out. Visit the `Node`, `Tree`, `Split`, `TreeManip`, and `TreeSummary` classes and use `//` to comment out the `std::cout << "Constructing a XXXX" << std::endl;` statement inside the constructor and the `std::cout << "Destroying a XXXX" << std::endl;` statement inside the destructor. In future steps, these "reporter" output lines will be created already commented out so that they can be easily turned on if needed during debugging but not clutter the output during normal operation.
 

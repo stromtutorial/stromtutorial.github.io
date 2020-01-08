@@ -36,9 +36,9 @@ namespace strom {
         _name = "Gamma Rate Variance";
         assert(asrv);
         _asrv = asrv;
-    } ///end_constructor
+    } 
 
-    inline GammaRateVarUpdater::~GammaRateVarUpdater() { ///begin_destructor
+    inline GammaRateVarUpdater::~GammaRateVarUpdater() {
         //std::cout << "GammaRateVarUpdater being destroyed" << std::endl;
         _asrv.reset();
     } ///end_destructor

@@ -77,23 +77,27 @@ module Jekyll
             os = payload.site["operatingsystem"]
             if os == 'none'
                 os = ''
-            else
-                os += '/'
+            #else
+            #    os += '/'
             end
             
             puts '==> os = ' + os
             
             if !payload.site.key? 'pagemap'
+                
                 #puts 'Creating payload.site["pagemap"]...'
+                
                 payload.site['pagemap'] = {}
                 payload.site.pages.each do |p|
                     x = p.data['partnum']
                     y = p.data['subpart']
                     if x and y
                         k = "#{x}.#{y}"
-                        url = "/" + os + p.url
-                        #url = "/" + p.url
+                        url = os + p.url
                         payload.site['pagemap'].store(k, url)
+                        
+                        #puts '  payload.site["pagemap"][' + k + '] = ' + payload.site['pagemap'][k]
+                        
                     end
                 end
             end
@@ -107,12 +111,15 @@ module Jekyll
             part = payload.page['partnum'].to_i
             subpart = payload.page['subpart'].to_i
             
+            #testing = payload.site['testing']
             os = payload.site['operatingsystem']
             if os == 'none'
                 os = ''
-            else
-                os = '/' + os
+            #else
+            #    os = '/' + os
             end
+
+            #puts '==> testing = ' + testing
 
             # Create link to previous step or substep
             # Decrement subpart to see if there is previous subpart to the current step
@@ -120,15 +127,27 @@ module Jekyll
                 prevpart = part
                 prevsubpart = subpart - 1
                 key = "#{prevpart}.#{prevsubpart}"
-                payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
+                #if testing == 'yes'
+                #    payload.page['prevlink'] = "<a href=\"http://127.0.0.1:4000#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
+                #else
+                    payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
+                #end
             else
                 if part > 1
                     prevpart = part - 1
                     prevsubpart = 0
                     key = "#{prevpart}.#{prevsubpart}"
-                    payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
+                    #if testing == 'yes'
+                    #    payload.page['prevlink'] = "<a href=\"http://127.0.0.1:4000#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
+                    #else
+                        payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">&lt;&nbsp;#{key}</a>"
+                    #end
                 else
-                    payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']+os}/steps/\">Table of Contents</a>"
+                    #if testing == 'yes'
+                    #    payload.page['prevlink'] = "<a href=\"http://127.0.0.1:4000/#{os}/steps/\">Table of Contents</a>"
+                    #else
+                        payload.page['prevlink'] = "<a href=\"#{payload.site['baseurl']+os}/steps/\">Table of Contents</a>"
+                    #end
                 end
             end
 
@@ -139,7 +158,11 @@ module Jekyll
             if payload.site.pages.detect {|p| p.data["partnum"] == nextpart and p.data["subpart"] == nextsubpart}
                 # A page having step number part.(subpart + 1) was found
                 key = "#{nextpart}.#{nextsubpart}"
-                payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
+                #if testing == 'yes'
+                #    payload.page['nextlink'] = "<a href=\"http://127.0.0.1:4000#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
+                #else
+                    payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
+                #end
             else
                 # No page having step number part.(subpart + 1) was found, so try incrementing part instead
                 nextpart = part + 1
@@ -147,10 +170,18 @@ module Jekyll
                 if payload.site.pages.detect {|p| p.data["partnum"] == nextpart and p.data["subpart"] == nextsubpart}
                     # A page having step number (part + 1).0 was found
                     key = "#{nextpart}.#{nextsubpart}"
-                    payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
+                    #if testing == 'yes'
+                    #    payload.page['nextlink'] = "<a href=\"http://127.0.0.1:4000#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
+                    #else
+                        payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']}/#{payload.site['pagemap'][key]}\">#{key}&nbsp;&gt;</a>"
+                    #end
                 else
                     # No page having step number (part + 1).0 was found, so we must be at the end
-                    payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']+os}/steps/\">Table of Contents</a>"
+                    #if testing == 'yes'
+                    #    payload.page['nextlink'] = "<a href=\"http://127.0.0.1:4000/#{os}/steps/\">Table of Contents</a>"
+                    #else
+                        payload.page['nextlink'] = "<a href=\"#{payload.site['baseurl']+os}/steps/\">Table of Contents</a>"
+                    #end
                 end
             end
 

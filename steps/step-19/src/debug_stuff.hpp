@@ -8,10 +8,10 @@
 namespace strom {
 
     struct DebugStuff {
-            static unsigned    _debug_add_tries;    //POLTMP
-            static unsigned    _debug_add_accepts;  //POLTMP
-            static unsigned    _debug_del_tries;    //POLTMP
-            static unsigned    _debug_del_accepts;  //POLTMP
+            static unsigned    _debug_add_tries;
+            static unsigned    _debug_add_accepts;
+            static unsigned    _debug_del_tries;
+            static unsigned    _debug_del_accepts;
 
             static bool        _ignore;
             static unsigned    _partial_offset;

@@ -224,15 +224,9 @@ namespace strom {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-#if 1
                     _a->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
                     _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
                     _b->setEdgeLength(focal_path_length - new_attachment_point);
-#else
-                    _a->setEdgeLength(focal_path_length - new_attachment_point);
-                    _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
-                    _b->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
-#endif
                     _case = 1;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
@@ -259,15 +253,9 @@ namespace strom {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-#if 1
                     _a->setEdgeLength(new_attachment_point);
                     _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
                     _b->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
-#else
-                    _a->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
-                    _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
-                    _b->setEdgeLength(new_attachment_point);
-#endif
                     _case = 5;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
@@ -316,9 +304,9 @@ namespace strom {
             _a->setEdgeLength(_orig_edgelen_top);
             _x->setEdgeLength(_orig_edgelen_middle);
             if (_case == 1 || _case == 3 || _case == 5 || _case == 7)
-                _b->setEdgeLength(_orig_edgelen_bottom);    // not necessary for case 3
+                _b->setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 3
             else
-                _y->setEdgeLength(_orig_edgelen_bottom);    // not necessary for case 4
+                _y->setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 4
         }   ///!j
     }   ///end_revert
 

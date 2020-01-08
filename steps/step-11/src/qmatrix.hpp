@@ -66,9 +66,9 @@ namespace strom {
     ///end_class_declaration
     inline QMatrix::QMatrix() { ///begin_qmatrix_constructor
         //std::cout << "Creating a QMatrix object" << std::endl;
-    } ///end_qmatrix_constructor
+    }
     
-    inline QMatrix::~QMatrix() { ///begin_qmatrix_destructor
+    inline QMatrix::~QMatrix() {
         //std::cout << "Destroying a QMatrix object" << std::endl;
     } ///end_qmatrix_destructor
     
@@ -86,25 +86,25 @@ namespace strom {
 
     inline void QMatrix::fixStateFreqs(bool is_fixed) { ///begin_fixStateFreqs
         _state_freqs_fixed = is_fixed;
-    }   ///end_fixStateFreqs
+    }
     
-    inline void QMatrix::fixExchangeabilities(bool is_fixed) {  ///begin_fixExchangeabilities
+    inline void QMatrix::fixExchangeabilities(bool is_fixed) {
         _exchangeabilities_fixed = is_fixed;
-    }   ///end_fixExchangeabilities
+    }
     
-    inline void QMatrix::fixOmega(bool is_fixed) {  ///begin_fixOmega
+    inline void QMatrix::fixOmega(bool is_fixed) {
         _omega_fixed = is_fixed;
     }   ///end_fixOmega
 
     inline bool QMatrix::isFixedStateFreqs() const { ///begin_isFixedStateFreqs
         return _state_freqs_fixed;
-    }   ///end_isFixedStateFreqs
+    }
     
-    inline bool QMatrix::isFixedExchangeabilities() const { ///begin_isFixedExchangeabilities
+    inline bool QMatrix::isFixedExchangeabilities() const {
         return _exchangeabilities_fixed;
-    }   ///end_isFixedExchangeabilities
+    }
     
-    inline bool QMatrix::isFixedOmega() const { ///begin_isFixedOmega
+    inline bool QMatrix::isFixedOmega() const {
         return _omega_fixed;
     }   ///end_isFixedOmega
     
@@ -175,13 +175,13 @@ namespace strom {
     inline QMatrixNucleotide::QMatrixNucleotide() { ///begin_QMatrixNucleotide_constructor
         //std::cout << "Constructing a QMatrixNucleotide object" << std::endl;
         clear();
-    } ///end_QMatrixNucleotide_constructor
+    } 
 
-    inline QMatrixNucleotide::~QMatrixNucleotide() { ///begin_QMatrixNucleotide_destructor
+    inline QMatrixNucleotide::~QMatrixNucleotide() {
         //std::cout << "Destroying a QMatrixNucleotide object" << std::endl;
-    } ///end_QMatrixNucleotide_destructor
+    }
 
-    inline void QMatrixNucleotide::clear() { ///begin_QMatrixNucleotide_clear
+    inline void QMatrixNucleotide::clear() {
         QMatrix::clear();
 
         QMatrix::freq_xchg_t xchg = {1,1,1,1,1,1};
@@ -195,9 +195,9 @@ namespace strom {
 
     inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getExchangeabilitiesSharedPtr() { ///begin_QMatrixNucleotide_getExchangeabilitiesSharedPtr
         return _exchangeabilities;
-    } ///end_QMatrixNucleotide_getExchangeabilitiesSharedPtr
+    }
     
-    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() { ///begin_QMatrixNucleotide_getStateFreqsSharedPtr
+    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() {
         return _state_freqs;
     } ///end_QMatrixNucleotide_StateFreqsSharedPtr
 
@@ -208,21 +208,21 @@ namespace strom {
     
     inline const double * QMatrixNucleotide::getEigenvectors() const { ///begin_QMatrixNucleotide_getEigenvectors
         return _eigenvectors.data();
-    } ///end_QMatrixNucleotide_getEigenvectors
+    }
     
-    inline const double * QMatrixNucleotide::getInverseEigenvectors() const { ///begin_QMatrixNucleotide_getInverseEigenvectors
+    inline const double * QMatrixNucleotide::getInverseEigenvectors() const {
         return _inverse_eigenvectors.data();
-    } ///end_QMatrixNucleotide_getInverseEigenvectors
+    } 
     
-    inline const double * QMatrixNucleotide::getEigenvalues() const { ///begin_QMatrixNucleotide_getEigenvalues
+    inline const double * QMatrixNucleotide::getEigenvalues() const {
         return _eigenvalues.data();
     } ///end_QMatrixNucleotide_getEigenvalues
     
     inline const double * QMatrixNucleotide::getExchangeabilities() const { ///begin_QMatrixNucleotide_getExchangeabilities
         return &(*_exchangeabilities)[0];
-    } ///end_QMatrixNucleotide_getExchangeabilities
+    }
 
-    inline const double * QMatrixNucleotide::getStateFreqs() const { ///begin_QMatrixNucleotide_getStateFreqs
+    inline const double * QMatrixNucleotide::getStateFreqs() const {
         return &(*_state_freqs)[0];
     } ///end_QMatrixNucleotide_getStateFreqs
 
@@ -277,9 +277,9 @@ namespace strom {
     
     inline void QMatrixNucleotide::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) { ///begin_QMatrixNucleotide_setOmegaSharedPtr
         assert(false);
-    } ///end_QMatrixNucleotide_setOmegaSharedPtr
+    }
 
-    inline void QMatrixNucleotide::setOmega(QMatrix::omega_t omega) { ///begin_QMatrixNucleotide_setOmega
+    inline void QMatrixNucleotide::setOmega(QMatrix::omega_t omega) {
         assert(false);
     } ///end_QMatrixNucleotide_setOmega
 
@@ -396,7 +396,7 @@ namespace strom {
         
             GeneticCode::SharedPtr      _genetic_code;
     };
-    ///end_QMatrixCodon_class_declaration
+
     inline QMatrixCodon::QMatrixCodon(GeneticCode::SharedPtr gcode) {
         //std::cout << "Constructing a QMatrixCodon object" << std::endl;
         assert(gcode);

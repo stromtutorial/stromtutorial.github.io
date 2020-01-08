@@ -7,7 +7,7 @@ description: In this section you will write the `makeNewick` function, which cre
 ---
 Our next goal is to create a {% indexshow newick %} string for the tree currently stored in a `TreeManip` object. Add the `makeNewick` function declaration in the public area of the `TreeManip` class declaration, and add the `makeNewick` function body just above the terminating curly bracket of the namespace (i.e. just before the end of the file):
 ~~~~~~
-{{ "steps/step-05/src/tree_manip.hpp" | polcodesnippet:"start-end_declaration,dots-end","x,y,a,b-c" }}
+{{ "steps/step-05/src/tree_manip.hpp" | polcodesnippet:"start-end_declaration,dots-begin_mainloop,begin_stack-end","x,y,a,b-c" }}
 ~~~~~~
 {:.cpp}
 Note the convention that `//...` indicates that possibly many lines have been omitted from the code snippet.
@@ -32,19 +32,19 @@ Internal nodes, when visited, result in the addition of a left parenthesis to th
 {{ "steps/step-05/src/tree_manip.hpp" | polcodesnippet:"begin_stack-end_stack","" }}
 ~~~~~~
 {:.cpp}
-When a tip node is visited, the `tip_node_format` string is used to add a number (one greater than the node's `_number`) followed by a colon and then the edge length for that tip node.
+When a tip node is visited, the `tip_node_name_format` or `tip_node_number_format` string is used (depending on the argument passed into the parameter `use_names`) to add the node name (if `use_names` is `true`) or a number (if `use_names` is `false`). The name or number is followed by a colon and then the edge length for that tip node.
 ~~~~~~
-{{ "steps/step-05/src/tree_manip.hpp" | polcodesnippet:"tip_format","" }}
+{{ "steps/step-05/src/tree_manip.hpp" | polcodesnippet:"tip_name_format-tip_number_format","" }}
 ~~~~~~
 {:.cpp}
-The Boost library's format class is used to format the string. Here we are creating an object of type `{% indexcode boost::format %}` (the `boost` part is the Boost namespace, while `format` is the class). The variable's name is `tip_node_format`. This works much like Python or sprintf in C: placeholders (single percent symbols followed by a letter such as d, f, or s) are substituted for the supplied integer, floating point value, or string, respectively. Each doubled percent (`%%`) ends up being a single literal `%` in the string after replacements, so the above statement will be equal to the following after replacement of the `%d` by the supplied precision (assume that precision = 5 for this example):
+The Boost library's format class is used to format the string. Here we are creating two objects of type `{% indexcode boost::format %}` (the `boost` part is the Boost namespace, while `format` is the class). The variables' names are `tip_node_name_format` and `tip_node_number_format`. This works much like Python or sprintf in C: placeholders (single percent symbols followed by a letter such as d, f, or s) are substituted for the supplied integer, floating point value, or string, respectively. Each doubled percent (`%%`) ends up being a single literal `%` in the string after replacements, so the above statement will be equal to the following after replacement of the `%d` by the supplied precision (assume that precision = 5 for this example):
 ~~~~~~
 const boost::format tip_node_format("%d:%.5f");
 ~~~~~~
 {:.bash-output}
 You might wonder why the `boost::str(...)` is necessary. The `boost::format` constructor takes a string as its sole argument, not a `boost::format` object, and the Boost format library does not provide an implicit conversion of format objects to string objects, so the `boost::str` function provides an explicit way to do this conversion. This is done intentionally in order to make it easier to report errors accurately when compiling formats. You could also call {% indexcode boost::format %}'s `str` function to accomplish the conversion:
 ~~~~~~
-const boost::format tip_node_format( (boost::format("%%d:%%.%df") % precision).str() );
+const boost::format tip_node_number_format( (boost::format("%%d:%%.%df") % precision).str() );
 ~~~~~~
 {:.bash-output}
 The [Boost format documentation](https://www.boost.org/doc/libs/1_64_0/libs/format/doc/format.html#examples) provides some examples of using `boost::format`.

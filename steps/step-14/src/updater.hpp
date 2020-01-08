@@ -80,9 +80,9 @@ namespace strom {
     inline Updater::Updater() { ///begin_constructor
         //std::cout << "Updater constructor called" << std::endl;
         clear();
-    } ///end_constructor
+    }
 
-    inline Updater::~Updater() { ///begin_destructor
+    inline Updater::~Updater() {
         //std::cout << "Updater destructor called" << std::endl;
     } ///end_destructor
 

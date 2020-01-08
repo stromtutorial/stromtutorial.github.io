@@ -471,9 +471,9 @@ namespace strom {
         s += "    ;\n";
         s += "end;\n";
         return s;
-    }    ///end_createTaxaBlock
+    } 
     
-    inline std::string Data::createTranslateStatement() const {    ///begin_createTranslateStatement
+    inline std::string Data::createTranslateStatement() const {
         std::string s = "";
         s += "  translate\n";
         unsigned t = 1;

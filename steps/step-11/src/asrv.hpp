@@ -64,13 +64,13 @@ namespace strom {
     inline ASRV::ASRV() {   ///begin_constructor
         //std::cout << "Constructing a ASRV" << std::endl;
         clear();
-    }   ///end_constructor
+    }
 
-    inline ASRV::~ASRV() {   ///begin_destructor
+    inline ASRV::~ASRV() {
         //std::cout << "Destroying a ASRV" << std::endl;
-    }   ///end_destructor
+    }
 
-    inline void ASRV::clear() {   ///begin_clear
+    inline void ASRV::clear() {
         // Rate homogeneity is the default
         _invar_model = false;
         _ratevar_fixed = false;
@@ -147,17 +147,17 @@ namespace strom {
 
     inline void ASRV::fixRateVar(bool is_fixed) {  ///begin_fixRateVar
         _ratevar_fixed = is_fixed;
-    }   ///end_fixRateVar
+    }
 
-    inline void ASRV::fixPinvar(bool is_fixed) {  ///begin_fixPinvar
+    inline void ASRV::fixPinvar(bool is_fixed) {
         _pinvar_fixed = is_fixed;
-    }   ///end_fixPinvar
+    }
 
-    inline bool ASRV::isFixedRateVar() const {  ///begin_isFixedRateVar
+    inline bool ASRV::isFixedRateVar() const {
         return _ratevar_fixed;
-    }   ///end_isFixedRateVar
+    }
 
-    inline bool ASRV::isFixedPinvar() const {  ///begin_isFixedPinvar
+    inline bool ASRV::isFixedPinvar() const {
         return _pinvar_fixed;
     }   ///end_isFixedPinvar
 

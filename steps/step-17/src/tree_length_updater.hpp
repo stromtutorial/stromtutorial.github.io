@@ -35,9 +35,9 @@ namespace strom {
         // std::cout << "Creating a TreeLengthUpdater..." << std::endl;
         clear();
         _name = "Tree Length";
-    }   ///end_constructor
+    }
 
-    inline TreeLengthUpdater::~TreeLengthUpdater() {    ///begin_destructor
+    inline TreeLengthUpdater::~TreeLengthUpdater() {
         // std::cout << "Destroying a TreeLengthUpdater..." << std::endl;
     }   ///end_destructor
 
@@ -81,9 +81,9 @@ namespace strom {
 
     inline void TreeLengthUpdater::pullFromModel() {    ///begin_pullFromModel
         _curr_point = _tree_manipulator->calcTreeLength();
-    }   ///end_pullFromModel
+    }
 
-    inline void TreeLengthUpdater::pushToModel() const {    ///begin_pushToModel
+    inline void TreeLengthUpdater::pushToModel() const {
         double scaler = _curr_point/_prev_point;
         _tree_manipulator->scaleAllEdgeLengths(scaler);
     }   ///end_pushToModel

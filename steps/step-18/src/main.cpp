@@ -1,4 +1,4 @@
-#include <limits>   ///start
+#include <limits>
 #include <iostream>
 #include "strom.hpp"
 
@@ -46,4 +46,4 @@ int main(int argc, const char * argv[]) {
     }
 
     return 0;
-}   ///end
+}

@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "updater.hpp"
 
@@ -29,26 +29,25 @@ namespace strom {
     };
 
     // Member function bodies go here
-    ///end_class_declaration
     
-    inline TreeLengthUpdater::TreeLengthUpdater() { ///begin_constructor
+    inline TreeLengthUpdater::TreeLengthUpdater() {
         // std::cout << "Creating a TreeLengthUpdater..." << std::endl;
         clear();
         _name = "Tree Length";
-    }   ///end_constructor
+    }
 
-    inline TreeLengthUpdater::~TreeLengthUpdater() {    ///begin_destructor
+    inline TreeLengthUpdater::~TreeLengthUpdater() {
         // std::cout << "Destroying a TreeLengthUpdater..." << std::endl;
-    }   ///end_destructor
+    }
 
-    inline void TreeLengthUpdater::clear() {    ///begin_clear
+    inline void TreeLengthUpdater::clear() {
         Updater::clear();
         _prev_point     = 0.0;
         _curr_point     = 0.0;
         reset();
-    }   ///end_clear
+    }
     
-    inline void TreeLengthUpdater::proposeNewState() {  ///begin_proposeNewState
+    inline void TreeLengthUpdater::proposeNewState() {
         // Save copy of _curr_point in case revert is necessary.
         pullFromModel();
         _prev_point = _curr_point;
@@ -60,32 +59,33 @@ namespace strom {
 
         // calculate log of Hastings ratio under GammaDir parameterization
         _log_hastings_ratio = log(m);
+        _log_jacobian = 0.0;
 
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-    }   ///end_proposeNewState
+    }
 
-    inline void TreeLengthUpdater::revert() {   ///begin_revert
+    inline void TreeLengthUpdater::revert() {
         // swap _curr_point and _prev_point so that edge length scaler
         // in pushCurrentStateToModel will be correctly calculated
         double tmp = _curr_point;
         _curr_point = _prev_point;
         _prev_point = tmp;
         pushToModel();
-    }   ///end_revert
+    }
 
-    inline double TreeLengthUpdater::calcLogPrior() {   ///begin_calcLogPrior
+    inline double TreeLengthUpdater::calcLogPrior() {
         return Updater::calcLogEdgeLengthPrior();
-    }   ///end_calcLogPrior
+    }
 
-    inline void TreeLengthUpdater::pullFromModel() {    ///begin_pullFromModel
+    inline void TreeLengthUpdater::pullFromModel() {
         _curr_point = _tree_manipulator->calcTreeLength();
-    }   ///end_pullFromModel
+    }
 
-    inline void TreeLengthUpdater::pushToModel() const {    ///begin_pushToModel
+    inline void TreeLengthUpdater::pushToModel() const {
         double scaler = _curr_point/_prev_point;
         _tree_manipulator->scaleAllEdgeLengths(scaler);
-    }   ///end_pushToModel
+    }
 
-}   ///end
+}

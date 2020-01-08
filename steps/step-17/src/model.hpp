@@ -14,7 +14,7 @@ namespace strom {
     
     class Likelihood;
 
-    class Model {   ///begin_model
+    class Model {
         
         friend class Likelihood;
 
@@ -111,7 +111,7 @@ namespace strom {
             omega_params_t              _omega_params;
             ratevar_params_t            _ratevar_params;
             pinvar_params_t             _pinvar_params;
-        };  ///end_model
+        };
     
     // member function bodies go here
     
@@ -652,7 +652,7 @@ namespace strom {
         return code;
     }
         
-    inline std::string Model::paramNamesAsString(std::string sep) const {   ///begin_paramNamesAsString
+    inline std::string Model::paramNamesAsString(std::string sep) const {
         unsigned k;
         std::string s = "";
         if (_num_subsets > 1) {
@@ -678,9 +678,9 @@ namespace strom {
             }
         }
         return s;
-    }   ///end_paramNamesAsString
+    }
 
-    inline std::string Model::paramValuesAsString(std::string sep) const {  ///begin_paramValuesAsString
+    inline std::string Model::paramValuesAsString(std::string sep) const {
         unsigned k;
         std::string s = "";
         if (_num_subsets > 1) {
@@ -709,9 +709,9 @@ namespace strom {
             }
         }
         return s;
-    }   ///end_paramValuesAsString
+    }
     
-    inline void Model::setSubsetRelRates(subset_relrate_vect_t & relrates, bool fixed) {   ///begin_setSubsetRelRates
+    inline void Model::setSubsetRelRates(subset_relrate_vect_t & relrates, bool fixed) {
         assert(_num_subsets > 0);
         assert(relrates.size() > 0);
         if (relrates[0] == -1)
@@ -719,24 +719,24 @@ namespace strom {
         else
             _subset_relrates.assign(relrates.begin(), relrates.end());
         _subset_relrates_fixed = fixed;
-    }   ///end_setSubsetRelRates
+    }
 
-    inline Model::subset_relrate_vect_t & Model::getSubsetRelRates() {   ///begin_getSubsetRelRates
+    inline Model::subset_relrate_vect_t & Model::getSubsetRelRates() {
         return _subset_relrates;
-    }   ///end_getSubsetRelRates
+    }
     
-    inline bool Model::isFixedSubsetRelRates() const {  ///begin_isFixedSubsetRelRates
+    inline bool Model::isFixedSubsetRelRates() const {
         return _subset_relrates_fixed;
-    }   ///end_isFixedSubsetRelRates
+    }
     
-    inline void Model::setTreeIndex(unsigned i, bool fixed) {   ///begin_setTreeIndex
+    inline void Model::setTreeIndex(unsigned i, bool fixed) {
         _tree_index = i;
         _tree_fixed = fixed;
-    }   ///end_setTreeIndex
+    }
 
-    inline unsigned Model::getTreeIndex() const {   ///begin_getTreeIndex
+    inline unsigned Model::getTreeIndex() const {
         return _tree_index;
-    }   ///end_getTreeIndex
+    }
     
     inline bool Model::isFixedTree() const {
         return _tree_fixed;

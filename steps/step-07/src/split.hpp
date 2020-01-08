@@ -59,18 +59,18 @@ namespace strom {
         _nleaves = 0;
         _bits_per_unit = (CHAR_BIT)*sizeof(Split::split_unit_t);
         clear();
-        //std::cout << "Constructing a Split" << std::endl;
-    } ///end_constructor
+        std::cout << "Constructing a Split" << std::endl;
+    } 
 
-    inline Split::Split(const Split & other) { ///begin_copy_constructor
+    inline Split::Split(const Split & other) {
         _mask = other._mask;
         _nleaves = other._nleaves;
         _bits_per_unit = (CHAR_BIT)*sizeof(Split::split_unit_t);
         _bits = other._bits;
-        //std::cout << "Constructing a Split by copying an existing split" << std::endl;
-    } ///end_copy_constructor
+        std::cout << "Constructing a Split by copying an existing split" << std::endl;
+    }
 
-    inline Split::~Split() { ///begin_destructor
+    inline Split::~Split() {
         //std::cout << "Destroying a Split" << std::endl;
     } ///end_destructor
 
@@ -84,13 +84,13 @@ namespace strom {
         _nleaves = other._nleaves;
         _bits = other._bits;
         return *this;
-    } ///end_assignment
+    }
 
-    inline bool Split::operator==(const Split & other) const { ///begin_equals
+    inline bool Split::operator==(const Split & other) const { 
         return (_bits == other._bits);
-    } ///end_equals
+    }
 
-    inline bool Split::operator<(const Split & other) const { ///begin_lessthan
+    inline bool Split::operator<(const Split & other) const { 
         assert(_bits.size() == other._bits.size());
         return (_bits < other._bits);
     } ///end_lessthan

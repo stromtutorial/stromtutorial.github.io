@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "model.hpp"
 #include "updater.hpp"
@@ -28,33 +28,32 @@ namespace strom {
             ASRV::SharedPtr             _asrv;
     };
 
-    // member function bodies go here
-    ///end_class_declaration    
-    inline PinvarUpdater::PinvarUpdater(ASRV::SharedPtr asrv) { ///begin_constructor
+    // member function bodies go here    
+    inline PinvarUpdater::PinvarUpdater(ASRV::SharedPtr asrv) {
         //std::cout << "PinvarUpdater being created" << std::endl;
         clear();
         _name = "Proportion of Invariable Sites";
         assert(asrv);
         _asrv = asrv;
-    } ///end_constructor
+    }
 
-    inline PinvarUpdater::~PinvarUpdater() { ///begin_destructor
+    inline PinvarUpdater::~PinvarUpdater() {
         //std::cout << "PinvarUpdater being destroyed" << std::endl;
         _asrv.reset();
-    } ///end_destructor
+    }
 
-    inline void PinvarUpdater::clear() { ///begin_clear
+    inline void PinvarUpdater::clear() {
         Updater::clear();
         _prev_point = 0.0;
         _asrv = nullptr;
         reset();
-    } ///end_clear
+    }
 
-    inline double PinvarUpdater::getCurrentPoint() const { ///begin_getCurrentPoint
+    inline double PinvarUpdater::getCurrentPoint() const {
         return *(_asrv->getPinvarSharedPtr());
-    } ///end_getCurrentPoint
+    }
     
-    inline double PinvarUpdater::calcLogPrior() { ///begin_calcLogPrior
+    inline double PinvarUpdater::calcLogPrior() {
         // Assumes Beta(a,b) prior with mean a/(a+b) and variance a*b/((a + b + 1)*(a + b)^2)
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];
@@ -72,13 +71,13 @@ namespace strom {
         else
             log_prior = Updater::_log_zero;
         return log_prior;
-    } ///end_calcLogPrior
+    }
 
-    inline void PinvarUpdater::revert() { ///begin_revert
+    inline void PinvarUpdater::revert() {
         _asrv->setPinvar(_prev_point);
-    } ///end_revert
+    }
 
-    inline void PinvarUpdater::proposeNewState() { ///begin_proposeNewState
+    inline void PinvarUpdater::proposeNewState() {
         if (_lambda > 1.0)
             _lambda = 1.0;
         
@@ -98,6 +97,6 @@ namespace strom {
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-    } ///end_proposeNewState
+    }
 
-}   ///end
+}

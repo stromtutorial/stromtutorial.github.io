@@ -71,14 +71,14 @@ namespace strom {
     inline GeneticCode::GeneticCode() { ///begin_constructor
         //std::cout << "Constructing a standard GeneticCode" << std::endl;
         useGeneticCode("standard");
-    } ///end_constructor
+    }
 
-    inline GeneticCode::GeneticCode(std::string name) { ///begin_second_constructor
+    inline GeneticCode::GeneticCode(std::string name) {
         //std::cout << "Constructing a " << name << " GeneticCode" << std::endl;
         useGeneticCode(name);
-    } ///end_second_constructor
+    }
 
-    inline GeneticCode::~GeneticCode() { ///begin_destructor
+    inline GeneticCode::~GeneticCode() {
         //std::cout << "Destroying a GeneticCode" << std::endl;
     } ///end_destructor
 

@@ -55,8 +55,15 @@ We will not need this function for a while, but given that it is a small, easily
 ~~~~~~
 {:.cpp}
 
+## The countEdges function
+Another function that will not be needed for awhile. This function returns the length of the managed `Tree`'s `_preorder` vector, which will always be equal to the number of edges in the tree.
+~~~~~~
+{{ "steps/step-04/src/tree_manip.hpp" | polcodesnippet:"begin_countEdges-end_countEdges","" }}
+~~~~~~
+{:.cpp}
+
 ## The scaleAllEdgeLengths function
-This function, like `calcTreeLength`, will not be needed for some time, but it is easy to add now so it will be in place later when we need to scale all edge lengths in the tree up or down. This function simply scales all edge lengths in the tree by multiplying each by the supplied value `scaler`.
+This function, like `calcTreeLength` and `countEdges`, will not be needed for some time, but it is easy to add now so it will be in place later when we need to scale all edge lengths in the tree up or down. This function simply scales all edge lengths in the tree by multiplying each by the supplied value `scaler`.
 ~~~~~~
 {{ "steps/step-04/src/tree_manip.hpp" | polcodesnippet:"begin_scaleAllEdgeLengths-end_scaleAllEdgeLengths","" }}
 ~~~~~~

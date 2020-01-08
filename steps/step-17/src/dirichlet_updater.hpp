@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "updater.hpp"
 
@@ -22,8 +22,8 @@ namespace strom {
         
         protected:
         
-            virtual void                        pullFromModel() = 0;    ///pullFromModel
-            virtual void                        pushToModel() = 0;    ///pushToModel
+            virtual void                        pullFromModel() = 0;
+            virtual void                        pushToModel() = 0;
 
             void                                proposeNewState();
             void                                revert();
@@ -33,22 +33,21 @@ namespace strom {
     };
     
     // member function bodies go here
-    ///end_class_declaration
-    inline DirichletUpdater::DirichletUpdater() {   ///begin_constructor
+    inline DirichletUpdater::DirichletUpdater() {
         // std::cout << "Creating DirichletUpdater object" << std::endl;
         clear();
-    }   ///end_constructor
+    }
 
-    inline DirichletUpdater::~DirichletUpdater() {  ///begin_destructor
+    inline DirichletUpdater::~DirichletUpdater() {
         // std::cout << "Destroying DirichletUpdater object" << std::endl;
-    }   ///end_destructor
+    }
     
-    inline void DirichletUpdater::clear() { ///begin_clear
+    inline void DirichletUpdater::clear() {
         Updater::clear();
         _prev_point.clear();
-    }   ///end_clear
+    }
     
-    inline double DirichletUpdater::calcLogPrior() {  ///begin_calcLogPrior
+    inline double DirichletUpdater::calcLogPrior() {
         pullFromModel();
         assert(_curr_point.size() > 0);
         assert(_curr_point.size() == _prior_parameters.size());
@@ -72,9 +71,9 @@ namespace strom {
         else
             log_prior += std::lgamma(prior_param_sum);
         return log_prior;
-    }  ///end_calcLogPrior
+    }
 
-    inline void DirichletUpdater::proposeNewState() {   ///begin_proposeNewState
+    inline void DirichletUpdater::proposeNewState() {
         // Save length of _curr_point.
         pullFromModel();
         unsigned dim = (unsigned)_curr_point.size();
@@ -139,11 +138,11 @@ namespace strom {
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-    }   ///end_proposeNewState
+    }
     
-    inline void DirichletUpdater::revert() {    ///begin_revert
+    inline void DirichletUpdater::revert() {
         std::copy(_prev_point.begin(), _prev_point.end(), _curr_point.begin());
         pushToModel();
-    }   ///end_revert
+    }
 
-}   ///end
+}

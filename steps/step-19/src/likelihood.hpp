@@ -11,7 +11,6 @@
 #include "data.hpp"
 #include "model.hpp"
 #include "xstrom.hpp"
-#include "debug_stuff.hpp"  //DEBUGSTUFF
 
 namespace strom {
 
@@ -68,7 +67,6 @@ namespace strom {
             typedef std::pair<unsigned, int>        instance_pair_t;
 
             bool                                    isPolytomy(Node * nd) const;    ///!b
-            unsigned                                countChildren(Node * nd) const; ///!c
             unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;
@@ -85,7 +83,7 @@ namespace strom {
             void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
-            void                                    calculatePartials(Tree::SharedPtr t);
+            void                                    calculatePartials();
             double                                  calcInstanceLogLikelihood(InstanceInfo & inst, Tree::SharedPtr t);
 
 
@@ -123,7 +121,6 @@ namespace strom {
 
         public:
             typedef std::shared_ptr< Likelihood >   SharedPtr;
-            
     };
     ///end_class_declaration
     // member function bodies go here
@@ -324,6 +321,7 @@ namespace strom {
     }
     
     inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices) { ///begin_newInstance
+        unsigned num_subsets = (unsigned)subset_indices.size();
     
         bool is_invar_model = (nrates < 0 ? true : false);
         unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
@@ -341,7 +339,6 @@ namespace strom {
             _identity_matrix[15+offset] = 1.0;
         }   ///!h
         
-        unsigned num_subsets = (unsigned)subset_indices.size();
         //...   
         ///after_identity_matrix_init
                 
@@ -371,7 +368,7 @@ namespace strom {
         
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
-        unsigned nscalers = num_internals;  // one for every internal node
+        unsigned nscalers = num_internals;  // one scale buffer for every internal node
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;
@@ -413,10 +410,6 @@ namespace strom {
         info.partial_offset = num_internals;
         info.tmatrix_offset = num_edges;
         _instances.push_back(info);
-        
-        DebugStuff::_partial_offset = num_internals;    //DEBUGSTUFF
-        DebugStuff::_tmatrix_offset = num_edges;        //DEBUGSTUFF
-
     }   ///end_newInstance
 
     inline void Likelihood::setTipStates() {
@@ -662,17 +655,6 @@ namespace strom {
         return false;
     }   ///end_isPolytomy
     
-    inline unsigned Likelihood::countChildren(Node * nd) const {    ///begin_countChildren
-        Node * child = nd->_left_child;
-        assert(child);    // should only call this function for internal nodes
-        unsigned nchildren = 0;
-        while (child) {
-            nchildren++;
-            child = child->_right_sib;
-        }
-        return nchildren;
-    }   ///end_countChildren
-    
     inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {
         //assert(nd->_parent && nd->_left_child); // nd is supposed to be an internal node and not the tip root node
         unsigned sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
@@ -742,7 +724,7 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {   ///begin_queuePartialsRecalculation
+    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {
         // Loop through all instances
         for (auto & info : _instances) {
             // Loop through all subsets assigned to this instance
@@ -788,7 +770,7 @@ namespace strom {
         }
     }   //end_queuePartialsRecalculation
     
-    inline void Likelihood::queueTMatrixRecalculation(Node * nd) {   ///begin_queueTMatrixRecalculation
+    inline void Likelihood::queueTMatrixRecalculation(Node * nd) {
         Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();
 
         // Loop through all instances
@@ -807,7 +789,7 @@ namespace strom {
                 ++instance_specific_subset_index;
             }   // subsets loop
         } // instances loop
-    }   ///end_queueTMatrixRecalculation
+    }
 
     inline void Likelihood::defineOperations(Tree::SharedPtr t) {   ///begin_defineOperations
         assert(_instances.size() > 0);
@@ -847,7 +829,7 @@ namespace strom {
                     if (isPolytomy(nd)) {   ///!j
                         // Internal node is a polytomy
                         TreeManip tm(t);
-                        unsigned nchildren = countChildren(nd);
+                        unsigned nchildren = tm.countChildren(nd);
                         Node * a = nd->_left_child;
                         Node * b = a->_right_sib;
                         Node * c = 0;
@@ -917,7 +899,7 @@ namespace strom {
         }   // instance loop
     }
     
-    inline void Likelihood::calculatePartials(Tree::SharedPtr t) {
+    inline void Likelihood::calculatePartials() {
         assert(_instances.size() > 0);
         if (_operations.size() == 0)
             return;
@@ -1174,7 +1156,7 @@ namespace strom {
         setAmongSiteRateHeterogenetity();
         defineOperations(t);
         updateTransitionMatrices();
-        calculatePartials(t);
+        calculatePartials();
         
         double log_likelihood = 0.0;
         for (auto & info : _instances) {

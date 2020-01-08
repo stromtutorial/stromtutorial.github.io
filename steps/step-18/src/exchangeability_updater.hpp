@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "dirichlet_updater.hpp"
 
@@ -11,6 +11,8 @@ namespace strom {
                                             ExchangeabilityUpdater(QMatrix::SharedPtr qmatrix);
                                             ~ExchangeabilityUpdater();
         
+            virtual double                  calcLogPrior();
+
         private:
         
             void                            pullFromModel();
@@ -20,26 +22,29 @@ namespace strom {
         };
 
     // member function bodies go here
-    ///end_class_declaration
-    inline ExchangeabilityUpdater::ExchangeabilityUpdater(QMatrix::SharedPtr qmatrix) { ///begin_constructor 
+    inline ExchangeabilityUpdater::ExchangeabilityUpdater(QMatrix::SharedPtr qmatrix) { 
         // std::cout << "Creating an ExchangeabilityUpdater" << std::endl;
         DirichletUpdater::clear();
         _name = "Exchangeabilities";
         assert(qmatrix);
         _qmatrix = qmatrix;
-    }   ///end_constructor
+    }
 
-    inline ExchangeabilityUpdater::~ExchangeabilityUpdater() {  ///begin_destructor
+    inline ExchangeabilityUpdater::~ExchangeabilityUpdater() {
         // std::cout << "Destroying an ExchangeabilityUpdater" << std::endl;
-    }   ///end_destructor
+    }
     
-    inline void ExchangeabilityUpdater::pullFromModel() {  ///begin_pullFromModel
+    inline double ExchangeabilityUpdater::calcLogPrior() {
+        return DirichletUpdater::calcLogPrior();
+    }
+    
+    inline void ExchangeabilityUpdater::pullFromModel() {
         QMatrix::freq_xchg_ptr_t xchg = _qmatrix->getExchangeabilitiesSharedPtr();
         _curr_point.assign(xchg->begin(), xchg->end());
-    }   ///end_pullFromModel
+    }
     
-    inline void ExchangeabilityUpdater::pushToModel() {  ///begin_pushToModel
+    inline void ExchangeabilityUpdater::pushToModel() {
         _qmatrix->setExchangeabilities(_curr_point);
-    }   ///end_pushToModel
+    }
 
-}   ///end
+}

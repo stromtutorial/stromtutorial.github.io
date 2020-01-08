@@ -18,7 +18,6 @@
 #include "tree_updater.hpp"
 #include "polytomy_updater.hpp" ///!a
 #include "tree_length_updater.hpp"
-#include "debug_stuff.hpp"  //DEBUGSTUFF
 ///end_includes
 
 namespace strom {
@@ -80,7 +79,6 @@ namespace strom {
             double                                  _heating_power;
             double                                  _log_likelihood;
     };
-    ///end_class_declaration
     
     inline Chain::Chain() {
         //std::cout << "Chain being created" << std::endl;
@@ -116,29 +114,6 @@ namespace strom {
         _tree_manipulator->buildFromNewick(newick, false, true); ///!b
         for (auto u : _updaters)
             u->setTreeManip(_tree_manipulator);
-            
-#if 0 //POLTMP
-        std::map<unsigned, unsigned> nnmap;
-        for (unsigned i = 0; i < 1000; i++) {
-            Node * nd = _tree_manipulator->randomInternalEdge(_lot->uniform());
-            unsigned n = nd->getNumber();
-            nnmap[n]++;
-        }
-        for (auto iter : nnmap) {
-            std::cerr << boost::str(boost::format("%d -> %d") % iter.first % iter.second) << std::endl;
-        }
-        std::cerr << std::endl;
-        
-        nnmap.clear();
-        for (unsigned i = 0; i < 1000; i++) {
-            unsigned x = _lot->randint(0,19);
-            nnmap[x]++;
-        }
-        for (auto iter : nnmap) {
-            std::cerr << boost::str(boost::format("%d -> %d") % iter.first % iter.second) << std::endl;
-        }
-        std::cerr << std::endl;
-#endif
     } ///end_setTreeFromNewick
 
     inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { ///begin_createUpdaters
@@ -276,7 +251,7 @@ namespace strom {
             u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC()); ///!h
             u->setWeight(wtreelength); sum_weights += wtreelength;
             _updaters.push_back(u);
-        }   ///!end_tree_updaters
+        } 
         
         for (auto u : _updaters) {
             u->calcProb(sum_weights);
@@ -375,7 +350,6 @@ namespace strom {
     inline void Chain::start() {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-        DebugStuff::debugSaveTree("start", DebugStuff::debugMakeNewick(_tree_manipulator->getTree(), 5));  //DEBUGSTUFF
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
@@ -385,7 +359,6 @@ namespace strom {
     } 
 
     inline void Chain::nextStep(int iteration) {
-        DebugStuff::_which_iter = iteration;    //DEBUGSTUFF
         assert(_lot);
         double u = _lot->uniform();
         double cumprob = 0.0;
@@ -404,5 +377,4 @@ namespace strom {
         return _log_likelihood;
     }
 
-}   ///end
-
+}

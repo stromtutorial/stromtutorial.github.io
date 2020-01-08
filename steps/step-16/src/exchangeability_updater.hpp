@@ -27,18 +27,18 @@ namespace strom {
         _name = "Exchangeabilities";
         assert(qmatrix);
         _qmatrix = qmatrix;
-    }   ///end_constructor
+    }
 
-    inline ExchangeabilityUpdater::~ExchangeabilityUpdater() {  ///begin_destructor
+    inline ExchangeabilityUpdater::~ExchangeabilityUpdater() {
         // std::cout << "Destroying an ExchangeabilityUpdater" << std::endl;
     }   ///end_destructor
     
     inline void ExchangeabilityUpdater::pullFromModel() {  ///begin_pullFromModel
         QMatrix::freq_xchg_ptr_t xchg = _qmatrix->getExchangeabilitiesSharedPtr();
         _curr_point.assign(xchg->begin(), xchg->end());
-    }   ///end_pullFromModel
+    }
     
-    inline void ExchangeabilityUpdater::pushToModel() {  ///begin_pushToModel
+    inline void ExchangeabilityUpdater::pushToModel() {
         _qmatrix->setExchangeabilities(_curr_point);
     }   ///end_pushToModel
 

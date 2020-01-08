@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include <iostream>
 #include "data.hpp"
@@ -7,7 +7,7 @@
 #include "partition.hpp"
 #include "lot.hpp"
 #include "chain.hpp"
-#include "output_manager.hpp"   ///!a
+#include "output_manager.hpp"
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -28,7 +28,7 @@ namespace strom {
             bool                                    processAssignmentString(const std::string & which, const std::string & definition);
             void                                    handleAssignmentStrings(const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition);
             bool                                    splitAssignmentString(const std::string & definition, std::vector<std::string> & vector_of_subset_names, std::vector<double>  & vector_of_values);
-            void                                    sample(unsigned iter, Chain & chain);   ///!b
+            void                                    sample(unsigned iter, Chain & chain);
 
             double                                  _expected_log_likelihood;
 
@@ -55,9 +55,9 @@ namespace strom {
             static unsigned                         _major_version;
             static unsigned                         _minor_version;
             
-            OutputManager::SharedPtr                _output_manager;    ///!c
+            OutputManager::SharedPtr                _output_manager;
 
-    };  ///end_class_declaration
+    };
 
     // member function bodies go here
 
@@ -70,7 +70,7 @@ namespace strom {
         //std::cout << "Destroying a Strom" << std::endl;
     }
 
-    inline void Strom::clear() {    ///begin_clear
+    inline void Strom::clear() {
         _data_file_name             = "";
         _tree_file_name             = "";
         _tree_summary               = nullptr;
@@ -87,10 +87,10 @@ namespace strom {
         _num_iter                   = 1000;
         _print_freq                 = 1;
         _sample_freq                = 1;
-        _output_manager             = nullptr;  ///!d
-    }   ///end_clear
+        _output_manager             = nullptr;
+    }
 
-    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   ///begin_processCommandLineOptions
+    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {
         std::vector<std::string> partition_statefreq;
         std::vector<std::string> partition_rmatrix;
         std::vector<std::string> partition_omega;
@@ -123,7 +123,7 @@ namespace strom {
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
             ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data")
-            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)") ///!c
+            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
         ;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
@@ -166,7 +166,7 @@ namespace strom {
         handleAssignmentStrings(vm, "pinvar",    partition_pinvar,    "default:0.0"  );
         handleAssignmentStrings(vm, "relrate",   partition_relrates,  "default:equal");
         handleAssignmentStrings(vm, "tree",      partition_tree,      "default:1"    ); 
-    }   ///end_processCommandLineOptions
+    }
     
     inline void Strom::handleAssignmentStrings(const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition) {
         if (vm.count(label) > 0) {
@@ -371,7 +371,7 @@ namespace strom {
         return fixed;
     }
 
-    inline void Strom::run() {  ///begin_run
+    inline void Strom::run() {
         std::cout << "Starting..." << std::endl;
         std::cout << "Current working directory: " << boost::filesystem::current_path() << std::endl;
 
@@ -439,7 +439,7 @@ namespace strom {
             _lot = Lot::SharedPtr(new Lot);
             _lot->setSeed(_random_seed);
 
-            // Create an output manager and open output files   ///!f
+            // Create an output manager and open output files
             _output_manager.reset(new OutputManager);
 
             // Create a Chain object and take _num_iter steps
@@ -476,16 +476,16 @@ namespace strom {
             }
             else {
                 _output_manager->outputConsole("MCMC skipped because there are no free parameters in the model");
-            }   ///!g
+            }
         }
         catch (XStrom & x) {
             std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
         }
 
         std::cout << "\nFinished!" << std::endl;
-    }   ///end_run
+    }
 
-    inline void Strom::sample(unsigned iteration, Chain & chain) {  ///begin_sample
+    inline void Strom::sample(unsigned iteration, Chain & chain) {
         if (chain.getHeatingPower() < 1.0)
             return;
         
@@ -506,7 +506,7 @@ namespace strom {
                 _output_manager->outputParameters(iteration, logLike, logPrior, TL, chain.getModel());
             }
         }
-    }   ///end_sample
+    }
 
 
 }

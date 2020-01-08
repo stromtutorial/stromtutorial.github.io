@@ -224,9 +224,9 @@ namespace strom {
 
     inline Model::SharedPtr Likelihood::getModel() {  ///begin_getModel
         return _model;
-    }   ///end_getModel
+    }
     
-    inline void Likelihood::setModel(Model::SharedPtr m) {  ///begin_setModel
+    inline void Likelihood::setModel(Model::SharedPtr m) {
         assert(_instances.size() == 0); // can't change model after initBeagleLib called
         _model = m;
     }   ///end_setModel
@@ -236,11 +236,11 @@ namespace strom {
         _rooted = is_rooted;
     }
     
-    inline void Likelihood::setAmbiguityEqualsMissing(bool ambig_equals_missing) { ///begin_setAmbiguityEqualsMissing
+    inline void Likelihood::setAmbiguityEqualsMissing(bool ambig_equals_missing) {
         // Can't change GPU preference status after initBeagleLib called
         assert(_instances.size() == 0 || _ambiguity_equals_missing == ambig_equals_missing);
         _ambiguity_equals_missing = ambig_equals_missing;
-    } ///begin_setAmbiguityEqualsMissing
+    }
     
     inline void Likelihood::setPreferGPU(bool prefer_gpu) {
         // Can't change GPU preference status after initBeagleLib called
@@ -248,13 +248,13 @@ namespace strom {
         _prefer_gpu = prefer_gpu;
     }
     
-    inline bool Likelihood::usingStoredData() const {   ///begin_usingStoredData
+    inline bool Likelihood::usingStoredData() const {
         return _using_data;
-    }   ///end_usingStoredData
+    }
     
-    inline void Likelihood::useStoredData(bool using_data) { ///begin_useStoredData
+    inline void Likelihood::useStoredData(bool using_data) {
         _using_data = using_data;
-    } ///end_useStoredData
+    } 
     
     inline void Likelihood::initBeagleLib() {   ///begin_initBeagleLib
         assert(_data);
@@ -367,7 +367,7 @@ namespace strom {
         _instances.push_back(info);
     } ///end_newInstance
 
-    inline void Likelihood::setTipStates() {   ///end_setTipStates
+    inline void Likelihood::setTipStates() {
         assert(_instances.size() > 0);
         assert(_data);
         Data::state_t one = 1;
@@ -433,9 +433,9 @@ namespace strom {
             ++t;
             }
         }
-    }   ///end_setTipStates
+    }
 
-    inline void Likelihood::setTipPartials() {  ///begin_setTipPartials
+    inline void Likelihood::setTipPartials() {
         assert(_instances.size() > 0);
         assert(_data);
         Data::state_t one = 1;
@@ -484,7 +484,7 @@ namespace strom {
             ++t;
             }
         }
-    } ///end_setTipPartials
+    }
 
     inline void Likelihood::setPatternPartitionAssignments() {
         assert(_instances.size() > 0);
@@ -600,7 +600,7 @@ namespace strom {
         }
     } ///end_setModelRateMatrix
     
-    inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const { ///begin_getPartialIndex
+    inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo & info) const {
         unsigned pindex = nd->_number;
         // do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
         if (nd->_parent && nd->_left_child) {
@@ -608,16 +608,16 @@ namespace strom {
                 pindex += info.partial_offset;
         }
         return pindex;
-    }   ///end_getPartialIndex
+    }
     
-    inline unsigned Likelihood::getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const {  ///begin_getTMatrixIndex
+    inline unsigned Likelihood::getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const {
         unsigned tindex = 2*subset_index*info.tmatrix_offset + nd->_number;
         if (nd->isAltTMatrix())
             tindex += info.tmatrix_offset;
         return tindex;
-    }   ///end_getTMatrixIndex
+    }
     
-    inline void Likelihood::addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) { ///begin_addOperation
+    inline void Likelihood::addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) {
         assert(nd);
         assert(lchild);
         assert(rchild);
@@ -628,10 +628,7 @@ namespace strom {
         _operations[info.handle].push_back(partial);
 
         // 2. destination scaling buffer index to write to
-        if (_underflow_scaling) ///!e
-            _operations[info.handle].push_back(nd->_number - _ntaxa + num_subsets);
-        else    ///!ee
-            _operations[info.handle].push_back(BEAGLE_OP_NONE);
+        _operations[info.handle].push_back(BEAGLE_OP_NONE);
 
         // 3. destination scaling buffer index to read from
         _operations[info.handle].push_back(BEAGLE_OP_NONE);
@@ -657,12 +654,9 @@ namespace strom {
             _operations[info.handle].push_back(subset_index);
             
             // 9. cumulative scale index
-            if (_underflow_scaling) ///!f
-                _operations[info.handle].push_back(subset_index);
-            else    ///!ff
-                _operations[info.handle].push_back(BEAGLE_OP_NONE);
+            _operations[info.handle].push_back(BEAGLE_OP_NONE);
         }
-    }   ///end_addOperation
+    }
     
     inline void Likelihood::defineOperations(Tree::SharedPtr t) {   ///begin_defineOperations
         assert(_instances.size() > 0);
@@ -691,7 +685,7 @@ namespace strom {
                         if (nd->isSelTMatrix()) {
                             unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
                             _pmatrix_index[info.handle].push_back(tindex);
-                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);; ///!m
+                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
                         }
                     }
                     //...   ///ellipsis
@@ -824,7 +818,7 @@ namespace strom {
             _parent_indices.assign(nsubsets, parent_partials_index);
             _child_indices.assign(nsubsets, child_partials_index);
             _weights_indices.assign(nsubsets, categoryWeightsIndex);
-            _scaling_indices.resize(nsubsets);  ///!b
+            _scaling_indices.resize(nsubsets);
             _subset_indices.resize(nsubsets);
             _freqs_indices.resize(nsubsets);
             _tmatrix_indices.resize(nsubsets);
@@ -966,24 +960,3 @@ namespace strom {
     }   ///end_calcLogLikelihood
 
 }
-
-        // Output site log-likelihoods
-//        const Data::pattern_counts_t & counts = _data->getPatternCounts();
-//        const Data::partition_key_t & subset = _data->getPartitionKey();
-//        unsigned npatterns = _data->getNumPatterns();
-//        double* siteLogLs = (double*) malloc(sizeof(double) * npatterns);
-//        beagleGetSiteLogLikelihoods(_instances, siteLogLs);
-//        std::cout << "Site log-likelihoods:" << std::endl;
-//        std::cout << boost::format("%6s %6s %6s %12s %12s") % "site" % "count" % "subset" % "siteLogL" % "cumlogL" << std::endl;
-//        double cumlogL = 0.0;
-//        unsigned current_subset = 0;
-//        for (unsigned i = 0; i < npatterns; i++) {
-//            if (subset[i] != (int)current_subset) {
-//                current_subset = subset[i];
-//                cumlogL = 0.0;
-//                std::cout << std::endl;
-//            }
-//            double pattern_lnL = counts[i]*siteLogLs[i];
-//            cumlogL += pattern_lnL;
-//            std::cout << boost::format("%6d %6d %6d %12.8f %12.8f") % (i+1) % counts[i] % subset[i] % siteLogLs[i] % cumlogL << std::endl;
-//        }

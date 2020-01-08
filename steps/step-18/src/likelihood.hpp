@@ -24,7 +24,7 @@ namespace strom {
         
             bool                                    usingStoredData() const;
             void                                    useStoredData(bool using_data);
-            void                                    useUnderflowScaling(bool do_scaling);   ///!a
+            void                                    useUnderflowScaling(bool do_scaling);
 
             std::string                             beagleLibVersion() const;
             std::string                             availableResources() const;
@@ -991,24 +991,3 @@ namespace strom {
     }
 
 }
-
-        // Output site log-likelihoods
-//        const Data::pattern_counts_t & counts = _data->getPatternCounts();
-//        const Data::partition_key_t & subset = _data->getPartitionKey();
-//        unsigned npatterns = _data->getNumPatterns();
-//        double* siteLogLs = (double*) malloc(sizeof(double) * npatterns);
-//        beagleGetSiteLogLikelihoods(_instances, siteLogLs);
-//        std::cout << "Site log-likelihoods:" << std::endl;
-//        std::cout << boost::format("%6s %6s %6s %12s %12s") % "site" % "count" % "subset" % "siteLogL" % "cumlogL" << std::endl;
-//        double cumlogL = 0.0;
-//        unsigned current_subset = 0;
-//        for (unsigned i = 0; i < npatterns; i++) {
-//            if (subset[i] != (int)current_subset) {
-//                current_subset = subset[i];
-//                cumlogL = 0.0;
-//                std::cout << std::endl;
-//            }
-//            double pattern_lnL = counts[i]*siteLogLs[i];
-//            cumlogL += pattern_lnL;
-//            std::cout << boost::format("%6d %6d %6d %12.8f %12.8f") % (i+1) % counts[i] % subset[i] % siteLogLs[i] % cumlogL << std::endl;
-//        }

@@ -7,7 +7,7 @@ description: Before we can do anything interesting with our `Split` class, we ne
 ---
 {{ page.description | markdownify }}
 
-## Adding splits to the `Node` class
+## Adding splits to the Node class
 
 Uncomment the line that includes the {% indexfile split.hpp %} header, which is located at the top of the {% indexfile node.hpp %} file. Also uncomment the line that declares a data member of type `Split` just below `_edge_length` inside the `Node` class declaration. Finally, uncomment the `getSplit` accessor member function. The changes needed in the `Node` class are shown below.
 ~~~~~~
@@ -15,7 +15,7 @@ Uncomment the line that includes the {% indexfile split.hpp %} header, which is 
 ~~~~~~
 {:.cpp}
 
-## Adding the `storeSplits` member function to the `TreeManip` class
+## Adding the storeSplits member function to the TreeManip class
 
 Add the following member function prototype to the `TreeManip` class declaration (just below `buildFromNewick` member function prototype).
 ~~~~~~

@@ -25,7 +25,7 @@ The constructor and destructor function do nothing except report that a `TreeSum
 ~~~~~~
 {:.cpp}
 
-## The `getTree` member function
+## The getTree member function
 
 This function returns a shared pointer to a tree built from the tree description stored in `_newicks[index]`. If index is too large, an `XStrom` exception is thrown.
 ~~~~~~
@@ -33,13 +33,13 @@ This function returns a shared pointer to a tree built from the tree description
 ~~~~~~
 {:.cpp}
 
-## The `getNewick` accessor
+## The getNewick accessor
 ~~~~~~
 {{ "steps/step-07/src/tree_summary.hpp" | polcodesnippet:"begin_getNewick-end_getNewick","" }}
 ~~~~~~
 {:.cpp}
 
-## The `clear` member function
+## The clear member function
 
 The clear function simply empties the `_treeIDs` and `_newicks` vectors.
 ~~~~~~
@@ -47,7 +47,7 @@ The clear function simply empties the `_treeIDs` and `_newicks` vectors.
 ~~~~~~
 {:.cpp}
 
-## The `readTreefile` member function
+## The readTreefile member function
 
 This function reads the tree file specified by `filename`, skipping the first skip trees. We make use of the NCL’s `MultiFormatReader` class to find all TAXA blocks. If the NEXUS-formatted tree file does not contain a TAXA block, the NCL will create one for the taxa that it finds in the TREES block. For each TAXA block found, the member function `clear()` is called to reset the `TreeSummary` object. (Typically, there will be only one TAXA block in each tree file, but if there happens to be more than one, only the last will be stored.) The `readTreefile` function then stores each newick tree description found in `_newicks`, and, for each, builds the tree using the `TreeManip::buildFromNewick` function and uses `TreeManip::storeSplits` to create a tree ID (called `splitset`) for the tree. If the tree ID for this tree has never been seen, it creates a new entry in the `_treeIDs` map for this tree ID and associates it with a vector of length 1 containing the index of this tree. If the tree ID has already been seen, it simply adds the current tree index to the vector already associated with that tree ID.
 ~~~~~~
@@ -55,7 +55,7 @@ This function reads the tree file specified by `filename`, skipping the first sk
 ~~~~~~
 {:.cpp}
 
-## The `showSummary` member function
+## The showSummary member function
 
 Finally, add the body of the `showSummary` function, which reports the information stored in `_treeIDs` in a couple of different ways. It first outputs the number of trees it read from the file. Next, it iterates through all distinct tree topologies stored in `_treeIDs`, reporting the index of each tree having that topology. It finishes by producing a table showing the number of trees found for each distinct tree topology, sorted from most frequent topology to the least frequent topology.
 ~~~~~~

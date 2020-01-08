@@ -12,7 +12,6 @@ namespace strom {
     class Updater;
     class TreeUpdater;
     class PolytomyUpdater;  ///!b
-    class DebugStuff;   //DEBUGSTUFF
 
     class Tree {
 
@@ -21,7 +20,6 @@ namespace strom {
             friend class Updater;
             friend class TreeUpdater;
             friend class PolytomyUpdater;   ///!c
-            friend class DebugStuff;   //DEBUGSTUFF
 
         public:
 

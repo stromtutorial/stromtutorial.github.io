@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "model.hpp"
 #include "updater.hpp"
@@ -28,33 +28,32 @@ namespace strom {
             QMatrix::SharedPtr          _q;
     };
 
-    // member function bodies go here
-    ///end_class_declaration    
-    inline OmegaUpdater::OmegaUpdater(QMatrix::SharedPtr q) { ///begin_constructor
+    // member function bodies go here    
+    inline OmegaUpdater::OmegaUpdater(QMatrix::SharedPtr q) {
         //std::cout << "OmegaUpdater being created" << std::endl;
         clear();
         _name = "Omega";
         assert(q);
         _q = q;
-    } ///end_constructor
+    }
 
-    inline OmegaUpdater::~OmegaUpdater() { ///begin_destructor
+    inline OmegaUpdater::~OmegaUpdater() {
         //std::cout << "OmegaUpdater being destroyed" << std::endl;
         _q.reset();
-    } ///end_destructor
+    }
 
-    inline void OmegaUpdater::clear() { ///begin_clear
+    inline void OmegaUpdater::clear() {
         Updater::clear();
         _prev_point = 0.0;
         _q = nullptr;
         reset();
-    } ///end_clear
+    }
 
-    inline double OmegaUpdater::getCurrentPoint() const { ///begin_getCurrentPoint
+    inline double OmegaUpdater::getCurrentPoint() const {
         return *(_q->getOmegaSharedPtr());
-    } ///end_getCurrentPoint
+    }
     
-    inline double OmegaUpdater::calcLogPrior() { ///begin_calcLogPrior
+    inline double OmegaUpdater::calcLogPrior() {
         // Assumes Gamma(a,b) prior with mean a*b and variance a*b^2
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];
@@ -71,13 +70,13 @@ namespace strom {
         else
             log_prior = Updater::_log_zero;
         return log_prior;
-    } ///end_calcLogPrior
+    }
 
-    inline void OmegaUpdater::revert() { ///begin_revert
+    inline void OmegaUpdater::revert() {
         _q->setOmega(_prev_point);
-    } ///end_revert
+    }
 
-    inline void OmegaUpdater::proposeNewState() { ///begin_proposeNewState
+    inline void OmegaUpdater::proposeNewState() {
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
         
@@ -91,6 +90,6 @@ namespace strom {
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-    } ///end_proposeNewState
+    }
 
-}   ///end
+}

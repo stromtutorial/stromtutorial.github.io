@@ -40,11 +40,11 @@ namespace strom {
     // insert member function bodies here
     ///end_class_declaration
     inline TreeSummary::TreeSummary() { ///begin_constructor
-        //std::cout << "Constructing a TreeSummary" << std::endl;
-    }   ///end_constructor
+        std::cout << "Constructing a TreeSummary" << std::endl;
+    } 
 
-    inline TreeSummary::~TreeSummary() { ///begin_destructor
-        //std::cout << "Destroying a TreeSummary" << std::endl;
+    inline TreeSummary::~TreeSummary() {
+        std::cout << "Destroying a TreeSummary" << std::endl;
     }   ///end_destructor
 
     inline Tree::SharedPtr TreeSummary::getTree(unsigned index) {   ///begin_getTree

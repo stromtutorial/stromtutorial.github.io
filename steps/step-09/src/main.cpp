@@ -1,4 +1,4 @@
-#include <iostream> ///start
+#include <iostream>
 #include "strom.hpp"
 
 using namespace strom;
@@ -44,4 +44,4 @@ int main(int argc, const char * argv[]) {
     }
 
     return 0;
-} ///end
+}

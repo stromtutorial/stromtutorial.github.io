@@ -85,9 +85,9 @@ namespace strom {
     inline Data::Data() {   ///begin_constructor
         //std::cout << "Creating a Data object" << std::endl;
         clear();
-    }   ///end_constructor
+    }
 
-    inline Data::~Data() {   ///begin_destructor
+    inline Data::~Data() {
         //std::cout << "Destroying a Data object" << std::endl;
     }   ///end_destructor
     
@@ -97,33 +97,33 @@ namespace strom {
 
     inline Partition::SharedPtr Data::getPartition() {    ///begin_getPartition
         return _partition;
-    }    ///end_getPartition
+    }
 
-    inline unsigned Data::getNumSubsets() const {    ///begin_getNumSubsets
+    inline unsigned Data::getNumSubsets() const {
         return (_partition ? _partition->getNumSubsets() : 1);
-    }    ///end_getNumSubsets
+    }
     
-    inline std::string Data::getSubsetName(unsigned subset) const {    ///begin_getSubsetName
+    inline std::string Data::getSubsetName(unsigned subset) const {
         return _partition ? _partition->getSubsetName(subset) : std::string("default");
     }    ///end_getSubsetName
 
     inline const Data::partition_key_t & Data::getPartitionKey() const {    ///begin_getPartitionKey
         return _partition_key;
-    }    ///end_getPartitionKey
+    }
     
-    inline const Data::pattern_counts_t & Data::getPatternCounts() const {    ///begin_getPatternCounts
+    inline const Data::pattern_counts_t & Data::getPatternCounts() const {
         return _pattern_counts;
-    }    ///end_getPatternCounts
+    }
     
-    inline const Data::monomorphic_vect_t & Data::getMonomorphic() const {    ///begin_getMonomorphic
+    inline const Data::monomorphic_vect_t & Data::getMonomorphic() const {
         return _monomorphic;
-    }    ///end_getMonomorphic
+    }
 
-    inline const Data::taxon_names_t & Data::getTaxonNames() const {    ///begin_getTaxonNames
+    inline const Data::taxon_names_t & Data::getTaxonNames() const {
         return _taxon_names;
-    }    ///end_getTaxonNames
+    }
 
-    inline const Data::data_matrix_t & Data::getDataMatrix() const {    ///begin_getDataMatrix
+    inline const Data::data_matrix_t & Data::getDataMatrix() const {
         return _data_matrix;
     }    ///end_getDataMatrix
 

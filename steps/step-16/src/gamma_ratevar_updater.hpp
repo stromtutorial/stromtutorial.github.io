@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "model.hpp"
 #include "updater.hpp"
@@ -29,32 +29,32 @@ namespace strom {
     };
 
     // member function bodies go here
-    ///end_class_declaration    
-    inline GammaRateVarUpdater::GammaRateVarUpdater(ASRV::SharedPtr asrv) { ///begin_constructor
+        
+    inline GammaRateVarUpdater::GammaRateVarUpdater(ASRV::SharedPtr asrv) {
         //std::cout << "GammaRateVarUpdater being created" << std::endl;
         clear();
         _name = "Gamma Rate Variance";
         assert(asrv);
         _asrv = asrv;
-    } ///end_constructor
+    }
 
-    inline GammaRateVarUpdater::~GammaRateVarUpdater() { ///begin_destructor
+    inline GammaRateVarUpdater::~GammaRateVarUpdater() {
         //std::cout << "GammaRateVarUpdater being destroyed" << std::endl;
         _asrv.reset();
-    } ///end_destructor
+    }
 
-    inline void GammaRateVarUpdater::clear() { ///begin_clear
+    inline void GammaRateVarUpdater::clear() {
         Updater::clear();
         _prev_point = 0.0;
         _asrv = nullptr;
         reset();
-    } ///end_clear
+    }
 
-    inline double GammaRateVarUpdater::getCurrentPoint() const { ///begin_getCurrentPoint
+    inline double GammaRateVarUpdater::getCurrentPoint() const {
         return *(_asrv->getRateVarSharedPtr());
-    } ///end_getCurrentPoint
+    }
     
-    inline double GammaRateVarUpdater::calcLogPrior() { ///begin_calcLogPrior
+    inline double GammaRateVarUpdater::calcLogPrior() {
         // Assumes Gamma(a,b) prior with mean a*b and variance a*b^2
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];
@@ -71,13 +71,13 @@ namespace strom {
         else
             log_prior = Updater::_log_zero;
         return log_prior;
-    } ///end_calcLogPrior
+    }
 
-    inline void GammaRateVarUpdater::revert() { ///begin_revert
+    inline void GammaRateVarUpdater::revert() {
         _asrv->setRateVar(_prev_point);
-    } ///end_revert
+    }
 
-    inline void GammaRateVarUpdater::proposeNewState() { ///begin_proposeNewState
+    inline void GammaRateVarUpdater::proposeNewState() {
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
         
@@ -91,6 +91,6 @@ namespace strom {
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-    } ///end_proposeNewState
+    }
 
-}   ///end
+}

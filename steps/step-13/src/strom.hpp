@@ -39,7 +39,7 @@ namespace strom {
 
             bool                                    _use_gpu;
             bool                                    _ambig_missing;
-            bool                                    _use_underflow_scaling; ///!a
+            bool                                    _use_underflow_scaling;
 
             static std::string                      _program_name;
             static unsigned                         _major_version;
@@ -58,7 +58,7 @@ namespace strom {
         //std::cout << "Destroying a Strom" << std::endl;
     }
 
-    inline void Strom::clear() {    ///begin_clear
+    inline void Strom::clear() {
         _data_file_name             = "";
         _tree_file_name             = "";
         _tree_summary               = nullptr;
@@ -67,7 +67,7 @@ namespace strom {
         _ambig_missing              = true;
         _model.reset(new Model());
         _expected_log_likelihood    = 0.0;
-        _use_underflow_scaling      = false;    ///!b
+        _use_underflow_scaling      = false;
         _data                       = nullptr; 
         _likelihood                 = nullptr;
     }
@@ -101,7 +101,7 @@ namespace strom {
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
             ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data")
-            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)") ///!c
+            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
         ;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
@@ -384,7 +384,7 @@ namespace strom {
             _likelihood->setPreferGPU(_use_gpu);
             _likelihood->setAmbiguityEqualsMissing(_ambig_missing);
             _likelihood->setData(_data);
-            _likelihood->useUnderflowScaling(_use_underflow_scaling);   ///!d
+            _likelihood->useUnderflowScaling(_use_underflow_scaling); 
 
             std::cout << "\n*** Model description" << std::endl;
             std::cout << _model->describeModel() << std::endl;

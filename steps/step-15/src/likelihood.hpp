@@ -24,7 +24,7 @@ namespace strom {
         
             bool                                    usingStoredData() const;
             void                                    useStoredData(bool using_data);
-            void                                    useUnderflowScaling(bool do_scaling);   ///!a
+            void                                    useUnderflowScaling(bool do_scaling);
 
             std::string                             beagleLibVersion() const;
             std::string                             availableResources() const;

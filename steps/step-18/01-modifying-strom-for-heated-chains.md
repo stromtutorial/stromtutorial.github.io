@@ -24,7 +24,7 @@ The `processAssignmentString` and `handleAssignmentStrings` member functions now
 
 Initialize the new additions in the `clear` member function.
 ~~~~~~
-{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"begin_clear-end_clear","a,b,c-d" }}
+{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"begin_clear-end_clear","i,j,k-l" }}
 ~~~~~~
 {:.cpp}
 
@@ -32,7 +32,7 @@ Initialize the new additions in the `clear` member function.
 
 Add new program options for the number of chains to run simultaneously (`nchains`), the factor that determines how hot each heated chain is (`heatfactor`), the number of iterations to use for burn-in (`burnin`), and whether to explore the posterior (`usedata=yes`) or the prior (`usedata=no`).
 ~~~~~~
-{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"begin_processCommandLineOptions-end_processCommandLineOptions","a-b,c-d,e-f,g-h,begin_alloc_models-end_alloc_models" }}
+{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"begin_processCommandLineOptions-end_processCommandLineOptions","m-n,o-p,q-r,s-t,begin_alloc_models-end_alloc_models" }}
 ~~~~~~
 {:.cpp}
 At the end of the `processCommandLineOptions` function, note that the section below
@@ -51,7 +51,7 @@ We now must create a separate `Likelihood` object for every chain and set up the
 
 In addition to adding the `Model::SharedPtr m` parameter to the function, change the two lines indicated so that the model `m` is passed as the first parameter to the `processAssignmentString` function.
 ~~~~~~
-{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"begin_handleAssignmentStrings-end_handleAssignmentStrings","begin_handleAssignmentStrings,a,b" }}
+{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"!begin_handleAssignmentStrings-end_handleAssignmentStrings","begin_handleAssignmentStrings,u,v" }}
 ~~~~~~
 {:.cpp}
 
@@ -59,7 +59,7 @@ In addition to adding the `Model::SharedPtr m` parameter to the function, change
 
 In addition to adding the `Model::SharedPtr m` parameter to the function, change all instances of `_model` to `m`, as indicated, because there is no longer a single model pointed to by `_model`.
 ~~~~~~
-{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"begin_processAssignmentString-end_processAssignmentString","begin_processAssignmentString,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p" }}
+{{ "steps/step-18/src/strom.hpp" | polcodesnippet:"!begin_processAssignmentString-end_processAssignmentString","begin_processAssignmentString,w,x,y,z,aa,bb,cc,dd,ee,ff,gg,hh,ii,jj,kk,ll" }}
 ~~~~~~
 {:.cpp}
 

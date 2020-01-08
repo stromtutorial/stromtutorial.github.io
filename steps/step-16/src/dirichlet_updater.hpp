@@ -37,9 +37,9 @@ namespace strom {
     inline DirichletUpdater::DirichletUpdater() {   ///begin_constructor
         // std::cout << "Creating DirichletUpdater object" << std::endl;
         clear();
-    }   ///end_constructor
+    }
 
-    inline DirichletUpdater::~DirichletUpdater() {  ///begin_destructor
+    inline DirichletUpdater::~DirichletUpdater() {
         // std::cout << "Destroying DirichletUpdater object" << std::endl;
     }   ///end_destructor
     

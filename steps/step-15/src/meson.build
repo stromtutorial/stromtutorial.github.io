@@ -12,8 +12,8 @@ incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 incl_eigen = include_directories('/home/paul/Documents/libraries/eigen-eigen-323c052e1731')
 executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_beagle,lib_ncl,lib_program_options,lib_filesystem], include_directories: [incl_beagle,incl_ncl,incl_boost,incl_eigen])
 install_data('strom.conf', install_dir: '.')
-install_data('rbcl10.nex', install_dir: '.')     ###!a
-install_data('rbcl10.tre', install_dir: '.')     ###!b
+install_data('rbcl10.nex', install_dir: '.')
+install_data('rbcl10.tre', install_dir: '.')
 install_data('rbcl738.nex', install_dir: '.')
 install_data('rbcl738nj.tre', install_dir: '.')
 install_data('test.tre', install_dir: '.')

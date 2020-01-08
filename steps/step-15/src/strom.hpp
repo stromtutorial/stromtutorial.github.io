@@ -90,7 +90,7 @@ namespace strom {
         _output_manager             = nullptr;  ///!d
     }   ///end_clear
 
-    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   ///begin_processCommandLineOptions
+    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {
         std::vector<std::string> partition_statefreq;
         std::vector<std::string> partition_rmatrix;
         std::vector<std::string> partition_omega;
@@ -123,7 +123,7 @@ namespace strom {
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
             ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data")
-            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)") ///!c
+            ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
         ;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
@@ -166,7 +166,7 @@ namespace strom {
         handleAssignmentStrings(vm, "pinvar",    partition_pinvar,    "default:0.0"  );
         handleAssignmentStrings(vm, "relrate",   partition_relrates,  "default:equal");
         handleAssignmentStrings(vm, "tree",      partition_tree,      "default:1"    ); 
-    }   ///end_processCommandLineOptions
+    }
     
     inline void Strom::handleAssignmentStrings(const boost::program_options::variables_map & vm, std::string label, const std::vector<std::string> & definitions, std::string default_definition) {
         if (vm.count(label) > 0) {

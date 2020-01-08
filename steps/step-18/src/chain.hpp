@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include <memory>
 #include <boost/format.hpp>
@@ -79,44 +79,43 @@ namespace strom {
     };
 
     // member function bodies go here
-    ///end_class_declaration
-    inline Chain::Chain() { ///begin_constructor
+    inline Chain::Chain() {
         //std::cout << "Chain being created" << std::endl;
         clear();
-    } ///end_constructor
+    }
 
-    inline Chain::~Chain() { ///begin_destructor
+    inline Chain::~Chain() {
         //std::cout << "Chain being destroyed" << std::endl;
-    } ///end_destructor
+    }
 
-    inline void Chain::clear() { ///begin_clear
+    inline void Chain::clear() {
         _log_likelihood = 0.0;
         _updaters.clear();
         _chain_index = 0;
         setHeatingPower(1.0);
         startTuning();
-    } ///end_clear
+    }
 
-    inline void Chain::startTuning() { ///begin_startTuning
+    inline void Chain::startTuning() {
         for (auto u : _updaters)
             u->setTuning(true);
-    } ///end_startTuning
+    }
 
-    inline void Chain::stopTuning() { ///begin_stopTuning
+    inline void Chain::stopTuning() {
         for (auto u : _updaters)
             u->setTuning(false);
-    } ///end_stopTuning
+    }
 
-    inline void Chain::setTreeFromNewick(std::string & newick) { ///begin_setTreeFromNewick
+    inline void Chain::setTreeFromNewick(std::string & newick) {
         assert(_updaters.size() > 0);
         if (!_tree_manipulator)
             _tree_manipulator.reset(new TreeManip);
         _tree_manipulator->buildFromNewick(newick, false, false);
         for (auto u : _updaters)
             u->setTreeManip(_tree_manipulator);
-    } ///end_setTreeFromNewick
+    }
 
-    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { ///begin_createUpdaters
+    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) {
         _model = model;
         _lot = lot;
         _updaters.clear();
@@ -126,20 +125,20 @@ namespace strom {
         double wtreetopology    = 19.0;
         double sum_weights      = 0.0;
         
-        // Add state frequency parameter updaters to _updaters  ///!begin_StateFreqUpdater
+        // Add state frequency parameter updaters to _updaters
         Model::state_freq_params_t & statefreq_shptr_vect = _model->getStateFreqParams();
         for (auto statefreq_shptr : statefreq_shptr_vect) {
             Updater::SharedPtr u = StateFreqUpdater::SharedPtr(new StateFreqUpdater(statefreq_shptr));
             u->setLikelihood(likelihood);
             u->setLot(lot);
-            u->setLambda(0.001);
+            u->setLambda(1.0);
             u->setTargetAcceptanceRate(0.3);
             u->setPriorParameters(std::vector<double>(statefreq_shptr->getStateFreqsSharedPtr()->size(), 1.0));
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }  ///!end_StateFreqUpdater
+        }
 
-        // Add exchangeability parameter updaters to _updaters  ///!begin_ExchangeabilityUpdater
+        // Add exchangeability parameter updaters to _updaters
         Model::exchangeability_params_t & exchangeability_shptr_vect = _model->getExchangeabilityParams();
         for (auto exchangeability_shptr : exchangeability_shptr_vect) {
             Updater::SharedPtr u = ExchangeabilityUpdater::SharedPtr(new ExchangeabilityUpdater(exchangeability_shptr));
@@ -150,7 +149,7 @@ namespace strom {
             u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   ///!end_ExchangeabilityUpdater
+        }
 
         // Add rate variance parameter updaters to _updaters
         Model::ratevar_params_t & ratevar_shptr_vect = _model->getRateVarParams();
@@ -165,7 +164,7 @@ namespace strom {
             _updaters.push_back(u);
         }
         
-        // Add pinvar parameter updaters to _updaters   ///!begin_PinvarUpdater
+        // Add pinvar parameter updaters to _updaters
         Model::pinvar_params_t & pinvar_shptr_vect = _model->getPinvarParams();
         for (auto pinvar_shptr : pinvar_shptr_vect) {
             Updater::SharedPtr u = PinvarUpdater::SharedPtr(new PinvarUpdater(pinvar_shptr));
@@ -176,9 +175,9 @@ namespace strom {
             u->setPriorParameters({1.0, 1.0});
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   ///!end_PinvarUpdater
+        }
         
-        // Add omega parameter updaters to _updaters    ///!begin_OmegaUpdater
+        // Add omega parameter updaters to _updaters
         Model::omega_params_t & omega_shptr_vect = _model->getOmegaParams();
         for (auto omega_shptr : omega_shptr_vect) {
             Updater::SharedPtr u = OmegaUpdater::SharedPtr(new OmegaUpdater(omega_shptr));
@@ -189,9 +188,9 @@ namespace strom {
             u->setPriorParameters({1.0, 1.0});
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   ///!end_OmegaUpdater
+        }
         
-        // Add subset relative rate parameter updater to _updaters  ///!begin_SubsetRelRateUpdater
+        // Add subset relative rate parameter updater to _updaters
         if (!_model->isFixedSubsetRelRates()) {
             Updater::SharedPtr u = SubsetRelRateUpdater::SharedPtr(new SubsetRelRateUpdater(_model));
             u->setLikelihood(likelihood);
@@ -201,9 +200,9 @@ namespace strom {
             u->setPriorParameters(std::vector<double>(_model->getNumSubsets(), 1.0));
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   ///!end_SubsetRelRateUpdater
+        }
         
-        // Add tree updater and tree length updater to _updaters  ///!begin_tree_updaters
+        // Add tree updater and tree length updater to _updaters
         if (!_model->isFixedTree()) {
             double tree_length_shape = 1.0;
             double tree_length_scale = 10.0;
@@ -226,42 +225,42 @@ namespace strom {
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
             u->setWeight(wtreelength); sum_weights += wtreelength;
             _updaters.push_back(u);
-        }   ///!end_tree_updaters
+        }
         
         for (auto u : _updaters) {
             u->calcProb(sum_weights);
         }
         
         return (unsigned)_updaters.size();
-    } ///end_createUpdaters
+    }
 
-    inline TreeManip::SharedPtr Chain::getTreeManip() { ///begin_getTreeManip
+    inline TreeManip::SharedPtr Chain::getTreeManip() {
         return _tree_manipulator;
-    } ///end_getTreeManip
+    }
 
-    inline Model::SharedPtr Chain::getModel() { ///begin_getModel
+    inline Model::SharedPtr Chain::getModel() {
         return _model;
-    } ///end_getModel
+    }
 
-    inline double Chain::getHeatingPower() const { ///begin_getHeatingPower
+    inline double Chain::getHeatingPower() const {
         return _heating_power;
-    } ///end_getHeatingPower
+    }
 
-    inline void Chain::setHeatingPower(double p) { ///begin_setHeatingPower
+    inline void Chain::setHeatingPower(double p) {
         _heating_power = p;
         for (auto u : _updaters)
             u->setHeatingPower(p);
-    } ///end_setHeatingPower
+    }
 
-    inline double Chain::getChainIndex() const { ///begin_getChainIndex
+    inline double Chain::getChainIndex() const {
         return _chain_index;
-    } ///end_getChainIndex
+    }
 
-    inline void Chain::setChainIndex(unsigned idx) { ///begin_setChainIndex
+    inline void Chain::setChainIndex(unsigned idx) {
         _chain_index = idx;
-    } ///end_setChainIndex
+    }
         
-    inline Updater::SharedPtr Chain::findUpdaterByName(std::string name) { ///begin_findUpdaterByName
+    inline Updater::SharedPtr Chain::findUpdaterByName(std::string name) {
         Updater::SharedPtr retval = nullptr;
         for (auto u : _updaters) {
             if (u->getUpdaterName() == name) {
@@ -271,69 +270,69 @@ namespace strom {
         }
         assert(retval != nullptr);
         return retval;
-    } ///end_findUpdaterByName
+    }
 
-    inline std::vector<std::string> Chain::getUpdaterNames() const { ///begin_getUpdaterNames
+    inline std::vector<std::string> Chain::getUpdaterNames() const {
         std::vector<std::string> v;
         for (auto u : _updaters)
             v.push_back(u->getUpdaterName());
         return v;
-    } ///end_getUpdaterNames
+    }
 
-    inline std::vector<double> Chain::getAcceptPercentages() const { ///begin_getAcceptPercentages
+    inline std::vector<double> Chain::getAcceptPercentages() const {
         std::vector<double> v;
         for (auto u : _updaters)
             v.push_back(u->getAcceptPct());
         return v;
-    } ///end_getAcceptPercentages
+    }
 
-    inline std::vector<unsigned> Chain::getNumUpdates() const { ///begin_getNumUpdates
+    inline std::vector<unsigned> Chain::getNumUpdates() const {
         std::vector<unsigned> v;
         for (auto u : _updaters)
             v.push_back(u->getNumUpdates());
         return v;
-    } ///end_getNumUpdates
+    }
 
-    inline std::vector<double> Chain::getLambdas() const { ///begin_getLambdas
+    inline std::vector<double> Chain::getLambdas() const {
         std::vector<double> v;
         for (auto u : _updaters)
             v.push_back(u->getLambda());
         return v;
-    } ///end_getLambdas
+    }
 
-    inline void Chain::setLambdas(std::vector<double> & v) { ///begin_setLambdas
+    inline void Chain::setLambdas(std::vector<double> & v) {
         assert(v.size() == _updaters.size());
         unsigned index = 0;
         for (auto u : _updaters) {
             u->setLambda(v[index++]);
         }
-    } ///end_setLambdas
+    }
 
-    inline double Chain::calcLogLikelihood() const { ///begin_calcLogLikelihood
+    inline double Chain::calcLogLikelihood() const {
         return _updaters[0]->calcLogLikelihood();
-    } ///end_calcLogLikelihood
+    }
 
-    inline double Chain::calcLogJointPrior() const { ///begin_calcLogJointPrior
+    inline double Chain::calcLogJointPrior() const {
         double lnP = 0.0;
         for (auto u : _updaters) {
             if (u->_name != "Tree Length")
                 lnP += u->calcLogPrior();
         }
         return lnP;
-    } ///end_calcLogJointPrior
+    }
 
-    inline void Chain::start() { ///begin_start
+    inline void Chain::start() {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
         _log_likelihood = calcLogLikelihood();
         _tree_manipulator->deselectAllPartials();
         _tree_manipulator->deselectAllTMatrices();
-    } ///end_start
+    }
 
-    inline void Chain::stop() { ///begin_stop
-    } ///end_stop
+    inline void Chain::stop() {
+    }
 
-    inline void Chain::nextStep(int iteration) { ///begin_nextStep
+    inline void Chain::nextStep(int iteration) {
         assert(_lot);
         double u = _lot->uniform();
         double cumprob = 0.0;
@@ -346,10 +345,10 @@ namespace strom {
         }
         assert(i < _updaters.size());
         _log_likelihood = _updaters[i]->update(_log_likelihood);
-    } ///end_nextStep
+    }
 
-    inline double Chain::getLogLikelihood() const {///begin_getLogLikelihood
+    inline double Chain::getLogLikelihood() const {
         return _log_likelihood;
-    } ///end_getLogLikelihood
+    }
 
-}   ///end
+}

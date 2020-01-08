@@ -48,9 +48,9 @@ namespace strom {
         Updater::clear();
         _name = "Tree Topology and Edge Proportions";
         reset();
-    }   ///end_constructor
+    } 
 
-    inline TreeUpdater::~TreeUpdater() {    ///begin_destructor
+    inline TreeUpdater::~TreeUpdater() {
         // std::cout << "Destroying a TreeUpdater" << std::endl;
     }   ///end_destructor
     
