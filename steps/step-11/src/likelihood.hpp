@@ -686,15 +686,15 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::queueTMatrixRecalculation(Node * nd) {
-        Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();
-
+    inline void Likelihood::queueTMatrixRecalculation(Node * nd) {  ///begin_queueTMatrixRecalculation
+        Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();   ///!kk
+        //... ///m
         // Loop through all instances
         for (auto & info : _instances) {
             // Loop through all subsets assigned to this instance
             unsigned instance_specific_subset_index = 0;
             for (unsigned s : info.subsets) {
-                double subset_relative_rate = subset_relrates[s]/_relrate_normalizing_constant;
+                double subset_relative_rate = subset_relrates[s]/_relrate_normalizing_constant; ///!kkk
 
                 unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
                 _pmatrix_index[info.handle].push_back(tindex);
@@ -706,15 +706,15 @@ namespace strom {
             }   // subsets loop
         } // instances loop
         }
-    }   ///end_addOperation
+    }   ///end_queueTMatrixRecalculation
     
     inline void Likelihood::defineOperations(Tree::SharedPtr t) {///begin_defineOperations
         assert(_instances.size() > 0);
         assert(t);
         assert(t->isRooted() == _rooted);
 
-        _relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates();
-
+        _relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates(); ///!k
+        //... ///l
         // Start with a clean slate
         for (auto & info : _instances) {
             _operations[info.handle].clear();
@@ -724,32 +724,25 @@ namespace strom {
             _category_rate_indices[info.handle].clear();
         }
 
-                // Loop through all nodes in reverse level order
-                for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
-                    assert(nd->_number >= 0);
-                    if (!nd->_left_child) {
-                        // This is a leaf
-                if (nd->isSelTMatrix())
-                    queueTMatrixRecalculation(nd);
-                    }
-                    // ...
-                    else {
-                        // This is an internal node
-                        if (nd->isSelTMatrix())
-                            queueTMatrixRecalculation(nd);
+        // Loop through all nodes in reverse level order
+        for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
+            assert(nd->_number >= 0);
+            if (!nd->_left_child) {
+                // This is a leaf
+                queueTMatrixRecalculation(nd);
+            else {
+                // This is an internal node
+                queueTMatrixRecalculation(nd);
 
-                        // Internal nodes have partials to be calculated, so define
-                        // an operation to compute the partials for this node
-                        if (nd->isSelPartial()) {
-                            // Internal node is not a polytomy
-                            Node * lchild = nd->_left_child;
-                            assert(lchild);
-                            Node * rchild = lchild->_right_sib;
-                            assert(rchild);
-                            queuePartialsRecalculation(nd, lchild, rchild);
-                        }   // isSelPartial
-                    }   // internal node
-                }   // nd loop
+                // Internal nodes have partials to be calculated, so define
+                // an operation to compute the partials for this node
+                Node * lchild = nd->_left_child;
+                assert(lchild);
+                Node * rchild = lchild->_right_sib;
+                assert(rchild);
+                queuePartialsRecalculation(nd, lchild, rchild);
+            } 
+        }
     }   ///end_defineOperations
     
     inline void Likelihood::updateTransitionMatrices() {
@@ -825,7 +818,7 @@ namespace strom {
         }   // instance loop
     }
     
-    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {
+    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {   ///begin_calcInstanceLogLikelihood
         int code = 0;
         unsigned nsubsets = (unsigned)info.subsets.size();
         assert(nsubsets > 0);
@@ -895,14 +888,14 @@ namespace strom {
                 NULL,                        // destination for first derivative
                 NULL);                       // destination for second derivative
         }
-
-        // ... ///dots
         
+        // ... ///dots
+
         if (code != 0) {
             throw XStrom(boost::str(boost::format("failed to calculate edge log-likelihoods in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
         }
         
-        if (info.invarmodel) {
+        if (info.invarmodel) {  ///!n
             auto monomorphic = _data->getMonomorphic();
             auto counts = _data->getPatternCounts();
             std::vector<double> site_log_likelihoods(info.npatterns, 0.0);
@@ -937,20 +930,20 @@ namespace strom {
                         // Loop through all states for this pattern
                         double invar_like = 0.0;
                         if (monomorphic[p] > 0) {
-                            for (unsigned k = 0; k < info.nstates; ++k) {
+                            for (unsigned k = 0; k < info.nstates; ++k) {   ///begin_states_loop
                                 Data::state_t x = (Data::state_t)1 << k;
                                 double condlike = (x & monomorphic[p] ? 1.0 : 0.0);
                                 double basefreq = freq[k];
                                 invar_like += condlike*basefreq;
-                            }
+                            }   ///end_states_loop
                         }
                         double site_lnL = site_log_likelihoods[i++];
                         double log_like_term = log_one_minus_pinvar + site_lnL;
-                        if (invar_like > 0.0) {
-                            double log_invar_term = log_pinvar + log(invar_like);
-                            double site_log_like = (log_like_term + log(1.0 + exp(log_invar_term - log_like_term)));
+                        if (invar_like > 0.0) { 
+                            double log_invar_term = log_pinvar + log(invar_like); ///begin_sitelnL
+                            double site_log_like = (log_like_term + log(1.0 + exp(log_invar_term - log_like_term))); ///end_sitelnL
                             lnL += counts[p]*site_log_like;
-                        }
+                        }   
                         else {
                             lnL += counts[p]*log_like_term;
                         }
@@ -958,12 +951,12 @@ namespace strom {
                 }
             }
             log_likelihood = lnL;
-        }
+        }   ///!o
 
         return log_likelihood;
-    } 
+    } ///end_calcInstanceLogLikelihood
     
-    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {
+    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {    ///begin_calcLogLikelihood
         assert(_instances.size() > 0);
         
         if (!_using_data)
@@ -971,7 +964,7 @@ namespace strom {
 
         // Must call setData and setModel before calcLogLikelihood
         assert(_data);
-        assert(_model);
+        assert(_model); ///!p
         
         if (t->_is_rooted)
             throw XStrom("This version of the program can only compute likelihoods for unrooted trees");
@@ -991,6 +984,6 @@ namespace strom {
         }
         
         return log_likelihood;
-    }
+    }   ///end_calcLogLikelihood
 
 }

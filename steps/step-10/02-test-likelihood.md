@@ -60,6 +60,12 @@ Add the highlighted lines to the `Strom` class declaration in {% indexfile strom
 ~~~~~~
 {:.cpp}
 
+Initialize `gpu` and `ambigmissing` in the `clear` function:
+~~~~~~
+{{ "steps/step-10/src/strom.hpp" | polcodesnippet:"begin_clear-end_clear","f-g" }}
+~~~~~~
+{:.cpp}
+
 Add the `required()` call in `Strom::processCommandLineOptions` to the `treefile` command line option and add options for `gpu` and `ambigmissing`:
 ~~~~~~
 {{ "steps/step-10/src/strom.hpp" | polcodesnippet:"begin_processCommandLineOptions-end_processCommandLineOptions","treefilerequired,gpuoption,ambigmissingoption" }}

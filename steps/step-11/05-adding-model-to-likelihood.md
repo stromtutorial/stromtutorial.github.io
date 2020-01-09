@@ -98,9 +98,17 @@ We can also rewrite `setModelRateMatrix` now using member functions of `Model`.
 
 ## Modify the defineOperations function to accommodate subset relative rates
 
-It is possible to specify different relative rates for each partition subset. This allows the model to, for example, allow 3rd codon position sites to evolve at a faster rate than 1st or 2nd position sites. Subset-specific rates modify edge lengths. If a subset has a subset relative rate of 2, it is as if, for purposes of calculating the likelihood, the tree was twice as large as the tree read in from the file (i.e. every edge in the tree is twice as long as the corresponding edge in the tree file version). The `defineOperations` function is where edge lengths are used, and the following code snippet highlights the lines that need to change in order to use the subset relative rates stored by the model.
+It is possible to specify different relative rates for each partition subset. This allows the model to, for example, allow 3rd codon position sites to evolve at a faster rate than 1st or 2nd position sites. Subset-specific rates modify edge lengths. If a subset has a subset relative rate of 2, it is as if, for purposes of calculating the likelihood, the tree was twice as large as the tree read in from the file (i.e. every edge in the tree is twice as long as the corresponding edge in the tree file version). The functions `defineOperations` and `queueTMatrixRecalculation` are where edge lengths are used, and the following code snippets highlight the lines that need to change in order to use the subset relative rates stored by the model.
+
+Here is the line that needs to be changed in `defineOperations`:
 ~~~~~~
-{{ "steps/step-11/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-ellipsis","k-kk,l" }}
+{{ "steps/step-11/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-l","k" }}
+~~~~~~
+{:.cpp}
+
+And here are the lines that needs to be changed in `queueTMatrixRecalculation`:
+~~~~~~
+{{ "steps/step-11/src/likelihood.hpp" | polcodesnippet:"begin_queueTMatrixRecalculation-end_queueTMatrixRecalculation","kk,kkk" }}
 ~~~~~~
 {:.cpp}
 
@@ -108,7 +116,7 @@ It is possible to specify different relative rates for each partition subset. Th
 
 Adding the capability to accommodate invariable sites in models adds some complexity to the calculation of the log likelihood. We cannot simply rely on BeagleLib to do all the work if an invariable sites model is in effect. (That's not exactly true, we could use BeagleLib for this, but doing so would be very inefficient as it would require full site likelihood calculations for the zero-rate case, which is a trivial calculation if done outside of BeagleLib). In the case of an I or I+G model, BeagleLib will handle everything except the zero-rate category. The code highlighted in blue below takes site log likelihoods calculated by BeagleLib and modifies them according to the proportion of invariable sites if an invariable sites model is being used.
 ~~~~~~
-{{ "steps/step-11/src/likelihood.hpp" | polcodesnippet:"begin_calcInstanceLogLikelihood-end_calcInstanceLogLikelihood","n-o" }}
+{{ "steps/step-11/src/likelihood.hpp" | polcodesnippet:"begin_calcInstanceLogLikelihood,dots-end_calcInstanceLogLikelihood","n-o" }}
 ~~~~~~
 {:.cpp}
 

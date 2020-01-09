@@ -395,12 +395,7 @@ namespace strom {
                 throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree->numLeaves() % _data->getNumTaxa());
 
             std::cout << "\n*** Calculating the likelihood of the tree" << std::endl;
-            TreeManip tm(tree);
-            tm.selectAllPartials();
-            tm.selectAllTMatrices();
             double lnL = _likelihood->calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
             
             if (_expected_log_likelihood != 0.0)    ///!r

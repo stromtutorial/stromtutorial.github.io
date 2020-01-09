@@ -51,14 +51,14 @@ namespace strom {
         //std::cout << "Destroying a Strom" << std::endl;
     }
 
-    inline void Strom::clear() {
+    inline void Strom::clear() {    ///begin_clear
         _data_file_name = "";
         _tree_file_name = "";
         _tree_summary   = nullptr;
         _partition.reset(new Partition());
-        _use_gpu        = true;
-        _ambig_missing  = true;
-    }
+        _use_gpu        = true; ///!f
+        _ambig_missing  = true; ///!g
+    }   ///end_clear
 
     inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   ///begin_processCommandLineOptions
         std::vector<std::string> partition_subsets;
@@ -147,13 +147,7 @@ namespace strom {
                 throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree->numLeaves() % _data->getNumTaxa());
 
             std::cout << "\n*** Calculating the likelihood of the tree" << std::endl;
-            TreeManip tm;
-            tm.setTree(tree);
-            tm.selectAllPartials();
-            tm.selectAllTMatrices();
             double lnL = _likelihood->calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
             std::cout << "      (expecting -278.83767)" << std::endl;
         }

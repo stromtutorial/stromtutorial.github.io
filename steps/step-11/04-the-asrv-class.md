@@ -135,7 +135,7 @@ The Gamma distribution is partitioned into `_num_categ` subsets having equal are
 
 The mean of one category is computed as follows:
 
-![Q matrix for the GTR model](../../assets/img/rateMean.png){:.center-math-image}
+![Q matrix for the GTR model]({{ "/assets/img/rateMean.png" | absolute_url }}){:.center-math-image}
 
 This involves a ratio of integrals of two Gamma distributions. The Gamma distribution in the numerator has shape &alpha; + 1, while the Gamma distribution in the denominator has shape &alpha;, and both have scale &beta; = 1/&alpha;. The values _u_ and _v_ define the boundaries of the category for which the mean is being calculated. Calcluation of these two integrals is done using the quantile and cdf functions for the Gamma distribution provided by the [Boost Math library](https://www.boost.org/doc/libs/1_65_1/libs/math/doc/html/index.html).
 
