@@ -28,42 +28,35 @@ Add the body of the new member function somewhere after the class declaration bu
 
 ## Tell BeagleLib to create scale buffers
 
-In the `Likelihood::newInstance` function, add `BEAGLE_FLAG_SCALING_MANUAL` to the requirement flags and tell BeagleLib to create `num_internals + num_subsets` scaling buffers (i.e. arrays). Each scaling buffer has one element for each pattern in the data, plus an extra element for each data subset to store the cumulative scaling factors. If scaling is done at each internal node, there needs to be at least the same number of scaling buffers as there are internal nodes. The items to add or change are highlighted in blue.
+In the `Likelihood::newInstance` function, add `BEAGLE_FLAG_SCALING_MANUAL` and `BEAGLE_FLAG_SCALERS_LOG` to the preference flags and tell BeagleLib to create `num_internals + 1` scaling buffers (i.e. arrays). Each scaling buffer has one element for each pattern in the data, plus an extra element to store the cumulative scaling factors. If scaling is done at each internal node, there needs to be at least the same number of scaling buffers as there are internal nodes. The items to add or change are highlighted in blue.
 ~~~~~~
-{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_newInstance-end_newInstance","c-cc,d" }}
-~~~~~~
-{:.cpp}
-
-## Add the scale buffer index to each operation
-
-Modify the `Likelihood::addOperation` function to tell BeagleLib which scaling buffer to use when computing the partials for a given internal node. We will reserve the first `num_subsets` scaling buffer elements to hold the cumulative sums of log scalers for each subset, and because internal nodes are numbered starting with `_ntaxa`, we need to subtract `_ntaxa` and add `num_subsets` from the internal node number to get the index of the scaler buffer to use.
-
-Elements 8 and 9 of each operation are only present if there is more than one subset, and element 9 determines which scale buffer element to use for the cumulative scaling factor. The variable `subset_index` keeps track of the _relative_ subset index, which is what is needed here. The absolute subset index is not helpful, as it is always possible that some data subsets are being handled by other BeagleLib instances.
-~~~~~~
-{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_addOperation-end_addOperation","eee,e-ee,f-ff" }}
-~~~~~~
-{:.cpp}
-In our application, we need only specify scaling buffers for writing, not reading, so the 3rd element of each operation should be left as `BEAGLE_OP_NONE`.
-
-## Specify the cumulative scale buffer index in calculatePartials
-
-The new code in blue below serves to initialize the scaling buffer element for each pattern to 0.0 before recalculating partial likelihood arrays. 
-
-In the case of more than one subset, the cumulative scaling factor index is supplied as the final argument to `beagleResetScaleFactorsByPartition` (just the instance-relative subset index). The second argument is the relative subset index, which is the same numerical value. Note that `beagleUpdatePartialsByPartition` does not need to know this information because it is supplied as element 9 of each operation.
-
-In the case of an instance containing a single subset, the cumulative scaler index is simply 0, supplied as the last argument to `beagleUpdatePartials`.
-~~~~~~
-{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_calculatePartials-end_calculatePartials","g-gg,h-hh,i" }}
+{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_newInstance-end_newInstance","c-cc,d,dd" }}
 ~~~~~~
 {:.cpp}
 
-## Telling BeagleCalculateEdgeLogLikelihoods the cumulative scale buffer index
+## Modify getScalerIndex
 
-Finally, in the `calcInstanceLogLikelihood` member function, we need to provide the index of the scalar array holding cumulative sums of log scaling factors to the `beagleCalculateEdgeLogLikelihoods` (or `beagleCalculateEdgeLogLikelihoodsByPartition`) function, which is called in our `Likelihood::calcInstanceLogLikelihood` function. 
-
-First, change `cumulativeScalingIndex` from `BEAGLE_OP_NONE` to 0 (this will be used in the single-subset case), and modify the `_scaling_indices` vector so that it provides the correct index to the cumulative scaling element for each subset (used only in the multi-subset case).
+Modify the `Likelihood::getScalerIndex` function to tell BeagleLib which scaling buffer to use when computing the partials for a given internal node. We will reserve the first scaling buffer element to hold the cumulative sum of log scalers for each pattern, and because internal nodes are numbered starting with `_ntaxa`, we need to subtract `_ntaxa` from the internal node number and add 1 to get the index of the scaler buffer to use.
 ~~~~~~
-{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_calcInstanceLogLikelihood-dots","j,k" }}
+{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_getScalerIndex-end_getScalerIndex","e-ee" }}
+~~~~~~
+{:.cpp}
+
+## Accumulate scalers in calcInstanceLogLikelihood
+
+We've now provided BeagleLib with the appropriate number of scaling buffers, and, when operations are added to recalculate partials in `addOperation`, scaling will be done because `getScalerIndex` will return the appropriate scaling buffer index rather than BEAGLE_OP_NONE. All that is left is to harvest the scalers at each internal node and accumulate them for the final log-likelihood calculation.
+
+The large section in blue in the code below first creates a list (`internal_node_scaler_indices`) of all scaling buffer indices used (which is just the scaler index for every internal node). 
+
+If the instance is managing just one data subset (unpartitioned case), `beagleResetScaleFactors` is used to zero out all elements of the `cumulative_scale_index`, which is the first (0th) scaler buffer and `beagleAccumulateScaleFactors` is used to sum up the log scalers (using scaler indices supplied via `internal_node_scaler_indices`).
+
+If the instance is managing more than one data subset (partitioned case), `beagleResetScaleFactorsByPartition` is used to zero out all elements of the `cumulative_scale_index`, which is the first (0th) scaler buffer and `beagleAccumulateScaleFactorsByPartition` is used to sum up the log scalers (using scaler indices supplied via `internal_node_scaler_indices`). 
+
+Because we are using just one cumulative scaling buffer for all site patterns regardless of their subset of origin, it is really not necessary to use the ByPartition versions of these functions, so you might save a tiny bit of computational effort by using the simpler versions for the partitioned case. The ByPartition versions simply limit their activity (in the cumulative scaler buffer) to patterns from subset `s`, whereas `beagleResetScaleFactors` and `beagleResetScaleFactors` affect the entire cumulative scaler buffer.
+
+The other highlighted lines simply specify that the scaler buffer with index 0 is where the cumulative scaling factors are stored when underflow scaling is being done.
+~~~~~~
+{{ "steps/step-12/src/likelihood.hpp" | polcodesnippet:"begin_calcInstanceLogLikelihood-dots","g,h-hh,i" }}
 ~~~~~~
 {:.cpp}
 
