@@ -12,7 +12,7 @@
 
 namespace strom {
 
-    class Likelihood {  ///begin_class_declaration
+    class Likelihood {
         public:
                                                     Likelihood();
                                                     ~Likelihood();
@@ -59,9 +59,9 @@ namespace strom {
 
             typedef std::pair<unsigned, int>        instance_pair_t;
 
-            unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;   ///!a
-            unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;  ///!b
-            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;   ///!c
+            unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;
+            unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;
+            unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;
             void                                    updateInstanceMap(instance_pair_t & p, unsigned subset);
             void                                    newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices);
             void                                    setTipStates();

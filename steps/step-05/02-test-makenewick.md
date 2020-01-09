@@ -8,7 +8,7 @@ description: Here you will test your new makeNewick function
 {% assign OS = site.operatingsystem %}
 Add the following two highlighted lines to {% indexfile main.cpp %} (after `createTestTree()`):
 ~~~~~~
-{{ "steps/step-05/src/main.cpp" | polcodesnippet:"start-end","a" }}
+{{ "steps/step-05/src/main.cpp" | polcodesnippet:"start-end","a-aa" }}
 ~~~~~~
 {:.cpp}
 The first of these lines will generate a newick tree description using numbers (because the default value of the `makeNewick` parameter `use_names` is `false`), while the second one will generate a newick descriptions in which the names stored in each tip node are used.

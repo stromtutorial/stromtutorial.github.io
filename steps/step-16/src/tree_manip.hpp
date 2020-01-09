@@ -204,8 +204,8 @@ namespace strom {
     
     inline std::string TreeManip::makeNewick(unsigned precision, bool use_names) const {
         std::string newick;
-        const boost::format tip_node_name_format( boost::str(boost::format("%%s:%%.%df") % precision) );    ///tip_name_format
-        const boost::format tip_node_number_format( boost::str(boost::format("%%d:%%.%df") % precision) );  ///tip_number_format
+        const boost::format tip_node_name_format( boost::str(boost::format("%%s:%%.%df") % precision) );
+        const boost::format tip_node_number_format( boost::str(boost::format("%%d:%%.%df") % precision) );
         const boost::format internal_node_format( boost::str(boost::format("):%%.%df") % precision) );
         std::stack<Node *> node_stack;
 

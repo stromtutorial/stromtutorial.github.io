@@ -688,7 +688,6 @@ namespace strom {
     
     inline void Likelihood::queueTMatrixRecalculation(Node * nd) {  ///begin_queueTMatrixRecalculation
         Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();   ///!kk
-        //... ///m
         // Loop through all instances
         for (auto & info : _instances) {
             // Loop through all subsets assigned to this instance
@@ -705,7 +704,6 @@ namespace strom {
                 ++instance_specific_subset_index;
             }   // subsets loop
         } // instances loop
-        }
     }   ///end_queueTMatrixRecalculation
     
     inline void Likelihood::defineOperations(Tree::SharedPtr t) {///begin_defineOperations
@@ -730,6 +728,7 @@ namespace strom {
             if (!nd->_left_child) {
                 // This is a leaf
                 queueTMatrixRecalculation(nd);
+            }
             else {
                 // This is an internal node
                 queueTMatrixRecalculation(nd);
@@ -743,7 +742,7 @@ namespace strom {
                 queuePartialsRecalculation(nd, lchild, rchild);
             } 
         }
-    }   ///end_defineOperations
+    }
     
     inline void Likelihood::updateTransitionMatrices() {
         assert(_instances.size() > 0);
@@ -783,7 +782,7 @@ namespace strom {
         }   // instance loop
     }
     
-    inline void Likelihood::calculatePartials() { ///begin_calculatePartials
+    inline void Likelihood::calculatePartials() {
         assert(_instances.size() > 0);
         if (_operations.size() == 0)
             return;
@@ -798,9 +797,8 @@ namespace strom {
                     info.handle,                                                    // Instance number
                     (BeagleOperationByPartition *) &_operations[info.handle][0],    // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/9));                      // Number of operations
-                if (code != 0) {
+                if (code != 0)
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
-                }
             }
             else {
                 // no partitioning, just one data subset
@@ -809,12 +807,9 @@ namespace strom {
                     (BeagleOperation *) &_operations[info.handle][0],   // BeagleOperation list specifying operations
                     (int)(_operations[info.handle].size()/7),           // Number of operations
                     BEAGLE_OP_NONE);                                    // Index number of scaleBuffer to store accumulated factors
-                if (code != 0) {
+                if (code != 0)
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
             }
-\        }
-    } ///end_calculatePartials
-    
         }   // instance loop
     }
     

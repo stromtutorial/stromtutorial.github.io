@@ -12,7 +12,7 @@ int main(int argc, const char * argv[]) {
     TreeManip tm;
     tm.createTestTree();
     std::cout << tm.makeNewick(3) << std::endl; ///!a
-    std::cout << tm.makeNewick(3, true) << std::endl; ///!a
+    std::cout << tm.makeNewick(3, true) << std::endl; ///!aa
     std::cout << "\nFinished!" << std::endl;
 
     return 0;

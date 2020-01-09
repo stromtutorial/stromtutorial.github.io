@@ -623,7 +623,7 @@ namespace strom {
     inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {  ///begin_getScalerIndex
         unsigned sindex = BEAGLE_OP_NONE;   ///!e
         if (_underflow_scaling)
-            sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector  ///!e
+            sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
         return sindex;  ///!ee
     }   ///end_getScalerIndex
     
@@ -638,7 +638,7 @@ namespace strom {
         return tindex;
     }
     
-    inline void Likelihood::addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) { ///begin_addOperation
+    inline void Likelihood::addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) { 
         assert(nd);
         assert(lchild);
         assert(rchild);
@@ -677,7 +677,7 @@ namespace strom {
             // 9. cumulative scale index
             _operations[info.handle].push_back(BEAGLE_OP_NONE); // accumulate in calcInstanceLogLikelihood
         }
-    }   ///end_addOperation
+    }
     
     inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild) {
         // Loop through all instances
@@ -710,8 +710,7 @@ namespace strom {
                 ++instance_specific_subset_index;
             }   // subsets loop
         } // instances loop
-        }
-    }   ///end_addOperation
+    }
     
     inline void Likelihood::defineOperations(Tree::SharedPtr t) {
         assert(_instances.size() > 0);
@@ -729,33 +728,32 @@ namespace strom {
             _category_rate_indices[info.handle].clear();
         }
 
-                // Loop through all nodes in reverse level order
-                for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
-                    assert(nd->_number >= 0);
-                    if (!nd->_left_child) {
-                        // This is a leaf
+        // Loop through all nodes in reverse level order
+        for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
+            assert(nd->_number >= 0);
+            if (!nd->_left_child) {
+                // This is a leaf
                 if (nd->isSelTMatrix())
                     queueTMatrixRecalculation(nd);
-                    }
-                    // ...
-                    else {
-                        // This is an internal node
-                        if (nd->isSelTMatrix())
-                            queueTMatrixRecalculation(nd);
+            }
+            else {
+                // This is an internal node
+                if (nd->isSelTMatrix())
+                    queueTMatrixRecalculation(nd);
 
-                        // Internal nodes have partials to be calculated, so define
-                        // an operation to compute the partials for this node
-                        if (nd->isSelPartial()) {
-                            // Internal node is not a polytomy
-                            Node * lchild = nd->_left_child;
-                            assert(lchild);
-                            Node * rchild = lchild->_right_sib;
-                            assert(rchild);
-                            queuePartialsRecalculation(nd, lchild, rchild);
-                        }   // isSelPartial
-                    }   // internal node
-                }   // nd loop
-    }   ///end_defineOperations
+                // Internal nodes have partials to be calculated, so define
+                // an operation to compute the partials for this node
+                if (nd->isSelPartial()) {
+                    // Internal node is not a polytomy
+                    Node * lchild = nd->_left_child;
+                    assert(lchild);
+                    Node * rchild = lchild->_right_sib;
+                    assert(rchild);
+                    queuePartialsRecalculation(nd, lchild, rchild);
+                }   // isSelPartial
+            }   // internal node
+        }   // nd loop
+    } 
     
     inline void Likelihood::updateTransitionMatrices() { 
         assert(_instances.size() > 0);
@@ -795,7 +793,7 @@ namespace strom {
         }   // instance loop
     }
     
-    inline void Likelihood::calculatePartials() { ///begin_calculatePartials
+    inline void Likelihood::calculatePartials() {
         assert(_instances.size() > 0);
         if (_operations.size() == 0)
             return;
@@ -824,7 +822,7 @@ namespace strom {
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
             }
         }   // instance loop
-    } ///end_calculatePartials
+    }
     
     inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {   ///begin_calcInstanceLogLikelihood
         int code = 0;
