@@ -1,4 +1,4 @@
-#pragma once    ///start
+#pragma once
 
 #include "updater.hpp"
 
@@ -6,7 +6,7 @@ namespace strom {
 
     class Chain;
 
-    class TreeUpdater : public Updater {
+    class TreeUpdater : public Updater {    ///begin_class_declaration
 
         friend class Chain;
 
@@ -18,15 +18,13 @@ namespace strom {
                                                 ~TreeUpdater();
 
             virtual double                      calcLogPrior();
-            //double                              calcLogTopologyPrior() const; ///!a
 
         private:
 
             virtual void                        revert();
             virtual void                        proposeNewState();
         
-            void                                starTreeMove(); ///!b
-            Node *                              chooseRandomChild(Node * x, Node * avoid, bool parent_included);
+            void                                starTreeMove(); ///!a
 
             virtual void                        reset();
 
@@ -36,26 +34,25 @@ namespace strom {
 
             unsigned                            _case;
             bool                                _topology_changed;
-            bool                                _star_tree_move; ///!c
+            bool                                _star_tree_move; ///!b
             Node *                              _x;
             Node *                              _y;
             Node *                              _a;
             Node *                              _b;
-    };
-    ///end_class_declaration
+    }; ///end_class_declaration
 
-    inline TreeUpdater::TreeUpdater() { ///begin_constructor
+    inline TreeUpdater::TreeUpdater() {
         // std::cout << "Creating a TreeUpdater" << std::endl;
         Updater::clear();
         _name = "Tree Topology and Edge Proportions";
         reset();
-    }   ///end_constructor
+    }
 
-    inline TreeUpdater::~TreeUpdater() {    ///begin_destructor
+    inline TreeUpdater::~TreeUpdater() {
         // std::cout << "Destroying a TreeUpdater" << std::endl;
-    }   ///end_destructor
+    }
     
-    inline void TreeUpdater::reset() {  ///begin_reset
+    inline void TreeUpdater::reset() {
         _topology_changed       = false;
         _orig_edgelen_top       = 0.0;
         _orig_edgelen_middle    = 0.0;
@@ -66,43 +63,12 @@ namespace strom {
         _y                      = 0;
         _a                      = 0;
         _b                      = 0;
-    }   ///end_reset
+    }
 
-    inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
+    inline double TreeUpdater::calcLogPrior() {
         double log_topology_prior    = Updater::calcLogTopologyPrior();
         double log_edge_length_prior = Updater::calcLogEdgeLengthPrior();
         return log_topology_prior + log_edge_length_prior;
-    }   ///end_calcLogPrior
-
-    inline Node * TreeUpdater::chooseRandomChild(Node * x, Node * avoid, bool parent_included) {
-        // Count number of children of x
-        unsigned n = 0;
-        Node * child = x->getLeftChild();
-        while (child) {
-            if (child != avoid)
-                n++;
-            child = child->getRightSib();
-        }
-        
-        // Choose random child index
-        unsigned upper = n + (parent_included ? 1 : 0);
-        unsigned chosen = (unsigned)_lot->randint(0,upper - 1);
-        
-        // If chosen < n, then find and return that particular child
-        if (chosen < n) {
-            child = x->getLeftChild();
-            unsigned i = 0;
-            while (child) {
-                if (child != avoid && i == chosen)
-                    return child;
-                else if (child != avoid)
-                    i++;
-                child = child->getRightSib();
-            }
-        }
-
-        // If chosen equals n, then the parent was chosen, indicated by returning NULL
-        return NULL;
     }
 
     inline void TreeUpdater::starTreeMove() {    ///begin_starTreeMove
@@ -110,11 +76,11 @@ namespace strom {
         _orig_edgelen_middle = 0.0;
         
         // Choose the first edge
-        _a = chooseRandomChild(_x, 0, false);
+        _a = _tree_manipulator->randomChild(_lot, _x, 0, false);
         _orig_edgelen_top = _a->getEdgeLength();
 
         // Choose the second edge
-        _b = chooseRandomChild(_x, _a, true);
+        _b = _tree_manipulator->randomChild(_lot, _x, _a, true);
         if (!_b)
             _b = _x;
         _orig_edgelen_bottom = _b->getEdgeLength();
@@ -186,11 +152,11 @@ namespace strom {
 
         // Choose focal 3-edge segment to modify
         // Begin by randomly choosing one child of x to be node _a
-        _a = chooseRandomChild(_x, 0, false);
+        _a = _tree_manipulator->randomChild(_lot, _x, 0, false);
         _orig_edgelen_top = _a->getEdgeLength();
 
         // Now choose a different child of x (or the parent) to be node _b
-        _b = chooseRandomChild(_y, _x, true);
+        _b = _tree_manipulator->randomChild(_lot, _y, _x, true);
         bool b_is_child_of_y;
         if (_b) {
             b_is_child_of_y = true;

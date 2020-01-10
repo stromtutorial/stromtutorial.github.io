@@ -43,7 +43,7 @@ namespace strom {
 
             virtual double                      calcLogPrior() = 0;
             double                              calcLogTopologyPrior() const;
-            double                              calcEdgeLengthPrior() const;
+            double                              calcLogEdgeLengthPrior() const;
             double                              calcLogLikelihood() const;
             virtual double                      update(double prev_lnL);
         
@@ -220,11 +220,14 @@ namespace strom {
         // Decide whether to accept or reject the proposed state
         bool accept = true;
         if (log_prior > _log_zero) {
-            double log_diff = _log_hastings_ratio + _log_jacobian;
-            log_diff += _heating_power*((log_likelihood + log_prior) - (prev_lnL + prev_log_prior));
+            double log_R = 0.0;
+            log_R += _heating_power*(log_likelihood - prev_lnL);
+            log_R += _heating_power*(log_prior - prev_log_prior);
+            log_R += _log_hastings_ratio;
+            log_R += _log_jacobian;
 
             double logu = _lot->logUniform();
-            if (logu > log_diff)
+            if (logu > log_R)
                 accept = false;
         }
         else
@@ -255,7 +258,7 @@ namespace strom {
         return log_topology_prior;
     }   ///end_calcLogTopologyPrior
 
-    inline double Updater::calcEdgeLengthPrior() const { ///begin_calcEdgeLengthPrior
+    inline double Updater::calcLogEdgeLengthPrior() const { ///begin_calcLogEdgeLengthPrior
         Tree::SharedPtr tree = _tree_manipulator->getTree();
         assert(tree);
 
@@ -293,7 +296,7 @@ namespace strom {
 
         double log_prior = log_gamma_prior_on_TL + log_edge_length_proportions_prior;
         return log_prior;
-    } ///end_calcEdgeLengthPrior
+    } ///end_calcLogEdgeLengthPrior
 
     inline double Updater::getLogZero() {  ///begin_getLogZero
         return _log_zero;

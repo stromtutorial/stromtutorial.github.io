@@ -19,11 +19,11 @@ To help us compute the topology prior, create the following class `TopoPriorCalc
 ~~~~~~
 {:.cpp}
 
-## The TopoPriorCalculator constructor and destructor
+## The TopoPriorCalculator constructor, destructor, and clear function
 
-The constructor sets `_is_rooted` to false, `_is_resolution_class_prior` to true, `_C` to 1.0, `_ntax` to 4, and `_topo_priors_dirty` to true. The destructor clears the vectors `_counts`, `_nfactors` and `_topology_prior`.
+The constructor calls the `clear` member function to perform initialization, and the destructor does nothing, as usual.
 ~~~~~~
-{{ "steps/step-19/src/topo_prior_calculator.hpp" | polcodesnippet:"begin_constructor-end_destructor","" }}
+{{ "steps/step-19/src/topo_prior_calculator.hpp" | polcodesnippet:"begin_constructor-end_clear","" }}
 ~~~~~~
 {:.cpp}
 

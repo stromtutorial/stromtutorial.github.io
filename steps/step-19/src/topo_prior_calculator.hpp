@@ -54,6 +54,7 @@ namespace strom {
 
             unsigned                        sample(Lot::SharedPtr rng);
 
+            void                            clear();
             void                            reset();
 
         private:
@@ -79,21 +80,24 @@ namespace strom {
     // Member function bodies go here
     ///end_class_declaration
 
-    PolytomyTopoPriorCalculator::PolytomyTopoPriorCalculator() {    ///begin_constructor
+    PolytomyTopoPriorCalculator::PolytomyTopoPriorCalculator() {  ///begin_constructor  
+        //std::cout << "PolytomyTopoPriorCalculator being created" << std::endl;
+        clear();
+    }   
+
+    PolytomyTopoPriorCalculator::~PolytomyTopoPriorCalculator() {   
+        //std::cout << "PolytomyTopoPriorCalculator being destroyed" << std::endl;
+    }   
+
+    inline void PolytomyTopoPriorCalculator::clear() {
         _topo_priors_dirty            = true;
         _is_rooted                    = false;
         _is_resolution_class_prior    = true;
         _C                            = 1.0;
-        _ntax                        = 4;
-        _counts_dirty                = true;
-        _log_scaling_factor          = 10.0;
-    }   ///end_constructor
-
-    PolytomyTopoPriorCalculator::~PolytomyTopoPriorCalculator() {   ///begin_destructor
-        _counts.clear();
-        _topology_prior.clear();
-        _nfactors.clear();
-    }   ///end_destructor
+        _ntax                         = 4;
+        _counts_dirty                 = true;
+        _log_scaling_factor           = 10.0;
+    }   ///end_clear
 
     double PolytomyTopoPriorCalculator::getLogNormalizedTopologyPrior(unsigned m) { ///begin_getLogNormalizedTopologyPrior
         if (_topo_priors_dirty)
@@ -434,7 +438,6 @@ namespace strom {
     }   ///end_getNFactorsVect
 
     std::vector<double> PolytomyTopoPriorCalculator::getTopoPriorVect() {   ///begin_getTopoPriorVect
-        //@POL this function could be const were it not for lazy evaluation
         if (_topo_priors_dirty)
             reset();
         return _topology_prior;

@@ -17,7 +17,7 @@ If trees contain polytomies, then a wrench is thrown in the works because a poly
 
 Begin by adding the highlighted lines below to the `Likelihood` class declaration in {% indexfile likelihood.hpp %}:
 ~~~~~~
-{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"start-end_class_declaration","a,b,c,d,e" }}
+{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"start-end_class_declaration","a,b-bb,c" }}
 ~~~~~~
 {:.cpp}
 
@@ -37,19 +37,11 @@ Initialize the `_identity_matrix` data member in the first few lines of `newInst
 ~~~~~~
 {:.cpp}
 
-## Add function isPolytomy
+## Modify the queuePartialsRecalculation function
 
-This function returns true if the supplied `nd` points to a `Node` object representing a polytomy (i.e. `nd` has more than 2 children).
+Add the highlighted lines in the `queuePartialsRecalculation` member function:
 ~~~~~~
-{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_isPolytomy-end_isPolytomy","" }}
-~~~~~~
-{:.cpp}
-
-## Add function countChildren
-
-This function counts the number of children of the `Node` object pointed to by the supplied `nd`.
-~~~~~~
-{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_countChildren-end_countChildren","" }}
+{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"!begin_queuePartialsRecalculation-end_queuePartialsRecalculation","begin_queuePartialsRecalculation,d-dd" }}
 ~~~~~~
 {:.cpp}
 
@@ -67,6 +59,6 @@ Add or change the highlighted lines in the `defineOperations` member function:
 
 All we need to do to the `calcLogLikelihood` function is to return the nodes we pulled out of storage back to their previous, unused state.
 ~~~~~~
-{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_calcLogLikelihood-end_calcLogLikelihood","t-u" }}
+{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_calcLogLikelihood-end_calcLogLikelihood","t-tt" }}
 ~~~~~~
 {:.cpp}

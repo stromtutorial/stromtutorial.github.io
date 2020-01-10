@@ -18,7 +18,6 @@ namespace strom {
                                                 ~TreeUpdater();
 
             virtual double                      calcLogPrior();
-            double                              calcLogTopologyPrior() const;
 
         private:
 
@@ -67,7 +66,7 @@ namespace strom {
 
     inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
         double log_topology_prior    = Updater::calcLogTopologyPrior();
-        double log_edge_length_prior = Updater::calcEdgeLengthPrior();
+        double log_edge_length_prior = Updater::calcLogEdgeLengthPrior();
         return log_topology_prior + log_edge_length_prior;
     }   ///end_calcLogPrior
 

@@ -29,7 +29,7 @@ Declare (and define) a new function, `clearPointers`, in the `Node` class declar
 
 Replace the initialization of the 3 pointer data members `_left_child`, `_right_sib`, and `_parent` with a call to the new `clearPointers` function.
 ~~~~~~
-{{ "steps/step-19/src/node.hpp" | polcodesnippet:"begin_clear-end_clear","b" }}
+{{ "steps/step-19/src/node.hpp" | polcodesnippet:"begin_clear-end_clear","b-bb" }}
 ~~~~~~
 {:.cpp}
 
@@ -38,6 +38,14 @@ Replace the initialization of the 3 pointer data members `_left_child`, `_right_
 Add the highlighted lines below to the `TreeManip` class declaration.
 ~~~~~~
 {{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"start-end_class_declaration","a,b,c-d" }}
+~~~~~~
+{:.cpp}
+
+## Add function isPolytomy
+
+This function returns true if the supplied `nd` points to a `Node` object representing a polytomy (i.e. `nd` has more than 2 children).
+~~~~~~
+{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_isPolytomy-end_isPolytomy","" }}
 ~~~~~~
 {:.cpp}
 

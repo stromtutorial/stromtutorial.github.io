@@ -76,6 +76,8 @@ namespace strom {
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
             void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
+            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild);
+            void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
             void                                    calculatePartials();
@@ -671,60 +673,80 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::defineOperations(Tree::SharedPtr t) {
-        assert(_instances.size() > 0);
-        assert(t);
-        assert(t->isRooted() == _rooted);
-
-        double relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates();
+    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild) {
+        // Loop through all instances
+        for (auto & info : _instances) {
+            // Loop through all subsets assigned to this instance
+            unsigned instance_specific_subset_index = 0;
+            for (unsigned s : info.subsets) {
+                addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
+                ++instance_specific_subset_index;
+            }
+        }
+    }   //end_queuePartialsRecalculation
+    
+    inline void Likelihood::queueTMatrixRecalculation(Node * nd) {
         Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();
 
         // Loop through all instances
         for (auto & info : _instances) {
-            _operations[info.handle].clear();
-            _pmatrix_index[info.handle].clear();
-            _edge_lengths[info.handle].clear();
-            
             // Loop through all subsets assigned to this instance
             unsigned instance_specific_subset_index = 0;
             for (unsigned s : info.subsets) {
-                double subset_relative_rate = subset_relrates[s]/relrate_normalizing_constant;
+                double subset_relative_rate = subset_relrates[s]/_relrate_normalizing_constant;
 
-                // Loop through all nodes in reverse level order
-                for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
-                    assert(nd->_number >= 0);
-                    if (!nd->_left_child) {
-                        // This is a leaf
-                        if (nd->isSelTMatrix()) {
-                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
-                            _pmatrix_index[info.handle].push_back(tindex);
-                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
-                        }
-                    }
-                    // ...
-                    else {
-                        // This is an internal node
-                        if (nd->isSelTMatrix()) {
-                            unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
-                            _pmatrix_index[info.handle].push_back(tindex);
-                            _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
-                        }
+                unsigned tindex = getTMatrixIndex(nd, info, instance_specific_subset_index);
+                _pmatrix_index[info.handle].push_back(tindex);
+                _edge_lengths[info.handle].push_back(nd->_edge_length*subset_relative_rate);
+                _eigen_indices[info.handle].push_back(s);
+                _category_rate_indices[info.handle].push_back(s);
 
-                        // Internal nodes have partials to be calculated, so define
-                        // an operation to compute the partials for this node
-                        if (nd->isSelPartial()) {
-                            Node * lchild = nd->_left_child;
-                            assert(lchild);
-                            Node * rchild = lchild->_right_sib;
-                            assert(rchild);
-                            addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
-                        }   // isSelPartial
-                    }   // internal node
-                }   // nd loop
                 ++instance_specific_subset_index;
             }   // subsets loop
         } // instances loop
     }
+    
+    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   
+        assert(_instances.size() > 0);
+        assert(t);
+        assert(t->isRooted() == _rooted);
+        
+        _relrate_normalizing_constant = _model->calcNormalizingConstantForSubsetRelRates();
+
+        // Start with a clean slate
+        for (auto & info : _instances) {
+            _operations[info.handle].clear();
+            _pmatrix_index[info.handle].clear();
+            _edge_lengths[info.handle].clear();
+            _eigen_indices[info.handle].clear();
+            _category_rate_indices[info.handle].clear();
+        }
+                
+        // Loop through all nodes in reverse level order
+        for (auto nd : boost::adaptors::reverse(t->_levelorder)) {
+            assert(nd->_number >= 0);
+            if (!nd->_left_child) {
+                // This is a leaf
+                if (nd->isSelTMatrix())
+                    queueTMatrixRecalculation(nd);
+            }
+            else {
+                // This is an internal node
+                if (nd->isSelTMatrix())
+                    queueTMatrixRecalculation(nd);
+
+                // Internal nodes have partials to be calculated, so define
+                // an operation to compute the partials for this node
+                if (nd->isSelPartial()) {
+                    Node * lchild = nd->_left_child;
+                    assert(lchild);
+                    Node * rchild = lchild->_right_sib;
+                    assert(rchild);
+                    queuePartialsRecalculation(nd, lchild, rchild);
+                }
+            }
+        }
+    }  
     
     inline void Likelihood::updateTransitionMatrices() {
         assert(_instances.size() > 0);

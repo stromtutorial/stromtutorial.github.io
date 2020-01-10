@@ -733,28 +733,23 @@ namespace strom {
             assert(nd->_number >= 0);
             if (!nd->_left_child) {
                 // This is a leaf
-                if (nd->isSelTMatrix())
-                    queueTMatrixRecalculation(nd);
+                queueTMatrixRecalculation(nd);
             }
             else {
                 // This is an internal node
-                if (nd->isSelTMatrix())
-                    queueTMatrixRecalculation(nd);
+                queueTMatrixRecalculation(nd);
 
                 // Internal nodes have partials to be calculated, so define
                 // an operation to compute the partials for this node
-                if (nd->isSelPartial()) {
-                    // Internal node is not a polytomy
-                    Node * lchild = nd->_left_child;
-                    assert(lchild);
-                    Node * rchild = lchild->_right_sib;
-                    assert(rchild);
-                    queuePartialsRecalculation(nd, lchild, rchild);
-                }   // isSelPartial
-            }   // internal node
-        }   // nd loop
-    } 
-    
+                Node * lchild = nd->_left_child;
+                assert(lchild);
+                Node * rchild = lchild->_right_sib;
+                assert(rchild);
+                queuePartialsRecalculation(nd, lchild, rchild);
+            } 
+        }
+    }
+        
     inline void Likelihood::updateTransitionMatrices() { 
         assert(_instances.size() > 0);
         if (_pmatrix_index.size() == 0)

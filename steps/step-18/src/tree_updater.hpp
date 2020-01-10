@@ -18,7 +18,6 @@ namespace strom {
                                                 ~TreeUpdater();
 
             virtual double                      calcLogPrior();
-            double                              calcLogTopologyPrior() const;
 
         private:
 
@@ -64,16 +63,6 @@ namespace strom {
         _y                      = 0;
         _a                      = 0;
         _b                      = 0;
-    }
-
-    inline double TreeUpdater::calcLogTopologyPrior() const {
-        typename Tree::SharedPtr tree = _tree_manipulator->getTree();
-        assert(tree);
-        double n = tree->numLeaves();
-        if (tree->isRooted())
-            n += 1.0;
-        double log_num_topologies = lgamma(2.0*n - 5.0 + 1.0) - (n - 3.0)*log(2.0) - lgamma(n - 3.0 + 1.0);
-        return -log_num_topologies;
     }
 
     inline double TreeUpdater::calcLogPrior() {

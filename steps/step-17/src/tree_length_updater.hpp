@@ -76,7 +76,7 @@ namespace strom {
     }   ///end_revert
 
     inline double TreeLengthUpdater::calcLogPrior() {   ///begin_calcLogPrior
-        return Updater::calcEdgeLengthPrior();
+        return Updater::calcLogEdgeLengthPrior();
     }   ///end_calcLogPrior
 
     inline void TreeLengthUpdater::pullFromModel() {    ///begin_pullFromModel

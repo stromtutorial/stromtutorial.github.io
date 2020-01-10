@@ -37,8 +37,9 @@ namespace strom {
         
             void                        LargetSimonSwap(Node * a, Node * b);
             Node *                      randomInternalEdge(double uniform01);
-
-            void                        nniNodeSwap(Node * a, Node * b);    ///!c
+            
+            bool                        isPolytomy(Node * nd) const;   ///!c
+            void                        nniNodeSwap(Node * a, Node * b); 
             unsigned                    countChildren(Node * nd) const;
             Node *                      findLeftSib(Node * nd);
             Node *                      findNextPreorder(Node * nd);
@@ -1328,5 +1329,15 @@ namespace strom {
         nd->clearPointers();
         _tree->_unused_nodes.push_back(nd);
     }   ///end_putUnusedNode
+    
+    inline bool TreeManip::isPolytomy(Node * nd) const {   ///begin_isPolytomy
+        Node * lchild = nd->_left_child;
+        assert(lchild);    // should only call this function for internal nodes
+        
+        Node * rchild = lchild->_right_sib;
+        if (rchild && rchild->_right_sib)
+            return true;
+        return false;
+    }   ///end_isPolytomy
     
 }

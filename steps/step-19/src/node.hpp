@@ -97,6 +97,9 @@ namespace strom {
     inline void Node::clear() { ///begin_clear
         _flags = 0;
         clearPointers();    ///!b
+        //_left_child = 0;
+        //_right_sib = 0;
+        //_parent = 0;      ///!bb
         _number = -1;
         _name = "";
         _edge_length = _smallest_edge_length;

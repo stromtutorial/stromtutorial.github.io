@@ -17,17 +17,23 @@ Add the 4 new function prototypes and 3 new data members highlighted below to th
 ~~~~~~
 {:.cpp}
 
+## Modify the clear function
+
 Initialize the 2 new data members (`_resolution_class_prior` and `_topo_prior_C`) in the `clear` function.
 ~~~~~~
 {{ "steps/step-19/src/model.hpp" | polcodesnippet:"begin_clear-end_clear","e-f" }}
 ~~~~~~
 {:.cpp}
 
+## Add the setTopologyPriorOptions member function
+
 Add the body of the `setTopologyPriorOptions` function to {% indexfile model.hpp %} somehwere before the bracket that closes the `strom` namespace. This function provides a way to inform the `Model` object of all 3 parameters of the topology prior.
 ~~~~~~
 {{ "steps/step-19/src/model.hpp" | polcodesnippet:"begin_setTopologyPriorOptions-end_setTopologyPriorOptions","" }}
 ~~~~~~
 {:.cpp}
+
+## Add the accessors isAllowPolytomies, isResolutionClassTopologyPrior, and getTopologyPriorC
 
 Finally, add bodies of the 3 accessor functions `isAllowPolytomies`, `isResolutionClassTopologyPrior`, and `getTopologyPriorC`.
 ~~~~~~

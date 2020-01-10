@@ -66,7 +66,6 @@ namespace strom {
 
             typedef std::pair<unsigned, int>        instance_pair_t;
 
-            bool                                    isPolytomy(Node * nd) const;    ///!b
             unsigned                                getScalerIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getPartialIndex(Node * nd, InstanceInfo & info) const;
             unsigned                                getTMatrixIndex(Node * nd, InstanceInfo & info, unsigned subset_index) const;
@@ -79,7 +78,7 @@ namespace strom {
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
             void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
-            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy = 0);
+            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy = 0);   ///!c
             void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
@@ -104,8 +103,6 @@ namespace strom {
             std::vector<int>                        _freqs_indices;
             std::vector<int>                        _scaling_indices;
 
-            Model::SharedPtr                        _model;
-
             Data::SharedPtr                         _data;
             unsigned                                _ntaxa;
             bool                                    _rooted;
@@ -114,10 +111,11 @@ namespace strom {
             bool                                    _underflow_scaling;
             bool                                    _using_data;
 
-            std::vector<Node *>                     _polytomy_helpers;
+            Model::SharedPtr                        _model;
+
+            std::vector<Node *>                     _polytomy_helpers;  ///!b
             std::map<int, std::vector<int> >        _polytomy_map;
-            
-            std::vector<double>                     _identity_matrix;   ///!e
+            std::vector<double>                     _identity_matrix;   ///!bb
 
         public:
             typedef std::shared_ptr< Likelihood >   SharedPtr;
@@ -645,16 +643,6 @@ namespace strom {
         }
     }
     
-    inline bool Likelihood::isPolytomy(Node * nd) const {   ///begin_isPolytomy
-        Node * lchild = nd->_left_child;
-        assert(lchild);    // should only call this function for internal nodes
-        
-        Node * rchild = lchild->_right_sib;
-        if (rchild && rchild->_right_sib)
-            return true;
-        return false;
-    }   ///end_isPolytomy
-    
     inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {
         //assert(nd->_parent && nd->_left_child); // nd is supposed to be an internal node and not the tip root node
         unsigned sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
@@ -724,14 +712,12 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {
-        // Loop through all instances
+    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {  ///!begin_queuePartialsRecalculation
         for (auto & info : _instances) {
-            // Loop through all subsets assigned to this instance
             unsigned instance_specific_subset_index = 0;
             for (unsigned s : info.subsets) {
             
-                if (polytomy) {
+                if (polytomy) {  ///!d
                     // nd has been pulled out of tree's _unused_nodes vector to break up the polytomy
                     // Note that the parameter "polytomy" is the polytomous node itself
                     
@@ -762,7 +748,7 @@ namespace strom {
                         _polytomy_map[spolytomy].push_back(snd);
                     }
                     
-                }
+                }  ///!dd
                 
                 addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
                 ++instance_specific_subset_index;
@@ -817,7 +803,6 @@ namespace strom {
                 if (nd->isSelTMatrix())
                     queueTMatrixRecalculation(nd);
             }
-            // ...
             else {
                 // This is an internal node
                 if (nd->isSelTMatrix())
@@ -826,9 +811,9 @@ namespace strom {
                 // Internal nodes have partials to be calculated, so define
                 // an operation to compute the partials for this node
                 if (nd->isSelPartial()) {
-                    if (isPolytomy(nd)) {   ///!j
+                    TreeManip tm(t);
+                    if (tm.isPolytomy(nd)) {   ///!j
                         // Internal node is a polytomy
-                        TreeManip tm(t);
                         unsigned nchildren = tm.countChildren(nd);
                         Node * a = nd->_left_child;
                         Node * b = a->_right_sib;
@@ -856,9 +841,9 @@ namespace strom {
                         assert(rchild);
                         queuePartialsRecalculation(nd, lchild, rchild);
                     }   ///!s
-                }   // isSelPartial
-            }   // internal node
-        }   // nd loop
+                }
+            }
+        }
     }   ///end_defineOperations
 
     inline void Likelihood::updateTransitionMatrices() {
@@ -1163,14 +1148,14 @@ namespace strom {
             log_likelihood += calcInstanceLogLikelihood(info, t);
         }
 
-        // We no longer need the internal nodes brought out of storage
+        // We no longer need the internal nodes brought out of storage  ///!t
         // and used to compute partials for polytomies
         TreeManip tm(t);
         for (Node * h : _polytomy_helpers) {
             tm.putUnusedNode(h);
         }
         _polytomy_helpers.clear();
-        _polytomy_map.clear();
+        _polytomy_map.clear();  ///!tt
                 
         return log_likelihood;
     }   ///end_calcLogLikelihood

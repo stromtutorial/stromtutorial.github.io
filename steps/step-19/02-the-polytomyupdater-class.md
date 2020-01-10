@@ -9,7 +9,7 @@ description: Create a PolytomyUpdater class to jump between resolution classes.
 {{ page.description | markdownify }}
 {% endcomment %}
 
-We need a new updater that either adds and edge to an existing polytomy or deletes an edge to create a new polytomy (or expand an existing one). Create the `PolytomyUpdater` class declaration below in the file {% indexfile polytomy_updater.hpp %}.
+We need a new updater that either adds an edge to an existing polytomy or deletes an edge to create a new polytomy (or expand an existing one). Create the `PolytomyUpdater` class declaration below in the file {% indexfile polytomy_updater.hpp %}.
 ~~~~~~
 {{ "steps/step-19/src/polytomy_updater.hpp" | polcodesnippet:"start-end_class_declaration,end","" }}
 ~~~~~~

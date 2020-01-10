@@ -223,13 +223,13 @@ The number of distinct, labeled, binary tree topologies for n taxa is (2n-5)!/[2
 ~~~~~~
 {:.cpp}
 
-## The calcEdgeLengthPrior member function
+## The calcLogEdgeLengthPrior member function
 
 This program uses the Gamma-Dirichlet prior proposed by Rannala, Zhu, and Yang (2012), and this function calculates that prior. This approach specifies a Gamma prior distribution for tree length (TL) and the first two values in the `_prior_parameters` vector are expected to be the shape and scale of that Gamma distribution. The Dirichlet part specifies the prior distribution for the edge length proportions (not edge lengths). The third element in the `_prior_parameters` vector specifies the parameter of this symmetric Dirichlet prior distribution (normally this value is 1 so that the prior is flat and edge lengths are allowed to do whatever they please so long as they add up to TL).
 
 We are adding this function to `Updater` because edge lengths will be proposed by more than one updater. For example, there will be an updater (`TreeLengthUpdater`) responsible for changing just the TL (rescaling the entire tree) to improve MCMC mixing, and this updater will be separate from an updater (`TreeUpdater`) that modifies both the topology and some edge length proportions. Having this function reside in `Updater` means that we won’t have to implement this function multiple times in different derived classes.
 ~~~~~~
-{{ "steps/step-14/src/updater.hpp" | polcodesnippet:"begin_calcEdgeLengthPrior-end_calcEdgeLengthPrior","" }}
+{{ "steps/step-14/src/updater.hpp" | polcodesnippet:"begin_calcLogEdgeLengthPrior-end_calcLogEdgeLengthPrior","" }}
 ~~~~~~
 {:.cpp}
 
