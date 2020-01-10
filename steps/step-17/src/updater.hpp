@@ -42,6 +42,7 @@ namespace strom {
             virtual void                        clear();
 
             virtual double                      calcLogPrior() = 0;
+            double                              calcLogTopologyPrior() const;
             double                              calcEdgeLengthPrior() const;
             double                              calcLogLikelihood() const;
             virtual double                      update(double prev_lnL);
@@ -64,6 +65,7 @@ namespace strom {
             double                              _prob;
             double                              _lambda;
             double                              _log_hastings_ratio;
+            double                              _log_jacobian;
             double                              _target_acceptance;
             unsigned                            _naccepts;
             unsigned                            _nattempts;
@@ -216,7 +218,7 @@ namespace strom {
         // Decide whether to accept or reject the proposed state
         bool accept = true;
         if (log_prior > _log_zero) {
-            double log_diff = _log_hastings_ratio;
+            double log_diff = _log_hastings_ratio + _log_jacobian;
             log_diff += _heating_power*((log_likelihood + log_prior) - (prev_lnL + prev_log_prior));
 
             double logu = _lot->logUniform();
@@ -239,7 +241,17 @@ namespace strom {
         reset();
 
         return log_likelihood;
-    }
+    } ///end_update
+
+    inline double Updater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
+        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        assert(tree);
+        unsigned n = tree->numLeaves();
+        if (tree->isRooted())
+            n++;
+        double log_topology_prior = -std::lgamma(2*n-5+1) + (n-3)*std::log(2) + std::lgamma(n-3+1);
+        return log_topology_prior;
+    }   ///end_calcLogTopologyPrior
 
     inline double Updater::calcEdgeLengthPrior() const {
         Tree::SharedPtr tree = _tree_manipulator->getTree();

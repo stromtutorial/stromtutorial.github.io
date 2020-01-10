@@ -77,7 +77,7 @@ namespace strom {
         _asrv->setRateVar(_prev_point);
     } ///end_revert
 
-    inline void GammaRateVarUpdater::proposeNewState() { ///begin_proposeNewState
+    inline void GammaRateVarUpdater::proposeNewState() { 
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
         
@@ -87,6 +87,10 @@ namespace strom {
         
         // Calculate log of Hastings ratio
         _log_hastings_ratio = log(m);
-    } ///end_proposeNewState
 
-}   ///end
+        // This proposal invalidates all transition matrices and partials
+        _tree_manipulator->selectAllPartials();
+        _tree_manipulator->selectAllTMatrices();
+    } 
+
+}

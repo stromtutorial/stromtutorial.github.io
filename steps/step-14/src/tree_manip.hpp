@@ -13,7 +13,7 @@
 
 namespace strom {
 
-    class TreeManip {
+    class TreeManip {   ///begin_class_declaration
         public:
                                         TreeManip();
                                         TreeManip(Tree::SharedPtr t);
@@ -33,15 +33,14 @@ namespace strom {
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAtNodeNumber(int node_number);
 
-            void                        selectAll();
+            void                        selectAll();    ///!a
             void                        deselectAll();
             void                        selectAllPartials();
             void                        deselectAllPartials();
             void                        selectAllTMatrices();
             void                        deselectAllTMatrices();
-
-            void                        selectPartialsHereToRoot(Node * a);
-            void                        flipPartialsAndTMatrices();
+            void                        selectPartialsHereToRoot(Node * a); 
+            void                        flipPartialsAndTMatrices(); ///!aa
 
             void                        clear();
 
@@ -62,7 +61,7 @@ namespace strom {
         public:
 
             typedef std::shared_ptr< TreeManip > SharedPtr;
-    };
+    };  ///end_class_declaration
 
     // This is where function bodies go
 
@@ -854,7 +853,7 @@ namespace strom {
         }
     }
 
-    inline void TreeManip::selectAll() {
+    inline void TreeManip::selectAll() {    ///begin_selectAll
         for (auto & nd : _tree->_nodes) {
             nd.select();
         }
@@ -869,8 +868,6 @@ namespace strom {
     inline void TreeManip::selectAllPartials() {
         for (auto & nd : _tree->_nodes)
             nd.selectPartial();
-        //if (!_tree->isRooted())
-        //    _tree->_root->deselectPartial();
     }
 
     inline void TreeManip::deselectAllPartials() {
@@ -882,7 +879,6 @@ namespace strom {
     inline void TreeManip::selectAllTMatrices() {
         for (auto & nd : _tree->_nodes)
             nd.selectTMatrix();
-        //_tree->_root->deselectTMatrix();
     }
 
     inline void TreeManip::deselectAllTMatrices() {
@@ -915,6 +911,6 @@ namespace strom {
                     nd.setAltTMatrix();
             }
         }
-    }
+    }   ///end_flipPartialsAndTMatrices
 
 }

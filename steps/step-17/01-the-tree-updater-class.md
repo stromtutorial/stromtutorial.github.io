@@ -33,27 +33,6 @@ Recall that the `reset` function is called at the end of the `Updater::update` f
 ~~~~~~
 {:.cpp}
 
-## The calcLogTopologyPrior member function
-
-The tree topology prior is a discrete uniform prior distribution over all possible unrooted binary tree topologies. In step 19, we will begin to allow polytomies, at which point we will have to modify the topology prior to account for polytomous tree, but for the present we will assume that all trees are binary. If there are _N_ distinct unrooted tree topologies, then the prior probability of each of these topologies is 1/_N_. The number _N_ can be obtained as follows:
-~~~~~~
-N = (2*n-5)!/[2^(n-3) (n-3)!]
-~~~~~~
-{:.bash-output}
-where _n_ equals the number of taxa. For rooted trees, the same formula may be used if _n_+1 is substituted for _n_. This function calculates and returns the logarithm of 1/_N_, namely -log(_N_). We make use of the {% indexbold lgamma function %}, which returns the log of the gamma function (not to be confused with the Gamma distribution). Note that `lgamma(n+1)` returns the log of `n!` (`n` factorial).
-~~~~~~
-{{ "steps/step-17/src/tree_updater.hpp" | polcodesnippet:"begin_calcLogTopologyPrior-end_calcLogTopologyPrior","" }}
-~~~~~~
-{:.cpp}
-
-## The chooseRandomChild member function
-
-The `chooseRandomChild` member function is used by `proposeNewState` (see below) to choose nodes to complete the random 3-edge focal segment of the tree updated by the Larget-Simon proposal. If `avoid` is specified, then that node will not be returned as the chosen node. If `parent_included` is `true`, then the parent of the specified node will be considered one of the possible children. Note that this function returns `NULL` if the parent is chosen so that the calling routine knows that the chosen node is not actually a child of `x`.
-~~~~~~
-{{ "steps/step-17/src/tree_updater.hpp" | polcodesnippet:"begin_chooseRandomChild-end_chooseRandomChild","" }}
-~~~~~~
-{:.cpp}
-
 ## The calcLogPrior member function
 
 Now that we’ve created the `calcLogTopologyPrior` function and (previously, in the `Updater` class) the `calcEdgeLengthPrior` function, the `calcLogPrior` function simply needs to call those two functions and return the sum of the values they calculate.

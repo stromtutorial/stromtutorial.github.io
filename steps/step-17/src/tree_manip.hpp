@@ -33,8 +33,9 @@ namespace strom {
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAtNodeNumber(int node_number);
         
-            void                        LargetSimonSwap(Node * a, Node * b);    ///!b
-            Node *                      randomInternalEdge(double uniform01);   ///!c
+            Node *                      randomInternalEdge(Lot::SharedPtr lot);   ///!b
+            Node *                      randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included);
+            void                        LargetSimonSwap(Node * a, Node * b);    ///!bb
         
             void                        selectAll();
             void                        deselectAll();
@@ -42,7 +43,6 @@ namespace strom {
             void                        deselectAllPartials();
             void                        selectAllTMatrices();
             void                        deselectAllTMatrices();
-
             void                        selectPartialsHereToRoot(Node * a);
             void                        flipPartialsAndTMatrices();
 
@@ -857,10 +857,7 @@ namespace strom {
         }
     }
 
-    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {   ///begin_randomInternalEdge
-        assert(uniform_deviate >= 0.0);
-        assert(uniform_deviate < 1.0);
-
+    inline Node * TreeManip::randomInternalEdge(Lot::SharedPtr lot) {   ///begin_randomInternalEdge
         // Unrooted case:                        Rooted case:
         //
         // 2     3     4     5                   1     2     3     4
@@ -886,6 +883,7 @@ namespace strom {
 
         // Add one to skip first node in _preorder vector, which is an internal node whose edge
         // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
+        double uniform_deviate = lot->uniform();
         unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
 
         unsigned internal_nodes_visited = 0;
@@ -903,6 +901,37 @@ namespace strom {
         assert(chosen_node);
         return chosen_node;
     }   ///end_randomInternalEdge
+
+    inline Node * TreeManip::randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included) { ///begin_randomChild
+        // Count number of children of x
+        unsigned n = 0;
+        Node * child = x->getLeftChild();
+        while (child) {
+            if (child != avoid)
+                n++;
+            child = child->getRightSib();
+        }
+        
+        // Choose random child index
+        unsigned upper = n + (parent_included ? 1 : 0);
+        unsigned chosen = lot->randint(0,upper - 1);
+        
+        // If chosen < n, then find and return that particular child
+        if (chosen < n) {
+            child = x->getLeftChild();
+            unsigned i = 0;
+            while (child) {
+                if (child != avoid && i == chosen)
+                    return child;
+                else if (child != avoid)
+                    i++;
+                child = child->getRightSib();
+            }
+        }
+
+        // If chosen equals n, then the parent was chosen, indicated by returning NULL
+        return NULL;
+    } ///end_randomChild
 
     inline void TreeManip::LargetSimonSwap(Node * a, Node * b) {    ///begin_LargetSimonSwap
         // a and b are the ends of the selected 3-edge path in a Larget-Simon move
@@ -1082,8 +1111,6 @@ namespace strom {
     inline void TreeManip::selectAllPartials() {
         for (auto & nd : _tree->_nodes)
             nd.selectPartial();
-        //if (!_tree->isRooted())
-        //    _tree->_root->deselectPartial();
     }
 
     inline void TreeManip::deselectAllPartials() {
@@ -1095,7 +1122,6 @@ namespace strom {
     inline void TreeManip::selectAllTMatrices() {
         for (auto & nd : _tree->_nodes)
             nd.selectTMatrix();
-        //_tree->_root->deselectTMatrix();
     }
 
     inline void TreeManip::deselectAllTMatrices() {

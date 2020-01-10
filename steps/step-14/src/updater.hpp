@@ -201,9 +201,18 @@ namespace strom {
     inline double Updater::update(double prev_lnL) { ///begin_update
         double prev_log_prior = calcLogPrior();
 
-        // Set model to proposed state and calculate _log_hastings_ratio and _log_jacobian
+        // Clear any nodes previously selected so that we can detect those nodes
+        // whose partials and/or transition probabilities need to be recalculated
+        _tree_manipulator->deselectAllPartials();
+        _tree_manipulator->deselectAllTMatrices();
+
+        // Set model to proposed state and calculate _log_hastings_ratio
         proposeNewState();
         
+        // Use alternative partials and transition probability buffer for any selected nodes
+        // This allows us to easily revert to the previous values if the move is rejected
+        _tree_manipulator->flipPartialsAndTMatrices();
+
         // Calculate the log-likelihood and log-prior for the proposed state
         double log_likelihood = calcLogLikelihood();
         double log_prior = calcLogPrior();
@@ -226,6 +235,7 @@ namespace strom {
         }
         else {
             revert();
+            _tree_manipulator->flipPartialsAndTMatrices();
             log_likelihood = prev_lnL;
         }
 

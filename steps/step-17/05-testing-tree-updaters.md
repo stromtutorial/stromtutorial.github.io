@@ -44,7 +44,7 @@ Switch to the "Estimates" panel while still selecting TL in Traces: the mean of 
  
 ### Check the subset relative rates
 
-The subset relative rates have a prior distribution related to Dirichlet(1,1,1). The difference lies in the fact that it is the product of subset rates and subset proportions that is distributed as Dirichlet(1,1,1), not the rates themselves. Select all three subset relative rates (m-0, m-1, and m-2) under Traces on the left. These three densities should be identical ("Marginal Density" panel), and they should all have means close to 1.0 and variances close to 0.5. 
+The subset relative rates have a prior distribution related to Dirichlet(1,1,1). The difference lies in the fact that it is the product of subset rates and subset proportions that is distributed as Dirichlet(1,1,1), not the rates themselves. Select all three subset relative rates (m-0, m-1, and m-2) under Traces on the left. These three densities should be nearly identical ("Marginal Density" panel), and they should all have means close to 1.0 and variances close to 0.5. 
 {% comment %}
 variance of Dirichlet(1,1,1) = (1/3)(2/3)/4 = (1/2)(1/9)
 variance of RelRate(1,1,1) = (3^2)Var(Dir(1,1,1)) = 1/2
@@ -59,25 +59,25 @@ variance of one component = (1/n)*(1 - 1/n)/(n + 1)
 {:.bash-output}
 where n is the number of dimensions (i.e. the number of Dirichlet parameters). For nucleotide state frequencies, n = 4 so the variance of one component should equal (1/4)(3/4)/5 = 3/80 = 0.0375. Being flat, each state frequency has the same probability as any other state frequency, so the mean for each should be 1/4 = 0.25. 
 
-Select all 4 state frequencies for any subset (e.g. piA-0, piC-0, piG-0, and piT-0) under Traces on the left. These 4 densities should be identical ("Marginal Density" panel), and they should all have means close to 1/4 and variances close to 0.0375. 
+Select all 4 state frequencies for any subset (e.g. piA-0, piC-0, piG-0, and piT-0) under Traces on the left. These 4 densities should be nearly identical ("Marginal Density" panel), and they should all have means close to 1/4 and variances close to 0.0375. 
 {% comment %}
 variance of Dirichlet(1,1,1,1) = (1/4)(3/4)/5 = 3/80 = 0.0375
 {% endcomment %}
 
 ### Check the exchangeabilities
 
-The exchangeabilities have prior Dirichlet(1,1,1,1,1,1). Select all 6 exchangeabilities for any subset (e.g. rAC-0, rAG-0, rAT-0, rCG-0, rCT-0, and rGT-0) under Traces on the left. These 6 densities should be identical ("Marginal Density" panel), and they should all have means close to 0.167 and variances close to 0.0198. These values can be obtained using the formula given above with n = 6 rather than n = 4. 
+The exchangeabilities have prior Dirichlet(1,1,1,1,1,1). Select all 6 exchangeabilities for any subset (e.g. rAC-0, rAG-0, rAT-0, rCG-0, rCT-0, and rGT-0) under Traces on the left. These 6 densities should be nearly identical ("Marginal Density" panel), and they should all have means close to 0.167 and variances close to 0.0198. These values can be obtained using the formula given above with n = 6 rather than n = 4. 
 {% comment %}
 variance of Dirichlet(1,1,1,1,1,1) = (1/6)(5/6)/7 = 5/252 = 0.0198
 {% endcomment %}
 
 ### Check pinvar
 
-The pinvar parameter has prior Beta(1,1), which is just a special case of a flat Dirichlet distribution. Hence, using n = 2, we find that pinvar should have mean 0.5 and variance (1/2)(1/2)/3 = 1/12 = 0.0833.
+The pinvar parameter has prior Beta(1,1), which is just a special case of a flat Dirichlet distribution. Hence, using n = 2, we find that pinvar should have mean 0.5 and variance (1/2)(1/2)/3 = 1/12 = 0.0833. Again, Tracer may not do well near 0 and 1 with this density due to the fact that it is using a "black-box" density estimator that doesn't know that the density should drop to exactly 0.0 at pinvar values of 0.0 and 1.0.
 
 ### Check the rate variance
 
-Fihnally, the rate variance parameter has prior Exponential(1), which has mean 1 and variance 1.
+Finally, the rate variance parameter has prior Exponential(1), which has mean 1 and variance 1.
 
 {% comment %}
 ## Preparing for the final step

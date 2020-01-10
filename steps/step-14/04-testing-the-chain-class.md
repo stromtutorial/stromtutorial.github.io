@@ -10,7 +10,7 @@ description: Perform an MCMC analysis to test the new Chain class
 {{ page.description | markdownify }}
 {% endcomment %}
 
-Now all that is needed is to make some small changes to the `Node`, `Tree`, and `TreeManip` classes, and update the `Strom::run` function to set up `Chain` and run it. For this exercise we will use another variation on the rbcL data set used before.
+Now all that is needed is to make changes to the `Node` and `TreeManip` classes to accommodate flipping transition matrices and partials, make `Updater` a friend of `Tree` and `Node`, and update the `Strom::run` function to set up `Chain` and run it. For this exercise we will use another variation on the rbcL data set used before.
 
 Download [rbcl10.nex]({{ "/assets/data/rbcl10.nex" | absolute_url }}) and [rbcl10.tre]({{ "/assets/data/rbcl10.tre" | absolute_url }}) to your working directory with the other downloaded data and tree files.
 
@@ -40,9 +40,77 @@ Shape     0.253596 (3.94322)
 ~~~~~~
 {:.bash-output}
 
-## Making Updater a friend of Node and Tree
+## Adding selectability to the Node class
 
-Edit {% indexfile node.hpp %} and {% indexfile tree.hpp %} and uncomment the `class Updater;` and `friend class Updater;` lines that are currently commented out.
+Edit {% indexfile node.hpp %} and uncomment the `class Updater;` and `friend class Updater;` lines that are currently commented out. In addition, add the methods and data structures highlighted below in bold, blue text:
+~~~~~~
+{{ "steps/step-14/src/node.hpp" | polcodesnippet:"start-end","a,b,c-cc,d-dd,e,f" }}
+~~~~~~
+{:.cpp}
+The `Flag` enum provides binary attributes for every node that can be turned on or off. The `select()`, `selectPartial()`, `selectTMatrix()`, `setAltPartial()`, and `setAltTMatrix()` member functions set (i.e. make the value 1) bits at positions 1, 2, 3, 4, and 5, respectively, while the member functions `deselect()`, `deselectPartial()`, `deselectTMatrix()`, `clearAltPartial()`, and `clearAltTMatrix()` unset (i.e. make the value 0 at) the same bit positions. As an example, suppose a node has 0 at all bit positions except position 4 (`Flag::AltPartial`). Here is what the node's flag data member looks like in binary representation (showing only the 5 bits relevant to this discussion):
+~~~~~~
+flags = 0 1 0 0 0
+        | | | |  \Selected 
+        | | |  \SelPartial
+        | |  \SelTMatrix
+        |  \AltPartial
+         \AltTMatrix
+~~~~~~
+{:.bash-output}
+If `selectTMatrix()` is called for this node, the result will be to set the 3rd bit (from the right) in addition to the bit already set in the 4th position (due to the fact that this is an OR operation):
+~~~~~~
+flags = 0 1 0 0 0
+      | 0 0 1 0 0
+-----------------
+        0 1 1 0 0    
+        | | | |  \Selected 
+        | | |  \SelPartial
+        | |  \SelTMatrix
+        |  \AltPartial
+         \AltTMatrix
+~~~~~~
+{:.bash-output}
+If `clearAltPartial()` is called for this node, the result will be to unset only the 4th bit (note that `~(0 1 0 0 0) = 1 0 1 1 1`:
+~~~~~~
+flags = 0 1 1 0 0
+      & 1 0 1 1 1
+--------------------
+        0 0 1 0 0
+        | | | |  \Selected 
+        | | |  \SelPartial
+        | |  \SelTMatrix
+        |  \AltPartial
+        \AltTMatrix
+~~~~~~
+{:.bash-output}
+
+If bit operations still seem confusing, take a look at [this explanation](https://en.wikipedia.org/wiki/Bitwise_operations_in_C).
+
+These member functions allow us to:
+* select or deselect a node (which we will not be using in the tutorial but which you may find useful for debugging - e.g. selected nodes can be enumerated or displayed differently than unselected nodes);
+* select or deselect a node's transition matrix (to trigger recalculation after the node's edge length is modified);
+* select or deselect a node's partial array (to trigger recalculation if anything above the node has changed);
+* set or clear the alt status of a node's transition probability matrix (the alt state causes a different memory location in BeagleLib to be used to store the transition matrix);
+* set or clear the alt status of a node's partials array (the alt state causes a different memory location in BeagleLib to be used to store the partials); and
+* flip either the transition matrix or partials array to the alt state or back again (we will flip the state of relevant nodes before calculating the likelihood for a proposed update, then flip back again if the proposal was rejected).
+
+## Add functions to TreeManip to select or deselect nodes
+
+The added Node functions are normally called by `TreeManip` functions. Add the indicated function prototypes to the `TreeManip` class declaration:
+~~~~~~
+{{ "steps/step-14/src/tree_manip.hpp" | polcodesnippet:"begin_class_declaration-end_class_declaration","a-aa" }}
+~~~~~~
+{:.cpp}
+
+Add the bodies of these functions somewhere below the class declaration and before the curly bracket closing the namespace:
+~~~~~~
+{{ "steps/step-14/src/tree_manip.hpp" | polcodesnippet:"begin_selectAll-end_flipPartialsAndTMatrices","" }}
+~~~~~~
+{:.cpp}
+
+## Make Updater a friend of Tree
+
+Edit {% indexfile tree.hpp %} and uncomment the `class Updater;` and `friend class Updater;` lines that are currently commented out.
 
 ## Modifying the Model class
 Make the following blue-highlighted additions to the `Model` class.

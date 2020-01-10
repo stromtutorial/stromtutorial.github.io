@@ -25,8 +25,6 @@ namespace strom {
             virtual void                        revert();
             virtual void                        proposeNewState();
         
-            Node *                              chooseRandomChild(Node * x, Node * avoid, bool parent_included);
-
             virtual void                        reset();
 
             double                              _orig_edgelen_top;
@@ -46,7 +44,7 @@ namespace strom {
     inline TreeUpdater::TreeUpdater() { ///begin_constructor
         // std::cout << "Creating a TreeUpdater" << std::endl;
         Updater::clear();
-        _name = "Tree Topology and Edge Proportions";
+        _name = "Tree Topol. and Edge Prop.";
         reset();
     } 
 
@@ -67,52 +65,11 @@ namespace strom {
         _b                      = 0;
     }   ///end_reset
 
-    inline double TreeUpdater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
-        typename Tree::SharedPtr tree = _tree_manipulator->getTree();
-        assert(tree);
-        double n = tree->numLeaves();
-        if (tree->isRooted())
-            n += 1.0;
-        double log_num_topologies = lgamma(2.0*n - 5.0 + 1.0) - (n - 3.0)*log(2.0) - lgamma(n - 3.0 + 1.0);
-        return -log_num_topologies;
-    }   ///end_calcLogTopologyPrior
-
     inline double TreeUpdater::calcLogPrior() {   ///begin_calcLogPrior
-        double log_topology_prior = calcLogTopologyPrior();
+        double log_topology_prior    = Updater::calcLogTopologyPrior();
         double log_edge_length_prior = Updater::calcEdgeLengthPrior();
         return log_topology_prior + log_edge_length_prior;
     }   ///end_calcLogPrior
-
-    inline Node * TreeUpdater::chooseRandomChild(Node * x, Node * avoid, bool parent_included) { ///begin_chooseRandomChild
-        // Count number of children of x
-        unsigned n = 0;
-        Node * child = x->getLeftChild();
-        while (child) {
-            if (child != avoid)
-                n++;
-            child = child->getRightSib();
-        }
-        
-        // Choose random child index
-        unsigned upper = n + (parent_included ? 1 : 0);
-        unsigned chosen = _lot->randint(0,upper - 1);
-        
-        // If chosen < n, then find and return that particular child
-        if (chosen < n) {
-            child = x->getLeftChild();
-            unsigned i = 0;
-            while (child) {
-                if (child != avoid && i == chosen)
-                    return child;
-                else if (child != avoid)
-                    i++;
-                child = child->getRightSib();
-            }
-        }
-
-        // If chosen equals n, then the parent was chosen, indicated by returning NULL
-        return NULL;
-    }   ///end_chooseRandomChild
 
     // This version uses a polytomy-aware NNI swap
     inline void TreeUpdater::proposeNewState() {    ///begin_proposeNewState
@@ -134,18 +91,18 @@ namespace strom {
         //        |
         //        b
         
-        _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
+        _x = _tree_manipulator->randomInternalEdge(_lot);
         _orig_edgelen_middle = _x->getEdgeLength();
 
         _y = _x->getParent();
 
         // Choose focal 3-edge segment to modify
         // Begin by randomly choosing one child of x to be node _a
-        _a = chooseRandomChild(_x, 0, false);
+        _a = _tree_manipulator->randomChild(_lot, _x, 0, false);
         _orig_edgelen_top = _a->getEdgeLength();
 
         // Now choose a different child of x (or the parent) to be node _b
-        _b = chooseRandomChild(_y, _x, true);
+        _b = _tree_manipulator->randomChild(_lot, _y, _x, true);
         bool b_is_child_of_y;
         if (_b) {
             b_is_child_of_y = true;

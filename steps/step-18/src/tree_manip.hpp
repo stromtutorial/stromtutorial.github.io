@@ -42,7 +42,6 @@ namespace strom {
             void                        deselectAllPartials();
             void                        selectAllTMatrices();
             void                        deselectAllTMatrices();
-
             void                        selectPartialsHereToRoot(Node * a);
             void                        flipPartialsAndTMatrices();
 
@@ -1085,8 +1084,6 @@ namespace strom {
     inline void TreeManip::selectAllPartials() {
         for (auto & nd : _tree->_nodes)
             nd.selectPartial();
-        //if (!_tree->isRooted())
-        //    _tree->_root->deselectPartial();
     }
 
     inline void TreeManip::deselectAllPartials() {
@@ -1098,7 +1095,6 @@ namespace strom {
     inline void TreeManip::selectAllTMatrices() {
         for (auto & nd : _tree->_nodes)
             nd.selectTMatrix();
-        //_tree->_root->deselectTMatrix();
     }
 
     inline void TreeManip::deselectAllTMatrices() {

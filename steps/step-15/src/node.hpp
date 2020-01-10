@@ -49,6 +49,9 @@ namespace strom {
                     void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}
                     void                clearAltTMatrix()           {_flags &= ~Flag::AltTMatrix;}
 
+                    void                flipTMatrix()               {isAltTMatrix() ? clearAltTMatrix() : setAltTMatrix();}
+                    void                flipPartial()               {isAltPartial() ? clearAltPartial() : setAltPartial();} 
+
                     double              getEdgeLength()             {return _edge_length;}
                     void                setEdgeLength(double v);
 

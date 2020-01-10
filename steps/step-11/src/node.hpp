@@ -29,26 +29,6 @@ namespace strom {
                     std::string         getName()                   {return _name;}
                     Split               getSplit()                  {return _split;}
         
-                    bool                isSelected()                {return _flags & Flag::Selected;}
-                    void                select()                    {_flags |= Flag::Selected;}
-                    void                deselect()                  {_flags &= ~Flag::Selected;}
-
-                    bool                isSelPartial()              {return _flags & Flag::SelPartial;}
-                    void                selectPartial()             {_flags |= Flag::SelPartial;}
-                    void                deselectPartial()           {_flags &= ~Flag::SelPartial;}
-
-                    bool                isSelTMatrix()              {return _flags & Flag::SelTMatrix;}
-                    void                selectTMatrix()             {_flags |= Flag::SelTMatrix;}
-                    void                deselectTMatrix()           {_flags &= ~Flag::SelTMatrix;}
-
-                    bool                isAltPartial()              {return _flags & Flag::AltPartial;}
-                    void                setAltPartial()             {_flags |= Flag::AltPartial;}
-                    void                clearAltPartial()           {_flags &= ~Flag::AltPartial;}
-
-                    bool                isAltTMatrix()              {return _flags & Flag::AltTMatrix;}
-                    void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}
-                    void                clearAltTMatrix()           {_flags &= ~Flag::AltTMatrix;}
-
                     double              getEdgeLength()             {return _edge_length;}
                     void                setEdgeLength(double v);
 
@@ -76,7 +56,6 @@ namespace strom {
             std::string         _name;
             double              _edge_length;
             Split               _split;
-            int                 _flags;
     };
 
     inline Node::Node() {
@@ -89,7 +68,6 @@ namespace strom {
     }
 
     inline void Node::clear() {
-        _flags = 0;
         _left_child = 0;
         _right_sib = 0;
         _parent = 0;

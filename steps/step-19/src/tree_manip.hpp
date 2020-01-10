@@ -58,7 +58,6 @@ namespace strom {
             void                        deselectAllPartials();
             void                        selectAllTMatrices();
             void                        deselectAllTMatrices();
-
             void                        selectPartialsHereToRoot(Node * a);
             void                        flipPartialsAndTMatrices();
 
