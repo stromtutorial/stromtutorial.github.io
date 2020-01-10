@@ -86,10 +86,6 @@ namespace strom {
         
         // Calculate log of Hastings ratio
         _log_hastings_ratio = log(m);
-        
-        // This proposal invalidates all transition matrices and partials
-        _tree_manipulator->selectAllPartials();
-        _tree_manipulator->selectAllTMatrices();
     } 
 
 }   ///end

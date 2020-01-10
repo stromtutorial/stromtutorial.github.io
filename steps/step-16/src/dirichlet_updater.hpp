@@ -135,10 +135,6 @@ namespace strom {
         _log_hastings_ratio = log_reverse_density - log_forward_density;
         
         pushToModel();
-
-        // This proposal invalidates all transition matrices and partials
-        _tree_manipulator->selectAllPartials();
-        _tree_manipulator->selectAllTMatrices();
     }   ///end_proposeNewState
     
     inline void DirichletUpdater::revert() {    ///begin_revert

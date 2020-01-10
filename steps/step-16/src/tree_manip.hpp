@@ -33,16 +33,6 @@ namespace strom {
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAtNodeNumber(int node_number);
         
-            void                        selectAll();
-            void                        deselectAll();
-            void                        selectAllPartials();
-            void                        deselectAllPartials();
-            void                        selectAllTMatrices();
-            void                        deselectAllTMatrices();
-
-            void                        selectPartialsHereToRoot(Node * a);
-            void                        flipPartialsAndTMatrices();
-
             void                        clear();
 
         private:
@@ -850,69 +840,6 @@ namespace strom {
             if (nd->_parent) {
                 // parent's bits are the union of the bits set in all its children
                 nd->_parent->_split.addSplit(nd->_split);
-            }
-        }
-    }
-
-    inline void TreeManip::selectAll() {
-        for (auto & nd : _tree->_nodes) {
-            nd.select();
-        }
-    }
-
-    inline void TreeManip::deselectAll() {
-        for (auto & nd : _tree->_nodes) {
-            nd.deselect();
-        }
-    }
-
-    inline void TreeManip::selectAllPartials() {
-        for (auto & nd : _tree->_nodes)
-            nd.selectPartial();
-        //if (!_tree->isRooted())
-        //    _tree->_root->deselectPartial();
-    }
-
-    inline void TreeManip::deselectAllPartials() {
-        for (auto & nd : _tree->_nodes) {
-            nd.deselectPartial();
-        }
-    }
-
-    inline void TreeManip::selectAllTMatrices() {
-        for (auto & nd : _tree->_nodes)
-            nd.selectTMatrix();
-        //_tree->_root->deselectTMatrix();
-    }
-
-    inline void TreeManip::deselectAllTMatrices() {
-        for (auto & nd : _tree->_nodes) {
-            nd.deselectTMatrix();
-        }
-    }
-
-    inline void TreeManip::selectPartialsHereToRoot(Node * a) {
-        a->selectPartial();
-        while (a->_parent) {
-            a = a->_parent;
-            a->selectPartial();
-        }
-    }
-
-    inline void TreeManip::flipPartialsAndTMatrices() {
-        for (auto & nd : _tree->_nodes) {
-            if (nd.isSelPartial()) {
-                if (nd.isAltPartial())
-                    nd.clearAltPartial();
-                else
-                    nd.setAltPartial();
-            }
-            
-            if (nd.isSelTMatrix()) {
-                if (nd.isAltTMatrix())
-                    nd.clearAltTMatrix();
-                else
-                    nd.setAltTMatrix();
             }
         }
     }
