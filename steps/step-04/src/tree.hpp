@@ -26,6 +26,8 @@ namespace strom {
             unsigned                    numInternals() const;
             unsigned                    numNodes() const;
 
+            //void                        createTestTree();	///!g
+
         private:
 
             void                        clear();

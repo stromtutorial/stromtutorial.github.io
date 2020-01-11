@@ -85,7 +85,7 @@ Edit your `Node` class (file {% indexfile node.hpp %}) and uncomment the lines m
 
 Edit your `Tree` class (file {% indexfile tree.hpp %}) and delete all traces of `createTestTree()`. We no longer need `Tree` to have this capability because we can now ask `TreeManip` to create a test tree. The `Tree` class will also need to be modified so that `TreeManip` is a friend of `Tree`. I've indicated all lines in {% indexfile tree.hpp %} that need to be modified below in bold, blue text. I have commented out lines relating to `createTestTree` function so that I could show them to you, but you should feel free to just delete these lines entirely (they will be gone when I show you the contents of this file in future steps).
 ~~~~~~
-{{ "steps/step-04/src/tree.hpp" | polcodesnippet:"start-end","a,b,c-d,e-f" }}
+{{ "steps/step-04/src/tree.hpp" | polcodesnippet:"start-end","a,b,c-d,e-f,g" }}
 ~~~~~~
 {:.cpp}
 

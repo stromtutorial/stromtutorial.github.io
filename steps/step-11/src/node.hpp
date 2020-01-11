@@ -39,14 +39,6 @@ namespace strom {
         
         private:
         
-            enum Flag {
-                Selected   = (1 << 0),
-                SelPartial = (1 << 1),
-                SelTMatrix = (1 << 2),
-                AltPartial = (1 << 3),
-                AltTMatrix = (1 << 4)
-            };
-
             void                clear();
 
             Node *              _left_child;
