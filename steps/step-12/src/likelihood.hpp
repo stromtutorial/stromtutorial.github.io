@@ -343,7 +343,7 @@ namespace strom {
         
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
-        unsigned nscalers = num_internals + 1;  // one scale buffer for every internal node plus 1 cumulative at index 0 ///!d
+        unsigned nscalers = num_internals;  // one scale buffer for every internal node ///!d
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;
@@ -359,7 +359,7 @@ namespace strom {
              num_subsets,                          // models (one for each distinct eigen decomposition)
              num_subsets*num_transition_probs,     // transition matrices (one for each edge in each subset)
              ngammacat,                            // rate categories
-             (_underflow_scaling ? nscalers : 0),  // scale buffers             ///!dd
+             (_underflow_scaling ? nscalers + 1 : 0),  // scale buffers             ///!dd
              NULL,                                 // resource restrictions
              0,                                    // length of resource list
              preferenceFlags,                      // preferred flags

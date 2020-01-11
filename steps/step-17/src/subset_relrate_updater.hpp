@@ -11,7 +11,7 @@ namespace strom {
                                             SubsetRelRateUpdater(Model::SharedPtr model);
                                             ~SubsetRelRateUpdater();
         
-            double                          calcLogPrior();
+            virtual double                  calcLogPrior();
 
         private:
         

@@ -339,20 +339,20 @@ namespace strom {
         }
         
         int inst = beagleCreateInstance(
-             _ntaxa,                        // tips
-             2*npartials,                   // partials
-             nsequences,                    // sequences
-             nstates,                       // states
-             num_patterns,                  // patterns (total across all subsets that use this instance)
-             num_subsets,                   // models (one for each distinct eigen decomposition)
-             2*num_subsets*num_transition_probs, // transition matrices (one for each edge in each subset)
-             ngammacat,                     // rate categories
-             0,                             // scale buffers 
-             NULL,                          // resource restrictions
-             0,                             // length of resource list
-             preferenceFlags,               // preferred flags
-             requirementFlags,              // required flags
-             &instance_details);            // pointer for details
+             _ntaxa,                           // tips
+             npartials,                        // partials
+             nsequences,                       // sequences
+             nstates,                          // states
+             num_patterns,                     // patterns (total across all subsets that use this instance)
+             num_subsets,                      // models (one for each distinct eigen decomposition)
+             num_subsets*num_transition_probs, // transition matrices (one for each edge in each subset)
+             ngammacat,                        // rate categories
+             0,                                // scale buffers 
+             NULL,                             // resource restrictions
+             0,                                // length of resource list
+             preferenceFlags,                  // preferred flags
+             requirementFlags,                 // required flags
+             &instance_details);               // pointer for details
         
         if (inst < 0) {
             // beagleCreateInstance returns one of the following:

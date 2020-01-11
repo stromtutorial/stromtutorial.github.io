@@ -351,8 +351,6 @@ namespace strom {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
         _log_likelihood = calcLogLikelihood();
-        _tree_manipulator->deselectAllPartials();
-        _tree_manipulator->deselectAllTMatrices();
     }
 
     inline void Chain::stop() { 
@@ -365,7 +363,7 @@ namespace strom {
         unsigned i = 0;
         for (auto updater : _updaters) {
             cumprob += updater->_prob;
-            if (u < cumprob)
+            if (u <= cumprob)
                 break;
             i++;
         }

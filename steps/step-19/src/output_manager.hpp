@@ -91,7 +91,7 @@ namespace strom {
     inline void OutputManager::outputTree(unsigned iter, TreeManip::SharedPtr tm) {
         assert(_treefile.is_open());
         assert(tm);
-        _treefile << boost::str(boost::format("  tree iter_%d = %s;") % iter % tm->makeNewick(8)) << std::endl;
+        _treefile << boost::str(boost::format("  tree iter_%d = %s;") % iter % tm->makeNewick(5)) << std::endl;
     }
     
     inline void OutputManager::outputParameters(unsigned iter, double lnL, double lnP, double TL, unsigned m, Model::SharedPtr model) {   ///!begin_outputParameters

@@ -870,7 +870,7 @@ namespace strom {
         }
     }
 
-    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {
+    inline Node * TreeManip::   (double uniform_deviate) {
         assert(uniform_deviate >= 0.0);
         assert(uniform_deviate < 1.0);
 

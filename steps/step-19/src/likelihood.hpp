@@ -367,6 +367,7 @@ namespace strom {
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
         unsigned nscalers = num_internals;  // one scale buffer for every internal node
+        unsigned nscalers = num_internals;  // one scale buffer for every internal node ///!d
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;

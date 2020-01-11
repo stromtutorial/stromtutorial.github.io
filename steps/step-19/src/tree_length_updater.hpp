@@ -59,7 +59,6 @@ namespace strom {
 
         // calculate log of Hastings ratio under GammaDir parameterization
         _log_hastings_ratio = log(m);
-        _log_jacobian = 0.0;
 
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();

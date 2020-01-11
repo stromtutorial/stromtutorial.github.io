@@ -339,7 +339,7 @@ namespace strom {
         unsigned i = 0;
         for (auto updater : _updaters) {
             cumprob += updater->_prob;
-            if (u < cumprob)
+            if (u <= cumprob)
                 break;
             i++;
         }

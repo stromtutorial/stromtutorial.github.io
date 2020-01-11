@@ -205,7 +205,7 @@ namespace strom {
         else {
             // Choose an internal edge at random and delete it to create a polytomy
             // (or a bigger polytomy if there is already a polytomy)
-            nd = _tree_manipulator->randomInternalEdge(_lot->uniform());
+            nd = _tree_manipulator->randomInternalEdge(_lot);
             assert(nd->getParent() && nd->getParent()->getParent());
             
             proposeDeleteEdgeMove(nd);
