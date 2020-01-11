@@ -423,8 +423,6 @@ namespace strom {
             tm.selectAllPartials();
             tm.selectAllTMatrices();
             double lnL = _likelihood->calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
             
             if (_expected_log_likelihood != 0.0) 

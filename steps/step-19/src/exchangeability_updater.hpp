@@ -30,7 +30,7 @@ namespace strom {
 
     inline ExchangeabilityUpdater::~ExchangeabilityUpdater() {
         // std::cout << "Destroying an ExchangeabilityUpdater" << std::endl;
-    }   ///end_destructor
+    }
     
     inline void ExchangeabilityUpdater::pullFromModel() {
         QMatrix::freq_xchg_ptr_t xchg = _qmatrix->getExchangeabilitiesSharedPtr();

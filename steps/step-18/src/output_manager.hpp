@@ -27,7 +27,6 @@ namespace strom {
             void                                                outputConsole(std::string s);
             void                                                outputTree(unsigned iter, TreeManip::SharedPtr tm);
             void                                                outputParameters(unsigned iter, double lnL, double lnP, double TL, Model::SharedPtr model);
-            
 
         private:
 
@@ -39,7 +38,6 @@ namespace strom {
             std::string                                         _param_file_name;
     };
 
-    // member function bodies go here
     inline OutputManager::OutputManager() {
         //std::cout << "Constructing an OutputManager" << std::endl;
         _tree_file_name = "trees.t";

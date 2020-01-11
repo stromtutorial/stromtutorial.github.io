@@ -63,8 +63,6 @@ namespace strom {
             typedef std::shared_ptr< TreeManip > SharedPtr;
     };
 
-    // This is where function bodies go
-
     inline TreeManip::TreeManip() {
         //std::cerr << "Constructing a TreeManip" << std::endl;
         clear();
@@ -343,37 +341,11 @@ namespace strom {
         _tree->_preorder.push_back(nd);
 
         while (true) {
-            if (!nd->_left_child && !nd->_right_sib) {
-                // nd has no children and no siblings, so next preorder is the right sibling of
-                // the first ancestral node that has a right sibling.
-                Node * anc = nd->_parent;
-                while (anc && !anc->_right_sib)
-                    anc = anc->_parent;
-                if (anc) {
-                    // We found an ancestor with a right sibling
-                    _tree->_preorder.push_back(anc->_right_sib);
-                    nd = anc->_right_sib;
-                }
-                else {
-                    // nd is last preorder node in the tree
-                    break;
-                }
-            }
-            else if (nd->_right_sib && !nd->_left_child) {
-                // nd has no children (it is a tip), but does have a sibling on its right
-                _tree->_preorder.push_back(nd->_right_sib);
-                nd = nd->_right_sib;
-            }
-            else if (nd->_left_child && !nd->_right_sib) {
-                // nd has children (it is an internal node) but no siblings on its right
-                _tree->_preorder.push_back(nd->_left_child);
-                nd = nd->_left_child;
-            }
-            else {
-                // nd has both children and siblings on its right
-                _tree->_preorder.push_back(nd->_left_child);
-                nd = nd->_left_child;
-            }
+            nd = findNextPreorder(nd);
+            if (nd)
+                _tree->_preorder.push_back(nd);
+            else
+                break;
         }   // end while loop
     }
 
@@ -444,7 +416,7 @@ namespace strom {
         assert(_tree->_preorder.size() > 0);
         
         // Renumber internal nodes in postorder sequence
-        int curr_internal = _tree->_nleaves;
+        unsigned curr_internal = _tree->_nleaves;
         for (auto nd : boost::adaptors::reverse(_tree->_preorder)) {
             if (nd->_left_child) {
                 // nd is an internal node
@@ -897,20 +869,45 @@ namespace strom {
 
     inline void TreeManip::flipPartialsAndTMatrices() {
         for (auto & nd : _tree->_nodes) {
-            if (nd.isSelPartial()) {
-                if (nd.isAltPartial())
-                    nd.clearAltPartial();
-                else
-                    nd.setAltPartial();
-            }
+            if (nd.isSelPartial())
+                nd.flipPartial();
             
-            if (nd.isSelTMatrix()) {
-                if (nd.isAltTMatrix())
-                    nd.clearAltTMatrix();
-                else
-                    nd.setAltTMatrix();
+            if (nd.isSelTMatrix())
+                nd.flipTMatrix();
+        }
+    }
+            
+    inline Node * TreeManip::findNextPreorder(Node * nd) {
+        assert(nd);
+        Node * next = 0;
+        if (!nd->_left_child && !nd->_right_sib) {
+            // nd has no children and no siblings, so next preorder is the right sibling of
+            // the first ancestral node that has a right sibling.
+            Node * anc = nd->_parent;
+            while (anc && !anc->_right_sib)
+                anc = anc->_parent;
+            if (anc) {
+                // We found an ancestor with a right sibling
+                next = anc->_right_sib;
+            }
+            else {
+                // nd is last preorder node in the tree
+                next = 0;
             }
         }
+        else if (nd->_right_sib && !nd->_left_child) {
+            // nd has no children (it is a tip), but does have a sibling on its right
+            next = nd->_right_sib;
+            }
+        else if (nd->_left_child && !nd->_right_sib) {
+            // nd has children (it is an internal node) but no siblings on its right
+            next = nd->_left_child;
+        }
+        else {
+            // nd has both children and siblings on its right
+            next = nd->_left_child;
+        }
+        return next;
     }
 
 }

@@ -371,6 +371,29 @@ namespace strom {
         return fixed;
     }
 
+    inline void Strom::sample(unsigned iteration, Chain & chain) {
+        if (chain.getHeatingPower() < 1.0)
+            return;
+        
+        bool time_to_sample = (bool)(iteration % _sample_freq == 0);
+        bool time_to_report = (bool)(iteration % _print_freq == 0);
+        if (time_to_sample || time_to_report) {
+            double logLike = chain.getLogLikelihood();
+            double logPrior = chain.calcLogJointPrior();
+            double TL = chain.getTreeManip()->calcTreeLength();
+            if (time_to_report) {
+                if (logPrior == Updater::getLogZero())
+                    _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
+                else
+                    _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+            }
+            if (time_to_sample) {
+                _output_manager->outputTree(iteration, chain.getTreeManip());
+                _output_manager->outputParameters(iteration, logLike, logPrior, TL, chain.getModel());
+            }
+        }
+    }
+
     inline void Strom::run() {
         std::cout << "Starting..." << std::endl;
         std::cout << "Current working directory: " << boost::filesystem::current_path() << std::endl;
@@ -425,6 +448,8 @@ namespace strom {
 
             std::cout << "\n*** Calculating the likelihood of the tree" << std::endl;
             TreeManip tm(tree);
+            tm.selectAllPartials();
+            tm.selectAllTMatrices();
             double lnL = _likelihood->calcLogLikelihood(tree);
             std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
             
@@ -480,29 +505,5 @@ namespace strom {
 
         std::cout << "\nFinished!" << std::endl;
     }
-
-    inline void Strom::sample(unsigned iteration, Chain & chain) {
-        if (chain.getHeatingPower() < 1.0)
-            return;
-        
-        bool time_to_sample = (bool)(iteration % _sample_freq == 0);
-        bool time_to_report = (bool)(iteration % _print_freq == 0);
-        if (time_to_sample || time_to_report) {
-            double logLike = chain.getLogLikelihood();
-            double logPrior = chain.calcLogJointPrior();
-            double TL = chain.getTreeManip()->calcTreeLength();
-            if (time_to_report) {
-                if (logPrior == Updater::getLogZero())
-                    _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
-                else
-                    _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
-            }
-            if (time_to_sample) {
-                _output_manager->outputTree(iteration, chain.getTreeManip());
-                _output_manager->outputParameters(iteration, logLike, logPrior, TL, chain.getModel());
-            }
-        }
-    }
-
 
 }

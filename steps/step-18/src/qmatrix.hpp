@@ -115,8 +115,6 @@ namespace strom {
         }
     }
     
-    // QMatrixNucleotide class goes here
-    
     class QMatrixNucleotide : public QMatrix {
 
         public:
@@ -169,8 +167,6 @@ namespace strom {
             freq_xchg_ptr_t             _state_freqs;
             freq_xchg_ptr_t             _exchangeabilities;
     };
-    
-    // QMatrixNucleotide member function bodies go here
     
     inline QMatrixNucleotide::QMatrixNucleotide() {
         //std::cout << "Constructing a QMatrixNucleotide object" << std::endl;
@@ -342,8 +338,6 @@ namespace strom {
         _eigenvalues            = solver.eigenvalues();
     }
   
-    // QMatrixCodon class goes here
-    
     class QMatrixCodon : public QMatrix {
 
         public:
@@ -399,8 +393,6 @@ namespace strom {
             GeneticCode::SharedPtr      _genetic_code;
     };
 
-    // QMatrixCodon member function bodies go here
-    
     inline QMatrixCodon::QMatrixCodon(GeneticCode::SharedPtr gcode) {
         //std::cout << "Constructing a QMatrixCodon object" << std::endl;
         assert(gcode);
@@ -580,173 +572,3 @@ namespace strom {
     }
     
 } // namespace strom
-
-
-#if 0
-        // Debugging code to print out rate matrix for universal code
-        // include boost format header at top:
-        //    #include <boost/format.hpp>
-        // insert just before this line in recalcRateMatrix:
-        //    _Q *= scaling_factor;
-        std::ofstream tmpf("qmatrixdump.txt");
-        tmpf << boost::str(boost::format("scaling_factor = %g\n\n") % scaling_factor);
-        tmpf << boost::str(boost::format("omega = %g\n\n") % omega);
-        tmpf << "frequencies:\n";
-        for (unsigned i = 0; i < 61; i++) {
-            tmpf << boost::str(boost::format("%10.5lf ") % pi[i]);
-        }
-        tmpf << "\n\nQ:\n";
-        std::string triplets[] = {
-            "AAA",
-            "AAC",
-            "AAG",
-            "AAT",
-            "ACA",
-            "ACC",
-            "ACG",
-            "ACT",
-            "AGA",
-            "AGC",
-            "AGG",
-            "AGT",
-            "ATA",
-            "ATC",
-            "ATG",
-            "ATT",
-            "CAA",
-            "CAC",
-            "CAG",
-            "CAT",
-            "CCA",
-            "CCC",
-            "CCG",
-            "CCT",
-            "CGA",
-            "CGC",
-            "CGG",
-            "CGT",
-            "CTA",
-            "CTC",
-            "CTG",
-            "CTT",
-            "GAA",
-            "GAC",
-            "GAG",
-            "GAT",
-            "GCA",
-            "GCC",
-            "GCG",
-            "GCT",
-            "GGA",
-            "GGC",
-            "GGG",
-            "GGT",
-            "GTA",
-            "GTC",
-            "GTG",
-            "GTT",
-            //"TAA",
-            "TAC",
-            //"TAG",
-            "TAT",
-            "TCA",
-            "TCC",
-            "TCG",
-            "TCT",
-            //"TGA",
-            "TGC",
-            "TGG",
-            "TGT",
-            "TTA",
-            "TTC",
-            "TTG",
-            "TTT"
-        };
-        std::string aminoacids[] = {
-            "Lys", //AAA",
-            "Asn", //AAC",
-            "Lys", //"AAG",
-            "Asn", //"AAT",
-            "Thr", //"ACA",
-            "Thr", //"ACC",
-            "Thr", //"ACG",
-            "Thr", //"ACT",
-            "Arg", //"AGA",
-            "Ser", //"AGC",
-            "Arg", //"AGG",
-            "Ser", //"AGT",
-            "Ile", //"ATA",
-            "Ile", //"ATC",
-            "Met", //"ATG",
-            "Ile", //"ATT",
-            "Gln", //"CAA",
-            "His", //"CAC",
-            "Gln", //"CAG",
-            "His", //"CAT",
-            "Pro", //"CCA",
-            "Pro", //"CCC",
-            "Pro", //"CCG",
-            "Pro", //"CCT",
-            "Arg", //"CGA",
-            "Arg", //"CGC",
-            "Arg", //"CGG",
-            "Arg", //"CGT",
-            "Leu", //"CTA",
-            "Leu", //"CTC",
-            "Leu", //"CTG",
-            "Leu", //"CTT",
-            "Glu", //"GAA",
-            "Asp", //"GAC",
-            "Glu", //"GAG",
-            "Asp", //"GAT",
-            "Ala", //"GCA",
-            "Ala", //"GCC",
-            "Ala", //"GCG",
-            "Ala", //"GCT",
-            "Gly", //"GGA",
-            "Gly", //"GGC",
-            "Gly", //"GGG",
-            "Gly", //"GGT",
-            "Val", //"GTA",
-            "Val", //"GTC",
-            "Val", //"GTG",
-            "Val", //"GTT",
-            //Stop "TAA",
-            "Tyr", //"TAC",
-            //Stop "TAG",
-            "Tyr", //"TAT",
-            "Ser", //"TCA",
-            "Ser", //"TCC",
-            "Ser", //"TCG",
-            "Ser", //"TCT",
-            //Stop "TGA",
-            "Cys", //"TGC",
-            "Trp", //"TGG",
-            "Cys", //"TGT",
-            "Leu", //"TTA",
-            "Phe", //"TTC",
-            "Leu", //"TTG",
-            "Phe" //"TTT"
-        };
-        
-        tmpf << boost::str(boost::format("%10s %10s ") % " " % " ");
-        for (unsigned i = 0; i < 61; i++) {
-            tmpf << boost::str(boost::format("%10s ") % aminoacids[i]);
-        }
-        tmpf << "\n";
-        
-        tmpf << boost::str(boost::format("%10s %10s ") % " " % " ");
-        for (unsigned i = 0; i < 61; i++) {
-            tmpf << boost::str(boost::format("%10s ") % triplets[i]);
-        }
-        tmpf << "\n";
-        
-        for (unsigned i = 0; i < 61; i++) {
-            tmpf << boost::str(boost::format("%10s %10s ") % aminoacids[i] % triplets[i]);
-            for (unsigned j = 0; j < 61; j++) {
-                tmpf << boost::str(boost::format("%10.5lf ") % _Q(i,j));
-            }
-            tmpf << "\n";
-        }
-        tmpf.close();
-#endif

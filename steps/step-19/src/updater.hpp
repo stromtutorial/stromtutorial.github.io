@@ -217,8 +217,6 @@ namespace strom {
         _tree_manipulator->flipPartialsAndTMatrices();
 
         // Calculate the log-likelihood and log-prior for the proposed state
-        //_tree_manipulator->selectAllTMatrices();
-        //_tree_manipulator->selectAllPartials();
         double log_likelihood = calcLogLikelihood();
         double log_prior = calcLogPrior();
         

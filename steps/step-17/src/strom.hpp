@@ -500,7 +500,8 @@ namespace strom {
                 _output_manager->outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
                 for (unsigned i = 0; i < n; ++i) {
                     _output_manager->outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
-                }            }
+                }         
+            }
             else {
                 _output_manager->outputConsole("MCMC skipped because there are no free parameters in the model");
             }

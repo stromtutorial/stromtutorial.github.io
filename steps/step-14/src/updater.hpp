@@ -280,7 +280,7 @@ namespace strom {
         //
         // p1^{c-1} p2^{c-1} ... pn^{c-1}
         // ------------------------------
-        //    n*Gamma(c) / Gamma(n*c)
+        //    Gamma(c)^n / Gamma(n*c)
         //
         // where n = num_edges, pk = edge length k / TL and Gamma is the Gamma function.
         // If c == 1, then both numerator and denominator equal 1, so it is pointless

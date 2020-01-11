@@ -14,9 +14,11 @@ namespace strom {
 
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
+
             double                      calcTreeLength() const;
             unsigned                    countEdges() const;
             void                        scaleAllEdgeLengths(double scaler);
+
             void                        createTestTree();
             void                        clear();
 

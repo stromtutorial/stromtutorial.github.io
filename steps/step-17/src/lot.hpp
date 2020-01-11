@@ -68,6 +68,8 @@ namespace strom {
         
     inline double Lot::uniform() {
         return (*_uniform_variate_generator)();
+        while (u <= 0.0)
+            u = (*_uniform_variate_generator)();
     }
 
     inline double Lot::logUniform() {

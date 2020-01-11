@@ -413,6 +413,11 @@ namespace strom {
     }   ///end_describeModel
 
     
+    inline unsigned Model::getSubsetNumPatterns(unsigned subset) const {
+        assert(subset < _num_subsets);
+        return _subset_npatterns[subset];
+    }        
+    
     inline unsigned Model::getSubsetNumSites(unsigned subset) const {
         assert(subset < _num_subsets);
         return _subset_sizes[subset];
@@ -495,11 +500,6 @@ namespace strom {
         _subset_npatterns.resize(_num_subsets);
         std::copy(npatterns_vect.begin(), npatterns_vect.end(), _subset_npatterns.begin());
     }
-    
-    inline unsigned Model::getSubsetNumPatterns(unsigned subset) const {
-        assert(subset < _num_subsets);
-        return _subset_npatterns[subset];
-    }        
     
     inline void Model::setSubsetDataTypes(const subset_datatype_t & datatype_vect) {
         _num_subsets = (unsigned)datatype_vect.size();

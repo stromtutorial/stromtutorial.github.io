@@ -42,6 +42,7 @@ namespace strom {
             virtual void                        clear();
 
             virtual double                      calcLogPrior() = 0;
+            double                              calcLogTopologyPrior() const;
             double                              calcLogEdgeLengthPrior() const;
             double                              calcLogLikelihood() const;
             virtual double                      update(double prev_lnL);
@@ -64,6 +65,7 @@ namespace strom {
             double                              _prob;
             double                              _lambda;
             double                              _log_hastings_ratio;
+            double                              _log_jacobian;
             double                              _target_acceptance;
             unsigned                            _naccepts;
             unsigned                            _nattempts;
@@ -243,6 +245,16 @@ namespace strom {
 
         return log_likelihood;
     }
+
+    inline double Updater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
+        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        assert(tree);
+        unsigned n = tree->numLeaves();
+        if (tree->isRooted())
+            n++;
+        double log_topology_prior = -std::lgamma(2*n-5+1) + (n-3)*std::log(2) + std::lgamma(n-3+1);
+        return log_topology_prior;
+    } 
 
     inline double Updater::calcLogEdgeLengthPrior() const {
         Tree::SharedPtr tree = _tree_manipulator->getTree();

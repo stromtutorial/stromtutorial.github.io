@@ -33,8 +33,9 @@ namespace strom {
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAtNodeNumber(int node_number);
         
+            Node *                      randomInternalEdge(Lot::SharedPtr lot);
+            Node *                      randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included);
             void                        LargetSimonSwap(Node * a, Node * b);
-            Node *                      randomInternalEdge(double uniform01);
         
             void                        selectAll();
             void                        deselectAll();
@@ -65,7 +66,6 @@ namespace strom {
 
             typedef std::shared_ptr< TreeManip > SharedPtr;
     };
-    // This is where function bodies go
 
     inline TreeManip::TreeManip() {
         //std::cerr << "Constructing a TreeManip" << std::endl;
@@ -345,37 +345,11 @@ namespace strom {
         _tree->_preorder.push_back(nd);
 
         while (true) {
-            if (!nd->_left_child && !nd->_right_sib) {
-                // nd has no children and no siblings, so next preorder is the right sibling of
-                // the first ancestral node that has a right sibling.
-                Node * anc = nd->_parent;
-                while (anc && !anc->_right_sib)
-                    anc = anc->_parent;
-                if (anc) {
-                    // We found an ancestor with a right sibling
-                    _tree->_preorder.push_back(anc->_right_sib);
-                    nd = anc->_right_sib;
-                }
-                else {
-                    // nd is last preorder node in the tree
-                    break;
-                }
-            }
-            else if (nd->_right_sib && !nd->_left_child) {
-                // nd has no children (it is a tip), but does have a sibling on its right
-                _tree->_preorder.push_back(nd->_right_sib);
-                nd = nd->_right_sib;
-            }
-            else if (nd->_left_child && !nd->_right_sib) {
-                // nd has children (it is an internal node) but no siblings on its right
-                _tree->_preorder.push_back(nd->_left_child);
-                nd = nd->_left_child;
-            }
-            else {
-                // nd has both children and siblings on its right
-                _tree->_preorder.push_back(nd->_left_child);
-                nd = nd->_left_child;
-            }
+            nd = findNextPreorder(nd);
+            if (nd)
+                _tree->_preorder.push_back(nd);
+            else
+                break;
         }   // end while loop
     }
 
@@ -446,7 +420,7 @@ namespace strom {
         assert(_tree->_preorder.size() > 0);
         
         // Renumber internal nodes in postorder sequence
-        int curr_internal = _tree->_nleaves;
+        unsigned curr_internal = _tree->_nleaves;
         for (auto nd : boost::adaptors::reverse(_tree->_preorder)) {
             if (nd->_left_child) {
                 // nd is an internal node
@@ -855,10 +829,7 @@ namespace strom {
         }
     }
 
-    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {
-        assert(uniform_deviate >= 0.0);
-        assert(uniform_deviate < 1.0);
-
+    inline Node * TreeManip::randomInternalEdge(Lot::SharedPtr lot) {
         // Unrooted case:                        Rooted case:
         //
         // 2     3     4     5                   1     2     3     4
@@ -880,14 +851,11 @@ namespace strom {
         // Note: _preorder is actually a vector of T *, but is shown here as a
         // vector of integers solely to illustrate the algorithm below
         
-        int num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 1 : 0); //BUGFIX: was (_tree->_is_rooted ? 0 : 1)
-        if (num_internal_edges == 0) {
-            // Star tree: return hub node, which is the first node in the preorder sequence
-            return _tree->_preorder[0];
-        }
+        int num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 1 : 0);
 
         // Add one to skip first node in _preorder vector, which is an internal node whose edge
         // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
+        double uniform_deviate = lot->uniform();
         unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
 
         unsigned internal_nodes_visited = 0;
@@ -904,6 +872,37 @@ namespace strom {
         }
         assert(chosen_node);
         return chosen_node;
+    }   ///end_randomInternalEdge
+
+    inline Node * TreeManip::randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included) {
+        // Count number of children of x
+        unsigned n = 0;
+        Node * child = x->getLeftChild();
+        while (child) {
+            if (child != avoid)
+                n++;
+            child = child->getRightSib();
+    }
+
+        // Choose random child index
+        unsigned upper = n + (parent_included ? 1 : 0);
+        unsigned chosen = lot->randint(0,upper - 1);
+        
+        // If chosen < n, then find and return that particular child
+        if (chosen < n) {
+            child = x->getLeftChild();
+            unsigned i = 0;
+            while (child) {
+                if (child != avoid && i == chosen)
+                    return child;
+                else if (child != avoid)
+                    i++;
+                child = child->getRightSib();
+            }
+        }
+
+        // If chosen equals n, then the parent was chosen, indicated by returning NULL
+        return NULL;
     }
 
     inline void TreeManip::LargetSimonSwap(Node * a, Node * b) {
@@ -1113,20 +1112,45 @@ namespace strom {
 
     inline void TreeManip::flipPartialsAndTMatrices() {
         for (auto & nd : _tree->_nodes) {
-            if (nd.isSelPartial()) {
-                if (nd.isAltPartial())
-                    nd.clearAltPartial();
-                else
-                    nd.setAltPartial();
-            }
+            if (nd.isSelPartial())
+                nd.flipPartial();
             
-            if (nd.isSelTMatrix()) {
-                if (nd.isAltTMatrix())
-                    nd.clearAltTMatrix();
-                else
-                    nd.setAltTMatrix();
+            if (nd.isSelTMatrix())
+                nd.flipTMatrix();
+        }
+    }
+            
+    inline Node * TreeManip::findNextPreorder(Node * nd) {
+        assert(nd);
+        Node * next = 0;
+        if (!nd->_left_child && !nd->_right_sib) {
+            // nd has no children and no siblings, so next preorder is the right sibling of
+            // the first ancestral node that has a right sibling.
+            Node * anc = nd->_parent;
+            while (anc && !anc->_right_sib)
+                anc = anc->_parent;
+            if (anc) {
+                // We found an ancestor with a right sibling
+                next = anc->_right_sib;
+            }
+            else {
+                // nd is last preorder node in the tree
+                next = 0;
             }
         }
+        else if (nd->_right_sib && !nd->_left_child) {
+            // nd has no children (it is a tip), but does have a sibling on its right
+            next = nd->_right_sib;
+        }
+        else if (nd->_left_child && !nd->_right_sib) {
+            // nd has children (it is an internal node) but no siblings on its right
+            next = nd->_left_child;
+        }
+        else {
+            // nd has both children and siblings on its right
+            next = nd->_left_child;
+        }
+        return next;
     }
 
 }

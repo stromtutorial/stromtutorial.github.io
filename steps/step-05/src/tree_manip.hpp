@@ -35,8 +35,6 @@ namespace strom {
             typedef std::shared_ptr< TreeManip > SharedPtr;
     };
     ///end_declaration
-    // This is where function bodies go
-
     inline TreeManip::TreeManip() {
         std::cerr << "Constructing a TreeManip" << std::endl;
         clear();

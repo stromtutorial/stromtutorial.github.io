@@ -30,7 +30,7 @@ namespace strom {
 
     inline StateFreqUpdater::~StateFreqUpdater() {
         //std::cout << "Destroying a StateFreqUpdater" << std::endl;
-    }   ///end_destructor
+    }
     
     inline void StateFreqUpdater::pullFromModel() {
         QMatrix::freq_xchg_ptr_t freqs = _qmatrix->getStateFreqsSharedPtr();

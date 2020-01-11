@@ -24,8 +24,6 @@ namespace strom {
             virtual void                        revert();
             virtual void                        proposeNewState();
         
-            Node *                              chooseRandomChild(Node * x, Node * avoid, bool parent_included);
-
             virtual void                        reset();
 
             double                              _orig_edgelen_top;
@@ -40,11 +38,10 @@ namespace strom {
             Node *                              _b;
     };
 
-    // Member function bodies go here
     inline TreeUpdater::TreeUpdater() {
         // std::cout << "Creating a TreeUpdater" << std::endl;
         Updater::clear();
-        _name = "Tree Topology and Edge Proportions";
+        _name = "Tree Topol. and Edge Prop.";
         reset();
     }
 
@@ -71,37 +68,6 @@ namespace strom {
         return log_topology_prior + log_edge_length_prior;
     }
 
-    inline Node * TreeUpdater::chooseRandomChild(Node * x, Node * avoid, bool parent_included) {
-        // Count number of children of x
-        unsigned n = 0;
-        Node * child = x->getLeftChild();
-        while (child) {
-            if (child != avoid)
-                n++;
-            child = child->getRightSib();
-        }
-        
-        // Choose random child index
-        unsigned upper = n + (parent_included ? 1 : 0);
-        unsigned chosen = (unsigned)_lot->randint(0,upper - 1);
-        
-        // If chosen < n, then find and return that particular child
-        if (chosen < n) {
-            child = x->getLeftChild();
-            unsigned i = 0;
-            while (child) {
-                if (child != avoid && i == chosen)
-                    return child;
-                else if (child != avoid)
-                    i++;
-                child = child->getRightSib();
-            }
-        }
-
-        // If chosen equals n, then the parent was chosen, indicated by returning NULL
-        return NULL;
-    }
-
     // This version uses a polytomy-aware NNI swap
     inline void TreeUpdater::proposeNewState() {
         _case = 0;
@@ -122,18 +88,18 @@ namespace strom {
         //        |
         //        b
         
-        _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
+        _x = _tree_manipulator->randomInternalEdge(_lot);
         _orig_edgelen_middle = _x->getEdgeLength();
 
         _y = _x->getParent();
 
         // Choose focal 3-edge segment to modify
         // Begin by randomly choosing one child of x to be node _a
-        _a = chooseRandomChild(_x, 0, false);
+        _a = _tree_manipulator->randomChild(_lot, _x, 0, false);
         _orig_edgelen_top = _a->getEdgeLength();
 
         // Now choose a different child of x (or the parent) to be node _b
-        _b = chooseRandomChild(_y, _x, true);
+        _b = _tree_manipulator->randomChild(_lot, _y, _x, true);
         bool b_is_child_of_y;
         if (_b) {
             b_is_child_of_y = true;
@@ -149,13 +115,13 @@ namespace strom {
         _log_hastings_ratio = 0.0;
 
         // Decide where along focal path (starting from top) to place moved node
-        double new_focal_path_length = _orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom;
+        double focal_path_length = _orig_edgelen_top + _orig_edgelen_middle + _orig_edgelen_bottom;
         double u = _lot->uniform();
-        double new_attachment_point = u*new_focal_path_length;
+        double new_attachment_point = u*focal_path_length;
         if (new_attachment_point <= Node::_smallest_edge_length)
             new_attachment_point = Node::_smallest_edge_length;
-        else if (new_focal_path_length - new_attachment_point <= Node::_smallest_edge_length)
-            new_attachment_point = new_focal_path_length - Node::_smallest_edge_length;
+        else if (focal_path_length - new_attachment_point <= Node::_smallest_edge_length)
+            new_attachment_point = focal_path_length - Node::_smallest_edge_length;
 
         // Decide which node(s) to move, and whether the move involves a topology change
         u = _lot->uniform();
@@ -167,24 +133,25 @@ namespace strom {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-                    _a->setEdgeLength(new_focal_path_length - new_attachment_point);
+                    _a->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
                     _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
-                    _b->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
+                    _b->setEdgeLength(focal_path_length - new_attachment_point);
                     _case = 1;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
                     _a->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle);
                     _x->setEdgeLength(new_attachment_point - _orig_edgelen_top - _orig_edgelen_middle);
-                    _y->setEdgeLength(new_focal_path_length - new_attachment_point);
-                    _case = 2;                }
+                    _y->setEdgeLength(focal_path_length - new_attachment_point);
+                    _case = 2;
+                }
             } else {
                 _a->setEdgeLength(new_attachment_point);
                 _x->setEdgeLength(_orig_edgelen_top + _orig_edgelen_middle - new_attachment_point);
                 if (b_is_child_of_y) {
-                    _b->setEdgeLength(_orig_edgelen_bottom);
+                    _b->setEdgeLength(_orig_edgelen_bottom);    // not really necessary
                     _case = 3;
                 } else {
-                    _y->setEdgeLength(_orig_edgelen_bottom);
+                    _y->setEdgeLength(_orig_edgelen_bottom);    // not really necessary
                     _case = 4;
                 }
             }
@@ -195,9 +162,9 @@ namespace strom {
                 _tree_manipulator->LargetSimonSwap(_a, _b);
                 if (b_is_child_of_y) {
                     // LargetSimonSwap case 1: a swapped with b
-                    _a->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
+                    _a->setEdgeLength(new_attachment_point);
                     _x->setEdgeLength(_orig_edgelen_top - new_attachment_point);
-                    _b->setEdgeLength(new_attachment_point);
+                    _b->setEdgeLength(_orig_edgelen_middle + _orig_edgelen_bottom);
                     _case = 5;
                 } else {
                     // LargetSimonSwap case 2: x's children (except a) swapped with y's children (except b)
@@ -210,10 +177,10 @@ namespace strom {
                 _a->setEdgeLength(_orig_edgelen_top);
                 _x->setEdgeLength(new_attachment_point - _orig_edgelen_top);
                 if (b_is_child_of_y) {
-                    _b->setEdgeLength(new_focal_path_length - new_attachment_point);
+                    _b->setEdgeLength(focal_path_length - new_attachment_point);
                     _case = 7;
                 } else {
-                    _y->setEdgeLength(new_focal_path_length - new_attachment_point);
+                    _y->setEdgeLength(focal_path_length - new_attachment_point);
                     _case = 8;
                 }
             }
@@ -241,9 +208,10 @@ namespace strom {
         _a->setEdgeLength(_orig_edgelen_top);
         _x->setEdgeLength(_orig_edgelen_middle);
         if (_case == 1 || _case == 3 || _case == 5 || _case == 7)
-            _b->setEdgeLength(_orig_edgelen_bottom);
+            _b->setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 3
         else
-            _y->setEdgeLength(_orig_edgelen_bottom);
-    }
+            _y->setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 4
+        }
+    } 
 
 }

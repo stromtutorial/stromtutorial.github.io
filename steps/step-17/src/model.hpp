@@ -465,6 +465,7 @@ namespace strom {
     inline Model::exchangeability_params_t & Model::getExchangeabilityParams() {
         return _exchangeability_params;
     }
+
     inline Model::omega_params_t & Model::getOmegaParams() {
         return _omega_params;
     }

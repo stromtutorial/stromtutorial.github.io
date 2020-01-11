@@ -28,7 +28,6 @@ namespace strom {
             ASRV::SharedPtr             _asrv;
     };
 
-    // member function bodies go here    
     inline GammaRateVarUpdater::GammaRateVarUpdater(ASRV::SharedPtr asrv) {
         //std::cout << "GammaRateVarUpdater being created" << std::endl;
         clear();

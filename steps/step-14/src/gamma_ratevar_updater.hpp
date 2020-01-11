@@ -77,7 +77,7 @@ namespace strom {
         _asrv->setRateVar(_prev_point);
     } ///end_revert
 
-    inline void GammaRateVarUpdater::proposeNewState() { 
+    inline void GammaRateVarUpdater::proposeNewState() { ///begin_proposeNewState
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
         
@@ -91,6 +91,6 @@ namespace strom {
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
-    } 
+    } ///end_proposeNewState
 
 }

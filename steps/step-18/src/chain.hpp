@@ -325,8 +325,6 @@ namespace strom {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
         _log_likelihood = calcLogLikelihood();
-        _tree_manipulator->deselectAllPartials();
-        _tree_manipulator->deselectAllTMatrices();
     }
 
     inline void Chain::stop() {

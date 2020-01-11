@@ -225,8 +225,6 @@ namespace strom {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
         _log_likelihood = calcLogLikelihood();
-        _tree_manipulator->deselectAllPartials();
-        _tree_manipulator->deselectAllTMatrices();
 
         // Output column headers and first line of output showing starting state (iteration 0)
         //std::cout << boost::str(boost::format("%12s %12s %12s %12s %12s\n")

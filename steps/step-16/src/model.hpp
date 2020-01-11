@@ -55,6 +55,7 @@ namespace strom {
             void                        setTreeIndex(unsigned i, bool fixed);
             unsigned                    getTreeIndex() const;
             bool                        isFixedTree() const;
+
             unsigned                    getNumSubsets() const;
             unsigned                    getNumSites() const;
             unsigned                    getSubsetNumSites(unsigned subset) const;
@@ -464,7 +465,7 @@ namespace strom {
     inline Model::exchangeability_params_t & Model::getExchangeabilityParams() {
         return _exchangeability_params;
     }
-    
+
     inline Model::omega_params_t & Model::getOmegaParams() {
         return _omega_params;
     }
@@ -594,24 +595,6 @@ namespace strom {
         }
     }
     
-    inline void Model::setSubsetRelRates(subset_relrate_vect_t & relrates, bool fixed) {
-        assert(_num_subsets > 0);
-        assert(relrates.size() > 0);
-        if (relrates[0] == -1)
-            _subset_relrates.assign(_num_subsets, 1.0);
-        else
-            _subset_relrates.assign(relrates.begin(), relrates.end());
-        _subset_relrates_fixed = fixed;
-    }
-
-    inline Model::subset_relrate_vect_t & Model::getSubsetRelRates() {
-        return _subset_relrates;
-    }
-    
-    inline bool Model::isFixedSubsetRelRates() const {
-        return _subset_relrates_fixed;
-    }
-    
     inline void Model::activate() {
         for (auto q : _qmatrix)
             q->setActive(true);
@@ -727,6 +710,24 @@ namespace strom {
             }
         }
         return s;
+    }
+    
+    inline void Model::setSubsetRelRates(subset_relrate_vect_t & relrates, bool fixed) {
+        assert(_num_subsets > 0);
+        assert(relrates.size() > 0);
+        if (relrates[0] == -1)
+            _subset_relrates.assign(_num_subsets, 1.0);
+        else
+            _subset_relrates.assign(relrates.begin(), relrates.end());
+        _subset_relrates_fixed = fixed;
+    }
+
+    inline Model::subset_relrate_vect_t & Model::getSubsetRelRates() {
+        return _subset_relrates;
+    }
+    
+    inline bool Model::isFixedSubsetRelRates() const {
+        return _subset_relrates_fixed;
     }
     
     inline void Model::setTreeIndex(unsigned i, bool fixed) {

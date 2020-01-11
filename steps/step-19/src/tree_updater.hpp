@@ -44,7 +44,7 @@ namespace strom {
     inline TreeUpdater::TreeUpdater() {
         // std::cout << "Creating a TreeUpdater" << std::endl;
         Updater::clear();
-        _name = "Tree Topology and Edge Proportions";
+        _name = "Tree Topol. and Edge Prop.";
         reset();
     }
 
@@ -134,7 +134,7 @@ namespace strom {
         //        b
         //  ///!e
         
-        _x = _tree_manipulator->randomInternalEdge(_lot->uniform());
+        _x = _tree_manipulator->randomInternalEdge(_lot);
         _orig_edgelen_middle = _x->getEdgeLength();
         
         // The only child of the root node will be chosen only if the tree equals the star tree ///!f

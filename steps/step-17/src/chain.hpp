@@ -131,7 +131,7 @@ namespace strom {
             Updater::SharedPtr u = StateFreqUpdater::SharedPtr(new StateFreqUpdater(statefreq_shptr));
             u->setLikelihood(likelihood);
             u->setLot(lot);
-            u->setLambda(0.001);
+            u->setLambda(1.0);
             u->setTargetAcceptanceRate(0.3);
             u->setPriorParameters(std::vector<double>(statefreq_shptr->getStateFreqsSharedPtr()->size(), 1.0));
             u->setWeight(wstd); sum_weights += wstd;
@@ -325,8 +325,6 @@ namespace strom {
         _tree_manipulator->selectAllPartials();
         _tree_manipulator->selectAllTMatrices();
         _log_likelihood = calcLogLikelihood();
-        _tree_manipulator->deselectAllPartials();
-        _tree_manipulator->deselectAllTMatrices();
     }
 
     inline void Chain::stop() {
