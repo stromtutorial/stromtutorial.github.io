@@ -8,6 +8,7 @@ Creating Node object
 Creating Node object
 Creating Node object
 ((1:0.100,2:0.100):0.100,3:0.200)
+((first_leaf:0.100,second_leaf:0.100):0.100,third_leaf:0.200)
 
 Finished!
 Destroying a TreeManip

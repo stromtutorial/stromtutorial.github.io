@@ -107,6 +107,15 @@ This private function strips out comments from the newick string. Many programs 
 ~~~~~~
 {:.cpp}
 
+## The findNextPreorder member function
+
+This function is a helper function that simplifies `refreshPreorder` (next). It follows `_left_child`, `_right_sib`, and `_parent` pointers to locate the next node in preorder sequence. If a left child exists, then that is the next node in the preorder. Failing that, the right sibling is chosen. If there is neither a left child nor a right sibling, then we are located at the top right corner of a clade and must backtrack down through parents until a right sibling appears (unless we have already visited the last node in preorder sequence, in which case our backtracking will take us all the way down to the root node).
+
+~~~~~~
+{{ "steps/step-06/src/tree_manip.hpp" | polcodesnippet:"begin_findNextPreorder-end_findNextPreorder","" }}
+~~~~~~
+{:.cpp}
+
 ## The refreshPreorder member function
 
 This private function must be called whenever the structure of the tree changes. It rebuilds the `_preorder vector` by visiting nodes in preorder sequence and storing pointers to these nodes as it goes.

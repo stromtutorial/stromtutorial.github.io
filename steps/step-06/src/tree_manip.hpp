@@ -36,7 +36,8 @@ namespace strom {
 
         private:
 
-            void                        refreshPreorder();  ///!f
+            Node *                      findNextPreorder(Node * nd);  ///!f
+            void                        refreshPreorder();
             void                        refreshLevelorder();
             void                        renumberInternals();
             void                        rerootAtNode(Node * prospective_root);
@@ -336,7 +337,7 @@ namespace strom {
             if (nd)
                 _tree->_preorder.push_back(nd);
             else
-                    break;
+                break;
         }   // end while loop
     }   ///end_refreshPreorder
 
@@ -425,7 +426,7 @@ namespace strom {
         // If the tree has polytomies, then there are Node objects stored in 
         // the _tree->_nodes vector that have not yet been numbered. These can
         // be identified because their _number is currently equal to -1.
-        for (auto nd : _tree->_nodes) {
+        for (auto & nd : _tree->_nodes) {
             if (nd._number == -1)
                 nd._number = curr_internal++;
         } 
@@ -791,7 +792,7 @@ namespace strom {
         }
     }  ///end_buildFromNewick
 
-    inline Node * TreeManip::findNextPreorder(Node * nd) {
+    inline Node * TreeManip::findNextPreorder(Node * nd) {  ///begin_findNextPreorder
         assert(nd);
         Node * next = 0;
         if (!nd->_left_child && !nd->_right_sib) {
@@ -822,6 +823,6 @@ namespace strom {
             next = nd->_left_child;
         }
         return next;
-    }
+    }   ///end_findNextPreorder
 
 }

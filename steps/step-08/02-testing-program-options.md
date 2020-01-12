@@ -167,7 +167,7 @@ C:\Users\Paul Lewis\Documents\libraries\static
 ### Tell meson where to find {% indexfile libboost_program_options.a %} for linking purposes
 Here is the meson.build file we've been building up, with the highlighted lines either added or modified to accommodate program options:
 ~~~~~~
-{{ "steps/step-08/src/meson.build" | polcodesnippet:"","a,b-c" }}
+{{ "steps/step-08/src/meson.build" | polcodesnippet:"","a,b" }}
 ~~~~~~
 {:.meson}
 Note the meson variable `lib_program_options` stores the location of the {% indexfile libboost_program_options.a %}, and this variable is added to the `lib_ncl` variable to form a list that is supplied to the `dependencies` argument to the executables command.
@@ -214,10 +214,6 @@ Why did we get this error message? Try running the program like this from the co
 ~~~~~~
 {:.bash}
 Because the name of the tree file is no longer hard-coded in the main function, the program forces you to supply these file names.
-~~~~~~
-./gostrom.sh --treefile test.tre
-~~~~~~
-{:.bash}
 
 {% elsif OS == "mac" %}
 [//]: ################################### MAC ######################################
