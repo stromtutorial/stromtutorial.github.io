@@ -4,7 +4,7 @@ project('strom', 'cpp', ###start
 cpp = meson.get_compiler('cpp')
 lib_filesystem = cpp.find_library('boost_filesystem', dirs: ['/home/paul/lib/static'], required: true)  ###!a
 lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)
-lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/staticlib/static'], required: true)
+lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: true)
 incl_ncl = include_directories('/home/paul/include')
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_ncl,lib_program_options,lib_filesystem], include_directories: [incl_ncl,incl_boost])    ###!b
