@@ -57,18 +57,18 @@ namespace strom {
     // This is where function bodies go
 
     inline TreeManip::TreeManip() {
-        std::cerr << "Constructing a TreeManip" << std::endl;
+        std::cout << "Constructing a TreeManip" << std::endl;
         clear();
     }
 
     inline TreeManip::TreeManip(Tree::SharedPtr t) {
-        std::cerr << "Constructing a TreeManip with a supplied tree" << std::endl;
+        std::cout << "Constructing a TreeManip with a supplied tree" << std::endl;
         clear();
         setTree(t);
     }
 
     inline TreeManip::~TreeManip() {
-        std::cerr << "Destroying a TreeManip" << std::endl;
+        std::cout << "Destroying a TreeManip" << std::endl;
     }
 
     inline void TreeManip::clear() {

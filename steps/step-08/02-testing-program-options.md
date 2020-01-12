@@ -20,13 +20,14 @@ The {% indexfile main.cpp %} file will not change very much from now on. Any new
 
 Some data members (`_program_name`, `_major_version`, and `_minor_version`) of the `Strom` class were declared static. We must therefore initialize these in {% indexfile main.cpp %}, as it is our only source code file, just like we have been doing for `Node::_smallest_edge_length`.
 
-## Compiling the Boost `program_options` library
+## Compiling the Boost program_options library
+
 The extra capability we've added to our program requires us to:
 * compile the Boost `program_options` library,
 * tell our development environment where to find it for linking purposes
 Let's take these one at a time
 
-### Compile the Boost `program_options` library
+### Compile the Boost program_options library
 
 {% if OS == "linux" %}
 [//]: ################################### LINUX ##########################################

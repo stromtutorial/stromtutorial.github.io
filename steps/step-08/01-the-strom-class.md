@@ -27,14 +27,14 @@ The constructor contains an output statement that notifies us when a `Strom` obj
 {:.cpp}
 Our usual destructor function just notifies us (if its single line is uncommented) that a `Strom` object has been destroyed.
 
-## The `clear` function
+## The clear function
 ~~~~~~
 {{ "steps/step-08/src/strom.hpp" | polcodesnippet:"begin_clear-end_clear","" }}
 ~~~~~~
 {:.cpp}
 The `clear` function currently just sets each of the two non-static data members to the empty string.
 
-## The `processCommandLineOptions` function
+## The processCommandLineOptions function
 ~~~~~~
 {{ "steps/step-08/src/strom.hpp" | polcodesnippet:"begin_processCommandLineOptions-end_processCommandLineOptions","" }}
 ~~~~~~
@@ -75,7 +75,7 @@ Assuming that the user did not type `-h` or `--help`, we next check to see wheth
 
 If the user did not ask for either help or version, we must assume they wish to run the program. In order for the program to run, we need to have a tree file name. If this was not specified, the program exits with a suitable error message.
 
-## The `run` function
+## The run function
 The `Strom::run` function can now take over all the duties that the main function performed before. Because `_data_file_name` and `_tree_file_name` are data members, and we've guaranteed that the user has supplied a value for the tree file name on the command line, we are free to use `_tree_file_name` in place of the hard coded literal string we used before.
 ~~~~~~
 {{ "steps/step-08/src/strom.hpp" | polcodesnippet:"begin_run-end_run","" }}

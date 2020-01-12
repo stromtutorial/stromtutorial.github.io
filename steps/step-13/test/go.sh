@@ -4,6 +4,8 @@
 #   ./go.sh keep  <-- does not delete data and output files after running
 #   ./go.sh clean <-- runs program and then deletes data and output files (default)
 
+export LD_LIBRARY_PATH="$HOME/lib:$LD_LIBRARY_PATH"
+
 STROM=~/bin/step13
 if [ ! -f "$STROM" ]; then
     echo "$STROM not found, aborting."

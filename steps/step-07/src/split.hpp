@@ -71,7 +71,7 @@ namespace strom {
     }
 
     inline Split::~Split() {
-        //std::cout << "Destroying a Split" << std::endl;
+        std::cout << "Destroying a Split" << std::endl;
     } ///end_destructor
 
     inline void Split::clear() { ///begin_clear
