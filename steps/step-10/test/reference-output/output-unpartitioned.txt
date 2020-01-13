@@ -1,5 +1,5 @@
 Starting...
-Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-10/test"
+Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-10/test"
 
 *** Reading and storing the data in the file rbcL.nex
 storing implied block: TAXA
@@ -11,6 +11,7 @@ Number of partition subsets: 1
     data type: nucleotide
     sites:     60
     patterns:  21
+    ambiguity: treated as missing data (faster)
 
 *** Resources available to BeagleLib 3.1.2:
   resource 0: CPU

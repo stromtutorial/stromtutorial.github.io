@@ -668,6 +668,7 @@ namespace strom {
             for (unsigned s : info.subsets) {
                 addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
                 ++instance_specific_subset_index;
+            }
         }
     }
     

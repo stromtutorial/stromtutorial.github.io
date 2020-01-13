@@ -17,8 +17,8 @@ cd $DIR
 
 echo
 echo "Copying data files to \"$DIR\"..."
-cp ../../../assets/data/rbcl.nex .
-cp ../../../assets/data/rbcljc.tre .
+cp ../../../assets/data/rbcL.nex .
+cp ../../../assets/data/rbcLjc.tre .
 
 echo
 echo "Running $STROM..."

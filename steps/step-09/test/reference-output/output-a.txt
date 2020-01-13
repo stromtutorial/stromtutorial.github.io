@@ -2,7 +2,7 @@ Partition subset first comprises sites 1-60\3 and has type nucleotide
 Partition subset second comprises sites 2-60\3 and has type nucleotide
 Partition subset third comprises sites 3-60\3 and has type nucleotide
 Starting...
-Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-09/test"
 
 *** Reading and storing the data in the file rbcL.nex
 storing implied block: TAXA
