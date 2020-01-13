@@ -520,8 +520,8 @@ namespace strom {
         //  2  0  = (2 + 1 +      0      ) %     3
         //     1  = (2 + 1 +      1      ) %     3
         // ---------------------------------------------
-        unsigned i = _lot->randint(0, _num_chains-1);
-        unsigned j = i + 1 + _lot->randint(0, _num_chains-2);
+        unsigned i = (unsigned)_lot->randint(0, _num_chains-1);
+        unsigned j = i + 1 + (unsigned)_lot->randint(0, _num_chains-2);
         j %= _num_chains;
 
         assert(i != j && i >=0 && i < _num_chains && j >= 0 && j < _num_chains);

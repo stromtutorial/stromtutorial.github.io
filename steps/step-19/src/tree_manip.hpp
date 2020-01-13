@@ -55,7 +55,6 @@ namespace strom {
             Node *                      getUnusedNode(Node * sought = 0);
             void                        putUnusedNode(Node * nd);      ///!d
             
-            Node *                      findNextPreorder(Node * nd);
             void                        selectAll();
             void                        deselectAll();
             void                        selectAllPartials();

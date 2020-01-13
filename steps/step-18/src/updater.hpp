@@ -253,6 +253,7 @@ namespace strom {
         unsigned n = tree->numLeaves();
         if (tree->isRooted())
             n++;
+        assert(n > 2);
         double log_topology_prior = -std::lgamma(2*n-5+1) + (n-3)*std::log(2) + std::lgamma(n-3+1);
         return log_topology_prior;
     } 

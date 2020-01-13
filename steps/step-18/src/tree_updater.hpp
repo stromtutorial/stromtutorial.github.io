@@ -211,7 +211,6 @@ namespace strom {
             _b->setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 3
         else
             _y->setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 4
-        }
     } 
 
 }
