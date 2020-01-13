@@ -76,9 +76,9 @@ namespace strom {
         _model.reset(new Model());
         _expected_log_likelihood    = 0.0;
         _use_underflow_scaling      = false;
-        _data                       = nullptr;  ///!f
+        _data                       = nullptr;
         _likelihood                 = nullptr;
-        _lot                        = nullptr;
+        _lot                        = nullptr;  ///!f
         _random_seed                = 1;      
         _num_iter                   = 1000;
         _print_freq                 = 1;

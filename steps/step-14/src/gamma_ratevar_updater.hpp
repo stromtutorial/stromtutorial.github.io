@@ -93,4 +93,4 @@ namespace strom {
         _tree_manipulator->selectAllTMatrices();
     } ///end_proposeNewState
 
-}
+} ///end

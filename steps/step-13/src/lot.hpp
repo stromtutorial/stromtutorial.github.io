@@ -68,9 +68,10 @@ namespace strom {
     }   ///end_setSeed
         
     inline double Lot::uniform() {  ///begin_uniform
-        return (*_uniform_variate_generator)();
+        double u = (*_uniform_variate_generator)();
         while (u <= 0.0)
             u = (*_uniform_variate_generator)();
+        return u;
     }   ///end_uniform
 
     inline double Lot::logUniform() {   ///begin_logUniform
