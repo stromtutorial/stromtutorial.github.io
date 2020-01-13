@@ -103,6 +103,7 @@ namespace strom {
 
     inline void Updater::reset() {
         _log_hastings_ratio = 0.0;
+        _log_jacobian = 0.0;
     }
 
     inline void Updater::setLikelihood(Likelihood::SharedPtr likelihood) {
