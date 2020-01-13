@@ -387,7 +387,7 @@ namespace strom {
             for (unsigned subset = 0; subset < nsubsets; subset++) {
                 DataType dt = _partition->getDataTypeForSubset(subset);
                 std::cout << "  Subset " << (subset+1) << " (" << _data->getSubsetName(subset) << ")" << std::endl;
-                std::cout << "    data type: " << _partition->getDataTypeForSubset(subset).getDataTypeAsString() << std::endl;
+                std::cout << "    data type: " << dt.getDataTypeAsString() << std::endl;
                 std::cout << "    sites:     " << _data->calcSeqLenInSubset(subset) << std::endl;
                 std::cout << "    patterns:  " << _data->getNumPatternsInSubset(subset) << std::endl;
                 std::cout << "    ambiguity: " << (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") << std::endl;
@@ -419,9 +419,9 @@ namespace strom {
                 throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree->numLeaves() % _data->getNumTaxa());
 
             std::cout << "\n*** Calculating the likelihood of the tree" << std::endl;
-            TreeManip tm(tree);
+            TreeManip tm(tree); ///!p
             tm.selectAllPartials();
-            tm.selectAllTMatrices();
+            tm.selectAllTMatrices();    ///!pp
             double lnL = _likelihood->calcLogLikelihood(tree);
             std::cout << boost::str(boost::format("log likelihood = %.5f") % lnL) << std::endl;
             

@@ -371,7 +371,7 @@ namespace strom {
             for (unsigned subset = 0; subset < nsubsets; subset++) {
                 DataType dt = _partition->getDataTypeForSubset(subset);
                 std::cout << "  Subset " << (subset+1) << " (" << _data->getSubsetName(subset) << ")" << std::endl;
-                std::cout << "    data type: " << _partition->getDataTypeForSubset(subset).getDataTypeAsString() << std::endl;
+                std::cout << "    data type: " << dt.getDataTypeAsString() << std::endl;
                 std::cout << "    sites:     " << _data->calcSeqLenInSubset(subset) << std::endl;
                 std::cout << "    patterns:  " << _data->getNumPatternsInSubset(subset) << std::endl;
                 std::cout << "    ambiguity: " << (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") << std::endl;

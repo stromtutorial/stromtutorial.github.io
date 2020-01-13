@@ -181,7 +181,7 @@ Continue modifying {% indexfile strom.hpp %} by adding the bold, blue parts belo
 
 Our final modifications to {% indexfile strom.hpp %} will be to add the bold, blue parts below to the `Strom::run` function:
 ~~~~~~
-{{ "steps/step-14/src/strom.hpp" | polcodesnippet:"begin_run-end_run","j,k-kk,l-ll,m-mm,n-nn,o-oo" }}
+{{ "steps/step-14/src/strom.hpp" | polcodesnippet:"begin_run-end_run","j,k-kk,l-ll,m-mm,n-nn,o-oo,p-pp" }}
 ~~~~~~
 {:.cpp}
 
