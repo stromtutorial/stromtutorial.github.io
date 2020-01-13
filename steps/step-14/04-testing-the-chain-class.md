@@ -108,6 +108,26 @@ Add the bodies of these functions somewhere below the class declaration and befo
 ~~~~~~
 {:.cpp}
 
+## Modifying the Likelihood class to allow alternate partials and transition matrix indices
+
+The ability to set a flag for a node indicating that an alternate partials index (or transition matrix index) is only useful if the `Likelihood` class pays attention to these flags. The first step is to reserve enough memory in BeagleLIb to accommodate alternate sets of indices. The highlighted lines below double the amount of memory allocated for partials, transition matrices, and scaler buffers.
+~~~~~~
+{{ "steps/step-14/src/likelihood.hpp" | polcodesnippet:"begin_newInstance-end_newInstance","a,b,c" }}
+~~~~~~
+{:.cpp}
+
+Next, modify `getScalerIndex`, `getTMatrixIndex`, and `getPartialIndex` so that they return the alternate indices when the appropriate node flags are set. Replace the bodies of each of these three functions with the versions below:
+~~~~~~
+{{ "steps/step-14/src/likelihood.hpp" | polcodesnippet:"begin_getScalerIndex-end_getTMatrixIndex","" }}
+~~~~~~
+{:.cpp}
+
+Finally, tell `defineOperations` to only recalculate transition matrices or partials if the node is selected. This will be important later when only a few nodes are affected by a proposal (no sense in recalculating the partial likelihoods for a clade if that clade was not involved in the MCMC proposal). 
+~~~~~~
+{{ "steps/step-14/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-end_defineOperations","d,e,f,ff" }}
+~~~~~~
+{:.cpp}
+
 ## Make Updater a friend of Tree
 
 Edit {% indexfile tree.hpp %} and uncomment the `class Updater;` and `friend class Updater;` lines that are currently commented out.

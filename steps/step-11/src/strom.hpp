@@ -60,12 +60,14 @@ namespace strom {
     inline void Strom::clear() {    ///begin_clear
         _data_file_name = "";
         _tree_file_name = "";
-        _tree_summary   = nullptr;
+        _tree_summary = nullptr;
         _partition.reset(new Partition());
-        _use_gpu        = true;
-        _ambig_missing  = true;
+        _use_gpu = true;
+        _ambig_missing = true;
         _model.reset(new Model());  ///!e
         _expected_log_likelihood = 0.0; ///!f
+        _data = nullptr; 
+        _likelihood = nullptr;
     }   ///end_clear
 
     inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   ///begin_processCommandLineOptions

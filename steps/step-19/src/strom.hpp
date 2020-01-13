@@ -103,8 +103,8 @@ namespace strom {
         _use_gpu                    = true;
         _ambig_missing              = true;
         _expected_log_likelihood    = 0.0;
-        _use_underflow_scaling      = false;
         _data                       = nullptr;
+        _use_underflow_scaling      = false;
         _lot                        = nullptr;
         _random_seed                = 1;
         _num_iter                   = 1000;

@@ -58,6 +58,8 @@ namespace strom {
         _partition.reset(new Partition());
         _use_gpu        = true; ///!f
         _ambig_missing  = true; ///!g
+        _data = nullptr; 
+        _likelihood = nullptr;
     }   ///end_clear
 
     inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   ///begin_processCommandLineOptions

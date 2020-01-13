@@ -67,6 +67,8 @@ namespace strom {
         _ambig_missing              = true;
         _model.reset(new Model());
         _expected_log_likelihood    = 0.0;
+        _data                       = nullptr; 
+        _likelihood                 = nullptr;
         _use_underflow_scaling      = false;    ///!b
     }   ///end_clear
 

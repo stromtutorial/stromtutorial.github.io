@@ -312,7 +312,7 @@ namespace strom {
         setPatternPartitionAssignments();
     }
     
-    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices) {
+    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices) { ///begin_newInstance
         unsigned num_subsets = (unsigned)subset_indices.size();
         
         bool is_invar_model = (nrates < 0 ? true : false);
@@ -344,7 +344,7 @@ namespace strom {
         
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
-        unsigned nscalers = num_internals;  // one scale buffer for every internal node ///!d
+        unsigned nscalers = num_internals;  // one scale buffer for every internal node
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;
@@ -353,14 +353,14 @@ namespace strom {
         
         int inst = beagleCreateInstance(
              _ntaxa,                                // tips
-             2*npartials,                           // partials
+             2*npartials,                           // partials ///!a
              nsequences,                            // sequences
              nstates,                               // states
              num_patterns,                          // patterns (total across all subsets that use this instance)
              num_subsets,                           // models (one for each distinct eigen decomposition)
-             2*num_subsets*num_transition_probs,    // transition matrices (one for each edge in each subset)
+             2*num_subsets*num_transition_probs,    // transition matrices (one for each edge in each subset)   ///!b
              ngammacat,                             // rate categories
-             (_underflow_scaling ? 2*nscalers + 1 : 0),  // scale buffers (+1 is for the cumulative scaler at index 0)
+             (_underflow_scaling ? 2*nscalers + 1 : 0),  // scale buffers (+1 is for the cumulative scaler at index 0)  ///!c
              NULL,                                  // resource restrictions
              0,                                     // length of resource list
              preferenceFlags,                       // preferred flags
@@ -386,7 +386,7 @@ namespace strom {
         info.partial_offset = num_internals;
         info.tmatrix_offset = num_nodes;
         _instances.push_back(info);
-    }
+    }   ///end_newInstance
 
     inline void Likelihood::setTipStates() {
         assert(_instances.size() > 0);
@@ -621,7 +621,7 @@ namespace strom {
         }
     }
     
-    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {
+    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo & info) const {  ///begin_getScalerIndex
         unsigned sindex = BEAGLE_OP_NONE;
         if (_underflow_scaling) {
             sindex = nd->_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
@@ -647,9 +647,9 @@ namespace strom {
         if (nd->isAltTMatrix())
             tindex += info.tmatrix_offset;
         return tindex;
-    }
+    }   ///end_getTMatrixIndex
     
-    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   
+    inline void Likelihood::defineOperations(Tree::SharedPtr t) {  ///begin_defineOperations
         assert(_instances.size() > 0);
         assert(t);
         assert(t->isRooted() == _rooted);
@@ -670,26 +670,26 @@ namespace strom {
             assert(nd->_number >= 0);
             if (!nd->_left_child) {
                 // This is a leaf
-                if (nd->isSelTMatrix())
+                if (nd->isSelTMatrix()) ///!d
                     queueTMatrixRecalculation(nd);
             }
             else {
                 // This is an internal node
-                if (nd->isSelTMatrix())
+                if (nd->isSelTMatrix()) ///!e
                     queueTMatrixRecalculation(nd);
 
                 // Internal nodes have partials to be calculated, so define
                 // an operation to compute the partials for this node
-                if (nd->isSelPartial()) {
+                if (nd->isSelPartial()) {   ///!f
                     Node * lchild = nd->_left_child;
                     assert(lchild);
                     Node * rchild = lchild->_right_sib;
                     assert(rchild);
                     queuePartialsRecalculation(nd, lchild, rchild);
-                }
+                }   ///!ff
             }
         }
-    }  
+    }  ///end_defineOperations
     
     inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild) {
         for (auto & info : _instances) {
@@ -832,7 +832,7 @@ namespace strom {
         }
     }
     
-    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {   ///begin_calcInstanceLogLikelihood
+    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {
         int code = 0;
         unsigned nsubsets = (unsigned)info.subsets.size();
         assert(nsubsets > 0);
@@ -842,7 +842,7 @@ namespace strom {
 
         int state_frequency_index  = 0;
         int category_weights_index = 0;
-        int cumulative_scale_index = (_underflow_scaling ? 0 : BEAGLE_OP_NONE); ///!g
+        int cumulative_scale_index = (_underflow_scaling ? 0 : BEAGLE_OP_NONE);
         int child_partials_index   = getPartialIndex(t->_root, info);
         int parent_partials_index  = getPartialIndex(t->_preorder[0], info);
         int parent_tmatrix_index   = getTMatrixIndex(t->_preorder[0], info, 0);
@@ -851,7 +851,7 @@ namespace strom {
         std::vector<double> subset_log_likelihoods(nsubsets, 0.0);
         double log_likelihood = 0.0;
 
-        if (_underflow_scaling) {   ///!h
+        if (_underflow_scaling) { 
             // Create vector of all scaling vector indices in current use
             std::vector<int> internal_node_scaler_indices;
             for (auto nd : t->_preorder) {
@@ -890,7 +890,7 @@ namespace strom {
                         throw XStrom(boost::str(boost::format("failed to acccumulate scale factors for subset %d in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));
                 }
             }
-        }   ///!hh
+        } 
 
         if (nsubsets > 1) {
             _parent_indices.assign(nsubsets, parent_partials_index);
