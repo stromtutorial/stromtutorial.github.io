@@ -23,8 +23,6 @@ cp ../../../assets/data/rbcl10.tre .
 echo
 echo "Running $STROM..."
 $STROM &>output.txt
-mv params.txt params.txt
-mv trees.tre trees.tre
 
 echo
 echo "Comparing output files with reference..."
