@@ -9,6 +9,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/format.hpp>
 #include "tree.hpp"
+#include "lot.hpp"  ///!a
 #include "xstrom.hpp"
 
 namespace strom {
