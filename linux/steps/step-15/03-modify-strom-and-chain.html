@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-15/02-adding-helper-functions-to-data-and-model.html">&lt;&nbsp;15.2</a> | 15.3 | <a href="//linux//steps/step-15/04-test-output-manager.html">15.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-15/02-adding-helper-functions-to-data-and-model.html">&lt;&nbsp;15.2</a> | 15.3 | <a href="/linux/steps/step-15/04-test-output-manager.html">15.4&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -122,9 +122,9 @@ namespace strom {
         _ambig_missing              = true;
         _model.reset(new Model());
         _expected_log_likelihood    = 0.0;
-        _use_underflow_scaling      = false;
         _data                       = nullptr;
         _likelihood                 = nullptr;
+        _use_underflow_scaling      = false;
         _lot                        = nullptr;
         _random_seed                = 1;
         _num_iter                   = 1000;
@@ -183,7 +183,7 @@ namespace strom {
             for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
                 DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
                 std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
@@ -219,8 +219,6 @@ namespace strom {
             tm.selectAllPartials();
             tm.selectAllTMatrices();
             double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
             
             if (_expected_log_likelihood != 0.0) 
@@ -318,7 +316,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-15/02-adding-helper-functions-to-data-and-model.html">&lt;&nbsp;15.2</a> | 15.3 | <a href="//linux//steps/step-15/04-test-output-manager.html">15.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-15/02-adding-helper-functions-to-data-and-model.html">&lt;&nbsp;15.2</a> | 15.3 | <a href="/linux/steps/step-15/04-test-output-manager.html">15.4&nbsp;&gt;</a></h3>
 </div>
 
 

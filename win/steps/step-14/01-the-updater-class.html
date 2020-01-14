@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-14/00-markov-chain-monte-carlo-mcmc.html">&lt;&nbsp;14.0</a> | 14.1 | <a href="//win//steps/step-14/02-the-gammashapeupdater-class.html">14.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-14/00-markov-chain-monte-carlo-mcmc.html">&lt;&nbsp;14.0</a> | 14.1 | <a href="/win/steps/step-14/02-the-gammashapeupdater-class.html">14.2&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -95,7 +95,8 @@ namespace strom {
             virtual void                        clear();
 
             virtual double                      calcLogPrior() = 0;
-            double                              calcEdgeLengthPrior() const;
+            double                              calcLogTopologyPrior() const;
+            double                              calcLogEdgeLengthPrior() const;
             double                              calcLogLikelihood() const;
             virtual double                      update(double prev_lnL);
         
@@ -117,6 +118,7 @@ namespace strom {
             double                              _prob;
             double                              _lambda;
             double                              _log_hastings_ratio;
+            double                              _log_jacobian;
             double                              _target_acceptance;
             unsigned                            _naccepts;
             unsigned                            _nattempts;
@@ -140,9 +142,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Updater::Updater() { 
         //std::cout &amp;lt;&amp;lt; "Updater constructor called" &amp;lt;&amp;lt; std::endl;
         clear();
-    } 
+    }
 
-    inline Updater::~Updater() { 
+    inline Updater::~Updater() {
         //std::cout &amp;lt;&amp;lt; "Updater destructor called" &amp;lt;&amp;lt; std::endl;
     } 
 
@@ -172,6 +174,7 @@ namespace strom {
 <p>The reset (virtual) function is used to provide a way to initialize values that need to be set to zero (for example) before a new parameter update is attempted.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Updater::reset() { 
         _log_hastings_ratio = 0.0;
+        _log_jacobian = 0.0;
     } 
 
 </code></pre></div></div>
@@ -399,11 +402,14 @@ namespace strom {
         // Decide whether to accept or reject the proposed state
         bool accept = true;
         if (log_prior &amp;gt; _log_zero) {
-            double log_diff = _log_hastings_ratio;
-            log_diff += _heating_power*((log_likelihood + log_prior) - (prev_lnL + prev_log_prior));
+            double log_R = 0.0;
+            log_R += _heating_power*(log_likelihood - prev_lnL);
+            log_R += _heating_power*(log_prior - prev_log_prior);
+            log_R += _log_hastings_ratio;
+            log_R += _log_jacobian;
 
             double logu = _lot-&amp;gt;logUniform();
-            if (logu &amp;gt; log_diff)
+            if (logu &amp;gt; log_R)
                 accept = false;
         }
         else
@@ -426,12 +432,27 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="the-calcedgelengthprior-member-function">The calcEdgeLengthPrior member function</h2>
+<h2 id="the-calclogtopologyprior-member-function">The calcLogTopologyPrior member function</h2>
+
+<p>The number of distinct, labeled, binary tree topologies for n taxa is (2n-5)!/[2^(n-3) (n-3)!]. The inverse of this number is thus the prior probability of any given tree topology under a discrete uniform tree topology prior. This function calculates the log of this prior probability. This function is placed in the base class <code class="highlighter-rouge">Updater</code> because several yet-to-be-introduced updaters (namely <code class="highlighter-rouge">TreeUpdater</code> and <code class="highlighter-rouge">PolytomyUpdater</code>) will need to calculate the log of the topology prior. Having this function reside in <code class="highlighter-rouge">Updater</code> means that we won’t have to implement this function multiple times in different derived classes (which introduces the danger that the two duplicates will accidentally evolve independently and diverge like duplicated genes).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcLogTopologyPrior() const {   
+        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
+        assert(tree);
+        unsigned n = tree-&amp;gt;numLeaves();
+        if (tree-&amp;gt;isRooted())
+            n++;
+        double log_topology_prior = -std::lgamma(2*n-5+1) + (n-3)*std::log(2) + std::lgamma(n-3+1);
+        return log_topology_prior;
+    }   
+
+</code></pre></div></div>
+
+<h2 id="the-calclogedgelengthprior-member-function">The calcLogEdgeLengthPrior member function</h2>
 
 <p>This program uses the Gamma-Dirichlet prior proposed by Rannala, Zhu, and Yang (2012), and this function calculates that prior. This approach specifies a Gamma prior distribution for tree length (TL) and the first two values in the <code class="highlighter-rouge">_prior_parameters</code> vector are expected to be the shape and scale of that Gamma distribution. The Dirichlet part specifies the prior distribution for the edge length proportions (not edge lengths). The third element in the <code class="highlighter-rouge">_prior_parameters</code> vector specifies the parameter of this symmetric Dirichlet prior distribution (normally this value is 1 so that the prior is flat and edge lengths are allowed to do whatever they please so long as they add up to TL).</p>
 
-<p>We are adding this function to <code class="highlighter-rouge">Updater</code> because edge lengths will be proposed by more than one updater. For example, there will be an updater responsible for changing just the TL (rescaling the entire tree) to improve MCMC mixing, and this updater will be separate from an updater that modifies the topology and some edge lengths. Having this function reside in <code class="highlighter-rouge">Updater</code> means that we won’t have to implement this function multiple times in different derived classes.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcEdgeLengthPrior() const { 
+<p>We are adding this function to <code class="highlighter-rouge">Updater</code> because edge lengths will be proposed by more than one updater. For example, there will be an updater (<code class="highlighter-rouge">TreeLengthUpdater</code>) responsible for changing just the TL (rescaling the entire tree) to improve MCMC mixing, and this updater will be separate from an updater (<code class="highlighter-rouge">TreeUpdater</code>) that modifies both the topology and some edge length proportions. Having this function reside in <code class="highlighter-rouge">Updater</code> means that we won’t have to implement this function multiple times in different derived classes.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcLogEdgeLengthPrior() const { 
         Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
         assert(tree);
 
@@ -453,7 +474,7 @@ namespace strom {
         //
         // p1^{c-1} p2^{c-1} ... pn^{c-1}
         // ------------------------------
-        //    n*Gamma(c) / Gamma(n*c)
+        //    Gamma(c)^n / Gamma(n*c)
         //
         // where n = num_edges, pk = edge length k / TL and Gamma is the Gamma function.
         // If c == 1, then both numerator and denominator equal 1, so it is pointless
@@ -489,7 +510,7 @@ namespace strom {
 <p>B Rannala, T Zhu, and Z Yang. 2012. Tail paradox, partial identifiability, and influential priors in Bayesian branch length inference. Molecular Biology and Evolution. 29:325–335. <a href="https://doi.org/10.1093/molbev/msr210">DOI: 10.1093/molbev/msr210</a></p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-14/00-markov-chain-monte-carlo-mcmc.html">&lt;&nbsp;14.0</a> | 14.1 | <a href="//win//steps/step-14/02-the-gammashapeupdater-class.html">14.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-14/00-markov-chain-monte-carlo-mcmc.html">&lt;&nbsp;14.0</a> | 14.1 | <a href="/win/steps/step-14/02-the-gammashapeupdater-class.html">14.2&nbsp;&gt;</a></h3>
 </div>
 
 

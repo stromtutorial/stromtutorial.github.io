@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-17/02-the-tree-length-updater-class.html">&lt;&nbsp;17.2</a> | 17.3 | <a href="//win//steps/step-17/04-modify-treemanip.html">17.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-17/02-the-tree-length-updater-class.html">&lt;&nbsp;17.2</a> | 17.3 | <a href="/win/steps/step-17/04-modify-treemanip.html">17.4&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -85,20 +85,20 @@
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double wtreetopology    = 19.0;&lt;/strong&gt;&lt;/span&gt;
         double sum_weights      = 0.0;
         
-        // Add state frequency parameter updaters to _updaters  
+        // Add state frequency parameter updaters to _updaters 
         Model::state_freq_params_t &amp; statefreq_shptr_vect = _model-&amp;gt;getStateFreqParams();
         for (auto statefreq_shptr : statefreq_shptr_vect) {
             Updater::SharedPtr u = StateFreqUpdater::SharedPtr(new StateFreqUpdater(statefreq_shptr));
             u-&amp;gt;setLikelihood(likelihood);
             u-&amp;gt;setLot(lot);
-            u-&amp;gt;setLambda(0.001);
+            u-&amp;gt;setLambda(1.0);
             u-&amp;gt;setTargetAcceptanceRate(0.3);
             u-&amp;gt;setPriorParameters(std::vector&amp;lt;double&amp;gt;(statefreq_shptr-&amp;gt;getStateFreqsSharedPtr()-&amp;gt;size(), 1.0));
             u-&amp;gt;setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }  
+        }
 
-        // Add exchangeability parameter updaters to _updaters  
+        // Add exchangeability parameter updaters to _updaters
         Model::exchangeability_params_t &amp; exchangeability_shptr_vect = _model-&amp;gt;getExchangeabilityParams();
         for (auto exchangeability_shptr : exchangeability_shptr_vect) {
             Updater::SharedPtr u = ExchangeabilityUpdater::SharedPtr(new ExchangeabilityUpdater(exchangeability_shptr));
@@ -109,7 +109,7 @@
             u-&amp;gt;setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
             u-&amp;gt;setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   
+        }
 
         // Add rate variance parameter updaters to _updaters
         Model::ratevar_params_t &amp; ratevar_shptr_vect = _model-&amp;gt;getRateVarParams();
@@ -124,7 +124,7 @@
             _updaters.push_back(u);
         }
         
-        // Add pinvar parameter updaters to _updaters   
+        // Add pinvar parameter updaters to _updaters
         Model::pinvar_params_t &amp; pinvar_shptr_vect = _model-&amp;gt;getPinvarParams();
         for (auto pinvar_shptr : pinvar_shptr_vect) {
             Updater::SharedPtr u = PinvarUpdater::SharedPtr(new PinvarUpdater(pinvar_shptr));
@@ -135,9 +135,9 @@
             u-&amp;gt;setPriorParameters({1.0, 1.0});
             u-&amp;gt;setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   
+        }
         
-        // Add omega parameter updaters to _updaters    
+        // Add omega parameter updaters to _updaters
         Model::omega_params_t &amp; omega_shptr_vect = _model-&amp;gt;getOmegaParams();
         for (auto omega_shptr : omega_shptr_vect) {
             Updater::SharedPtr u = OmegaUpdater::SharedPtr(new OmegaUpdater(omega_shptr));
@@ -148,9 +148,9 @@
             u-&amp;gt;setPriorParameters({1.0, 1.0});
             u-&amp;gt;setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   
+        }
         
-        // Add subset relative rate parameter updater to _updaters  
+        // Add subset relative rate parameter updater to _updaters 
         if (!_model-&amp;gt;isFixedSubsetRelRates()) {
             Updater::SharedPtr u = SubsetRelRateUpdater::SharedPtr(new SubsetRelRateUpdater(_model));
             u-&amp;gt;setLikelihood(likelihood);
@@ -160,7 +160,7 @@
             u-&amp;gt;setPriorParameters(std::vector&amp;lt;double&amp;gt;(_model-&amp;gt;getNumSubsets(), 1.0));
             u-&amp;gt;setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
-        }   
+        }
         
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Add tree updater and tree length updater to _updaters&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_model-&amp;gt;isFixedTree()) {&lt;/strong&gt;&lt;/span&gt;
@@ -198,7 +198,7 @@
 
 <p>As with the other updaters, we are hard-coding the prior for tree topology and edge lengths. We will add options in Step 19 so that the user can change these values, but for now we are keeping things simple and baking in the priors. In this case, the tree length prior is an Exponential distribution with mean 10, and the prior on edge length proportions is a flat Dirichlet distribution. The prior on tree topology is Discrete Uniform over the space of all possible tree topologies (and tree topologies are assumed to be unrooted and binary).</p>
 
-<p>I mentioned (when creating the <code class="highlighter-rouge">TreeLengthUpdater</code> class) that we would need to be careful to avoid counting the tree length prior and edge length proportions prior twice. We will now take care of that by simply adding a line to the <code class="highlighter-rouge">calcLogJointPrior</code> function that causes the <code class="highlighter-rouge">TreeLengthUpdater</code> to be skipped when computing the joint prior.</p>
+<p>I mentioned (when creating the <code class="highlighter-rouge">TreeLengthUpdater</code> class) that we would need to be careful to avoid counting the tree length prior and edge length proportions prior twice. We will now take care of that by adding a line to the <code class="highlighter-rouge">calcLogJointPrior</code> function that causes the <code class="highlighter-rouge">TreeLengthUpdater</code> to be skipped when computing the joint prior.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::calcLogJointPrior() const { 
         double lnP = 0.0;
         for (auto u : _updaters) {
@@ -211,7 +211,7 @@
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-17/02-the-tree-length-updater-class.html">&lt;&nbsp;17.2</a> | 17.3 | <a href="//win//steps/step-17/04-modify-treemanip.html">17.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-17/02-the-tree-length-updater-class.html">&lt;&nbsp;17.2</a> | 17.3 | <a href="/win/steps/step-17/04-modify-treemanip.html">17.4&nbsp;&gt;</a></h3>
 </div>
 
 

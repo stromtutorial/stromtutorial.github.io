@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-12/01-large-tree-likelihood-fail.html">&lt;&nbsp;12.1</a> | 12.2 | <a href="//win//steps/step-13/00-adding-pseudorandom-number-generator.html">13.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-12/01-large-tree-likelihood-fail.html">&lt;&nbsp;12.1</a> | 12.2 | <a href="/win/steps/step-13/00-adding-pseudorandom-number-generator.html">13.0&nbsp;&gt;</a></h3>
 </div>
 
 <p>To add rescaling, we will need to modify several BeagleLib function calls inside our <code class="highlighter-rouge">Likelihood</code> class.</p>
@@ -101,6 +101,7 @@
 
             typedef std::pair&amp;lt;unsigned, int&amp;gt;        instance_pair_t;
 
+            unsigned                                getScalerIndex(Node * nd, InstanceInfo &amp; info) const;
             unsigned                                getPartialIndex(Node * nd, InstanceInfo &amp; info) const;
             unsigned                                getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const;
             void                                    updateInstanceMap(instance_pair_t &amp; p, unsigned subset);
@@ -112,6 +113,8 @@
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
             void                                    addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
+            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild);
+            void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
             void                                    calculatePartials();
@@ -123,6 +126,9 @@
             std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _operations;
             std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _pmatrix_index;
             std::map&amp;lt;int, std::vector&amp;lt;double&amp;gt; &amp;gt;     _edge_lengths;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _eigen_indices;
+            std::map&amp;lt;int, std::vector&amp;lt;int&amp;gt; &amp;gt;        _category_rate_indices;
+            double                                  _relrate_normalizing_constant;
 
             std::vector&amp;lt;int&amp;gt;                        _subset_indices;
             std::vector&amp;lt;int&amp;gt;                        _parent_indices;
@@ -164,6 +170,9 @@
         _operations.clear();
         _pmatrix_index.clear();
         _edge_lengths.clear();
+        _eigen_indices.clear();
+        _category_rate_indices.clear();
+        _relrate_normalizing_constant = 1.0;
         _subset_indices.assign(1, 0);
         _parent_indices.assign(1, 0);
         _child_indices.assign(1, 0);
@@ -199,7 +208,7 @@
 
 <h2 id="tell-beaglelib-to-create-scale-buffers">Tell BeagleLib to create scale buffers</h2>
 
-<p>In the <code class="highlighter-rouge">Likelihood::newInstance</code> function, add <code class="highlighter-rouge">BEAGLE_FLAG_SCALING_MANUAL</code> to the requirement flags and tell BeagleLib to create <code class="highlighter-rouge">num_internals + num_subsets</code> scaling buffers (i.e. arrays). Each scaling buffer has one element for each pattern in the data, plus an extra element for each data subset to store the cumulative scaling factors. If scaling is done at each internal node, there needs to be at least the same number of scaling buffers as there are internal nodes. The items to add or change are highlighted in blue.</p>
+<p>In the <code class="highlighter-rouge">Likelihood::newInstance</code> function, add <code class="highlighter-rouge">BEAGLE_FLAG_SCALING_MANUAL</code> and <code class="highlighter-rouge">BEAGLE_FLAG_SCALERS_LOG</code> to the preference flags and tell BeagleLib to create <code class="highlighter-rouge">num_internals + 1</code> scaling buffers (i.e. arrays). Each scaling buffer has one element for each pattern in the data, plus an extra element to store the cumulative scaling factors. If scaling is done at each internal node, there needs to be at least the same number of scaling buffers as there are internal nodes. The items to add or change are highlighted in blue.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices) { 
         unsigned num_subsets = (unsigned)subset_indices.size();
         
@@ -214,14 +223,17 @@
         unsigned num_internals = calcNumInternalsInFullyResolvedTree();
 
         // add 1 to num_edges so that subroot node will have a tmatrix, root tip's tmatrix is never used
-        unsigned num_edges = 1 + calcNumEdgesInFullyResolvedTree();
-        unsigned num_transition_probs = num_edges*num_subsets;
+        unsigned num_edges = calcNumEdgesInFullyResolvedTree();
+        unsigned num_nodes = num_edges + 1;
+        unsigned num_transition_probs = num_nodes*num_subsets;
         
         long requirementFlags = 0;
 
         long preferenceFlags = BEAGLE_FLAG_PRECISION_SINGLE | BEAGLE_FLAG_THREADING_CPP;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling)&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling) {&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;preferenceFlags |= BEAGLE_FLAG_SCALING_MANUAL;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;preferenceFlags |= BEAGLE_FLAG_SCALERS_LOG;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
         if (_prefer_gpu)
             preferenceFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
         else
@@ -229,6 +241,7 @@
         
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned nscalers = num_internals;  // one scale buffer for every internal node&lt;/strong&gt;&lt;/span&gt;
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;
@@ -236,20 +249,20 @@
         }
         
         int inst = beagleCreateInstance(
-             _ntaxa,                        // tips
-             2*npartials,                   // partials
-             nsequences,                    // sequences
-             nstates,                       // states
-             num_patterns,                  // patterns (total across all subsets that use this instance)
-             num_subsets,                   // models (one for each distinct eigen decomposition)
-             2*num_subsets*num_transition_probs, // transition matrices (one for each edge in each subset)
-             ngammacat,                     // rate categories
-             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(_underflow_scaling ? num_internals + num_subsets : 0),    // scale buffers&lt;/strong&gt;&lt;/span&gt;
-             NULL,                          // resource restrictions
-             0,                             // length of resource list
-             preferenceFlags,               // preferred flags
-             requirementFlags,              // required flags
-             &amp;instance_details);            // pointer for details
+             _ntaxa,                                    // tips
+             npartials,                                 // partials
+             nsequences,                                // sequences
+             nstates,                                   // states
+             num_patterns,                              // patterns (total across all subsets that use this instance)
+             num_subsets,                               // models (one for each distinct eigen decomposition)
+             num_subsets*num_transition_probs,          // transition matrices (one for each node in each subset)
+             ngammacat,                                 // rate categories
+             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(_underflow_scaling ? nscalers + 1 : 0),   // scale buffers  (+1 is for the cumulative scaler at index 0)&lt;/strong&gt;&lt;/span&gt;
+             NULL,                                      // resource restrictions
+             0,                                         // length of resource list
+             preferenceFlags,                           // preferred flags
+             requirementFlags,                          // required flags
+             &amp;instance_details);                        // pointer for details
         
         if (inst &amp;lt; 0) {
             // beagleCreateInstance returns one of the following:
@@ -268,138 +281,48 @@
         info.subsets        = subset_indices;
         info.npatterns      = num_patterns;
         info.partial_offset = num_internals;
-        info.tmatrix_offset = num_edges;
+        info.tmatrix_offset = num_nodes;
         _instances.push_back(info);
     }   
 
 </code></pre></div></div>
 
-<h2 id="add-the-scale-buffer-index-to-each-operation">Add the scale buffer index to each operation</h2>
+<h2 id="modify-getscalerindex">Modify getScalerIndex</h2>
 
-<p>Modify the <code class="highlighter-rouge">Likelihood::addOperation</code> function to tell BeagleLib which scaling buffer to use when computing the partials for a given internal node. We will reserve the first <code class="highlighter-rouge">num_subsets</code> scaling buffer elements to hold the cumulative sums of log scalers for each subset, and because internal nodes are numbered starting with <code class="highlighter-rouge">_ntaxa</code>, we need to subtract <code class="highlighter-rouge">_ntaxa</code> and add <code class="highlighter-rouge">num_subsets</code> from the internal node number to get the index of the scaler buffer to use.</p>
-
-<p>Elements 8 and 9 of each operation are only present if there is more than one subset, and element 9 determines which scale buffer element to use for the cumulative scaling factor. The variable <code class="highlighter-rouge">subset_index</code> keeps track of the <em>relative</em> subset index, which is what is needed here. The absolute subset index is not helpful, as it is always possible that some data subsets are being handled by other BeagleLib instances.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::addOperation(InstanceInfo &amp; info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index) { 
-        assert(nd);
-        assert(lchild);
-        assert(rchild);
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned num_subsets = (unsigned)info.subsets.size();&lt;/strong&gt;&lt;/span&gt;
-
-        // 1. destination partial to be calculated
-        int partial = getPartialIndex(nd, info);
-        _operations[info.handle].push_back(partial);
-
-        // 2. destination scaling buffer index to write to
+<p>Modify the <code class="highlighter-rouge">Likelihood::getScalerIndex</code> function to tell BeagleLib which scaling buffer to use when computing the partials for a given internal node. We will reserve the first scaling buffer element to hold the cumulative sum of log scalers for each pattern, and because internal nodes are numbered starting with <code class="highlighter-rouge">_ntaxa</code>, we need to subtract <code class="highlighter-rouge">_ntaxa</code> from the internal node number and add 1 to get the index of the scaler buffer to use.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo &amp; info) const {  
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned sindex = BEAGLE_OP_NONE;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling)&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_operations[info.handle].push_back(nd-&amp;gt;_number - _ntaxa + num_subsets);&lt;/strong&gt;&lt;/span&gt;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
-            _operations[info.handle].push_back(BEAGLE_OP_NONE);
-
-        // 3. destination scaling buffer index to read from
-        _operations[info.handle].push_back(BEAGLE_OP_NONE);
-
-        // 4. left child partial index
-        partial = getPartialIndex(lchild, info);
-        _operations[info.handle].push_back(partial);
-
-        // 5. left child transition matrix index
-        unsigned tindex = getTMatrixIndex(lchild, info, subset_index);
-        _operations[info.handle].push_back(tindex);
-
-        // 6. right child partial index
-        partial = getPartialIndex(rchild, info);
-        _operations[info.handle].push_back(partial);
-
-        // 7. right child transition matrix index
-        tindex = getTMatrixIndex(rchild, info, subset_index);
-        _operations[info.handle].push_back(tindex);
-
-        if (info.subsets.size() &amp;gt; 1) {
-            // 8. index of partition subset
-            _operations[info.handle].push_back(subset_index);
-            
-            // 9. cumulative scale index
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling)&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_operations[info.handle].push_back(subset_index);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
-                _operations[info.handle].push_back(BEAGLE_OP_NONE);
-        }
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;sindex = nd-&amp;gt;_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;return sindex;&lt;/strong&gt;&lt;/span&gt;
     }   
 
 </code></pre></div></div>
-<p>In our application, we need only specify scaling buffers for writing, not reading, so the 3rd element of each operation should be left as <code class="highlighter-rouge">BEAGLE_OP_NONE</code>.</p>
 
-<h2 id="specify-the-cumulative-scale-buffer-index-in-calculatepartials">Specify the cumulative scale buffer index in calculatePartials</h2>
+<h2 id="accumulate-scalers-in-calcinstanceloglikelihood">Accumulate scalers in calcInstanceLogLikelihood</h2>
 
-<p>The new code in blue below serves to initialize the scaling buffer element for each pattern to 0.0 before recalculating partial likelihood arrays.</p>
+<p>We’ve now provided BeagleLib with the appropriate number of scaling buffers, and, when operations are added to recalculate partials in <code class="highlighter-rouge">addOperation</code>, scaling will be done because <code class="highlighter-rouge">getScalerIndex</code> will return the appropriate scaling buffer index rather than BEAGLE_OP_NONE. All that is left is to harvest the scalers at each internal node and accumulate them for the final log-likelihood calculation.</p>
 
-<p>In the case of more than one subset, the cumulative scaling factor index is supplied as the final argument to <code class="highlighter-rouge">beagleResetScaleFactorsByPartition</code> (just the instance-relative subset index). The second argument is the relative subset index, which is the same numerical value. Note that <code class="highlighter-rouge">beagleUpdatePartialsByPartition</code> does not need to know this information because it is supplied as element 9 of each operation.</p>
+<p>The large section in blue in the code below first creates a list (<code class="highlighter-rouge">internal_node_scaler_indices</code>) of all scaling buffer indices used (which is just the scaler index for every internal node).</p>
 
-<p>In the case of an instance containing a single subset, the cumulative scaler index is simply 0, supplied as the last argument to <code class="highlighter-rouge">beagleUpdatePartials</code>.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::calculatePartials() { 
-        assert(_instances.size() &amp;gt; 0);
-        if (_operations.size() == 0)
-            return;
-        int code = 0;
-        
-        // Loop through all instances
-        for (auto &amp; info : _instances) {
-            unsigned nsubsets = (unsigned)info.subsets.size();
+<p>If the instance is managing just one data subset (unpartitioned case), <code class="highlighter-rouge">beagleResetScaleFactors</code> is used to zero out all elements of the <code class="highlighter-rouge">cumulative_scale_index</code>, which is the first (0th) scaler buffer and <code class="highlighter-rouge">beagleAccumulateScaleFactors</code> is used to sum up the log scalers (using scaler indices supplied via <code class="highlighter-rouge">internal_node_scaler_indices</code>).</p>
 
-            if (nsubsets &amp;gt; 1) {
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling) {&lt;/strong&gt;&lt;/span&gt;
-                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned s = 0; s &amp;lt; nsubsets; ++s) {&lt;/strong&gt;&lt;/span&gt;
-                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleResetScaleFactorsByPartition(info.handle, s, s);&lt;/strong&gt;&lt;/span&gt;
-                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
-                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calculatePartials. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
-                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
-                
-                code = beagleUpdatePartialsByPartition(
-                    info.handle,                                                    // Instance number
-                    (BeagleOperationByPartition *) &amp;_operations[info.handle][0],    // BeagleOperation list specifying operations
-                    (int)(_operations[info.handle].size()/9));                      // Number of operations
-            }
-            else {
-                // no partitioning, just one data subset
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling) {&lt;/strong&gt;&lt;/span&gt;
-                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleResetScaleFactors(info.handle, 0);&lt;/strong&gt;&lt;/span&gt;
-                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
-                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to reset scale factors in calculatePartials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
-                
-                code = beagleUpdatePartials(
-                    info.handle,                                        // Instance number
-                    (BeagleOperation *) &amp;_operations[info.handle][0],   // BeagleOperation list specifying operations
-                    (int)(_operations[info.handle].size()/7),           // Number of operations
-                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(_underflow_scaling ? 0 : BEAGLE_OP_NONE));         // Index number of scaleBuffer to store accumulated factors&lt;/strong&gt;&lt;/span&gt;
-            }
-            
-            if (code != 0) {
-                throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
-            }
-        }
-    } 
+<p>If the instance is managing more than one data subset (partitioned case), <code class="highlighter-rouge">beagleResetScaleFactorsByPartition</code> is used to zero out all elements of the <code class="highlighter-rouge">cumulative_scale_index</code>, which is the first (0th) scaler buffer and <code class="highlighter-rouge">beagleAccumulateScaleFactorsByPartition</code> is used to sum up the log scalers (using scaler indices supplied via <code class="highlighter-rouge">internal_node_scaler_indices</code>).</p>
 
-</code></pre></div></div>
+<p>Because we are using just one cumulative scaling buffer for all site patterns regardless of their subset of origin, it is really not necessary to use the ByPartition versions of these functions, so you might save a tiny bit of computational effort by using the simpler versions for the partitioned case. The ByPartition versions simply limit their activity (in the cumulative scaler buffer) to patterns from subset <code class="highlighter-rouge">s</code>, whereas <code class="highlighter-rouge">beagleResetScaleFactors</code> and <code class="highlighter-rouge">beagleResetScaleFactors</code> affect the entire cumulative scaler buffer.</p>
 
-<h2 id="telling-beaglecalculateedgeloglikelihoods-the-cumulative-scale-buffer-index">Telling BeagleCalculateEdgeLogLikelihoods the cumulative scale buffer index</h2>
-
-<p>Finally, in the <code class="highlighter-rouge">calcInstanceLogLikelihood</code> member function, we need to provide the index of the scalar array holding cumulative sums of log scaling factors to the <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoods</code> (or <code class="highlighter-rouge">beagleCalculateEdgeLogLikelihoodsByPartition</code>) function, which is called in our <code class="highlighter-rouge">Likelihood::calcInstanceLogLikelihood</code> function.</p>
-
-<p>First, change <code class="highlighter-rouge">cumulativeScalingIndex</code> from <code class="highlighter-rouge">BEAGLE_OP_NONE</code> to 0 (this will be used in the single-subset case), and modify the <code class="highlighter-rouge">_scaling_indices</code> vector so that it provides the correct index to the cumulative scaling element for each subset (used only in the multi-subset case).</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo &amp; info, Tree::SharedPtr t) { 
+<p>The other highlighted lines simply specify that the scaler buffer with index 0 is where the cumulative scaling factors are stored when underflow scaling is being done.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo &amp; info, Tree::SharedPtr t) {   
         int code = 0;
         unsigned nsubsets = (unsigned)info.subsets.size();
         assert(nsubsets &amp;gt; 0);
-        //unsigned nedges = calcNumEdgesInFullyResolvedTree();                    //eliminate
 
         // Assuming there are as many transition matrices as there are edge lengths
         assert(_pmatrix_index[info.handle].size() == _edge_lengths[info.handle].size());
 
-        int stateFrequencyIndex    = 0;
-        int categoryWeightsIndex   = 0;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int cumulativeScalingIndex = (_underflow_scaling ? 0 : BEAGLE_OP_NONE);&lt;/strong&gt;&lt;/span&gt;
+        int state_frequency_index  = 0;
+        int category_weights_index = 0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int cumulative_scale_index = (_underflow_scaling ? 0 : BEAGLE_OP_NONE);&lt;/strong&gt;&lt;/span&gt;
         int child_partials_index   = getPartialIndex(t-&amp;gt;_root, info);
         int parent_partials_index  = getPartialIndex(t-&amp;gt;_preorder[0], info);
         int parent_tmatrix_index   = getTMatrixIndex(t-&amp;gt;_preorder[0], info, 0);
@@ -408,20 +331,66 @@
         std::vector&amp;lt;double&amp;gt; subset_log_likelihoods(nsubsets, 0.0);
         double log_likelihood = 0.0;
 
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_underflow_scaling) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Create vector of all scaling vector indices in current use&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;int&amp;gt; internal_node_scaler_indices;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto nd : t-&amp;gt;_preorder) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;_left_child) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned s = getScalerIndex(nd, info);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;internal_node_scaler_indices.push_back(s);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nsubsets == 1) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleResetScaleFactors(info.handle, cumulative_scale_index);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to reset scale factors in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleAccumulateScaleFactors(&lt;/strong&gt;&lt;/span&gt;
+                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;info.handle,&lt;/strong&gt;&lt;/span&gt;
+                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;&amp;internal_node_scaler_indices[0],&lt;/strong&gt;&lt;/span&gt;
+                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(int)internal_node_scaler_indices.size(),&lt;/strong&gt;&lt;/span&gt;
+                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;cumulative_scale_index);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to accumulate scale factors in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned s = 0; s &amp;lt; nsubsets; ++s) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleResetScaleFactorsByPartition(info.handle, cumulative_scale_index, s);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to reset scale factors for subset %d in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+                        
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;code = beagleAccumulateScaleFactorsByPartition(&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;info.handle,&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;&amp;internal_node_scaler_indices[0],&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(int)internal_node_scaler_indices.size(),&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;cumulative_scale_index,&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;s);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (code != 0)&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;throw XStrom(boost::str(boost::format("failed to acccumulate scale factors for subset %d in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % s % code % _beagle_error[code]));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
         if (nsubsets &amp;gt; 1) {
             _parent_indices.assign(nsubsets, parent_partials_index);
             _child_indices.assign(nsubsets, child_partials_index);
-            _weights_indices.assign(nsubsets, categoryWeightsIndex);
-            _scaling_indices.resize(nsubsets);  
+            _weights_indices.assign(nsubsets, category_weights_index);
+            _scaling_indices.resize(nsubsets);
             _subset_indices.resize(nsubsets);
             _freqs_indices.resize(nsubsets);
             _tmatrix_indices.resize(nsubsets);
+
             for (unsigned s = 0; s &amp;lt; nsubsets; s++) {
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_scaling_indices[s]  = (_underflow_scaling ? s : BEAGLE_OP_NONE);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_scaling_indices[s]  = (_underflow_scaling ? 0 : BEAGLE_OP_NONE);&lt;/strong&gt;&lt;/span&gt;
                 _subset_indices[s]  = s;
                 _freqs_indices[s]   = s;
                 _tmatrix_indices[s] = getTMatrixIndex(t-&amp;gt;_preorder[0], info, s); //index_focal_child + s*tmatrix_skip;
             }
+            
             code = beagleCalculateEdgeLogLikelihoodsByPartition(
                 info.handle,                 // instance number
                 &amp;_parent_indices[0],         // indices of parent partialsBuffers
@@ -450,9 +419,9 @@
                 &amp;parent_tmatrix_index,       // transition probability matrices for this edge
                 NULL,                        // first derivative matrices
                 NULL,                        // second derivative matrices
-                &amp;categoryWeightsIndex,       // weights to apply to each partialsBuffer
-                &amp;stateFrequencyIndex,        // state frequencies for each partialsBuffer
-                &amp;cumulativeScalingIndex,     // scaleBuffers containing accumulated factors
+                &amp;category_weights_index,     // weights to apply to each partialsBuffer
+                &amp;state_frequency_index,      // state frequencies for each partialsBuffer
+                &amp;cumulative_scale_index,     // scaleBuffers containing accumulated factors
                 1,                           // Number of partialsBuffer
                 &amp;log_likelihood,             // destination for log likelihood
                 NULL,                        // destination for first derivative
@@ -513,6 +482,8 @@
         _ambig_missing              = true;
         _model.reset(new Model());
         _expected_log_likelihood    = 0.0;
+        _data                       = nullptr; 
+        _likelihood                 = nullptr;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_use_underflow_scaling      = false;&lt;/strong&gt;&lt;/span&gt;
     }   
 
@@ -576,7 +547,7 @@
             for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
                 DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
                 std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
@@ -607,12 +578,7 @@
                 throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
 
             std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
-            TreeManip tm(tree);
-            tm.selectAllPartials();
-            tm.selectAllTMatrices();
             double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
             
             if (_expected_log_likelihood != 0.0) 
@@ -647,7 +613,7 @@ expectedLnL      = -144730.75
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-12/01-large-tree-likelihood-fail.html">&lt;&nbsp;12.1</a> | 12.2 | <a href="//win//steps/step-13/00-adding-pseudorandom-number-generator.html">13.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-12/01-large-tree-likelihood-fail.html">&lt;&nbsp;12.1</a> | 12.2 | <a href="/win/steps/step-13/00-adding-pseudorandom-number-generator.html">13.0&nbsp;&gt;</a></h3>
 </div>
 
 

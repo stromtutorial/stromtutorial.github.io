@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-19/07-adding-polytomy-updater-to-chain.html">&lt;&nbsp;19.7</a> | 19.8 | <a href="//win//steps/step-19/09-adding-polytomy-options-to-strom.html">19.9&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-19/07-adding-polytomy-updater-to-chain.html">&lt;&nbsp;19.7</a> | 19.8 | <a href="/win/steps/step-19/09-adding-polytomy-options-to-strom.html">19.9&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -176,6 +176,8 @@ namespace strom {
 
 </code></pre></div></div>
 
+<h2 id="modify-the-clear-function">Modify the clear function</h2>
+
 <p>Initialize the 2 new data members (<code class="highlighter-rouge">_resolution_class_prior</code> and <code class="highlighter-rouge">_topo_prior_C</code>) in the <code class="highlighter-rouge">clear</code> function.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::clear() {    
         _num_subsets = 0;
@@ -196,6 +198,8 @@ namespace strom {
 
 </code></pre></div></div>
 
+<h2 id="add-the-settopologyprioroptions-member-function">Add the setTopologyPriorOptions member function</h2>
+
 <p>Add the body of the <code class="highlighter-rouge">setTopologyPriorOptions</code> function to <em>model.hpp</em> somehwere before the bracket that closes the <code class="highlighter-rouge">strom</code> namespace. This function provides a way to inform the <code class="highlighter-rouge">Model</code> object of all 3 parameters of the topology prior.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setTopologyPriorOptions(bool allow_polytomies, bool resclass, double C) {  
         _allow_polytomies       = allow_polytomies;
@@ -204,6 +208,8 @@ namespace strom {
     }   
 
 </code></pre></div></div>
+
+<h2 id="add-the-accessors-isallowpolytomies-isresolutionclasstopologyprior-and-gettopologypriorc">Add the accessors isAllowPolytomies, isResolutionClassTopologyPrior, and getTopologyPriorC</h2>
 
 <p>Finally, add bodies of the 3 accessor functions <code class="highlighter-rouge">isAllowPolytomies</code>, <code class="highlighter-rouge">isResolutionClassTopologyPrior</code>, and <code class="highlighter-rouge">getTopologyPriorC</code>.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool Model::isAllowPolytomies() const {  
@@ -254,7 +260,6 @@ namespace strom {
             void                                                outputConsole(std::string s);
             void                                                outputTree(unsigned iter, TreeManip::SharedPtr tm);
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                                outputParameters(unsigned iter, double lnL, double lnP, double TL, unsigned m, Model::SharedPtr model);&lt;/strong&gt;&lt;/span&gt;
-            
 
         private:
 
@@ -293,7 +298,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-19/07-adding-polytomy-updater-to-chain.html">&lt;&nbsp;19.7</a> | 19.8 | <a href="//win//steps/step-19/09-adding-polytomy-options-to-strom.html">19.9&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-19/07-adding-polytomy-updater-to-chain.html">&lt;&nbsp;19.7</a> | 19.8 | <a href="/win/steps/step-19/09-adding-polytomy-options-to-strom.html">19.9&nbsp;&gt;</a></h3>
 </div>
 
 

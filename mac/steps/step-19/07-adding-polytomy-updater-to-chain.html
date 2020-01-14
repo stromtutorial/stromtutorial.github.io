@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/06-modifying-node-tree-manip-class.html">&lt;&nbsp;19.6</a> | 19.7 | <a href="//mac//steps/step-19/08-modifying-model-outputmanager.html">19.8&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/06-modifying-node-tree-manip-class.html">&lt;&nbsp;19.6</a> | 19.7 | <a href="/mac/steps/step-19/08-modifying-model-outputmanager.html">19.8&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -102,8 +102,8 @@
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_model-&amp;gt;isAllowPolytomies()) {&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wstd             = 1.0;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wtreelength      = 2.0;&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wtreetopology    = 10.0;&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wpolytomy        = 5.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wtreetopology    = 9.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;wpolytomy        = 9.0;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
         
         //...
@@ -129,7 +129,7 @@
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(0.05);&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.5);&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTopologyPriorOptions(_model-&amp;gt;isResolutionClassTopologyPrior(), _model-&amp;gt;getTopologyPriorC());&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wpolytomy); sum_weights += wpolytomy;&lt;/strong&gt;&lt;/span&gt;
@@ -145,7 +145,7 @@
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTopologyPriorOptions(_model-&amp;gt;isResolutionClassTopologyPrior(), _model-&amp;gt;getTopologyPriorC());&lt;/strong&gt;&lt;/span&gt;
             u-&amp;gt;setWeight(wtreelength); sum_weights += wtreelength;
             _updaters.push_back(u);
-        }   
+        } 
         
         for (auto u : _updaters) {
             u-&amp;gt;calcProb(sum_weights);
@@ -172,7 +172,7 @@
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/06-modifying-node-tree-manip-class.html">&lt;&nbsp;19.6</a> | 19.7 | <a href="//mac//steps/step-19/08-modifying-model-outputmanager.html">19.8&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/06-modifying-node-tree-manip-class.html">&lt;&nbsp;19.6</a> | 19.7 | <a href="/mac/steps/step-19/08-modifying-model-outputmanager.html">19.8&nbsp;&gt;</a></h3>
 </div>
 
 

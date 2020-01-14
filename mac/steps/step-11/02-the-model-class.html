@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-11/01-specifying-the-model.html">&lt;&nbsp;11.1</a> | 11.2 | <a href="//mac//steps/step-11/03-the-qmatrix-class.html">11.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-11/01-specifying-the-model.html">&lt;&nbsp;11.1</a> | 11.2 | <a href="/mac/steps/step-11/03-the-qmatrix-class.html">11.3&nbsp;&gt;</a></h3>
 </div>
 
 <p>By way of a data member (<code class="highlighter-rouge">_model</code>) of the <code class="highlighter-rouge">Likelihood</code> class, the <code class="highlighter-rouge">Model</code> class will supply BeagleLib with the eigenvectors, eigenvalues, and relative rates it needs in order to compute the likelihood of a tree. The <a href="http://eigen.tuxfamily.org/">Eigen</a> library is used to compute the eigenvectors and eigenvalues for a given combination of exchangeabilities and nucleotide (or codon) frequencies.</p>
@@ -156,13 +156,13 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::Model() { 
         //std::cout &amp;lt;&amp;lt; "Constructing a Model" &amp;lt;&amp;lt; std::endl;
         clear();
-    }   
+    } 
 
-    inline Model::~Model() {    
+    inline Model::~Model() {
         //std::cout &amp;lt;&amp;lt; "Destroying a Model" &amp;lt;&amp;lt; std::endl;
-    }   
+    }
 
-    inline void Model::clear() {    
+    inline void Model::clear() {
         _num_subsets = 0;
         _num_sites = 0;
         _tree_index = 0;
@@ -492,41 +492,41 @@ rmatrix = third:1,2,1,1,2,1
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Model::getSubsetNumPatterns(unsigned subset) const { 
         assert(subset &amp;lt; _num_subsets);
         return _subset_npatterns[subset];
-    } 
+    }
     
-    inline unsigned Model::getSubsetNumSites(unsigned subset) const { 
+    inline unsigned Model::getSubsetNumSites(unsigned subset) const {
         assert(subset &amp;lt; _num_subsets);
         return _subset_sizes[subset];
-    }    
-    
-    inline unsigned Model::getNumSites() const {    
-        return _num_sites;
-    }   //end_getNumSites
-    
-    inline unsigned Model::getNumSubsets() const { 
-        return _num_subsets;
     } 
     
-    inline unsigned Model::getSubsetNumCateg(unsigned subset) const { 
+    inline unsigned Model::getNumSites() const {
+        return _num_sites;
+    }
+    
+    inline unsigned Model::getNumSubsets() const {
+        return _num_subsets;
+    }
+    
+    inline unsigned Model::getSubsetNumCateg(unsigned subset) const {
         assert(subset &amp;lt; _num_subsets);
         assert(_asrv.size() == _num_subsets);
         assert(_asrv[subset]);
         return _asrv[subset]-&amp;gt;getNumCateg();
     } 
     
-    inline bool Model::getSubsetIsInvarModel(unsigned subset) const { 
+    inline bool Model::getSubsetIsInvarModel(unsigned subset) const {
         assert(subset &amp;lt; _num_subsets);
         assert(_asrv.size() == _num_subsets);
         assert(_asrv[subset]);
         return _asrv[subset]-&amp;gt;getIsInvarModel();
-    } 
+    }
     
-    inline const QMatrix &amp; Model::getQMatrix(unsigned subset) const { 
+    inline const QMatrix &amp; Model::getQMatrix(unsigned subset) const {
         assert(subset &amp;lt; _num_subsets);
         return *(_qmatrix[subset]);
     } 
     
-    inline const ASRV &amp; Model::getASRV(unsigned subset) const { 
+    inline const ASRV &amp; Model::getASRV(unsigned subset) const {
         assert(subset &amp;lt; _num_subsets);
         return *(_asrv[subset]);
     } 
@@ -718,13 +718,13 @@ rmatrix = third:1,2,1,1,2,1
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::setTreeIndex(unsigned i, bool fixed) {   
         _tree_index = i;
         _tree_fixed = fixed;
-    }   
+    }
     
-    inline unsigned Model::getTreeIndex() const {   
+    inline unsigned Model::getTreeIndex() const {
         return _tree_index;
-    }   
+    }
     
-    inline bool Model::isFixedTree() const {  
+    inline bool Model::isFixedTree() const {
         return _tree_fixed;
     }  
 
@@ -768,9 +768,9 @@ rmatrix = third:1,2,1,1,2,1
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Model::activate() { 
         for (auto q : _qmatrix)
             q-&amp;gt;setActive(true);
-    } 
+    }
 
-    inline void Model::inactivate() { 
+    inline void Model::inactivate() {
         for (auto q : _qmatrix)
             q-&amp;gt;setActive(false);
     } 
@@ -846,7 +846,7 @@ rmatrix = third:1,2,1,1,2,1
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-11/01-specifying-the-model.html">&lt;&nbsp;11.1</a> | 11.2 | <a href="//mac//steps/step-11/03-the-qmatrix-class.html">11.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-11/01-specifying-the-model.html">&lt;&nbsp;11.1</a> | 11.2 | <a href="/mac/steps/step-11/03-the-qmatrix-class.html">11.3&nbsp;&gt;</a></h3>
 </div>
 
 

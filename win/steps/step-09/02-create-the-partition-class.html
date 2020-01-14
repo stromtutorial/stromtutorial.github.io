@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-09/01-create-the-datatype-and-geneticcode-classes.html">&lt;&nbsp;9.1</a> | 9.2 | <a href="//win//steps/step-09/03-create-the-data-class.html">9.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-09/01-create-the-datatype-and-geneticcode-classes.html">&lt;&nbsp;9.1</a> | 9.2 | <a href="/win/steps/step-09/03-create-the-data-class.html">9.3&nbsp;&gt;</a></h3>
 </div>
 
 <h2 id="partition-class">Partition class</h2>
@@ -140,9 +140,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Partition::Partition() : _infinity(std::numeric_limits&amp;lt;unsigned&amp;gt;::max()) {   
         //std::cout &amp;lt;&amp;lt; "Constructing a Partition" &amp;lt;&amp;lt; std::endl;
         clear();
-    }   
+    }  
 
-    inline Partition::~Partition() {    
+    inline Partition::~Partition() {
         //std::cout &amp;lt;&amp;lt; "Destroying a Partition" &amp;lt;&amp;lt; std::endl;
     }   
 
@@ -152,27 +152,27 @@ namespace strom {
 <p>The functions <code class="highlighter-rouge">getNumSites</code>, <code class="highlighter-rouge">getNumSubsets</code>, <code class="highlighter-rouge">getSubsetName</code>, <code class="highlighter-rouge">getSubsetRangeVect</code>, <code class="highlighter-rouge">getDataTypeForSubset</code>, and <code class="highlighter-rouge">getSubsetDataTypes</code> provide access to the values stored in the private data members <code class="highlighter-rouge">_num_sites</code>, <code class="highlighter-rouge">_num_subsets</code>, <code class="highlighter-rouge">_subset_names</code>, <code class="highlighter-rouge">_subset_ranges</code>, and <code class="highlighter-rouge">_subset_data_types</code>, respectively, but do not allow you to change those variables.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Partition::getNumSites() const {    
         return _num_sites;
-    }    
+    }
     
-    inline unsigned Partition::getNumSubsets() const {    
+    inline unsigned Partition::getNumSubsets() const {
         return _num_subsets;
-    }    
+    }
     
-    inline std::string Partition::getSubsetName(unsigned subset) const {    
+    inline std::string Partition::getSubsetName(unsigned subset) const {
         assert(subset &amp;lt; _num_subsets);
         return _subset_names[subset];
-    }    
+    }
     
-    inline const Partition::partition_t &amp; Partition::getSubsetRangeVect() const {    
+    inline const Partition::partition_t &amp; Partition::getSubsetRangeVect() const {
         return _subset_ranges;
-    }    
+    }
     
-    inline DataType Partition::getDataTypeForSubset(unsigned subset_index) const {    
+    inline DataType Partition::getDataTypeForSubset(unsigned subset_index) const {
         assert(subset_index &amp;lt; _subset_data_types.size());
         return _subset_data_types[subset_index];
-    }    
+    }
 
-    inline const std::vector&amp;lt;DataType&amp;gt; &amp; Partition::getSubsetDataTypes() const {    
+    inline const std::vector&amp;lt;DataType&amp;gt; &amp; Partition::getSubsetDataTypes() const {
         return _subset_data_types;
     }    
 
@@ -552,7 +552,7 @@ match_obj[1] = "rbcL"
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-09/01-create-the-datatype-and-geneticcode-classes.html">&lt;&nbsp;9.1</a> | 9.2 | <a href="//win//steps/step-09/03-create-the-data-class.html">9.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-09/01-create-the-datatype-and-geneticcode-classes.html">&lt;&nbsp;9.1</a> | 9.2 | <a href="/win/steps/step-09/03-create-the-data-class.html">9.3&nbsp;&gt;</a></h3>
 </div>
 
 

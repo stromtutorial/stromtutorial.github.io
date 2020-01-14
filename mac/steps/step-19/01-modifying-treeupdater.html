@@ -42,20 +42,12 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/00-polytomies.html">&lt;&nbsp;19.0</a> | 19.1 | <a href="//mac//steps/step-19/02-the-polytomyupdater-class.html">19.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/00-polytomies.html">&lt;&nbsp;19.0</a> | 19.1 | <a href="/mac/steps/step-19/02-the-polytomyupdater-class.html">19.2&nbsp;&gt;</a></h3>
 </div>
 
 
-<p>We will need to make two modifications to the <code class="highlighter-rouge">TreeUpdater</code> class. First, we will move the <code class="highlighter-rouge">calcLogTopologyPrior</code> function to <code class="highlighter-rouge">Updater</code> because there will soon be more than one class that needs to calculate the tree topology prior. Begin by removing the line shown commented out below and (not shown) remove the body of the <code class="highlighter-rouge">calcLogTopologyPrior</code> member function from <em>tree_updater.hpp</em>.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
-
-#include "updater.hpp"
-
-namespace strom {
-
-    class Chain;
-
-    class TreeUpdater : public Updater {
+<p>We will need to make one modification to the <code class="highlighter-rouge">TreeUpdater</code> class. Specificaly, we need to provide a special case proposal for the case in which the current tree is the star tree. The star tree (only one internal node) is a special case because it does not contain a 3-edge segment to modify. In the case of the star tree, we will simply adjust two randomly-chosen edge proportions. Add the highlighted <code class="highlighter-rouge">starTreeMove</code> function prototype as well as the <code class="highlighter-rouge">_star_tree_move</code> data member to the class declaration</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class TreeUpdater : public Updater {    
 
         friend class Chain;
 
@@ -67,7 +59,6 @@ namespace strom {
                                                 ~TreeUpdater();
 
             virtual double                      calcLogPrior();
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//double                              calcLogTopologyPrior() const;&lt;/strong&gt;&lt;/span&gt;
 
         private:
 
@@ -75,7 +66,6 @@ namespace strom {
             virtual void                        proposeNewState();
         
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                starTreeMove();&lt;/strong&gt;&lt;/span&gt;
-            Node *                              chooseRandomChild(Node * x, Node * avoid, bool parent_included);
 
             virtual void                        reset();
 
@@ -90,22 +80,21 @@ namespace strom {
             Node *                              _y;
             Node *                              _a;
             Node *                              _b;
-    };
-    
+    }; 
 
 </code></pre></div></div>
 
-<p>Second, we will need to provide a special case proposal for the case in which the current tree is the star tree. The star tree (only one internal node) is a special case because it does not contain a 3-edge segment to modify. In the case of the star tree, we will simply adjust two randomly-chosen edge proportions. Add the highlighted <code class="highlighter-rouge">starTreeMove</code> function prototype as well as the <code class="highlighter-rouge">_star_tree_move</code> data member to the class declaration (shown above) and add the following function body to <em>tree_updater.hpp</em>.</p>
+<p>Now add the following function body to <em>tree_updater.hpp</em>.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeUpdater::starTreeMove() {    
         // Choose focal 2-edge segment to modify
         _orig_edgelen_middle = 0.0;
         
         // Choose the first edge
-        _a = chooseRandomChild(_x, 0, false);
+        _a = _tree_manipulator-&amp;gt;randomChild(_lot, _x, 0, false);
         _orig_edgelen_top = _a-&amp;gt;getEdgeLength();
 
         // Choose the second edge
-        _b = chooseRandomChild(_x, _a, true);
+        _b = _tree_manipulator-&amp;gt;randomChild(_lot, _x, _a, true);
         if (!_b)
             _b = _x;
         _orig_edgelen_bottom = _b-&amp;gt;getEdgeLength();
@@ -161,7 +150,7 @@ namespace strom {
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//        b&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//&lt;/strong&gt;&lt;/span&gt;
         
-        _x = _tree_manipulator-&amp;gt;randomInternalEdge(_lot-&amp;gt;uniform());
+        _x = _tree_manipulator-&amp;gt;randomInternalEdge(_lot);
         _orig_edgelen_middle = _x-&amp;gt;getEdgeLength();
         
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// The only child of the root node will be chosen only if the tree equals the star tree&lt;/strong&gt;&lt;/span&gt;
@@ -179,7 +168,7 @@ namespace strom {
 
 </code></pre></div></div>
 
-<p>Finally, add a section to the TreeUpdater::revert function to revert a star tree move, if the current tree is the star tree.</p>
+<p>Finally, add a section to the <code class="highlighter-rouge">TreeUpdater::revert</code> function to revert a star tree move, if the current tree is the star tree.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeUpdater::revert() { 
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_star_tree_move) {&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_a-&amp;gt;setEdgeLength(_orig_edgelen_top);&lt;/strong&gt;&lt;/span&gt;
@@ -194,16 +183,16 @@ namespace strom {
             _a-&amp;gt;setEdgeLength(_orig_edgelen_top);
             _x-&amp;gt;setEdgeLength(_orig_edgelen_middle);
             if (_case == 1 || _case == 3 || _case == 5 || _case == 7)
-                _b-&amp;gt;setEdgeLength(_orig_edgelen_bottom);
+                _b-&amp;gt;setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 3
             else
-                _y-&amp;gt;setEdgeLength(_orig_edgelen_bottom);
+                _y-&amp;gt;setEdgeLength(_orig_edgelen_bottom);    // not actually necessary for case 4
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
     }   
 
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/00-polytomies.html">&lt;&nbsp;19.0</a> | 19.1 | <a href="//mac//steps/step-19/02-the-polytomyupdater-class.html">19.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/00-polytomies.html">&lt;&nbsp;19.0</a> | 19.1 | <a href="/mac/steps/step-19/02-the-polytomyupdater-class.html">19.2&nbsp;&gt;</a></h3>
 </div>
 
 

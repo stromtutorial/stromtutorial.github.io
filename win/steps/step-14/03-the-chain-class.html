@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-14/02-the-gammashapeupdater-class.html">&lt;&nbsp;14.2</a> | 14.3 | <a href="//win//steps/step-14/04-testing-the-chain-class.html">14.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-14/02-the-gammashapeupdater-class.html">&lt;&nbsp;14.2</a> | 14.3 | <a href="/win/steps/step-14/04-testing-the-chain-class.html">14.4&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -134,9 +134,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Chain::Chain() { 
         //std::cout &amp;lt;&amp;lt; "Chain being created" &amp;lt;&amp;lt; std::endl;
         clear();
-    } 
+    }
 
-    inline Chain::~Chain() { 
+    inline Chain::~Chain() {
         //std::cout &amp;lt;&amp;lt; "Chain being destroyed" &amp;lt;&amp;lt; std::endl;
     } 
 
@@ -161,9 +161,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::startTuning() { 
         for (auto u : _updaters)
             u-&amp;gt;setTuning(true);
-    } 
+    }
 
-    inline void Chain::stopTuning() { 
+    inline void Chain::stopTuning() {
         for (auto u : _updaters)
             u-&amp;gt;setTuning(false);
     } 
@@ -251,9 +251,9 @@ namespace strom {
 <p>The <code class="highlighter-rouge">setHeatingPower</code> function is responsible for setting the heating power for all updaters. Right now, there is only one updater (<code class="highlighter-rouge">GammaRateVarUpdater</code>) but more lines will be uncommented as other updaters are created. The <code class="highlighter-rouge">getHeatingPower</code> accessor function may be used to query a <code class="highlighter-rouge">Chain</code> object to find out its current heating power. When two chains swap, it is easier to simply exchange heating powers rather than swap states (which would involve copying lots of parameter values as well as the tree topology and edge lengths). As a result, the <code class="highlighter-rouge">setHeatingPower</code> function gets called often during an MCMC analysis involving multiple chains.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::getHeatingPower() const { 
         return _heating_power;
-    } 
+    }
 
-    inline void Chain::setHeatingPower(double p) { 
+    inline void Chain::setHeatingPower(double p) {
         _heating_power = p;
         for (auto u : _updaters)
             u-&amp;gt;setHeatingPower(p);
@@ -266,9 +266,9 @@ namespace strom {
 <p>The <code class="highlighter-rouge">setChainIndex</code> function is responsible for setting the index of the chain (stored in the data member <code class="highlighter-rouge">_chain_index</code>). The chain index will become important when we begin to use heated chains; when two chains swap places, it is easier to simply swap their indices and chain powers rather than copy the entire state (tree topology, edge lengths, state frequencies, etc.).</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::getChainIndex() const { 
         return _chain_index;
-    } 
+    }
 
-    inline void Chain::setChainIndex(unsigned idx) { 
+    inline void Chain::setChainIndex(unsigned idx) {
         _chain_index = idx;
     } 
 
@@ -335,9 +335,9 @@ namespace strom {
         for (auto u : _updaters)
             v.push_back(u-&amp;gt;getLambda());
         return v;
-    } 
+    }
 
-    inline void Chain::setLambdas(std::vector&amp;lt;double&amp;gt; &amp; v) { 
+    inline void Chain::setLambdas(std::vector&amp;lt;double&amp;gt; &amp; v) {
         assert(v.size() == _updaters.size());
         unsigned index = 0;
         for (auto u : _updaters) {
@@ -372,15 +372,13 @@ namespace strom {
 <h2 id="the-start-and-stop-member-functions">The start and stop member functions</h2>
 
 <p>The <code class="highlighter-rouge">start</code> and <code class="highlighter-rouge">stop</code> functions are called before the <code class="highlighter-rouge">Chain</code> object begins simulating a Markov chain and after it finishes, respectively. The <code class="highlighter-rouge">stop</code> function is simply a placeholder for now, but the <code class="highlighter-rouge">start</code> function is responsible for spitting out the starting state of the chain to the output.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::start() { 
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::start() {    
         _tree_manipulator-&amp;gt;selectAllPartials();
         _tree_manipulator-&amp;gt;selectAllTMatrices();
         _log_likelihood = calcLogLikelihood();
-        _tree_manipulator-&amp;gt;deselectAllPartials();
-        _tree_manipulator-&amp;gt;deselectAllTMatrices();
-    } 
+    }
 
-    inline void Chain::stop() { 
+    inline void Chain::stop() {
     } 
 
 </code></pre></div></div>
@@ -406,7 +404,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-14/02-the-gammashapeupdater-class.html">&lt;&nbsp;14.2</a> | 14.3 | <a href="//win//steps/step-14/04-testing-the-chain-class.html">14.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-14/02-the-gammashapeupdater-class.html">&lt;&nbsp;14.2</a> | 14.3 | <a href="/win/steps/step-14/04-testing-the-chain-class.html">14.4&nbsp;&gt;</a></h3>
 </div>
 
 

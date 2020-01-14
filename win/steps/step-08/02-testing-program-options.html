@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="//win//steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="/win/steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -85,7 +85,8 @@ int main(int argc, const char * argv[]) {
 
 <p>Some data members (<code class="highlighter-rouge">_program_name</code>, <code class="highlighter-rouge">_major_version</code>, and <code class="highlighter-rouge">_minor_version</code>) of the <code class="highlighter-rouge">Strom</code> class were declared static. We must therefore initialize these in <em>main.cpp</em>, as it is our only source code file, just like we have been doing for <code class="highlighter-rouge">Node::_smallest_edge_length</code>.</p>
 
-<h2 id="compiling-the-boost-program_options-library">Compiling the Boost <code class="highlighter-rouge">program_options</code> library</h2>
+<h2 id="compiling-the-boost-program_options-library">Compiling the Boost program_options library</h2>
+
 <p>The extra capability we’ve added to our program requires us to:</p>
 <ul>
   <li>compile the Boost <code class="highlighter-rouge">program_options</code> library,</li>
@@ -93,7 +94,7 @@ int main(int argc, const char * argv[]) {
 Let’s take these one at a time</li>
 </ul>
 
-<h3 id="compile-the-boost-program_options-library">Compile the Boost <code class="highlighter-rouge">program_options</code> library</h3>
+<h3 id="compile-the-boost-program_options-library">Compile the Boost program_options library</h3>
 
 <p>You have previously (<a href="/steps/step-05/02-test-makenewick.html">step 5</a>) downloaded and unpacked the Boost C++ library into your libraries directory; however, some of the libraries within Boost that we will be using need to be compiled, so let’s do that now. Start by double-clicking the <em>bootstrap.bat</em> file inside your <code class="highlighter-rouge">BOOST_ROOT</code> directory. This will create the compile engine that Boost uses (called <em>b2.exe</em>) and will deposit a file named <em>project-config.jam</em> in the <code class="highlighter-rouge">BOOST_ROOT</code> directory. This file will contain 3 lines, but edit it (use <a href="https://notepad-plus-plus.org/">NotePad++</a> for this) and add one additional line that specifies the libraries we will need to compile (we only need <em>program_options</em> now, but we’ll go ahead and compile <em>filesystem</em> and <em>system</em> now to save having to do this later):</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>import option ; 
@@ -191,7 +192,7 @@ treefile = test.tre
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="//win//steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="/win/steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -42,13 +42,19 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-17/03-modify-chain.html">&lt;&nbsp;17.3</a> | 17.4 | <a href="//win//steps/step-17/05-testing-tree-updaters.html">17.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-17/03-modify-chain.html">&lt;&nbsp;17.3</a> | 17.4 | <a href="/win/steps/step-17/05-testing-tree-updaters.html">17.5&nbsp;&gt;</a></h3>
 </div>
 
 
-<p>Three helper functions need to be added to the <code class="highlighter-rouge">TreeManip</code> class. The <code class="highlighter-rouge">countEdges</code> member function returns the number of elements in the <code class="highlighter-rouge">_preorder</code> vector; this value equals the number of edges in the tree. The <code class="highlighter-rouge">randomInternalEdge</code> function returns a pointer to the <code class="highlighter-rouge">Node</code> object managing a randomly selected internal edge. The <code class="highlighter-rouge">LargetSimonSwap</code> function effects a swap of nodes <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code>, where <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are the ends of the 3-edge segment modified during a Larget-Simon move, with <code class="highlighter-rouge">a</code> the higher (furthest from the root) of the two in the tree. If <code class="highlighter-rouge">b</code> is not the bottom-most node in the path, node <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are both removed from the tree, then <code class="highlighter-rouge">a</code> is placed back into the tree where <code class="highlighter-rouge">b</code> once was and vice versa. If <code class="highlighter-rouge">b</code> is bottom-most, then the other nodes along the path are swapped (which accomplishes the same NNI swap but is less trouble). This function works even if the nodes in the path are polytomies.</p>
+<p>Three helper functions need to be added to the <code class="highlighter-rouge">TreeManip</code> class:</p>
+<ul>
+  <li>the <code class="highlighter-rouge">randomInternalEdge</code> function returns a pointer to the <code class="highlighter-rouge">Node</code> object managing a randomly selected internal edge</li>
+  <li>the <code class="highlighter-rouge">randomChild</code> function chooses a child of the specified node at random, and other parameters allow including the parent as a possible “child” and specifying a node to avoid when making the choice; and</li>
+  <li>the <code class="highlighter-rouge">LargetSimonSwap</code> function effects a swap of nodes <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code>.
+In the <code class="highlighter-rouge">LargetSimonSwap</code> function, <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are the ends of the 3-edge segment modified during a Larget-Simon move, with <code class="highlighter-rouge">a</code> the higher (furthest from the root) of the two in the tree. If <code class="highlighter-rouge">b</code> is not the bottom-most node in the path, node <code class="highlighter-rouge">a</code> and <code class="highlighter-rouge">b</code> are both removed from the tree, then <code class="highlighter-rouge">a</code> is placed back into the tree where <code class="highlighter-rouge">b</code> once was and vice versa. If <code class="highlighter-rouge">b</code> is bottom-most, then the other nodes along the path are swapped (which accomplishes the same NNI swap but is less trouble). This function works even if the nodes in the path are polytomies.</li>
+</ul>
 
-<p>Here are the two lines that must be added to the class declaration in <em>tree_manip.hpp</em>.</p>
+<p>Here are the lines that must be added to the class declaration in <em>tree_manip.hpp</em>.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
 
 #include &amp;lt;cassert&amp;gt;
@@ -60,6 +66,7 @@
 #include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
 #include &amp;lt;boost/format.hpp&amp;gt;
 #include "tree.hpp"
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;#include "lot.hpp"&lt;/strong&gt;&lt;/span&gt;
 #include "xstrom.hpp"
 
 namespace strom {
@@ -78,14 +85,15 @@ namespace strom {
             void                        scaleAllEdgeLengths(double scaler);
 
             void                        createTestTree();
-            std::string                 makeNewick(unsigned precision) const;
+            std::string                 makeNewick(unsigned precision, bool use_names = false) const;
 
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);
             void                        rerootAtNodeNumber(int node_number);
         
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      randomInternalEdge(Lot::SharedPtr lot);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        LargetSimonSwap(Node * a, Node * b);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      randomInternalEdge(double uniform01);&lt;/strong&gt;&lt;/span&gt;
         
             void                        selectAll();
             void                        deselectAll();
@@ -93,7 +101,6 @@ namespace strom {
             void                        deselectAllPartials();
             void                        selectAllTMatrices();
             void                        deselectAllTMatrices();
-
             void                        selectPartialsHereToRoot(Node * a);
             void                        flipPartialsAndTMatrices();
 
@@ -101,6 +108,7 @@ namespace strom {
 
         private:
 
+            Node *                      findNextPreorder(Node * nd);
             void                        refreshPreorder();
             void                        refreshLevelorder();
             void                        renumberInternals();
@@ -118,6 +126,88 @@ namespace strom {
             typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
     };
     
+
+</code></pre></div></div>
+
+<p>Here is the function body for the <code class="highlighter-rouge">randomInternalEdge</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::randomInternalEdge(Lot::SharedPtr lot) {   
+        // Unrooted case:                        Rooted case:
+        //
+        // 2     3     4     5                   1     2     3     4
+        //  \   /     /     /                     \   /     /     /
+        //   \ /     /     /                       \ /     /     /
+        //    8     /     /                         7     /     /
+        //     \   /     /                           \   /     /
+        //      \ /     /                             \ /     /
+        //       7     /                               6     /
+        //        \   /                                 \   /
+        //         \ /                                   \ /
+        //          6   nleaves = 5                       5   nleaves = 4
+        //          |   preorder length = 7               |    preorder length = 7
+        //          |   num_internal_edges = 7 - 5 = 2    |    num_internal_edges = 7 - 4 - 1 = 2
+        //          1   choose node 7 or node 8          root  choose node 6 or node 7
+        //
+        // _preorder = [6, 7, 8, 2, 3, 4, 5]     _preorder = [5, 6, 7, 1, 2, 3, 4]
+        //
+        // Note: _preorder is actually a vector of T *, but is shown here as a
+        // vector of integers solely to illustrate the algorithm below
+        
+        int num_internal_edges = (unsigned)_tree-&amp;gt;_preorder.size() - _tree-&amp;gt;_nleaves - (_tree-&amp;gt;_is_rooted ? 1 : 0);
+
+        // Add one to skip first node in _preorder vector, which is an internal node whose edge
+        // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
+        double uniform_deviate = lot-&amp;gt;uniform();
+        unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
+
+        unsigned internal_nodes_visited = 0;
+        Node * chosen_node = 0;
+        for (auto nd : _tree-&amp;gt;_preorder) {
+            if (nd-&amp;gt;_left_child) {
+                if (internal_nodes_visited == index_of_chosen) {
+                    chosen_node = nd;
+                    break;
+                }
+                else
+                    ++internal_nodes_visited;
+            }
+        }
+        assert(chosen_node);
+        return chosen_node;
+    }   
+
+</code></pre></div></div>
+
+<p>Here is the function body for the <code class="highlighter-rouge">randomChild</code> member function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included) { 
+        // Count number of children of x
+        unsigned n = 0;
+        Node * child = x-&amp;gt;getLeftChild();
+        while (child) {
+            if (child != avoid)
+                n++;
+            child = child-&amp;gt;getRightSib();
+        }
+        
+        // Choose random child index
+        unsigned upper = n + (parent_included ? 1 : 0);
+        unsigned chosen = lot-&amp;gt;randint(0,upper - 1);
+        
+        // If chosen &amp;lt; n, then find and return that particular child
+        if (chosen &amp;lt; n) {
+            child = x-&amp;gt;getLeftChild();
+            unsigned i = 0;
+            while (child) {
+                if (child != avoid &amp;&amp; i == chosen)
+                    return child;
+                else if (child != avoid)
+                    i++;
+                child = child-&amp;gt;getRightSib();
+            }
+        }
+
+        // If chosen equals n, then the parent was chosen, indicated by returning NULL
+        return NULL;
+    } 
 
 </code></pre></div></div>
 
@@ -287,58 +377,9 @@ namespace strom {
 
 </code></pre></div></div>
 
-<p>Here is the function body for the <code class="highlighter-rouge">randomInternalEdge</code> member function.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::randomInternalEdge(double uniform_deviate) {   
-        assert(uniform_deviate &amp;gt;= 0.0);
-        assert(uniform_deviate &amp;lt; 1.0);
-
-        // Unrooted case:                        Rooted case:
-        //
-        // 2     3     4     5                   1     2     3     4
-        //  \   /     /     /                     \   /     /     /
-        //   \ /     /     /                       \ /     /     /
-        //    8     /     /                         7     /     /
-        //     \   /     /                           \   /     /
-        //      \ /     /                             \ /     /
-        //       7     /                               6     /
-        //        \   /                                 \   /
-        //         \ /                                   \ /
-        //          6   nleaves = 5                       5   nleaves = 4
-        //          |   num_internal_edges = 2            |   num_internal_edges = 2
-        //          |   choose node 7 or node 8           |   choose node 6 or node 7
-        //          1                                    root
-        //
-        // _preorder = [6, 7, 8, 2, 3, 4, 5]     _preorder = [5, 6, 7, 1, 2, 3, 4]
-        //
-        // Note: _preorder is actually a vector of T *, but is shown here as a
-        // vector of integers solely to illustrate the algorithm below
-        
-        unsigned num_internal_edges = (unsigned)_tree-&amp;gt;_preorder.size() - _tree-&amp;gt;_nleaves - (_tree-&amp;gt;_is_rooted ? 0 : 1);
-
-        // Add one to skip first node in _preorder vector, which is an internal node whose edge
-        // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
-        unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
-
-        unsigned internal_nodes_visited = 0;
-        Node * chosen_node = 0;
-        for (auto nd : _tree-&amp;gt;_preorder) {
-            if (nd-&amp;gt;_left_child) {
-                if (internal_nodes_visited == index_of_chosen) {
-                    chosen_node = nd;
-                    break;
-                }
-                else
-                    ++internal_nodes_visited;
-            }
-        }
-        assert(chosen_node);
-        return chosen_node;
-    }   
-
-</code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-17/03-modify-chain.html">&lt;&nbsp;17.3</a> | 17.4 | <a href="//win//steps/step-17/05-testing-tree-updaters.html">17.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-17/03-modify-chain.html">&lt;&nbsp;17.3</a> | 17.4 | <a href="/win/steps/step-17/05-testing-tree-updaters.html">17.5&nbsp;&gt;</a></h3>
 </div>
 
 

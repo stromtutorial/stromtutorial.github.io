@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-09/00-reading-and-storing-data.html">&lt;&nbsp;9.0</a> | 9.1 | <a href="//mac//steps/step-09/02-create-the-partition-class.html">9.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-09/00-reading-and-storing-data.html">&lt;&nbsp;9.0</a> | 9.1 | <a href="/mac/steps/step-09/02-create-the-partition-class.html">9.2&nbsp;&gt;</a></h3>
 </div>
 
 <h2 id="defining-a-data-partition">Defining a data partition</h2>
@@ -187,14 +187,14 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline GeneticCode::GeneticCode() { 
         //std::cout &amp;lt;&amp;lt; "Constructing a standard GeneticCode" &amp;lt;&amp;lt; std::endl;
         useGeneticCode("standard");
-    } 
+    }
 
-    inline GeneticCode::GeneticCode(std::string name) { 
+    inline GeneticCode::GeneticCode(std::string name) {
         //std::cout &amp;lt;&amp;lt; "Constructing a " &amp;lt;&amp;lt; name &amp;lt;&amp;lt; " GeneticCode" &amp;lt;&amp;lt; std::endl;
         useGeneticCode(name);
-    } 
+    }
 
-    inline GeneticCode::~GeneticCode() { 
+    inline GeneticCode::~GeneticCode() {
         //std::cout &amp;lt;&amp;lt; "Destroying a GeneticCode" &amp;lt;&amp;lt; std::endl;
     } 
 
@@ -382,9 +382,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline DataType::DataType() : _datatype(0), _num_states(0) {    
         //std::cout &amp;lt;&amp;lt; "Creating a DataType object" &amp;lt;&amp;lt; std::endl;
         setNucleotide();
-    }    
+    }
     
-    inline DataType::~DataType() {    
+    inline DataType::~DataType() {
         //std::cout &amp;lt;&amp;lt; "Destroying a DataType object" &amp;lt;&amp;lt; std::endl;
     }    
 
@@ -396,21 +396,21 @@ namespace strom {
         _datatype = 1;
         _num_states = 4;
         _genetic_code = nullptr;
-    }   
+    }
     
-    inline void DataType::setCodon() {  
+    inline void DataType::setCodon() {
         _datatype = 2;
         _genetic_code = GeneticCode::SharedPtr(new GeneticCode("standard"));
         _num_states = _genetic_code-&amp;gt;getNumNonStopCodons();
-    }   
+    }
     
-    inline void DataType::setProtein() {    
+    inline void DataType::setProtein() {
         _datatype = 3;
         _num_states = 20;
         _genetic_code = nullptr;
-    }   
+    }
     
-    inline void DataType::setStandard() {   
+    inline void DataType::setStandard() {
         _datatype = 4;
         _num_states = 2;
         _genetic_code = nullptr;
@@ -422,17 +422,17 @@ namespace strom {
 <p>The four member functions <code class="highlighter-rouge">isNucleotide</code>, <code class="highlighter-rouge">isCodon</code>, <code class="highlighter-rouge">isProtein</code>, and <code class="highlighter-rouge">isStandard</code> allow you to query the data type to determine which of the four possible data types it represents.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool DataType::isNucleotide() const {    
         return (_datatype == 1);
-    }   
+    }
 
-    inline bool DataType::isCodon() const { 
+    inline bool DataType::isCodon() const {
         return (_datatype == 2);
-    }   
+    }
 
-    inline bool DataType::isProtein() const {   
+    inline bool DataType::isProtein() const {
         return (_datatype == 3);
-    }   
+    }
 
-    inline bool DataType::isStandard() const {  
+    inline bool DataType::isStandard() const {
         return (_datatype == 4);
     }   
 
@@ -447,15 +447,15 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void DataType::setGeneticCodeFromName(std::string genetic_code_name) {   
         assert(isCodon());
         _genetic_code = GeneticCode::SharedPtr(new GeneticCode(genetic_code_name));
-    }   
+    }
     
-    inline void DataType::setGeneticCode(GeneticCode::SharedPtr gcode) {   
+    inline void DataType::setGeneticCode(GeneticCode::SharedPtr gcode) {
         assert(isCodon());
         assert(gcode);
         _genetic_code = gcode;
-    }   
+    }
 
-    inline void DataType::setStandardNumStates(unsigned nstates) {   
+    inline void DataType::setStandardNumStates(unsigned nstates) {
         _datatype = 4;
         _num_states = nstates;
         _genetic_code = nullptr;
@@ -467,13 +467,13 @@ namespace strom {
 <p>These are accessor functions that return the values stored in the private data members <code class="highlighter-rouge">_datatype</code>, <code class="highlighter-rouge">_num_states</code>, and <code class="highlighter-rouge">_genetic_code</code>, respectively.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned DataType::getDataType() const {   
         return _datatype;
-    }   
+    }
     
-    inline unsigned DataType::getNumStates() const {   
+    inline unsigned DataType::getNumStates() const {
         return _num_states;
-    }   
+    }
     
-    inline const GeneticCode::SharedPtr DataType::getGeneticCode() const {   
+    inline const GeneticCode::SharedPtr DataType::getGeneticCode() const {
         assert(isCodon());
         return _genetic_code;
     }   
@@ -489,9 +489,9 @@ namespace strom {
         if (isCodon())
             s += boost::str(boost::format(",%s") % _genetic_code-&amp;gt;getGeneticCodeName());
         return s;
-    }   
+    }
     
-    inline std::string DataType::translateDataTypeToString(unsigned datatype) {   
+    inline std::string DataType::translateDataTypeToString(unsigned datatype) {
         assert(datatype == 1 || datatype == 2 || datatype == 3 || datatype == 4);
         if (datatype == 1)
             return std::string("nucleotide");
@@ -507,7 +507,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-09/00-reading-and-storing-data.html">&lt;&nbsp;9.0</a> | 9.1 | <a href="//mac//steps/step-09/02-create-the-partition-class.html">9.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-09/00-reading-and-storing-data.html">&lt;&nbsp;9.0</a> | 9.1 | <a href="/mac/steps/step-09/02-create-the-partition-class.html">9.2&nbsp;&gt;</a></h3>
 </div>
 
 

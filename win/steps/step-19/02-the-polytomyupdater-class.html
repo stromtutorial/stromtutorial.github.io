@@ -42,11 +42,11 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-19/01-modifying-treeupdater.html">&lt;&nbsp;19.1</a> | 19.2 | <a href="//win//steps/step-19/03-the-topo-prior-calculator.html">19.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-19/01-modifying-treeupdater.html">&lt;&nbsp;19.1</a> | 19.2 | <a href="/win/steps/step-19/03-the-topo-prior-calculator.html">19.3&nbsp;&gt;</a></h3>
 </div>
 
 
-<p>We need a new updater that either adds and edge to an existing polytomy or deletes an edge to create a new polytomy (or expand an existing one). Create the <code class="highlighter-rouge">PolytomyUpdater</code> class declaration below in the file <em>polytomy_updater.hpp</em>.</p>
+<p>We need a new updater that either adds an edge to an existing polytomy or deletes an edge to create a new polytomy (or expand an existing one). Create the <code class="highlighter-rouge">PolytomyUpdater</code> class declaration below in the file <em>polytomy_updater.hpp</em>.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
 
 #include "updater.hpp"
@@ -88,6 +88,13 @@ namespace strom {
             
             Node *                              _orig_par;
             Node *                              _orig_lchild;
+            
+            Node *                              _first_child;
+            Node *                              _chosen_node;
+            double                              _chosen_edgelen;
+            double                              _chosen_proportion;
+            double                              _remainder_proportion;
+            double                              _fraction;
 
             bool                                _add_edge_proposed;
             double                              _new_edge_proportion;
@@ -127,9 +134,10 @@ namespace strom {
         _tree_length          = 0.0;
         _new_edge_proportion  = 0.0;
         _orig_edge_proportion = 0.0;
-        _phi                  = 0.5;
         _orig_par             = 0;
         _orig_lchild          = 0;
+        _chosen_node          = 0;
+        _first_child          = 0;
         _polytomy_size        = 0;
         _num_polytomies       = 0;
         _add_edge_proposed    = false;
@@ -160,18 +168,15 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::proposeNewState() {    
         Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
         
-        // Translate tuning parameter _lambda into the maximum possible proportion
-        // that a newly created edge could have
-        if (_lambda &amp;gt; 1000.0)
-            _lambda = 1000.0;
-        else if (_lambda &amp;lt; 1.0)
-            _lambda = 1.0;
-        _phi = 1.0 - std::exp(-_lambda);
+        // probability of choosing and add-edge move if both add-edge and delete-edge are possible
+        const double _prob_add_edge = 0.5;
 
         // Compute number of internal nodes in a fully resolved tree
         unsigned num_internals_in_fully_resolved_tree = 0;
-        if (tree-&amp;gt;isRooted())
+        if (tree-&amp;gt;isRooted()) {
+            // remember: root node is internal because it has a left child
             num_internals_in_fully_resolved_tree = tree-&amp;gt;numLeaves();
+        }
         else
             num_internals_in_fully_resolved_tree = tree-&amp;gt;numLeaves() - 2;
             
@@ -180,9 +185,8 @@ namespace strom {
 
         // Determine whether starting tree is fully resolved or the star tree
         unsigned num_internals_before = tree-&amp;gt;numInternals();
-        unsigned num_leaves_before = tree-&amp;gt;numLeaves();
+        //unsigned num_leaves_before = tree-&amp;gt;numLeaves();
         unsigned num_internal_edges_before = num_internals_before - (tree-&amp;gt;isRooted() ? 2 : 1);
-        unsigned total_edges_before = num_leaves_before + num_internal_edges_before;
         bool fully_resolved_before = (num_internals_in_fully_resolved_tree == num_internals_before);
         bool star_tree_before = (tree-&amp;gt;numInternals() == 1);
         
@@ -196,19 +200,18 @@ namespace strom {
         else if (fully_resolved_before)
             _add_edge_proposed = false;
         else
-            _add_edge_proposed = (_lot-&amp;gt;uniform() &amp;lt; 0.5);
-            
+            _add_edge_proposed = (_lot-&amp;gt;uniform() &amp;lt; _prob_add_edge);
+
         Node * nd = 0;
         if (_add_edge_proposed) {
             // Choose a polytomy at random to split
-            unsigned i = _lot-&amp;gt;randint(0, _num_polytomies-1);
+            unsigned i = (unsigned)_lot-&amp;gt;randint(0, _num_polytomies-1);
             nd = _polytomies[i];
             _polytomy_size = 1 + _tree_manipulator-&amp;gt;countChildren(nd);
 
             // Add an edge to split up polytomy at nd, moving a random subset
             // of the spokes to the (new) left child of nd
             proposeAddEdgeMove(nd);
-            Node * new_nd = nd-&amp;gt;getLeftChild();
 
             double TL_after_add_edge = _tree_manipulator-&amp;gt;calcTreeLength();
             assert(std::fabs(_tree_length - TL_after_add_edge) &amp;lt; 1.e-8);
@@ -218,29 +221,39 @@ namespace strom {
             _log_hastings_ratio += std::log(_num_polytomies);
             _log_hastings_ratio += std::log(pow(2.0, _polytomy_size - 1) - _polytomy_size - 1);
             _log_hastings_ratio -= std::log(num_internal_edges_before + 1);
-            
+
             // Now multiply by the value of the quantity labeled gamma_b in the Lewis-Holder-Holsinger (2005) paper
             unsigned num_internals_after = tree-&amp;gt;numInternals();
             assert(num_internals_after == num_internals_before + 1);
             const bool fully_resolved_after = (num_internals_after == num_internals_in_fully_resolved_tree);
+            double tmp = 0.0;
             if (star_tree_before &amp;&amp; !fully_resolved_after)
-                _log_hastings_ratio -= log(2.0);
+                tmp += log(1.0 - _prob_add_edge);
             else if (fully_resolved_after &amp;&amp; !star_tree_before)
-                _log_hastings_ratio += log(2.0);
-                
-            // Compute the log of the Jacobian
-            _log_jacobian = 0.0;
-            _log_jacobian += std::log(_phi);
-            _log_jacobian += (total_edges_before - 1)*std::log(1.0 - _new_edge_proportion);
+                tmp -= log(_prob_add_edge);
+            else if (!star_tree_before &amp;&amp; !fully_resolved_after) {
+                tmp += log(1.0 - _prob_add_edge);
+                tmp -= log(_prob_add_edge);
+            }
+            _log_hastings_ratio += tmp;
 
-            // flag partials and transition matrices for recalculation
-            _tree_manipulator-&amp;gt;selectPartialsHereToRoot(new_nd);
-            new_nd-&amp;gt;selectTMatrix();
+            // Compute the log of the Jacobian
+            //_log_jacobian = std::log(_orig_edge_proportion) - std::log(1.-_fraction);
+            _log_jacobian = std::log(_orig_edge_proportion);    //POLTMP temporary!
+
+            // flag partials for recalculation
+            _tree_manipulator-&amp;gt;selectPartialsHereToRoot(_orig_lchild);
+
+            // These two nodes have had their edge lengths modified, so their transition matrices need recalculating
+            _orig_lchild-&amp;gt;selectTMatrix();
+            _chosen_node-&amp;gt;selectTMatrix();
         }
         else {
             // Choose an internal edge at random and delete it to create a polytomy
             // (or a bigger polytomy if there is already a polytomy)
-            nd = _tree_manipulator-&amp;gt;randomInternalEdge(_lot-&amp;gt;uniform());
+            nd = _tree_manipulator-&amp;gt;randomInternalEdge(_lot);
+            assert(nd-&amp;gt;getParent() &amp;&amp; nd-&amp;gt;getParent()-&amp;gt;getParent());
+            
             proposeDeleteEdgeMove(nd);
 
             double TL_after_del_edge = _tree_manipulator-&amp;gt;calcTreeLength();
@@ -257,20 +270,30 @@ namespace strom {
             unsigned num_internals_after = tree-&amp;gt;numInternals();
             assert(num_internals_after == num_internals_before - 1);
             const bool star_tree_after = (num_internals_after == (tree-&amp;gt;isRooted() ? 2 : 1));
-            if (fully_resolved_before &amp;&amp; !star_tree_after) {
-                _log_hastings_ratio -= log(2.0);
+            double tmp = 0.0;
+            if (fully_resolved_before &amp;&amp; !star_tree_after)
+                tmp += log(_prob_add_edge);
+            else if (star_tree_after &amp;&amp; !fully_resolved_before)
+                tmp -= log(1.0 - _prob_add_edge);
+            else if (!fully_resolved_before &amp;&amp; !star_tree_after) {
+                tmp += log(_prob_add_edge);
+                tmp -= log(1.0 - _prob_add_edge);
             }
-            else if (star_tree_after &amp;&amp; !fully_resolved_before) {
-                _log_hastings_ratio += log(2.0);
-            }
+            _log_hastings_ratio += tmp;
 
             // Compute the log Jacobian
-            _log_jacobian = 0.0;
-            _log_jacobian -= std::log(_phi);
-            _log_jacobian -= (total_edges_before - 2)*std::log(1.0 - _orig_edge_proportion);
+            _log_jacobian = -std::log(_new_edge_proportion);
 
             // flag partials and transition matrices for recalculation
-            _tree_manipulator-&amp;gt;selectPartialsHereToRoot(nd);
+            _tree_manipulator-&amp;gt;selectPartialsHereToRoot(_orig_par);
+            _chosen_node-&amp;gt;selectTMatrix();
+            
+            // This node is no longer in the tree, so we can't include it in selectPartialsHereToRoot;
+            // however, this node's tmatrix and partials will be trashed because it will be employed
+            // as a polytomy helper in the next likelihood calculation, so it needs to be flipped
+            // so that a revert will retain the original tmatrix and partial
+            _orig_lchild-&amp;gt;selectTMatrix();
+            _orig_lchild-&amp;gt;selectPartial();
         }
     }   
 
@@ -312,6 +335,17 @@ namespace strom {
         // as _orig_lchild in case we need to revert the proposed move.
         assert(u);
 
+        // Create the new node that will receive the k randomly-chosen spokes
+        Node * v = _tree_manipulator-&amp;gt;getUnusedNode();
+        _tree_manipulator-&amp;gt;insertSubtreeOnLeft(v, u);
+        assert(u-&amp;gt;getLeftChild() == v);
+        _tree_manipulator-&amp;gt;rectifyNumInternals(+1);
+
+        // Save u and v. If revert is necessary, all of orig_lchild's nodes will be returned
+        // to orig_par, and orig_lchild will be deleted.
+        _orig_par    = u;
+        _orig_lchild = v;
+
         // Calculate (if necessary) the probability of each possible partitioning of the chosen polytomy
         // Select number of spokes to move over to new node
         // Note that 0 and 1 are not allowed because they
@@ -332,37 +366,39 @@ namespace strom {
         assert(found);
         k += 2;
 
-        // Create the new node that will receive the k randomly-chosen spokes
-        Node * v = _tree_manipulator-&amp;gt;getUnusedNode();
-        _new_edge_proportion = _lot-&amp;gt;uniform()*_phi;
-        _tree_manipulator-&amp;gt;scaleAllEdgeLengths(1.0 - _new_edge_proportion);
-        v-&amp;gt;setEdgeLength(_new_edge_proportion*_tree_length);
-        _tree_manipulator-&amp;gt;rectifyNumInternals(+1);
-        _tree_manipulator-&amp;gt;insertSubtreeOnLeft(v, u);
-        assert(u-&amp;gt;getLeftChild() == v);
-
-        // Save u and v. If revert is necessary, all of orig_lchild's nodes will be returned
-        // to orig_par, and orig_lchild will be deleted.
-        _orig_par    = u;
-        _orig_lchild = v;
-
-        // After the move, either v should have k spokes and the
-        // other node _polytomy_size - k spokes (u and v will each
-        // have 1 additional connector spoke).
+        // After the move, either _orig_par or _orig_lchild should have k spokes
+        // with the other node having _polytomy_size - k spokes
+        // (_orig_par and _orig_lchild will each have 1 additional connector spoke).
         //
         // Choose k spokes randomly out of the _polytomy_size available.
-        // If u-&amp;gt;par is included, let u retain the k spokes and move
-        // _polytomy_size - k spokes to v. Otherwise, move the
-        // k spokes to v leaving _polytomy_size - k spokes behind.
+        // If _orig_par-&amp;gt;par is included, let _orig_par retain the k spokes and move
+        // _polytomy_size - k spokes to _orig_lchild.
+        // Otherwise, move the k spokes to _orig_lchild leaving _polytomy_size - k spokes behind.
         
-        // Create vector of valid spokes (parent and all children of u except v)
+        // Create vector of valid spokes (parent and all children of _orig_par except _orig_lchild)
         std::vector&amp;lt;Node *&amp;gt; uspokes;
-        uspokes.push_back(u-&amp;gt;getParent());
-        for (Node * uchild = u-&amp;gt;getLeftChild(); uchild; uchild = uchild-&amp;gt;getRightSib()) {
-            if (uchild != v)
-                uspokes.push_back(uchild);
+        uspokes.push_back(_orig_par-&amp;gt;getParent());
+        for (Node * child = _orig_par-&amp;gt;getLeftChild(); child; child = child-&amp;gt;getRightSib()) {
+            if (child != _orig_lchild)
+                uspokes.push_back(child);
         }
         assert (uspokes.size() == _polytomy_size);
+        
+        // Choose one of the candidates as the edge to break
+        unsigned i = (unsigned)_lot-&amp;gt;randint(0, (int)uspokes.size()-1);
+        _chosen_node = uspokes[i];
+        if (_chosen_node == _orig_par-&amp;gt;getParent())
+            _chosen_node = _orig_par;
+
+        // Break _chosen_node's edge in a random place
+        _orig_edge_proportion = _chosen_node-&amp;gt;getEdgeLength()/_tree_length;
+
+        _fraction = _lot-&amp;gt;uniform();
+        _new_edge_proportion = _fraction*_orig_edge_proportion;
+        _remainder_proportion = _orig_edge_proportion - _new_edge_proportion;
+
+        _chosen_node-&amp;gt;setEdgeLength(_new_edge_proportion*_tree_length);
+        _orig_lchild-&amp;gt;setEdgeLength(_remainder_proportion*_tree_length);
 
         bool reverse_polarity = false;
         std::vector&amp;lt;Node *&amp;gt; vspokes;
@@ -370,27 +406,27 @@ namespace strom {
         for (unsigned i = 0; i &amp;lt; k; ++i) {
             unsigned num_u_spokes = (unsigned)uspokes.size();
             assert(num_u_spokes &amp;gt; 0);
-            unsigned j = _lot-&amp;gt;randint(0, num_u_spokes-1);
+            unsigned j = (unsigned)_lot-&amp;gt;randint(0, num_u_spokes-1);
             Node * s = uspokes[j];
-            if (s == u-&amp;gt;getParent())
+            if (s == _orig_par-&amp;gt;getParent())
                 reverse_polarity = true;
             vspokes.push_back(s);
             uspokes.erase(uspokes.begin() + (vec_it_diff)j);
-            }
+        }
         assert(uspokes.size() + vspokes.size() == _polytomy_size);
 
         if (reverse_polarity) {
-            // transfer nodes in uspokes to v
+            // transfer nodes in uspokes to _orig_lchild
             for (auto s = uspokes.begin(); s != uspokes.end(); ++s) {
                 _tree_manipulator-&amp;gt;detachSubtree(*s);
-                _tree_manipulator-&amp;gt;insertSubtreeOnRight(*s, v);
+                _tree_manipulator-&amp;gt;insertSubtreeOnRight(*s, _orig_lchild);
             }
         }
         else {
-            // transfer nodes in vspokes to v
+            // transfer nodes in vspokes to _orig_lchild
             for (auto s = vspokes.begin(); s != vspokes.end(); ++s) {
                 _tree_manipulator-&amp;gt;detachSubtree(*s);
-                _tree_manipulator-&amp;gt;insertSubtreeOnRight(*s, v);
+                _tree_manipulator-&amp;gt;insertSubtreeOnRight(*s, _orig_lchild);
             }
         }
         
@@ -418,19 +454,19 @@ namespace strom {
   <li>the Jacobian determinant equals 1 divided by <code class="highlighter-rouge">phi (1 - v)^(n_e-2)</code>, where <code class="highlighter-rouge">v</code> is the proportion of the tree length corresponding to the edge that was deleted</li>
 </ul>
 
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::proposeDeleteEdgeMove(Node * u) {    
-        // Delete the edge associated with `u' to create a polytomy (or a bigger polytomy if `u-&amp;gt;par' was already a polytomy).
-        // The supplied node u should not be the only child of the root node.
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void PolytomyUpdater::proposeDeleteEdgeMove(Node * v) {    
+        // Delete the edge associated with `v' to create a polytomy (or a bigger polytomy if `v-&amp;gt;par' was already a polytomy).
+        // The supplied node v should not be the only child of the root node.
         //
         //       b       c
         //        \     /
         //         \   /
         //          \ /
-        //   a       u           a   b   c
+        //   a       v           a   b   c
         //    \     /            \  |  /
         //     \   /              \ | /
         //      \ /                \|/
-        //       v                  v
+        //       u                  u
         //      /                  /
         //
         //     Before           After
@@ -438,20 +474,22 @@ namespace strom {
         // Returns the number of polytomies in the tree after the proposed delete-edge move.
         // The return value will be incorrect if the polytomies vector is not up-to-date.
         
-        // Save u's edge length in case we need to revert
-        _orig_edge_proportion = u-&amp;gt;getEdgeLength()/_tree_length;
-
         // This operation should not leave the root node (which is a tip) with more than one
         // child, so check to make sure that the supplied node is not the root nor a child of root
-        _orig_par = u-&amp;gt;getParent();
+        _orig_lchild = v;
+        _orig_par = _orig_lchild-&amp;gt;getParent();
         assert(_orig_par);
         assert(_orig_par-&amp;gt;getParent());
 
-        // Compute size of polytomy after the delete-edge move, a quantity that is needed for computing the Hastings ratio.
-        // Note that one of v's children (i.e. u) is deleted but this is made up for by considering v-&amp;gt;par, which is
-        // also a spoke that counts.
-        unsigned u_children = _tree_manipulator-&amp;gt;countChildren(u);
-        unsigned v_children = _tree_manipulator-&amp;gt;countChildren(_orig_par);
+        // Save _orig_lchild's edge length in case we need to revert
+        _orig_edge_proportion = _orig_lchild-&amp;gt;getEdgeLength()/_tree_length;
+
+        // Compute size of polytomy after the delete-edge move, a quantity needed
+        // for computing the Hastings ratio. Note that one of u's children
+        // (i.e. _orig_lchild) is deleted but this is made up for by considering u-&amp;gt;par,
+        // which is also a spoke that counts.
+        unsigned v_children = _tree_manipulator-&amp;gt;countChildren(_orig_lchild);
+        unsigned u_children = _tree_manipulator-&amp;gt;countChildren(_orig_par);
         _polytomy_size = v_children + u_children;
 
         bool u_polytomy_before = (u_children &amp;gt; 2);
@@ -465,22 +503,39 @@ namespace strom {
             ++_num_polytomies;
         }
 
-        // Make all of u's children siblings of u (i.e. children of u-&amp;gt;par)
-        _orig_lchild = u-&amp;gt;getLeftChild();
-        while (u-&amp;gt;getLeftChild() != NULL) {
-            Node * tmp = u-&amp;gt;getLeftChild();
+        // Make all of _orig_lchild's children children of _orig_par
+        _first_child = _orig_lchild-&amp;gt;getLeftChild();
+        while (_orig_lchild-&amp;gt;getLeftChild() != NULL) {
+            Node * tmp = _orig_lchild-&amp;gt;getLeftChild();
             _tree_manipulator-&amp;gt;detachSubtree(tmp);
             _tree_manipulator-&amp;gt;insertSubtreeOnRight(tmp, _orig_par);
         }
 
-        _tree_manipulator-&amp;gt;detachSubtree(u);
-        _tree_manipulator-&amp;gt;putUnusedNode(u);
+        _tree_manipulator-&amp;gt;detachSubtree(_orig_lchild);
+        _tree_manipulator-&amp;gt;putUnusedNode(_orig_lchild);
         _tree_manipulator-&amp;gt;rectifyNumInternals(-1);
         
         _tree_manipulator-&amp;gt;refreshNavigationPointers();
-        assert(_orig_edge_proportion &amp;lt; 1.0);
-        double scaler = 1.0/(1.0 - _orig_edge_proportion);
-        _tree_manipulator-&amp;gt;scaleAllEdgeLengths(scaler);
+        
+        // Create vector of valid spokes
+        std::vector&amp;lt;Node *&amp;gt; spokes;
+        spokes.push_back(_orig_par-&amp;gt;getParent());
+        for (Node * child = _orig_par-&amp;gt;getLeftChild(); child; child = child-&amp;gt;getRightSib()) {
+            if (child != _orig_par)
+                spokes.push_back(child);
+        }
+        assert (spokes.size() == _polytomy_size);
+        
+        // Choose one of the candidates as the edge to absorb the deleted edge
+        unsigned i = (unsigned)_lot-&amp;gt;randint(0, (int)spokes.size()-1);
+        _chosen_node = spokes[i];
+        if (_chosen_node == _orig_par-&amp;gt;getParent())
+            _chosen_node = _orig_par;
+        _chosen_edgelen = _chosen_node-&amp;gt;getEdgeLength();
+        _chosen_proportion = _chosen_edgelen/_tree_length;
+        _chosen_node-&amp;gt;setEdgeLength(_chosen_edgelen + _orig_edge_proportion*_tree_length);
+        _new_edge_proportion = _chosen_node-&amp;gt;getEdgeLength()/_tree_length;
+        _fraction = _chosen_proportion/_new_edge_proportion;
     }   
 
 </code></pre></div></div>
@@ -497,34 +552,34 @@ _poly_prob[6][1] = ------- C = 2/5
                    3! 3! 2
 </code></pre></div></div>
 <p>where <code class="highlighter-rouge">C</code> is the normalizing constant, which equals <code class="highlighter-rouge">1/(2^5 - 6 - 1) = 1/25</code>. Note that the final probability must be divided by 2 in the case of an even number of spokes. This means that 2 of 6 spokes will be moved to the new node with probability 0.6 and 3 spokes will be moved with probability 0.4.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>inline PolytomyUpdater::_partition_vect_t &amp; PolytomyUpdater::computePolytomyDistribution(unsigned nspokes) {    
-    assert(nspokes &amp;gt; 2);
-            
-    // Only compute it if it isn't already stored in the _poly_prob map
-    auto iter = _poly_prob.find(nspokes);
-    if (iter == _poly_prob.end()) {
-        // There is no existing probability distribution vector corresponding to nspokes
-        double ln_denom = std::log(pow(2.0,nspokes-1) - nspokes - 1.0);
-        _partition_vect_t v(nspokes - 3);
-        unsigned first = 2;
-        unsigned last = nspokes/2;
-        bool nspokes_even = nspokes % 2 == 0;
-        double total_prob = 0.0;
-        for (unsigned x = first; x &amp;lt;= last; ++x) {
-            double ln_numer = std::lgamma(nspokes + 1) - std::lgamma(x + 1) - std::lgamma(nspokes - x + 1);
-            if (nspokes_even &amp;&amp; x == last)
-                ln_numer -= std::log(2);
-            double prob_x = exp(ln_numer - ln_denom);
-            if (prob_x &amp;gt; 1.0)
-                prob_x = 1.0;
-            total_prob += prob_x;
-            v[x-first] = prob_x;
-            }
-        assert(std::fabs(total_prob - 1.0) &amp;lt; 1.e-8);
-        _poly_prob[nspokes] = v;
-    }
-    return _poly_prob[nspokes];
-} 
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline PolytomyUpdater::_partition_vect_t &amp; PolytomyUpdater::computePolytomyDistribution(unsigned nspokes) {    
+        assert(nspokes &amp;gt; 2);
+                
+        // Only compute it if it isn't already stored in the _poly_prob map
+        auto iter = _poly_prob.find(nspokes);
+        if (iter == _poly_prob.end()) {
+            // There is no existing probability distribution vector corresponding to nspokes
+            double ln_denom = std::log(pow(2.0,nspokes-1) - nspokes - 1.0);
+            _partition_vect_t v(nspokes - 3);
+            unsigned first = 2;
+            unsigned last = nspokes/2;
+            bool nspokes_even = nspokes % 2 == 0;
+            double total_prob = 0.0;
+            for (unsigned x = first; x &amp;lt;= last; ++x) {
+                double ln_numer = std::lgamma(nspokes + 1) - std::lgamma(x + 1) - std::lgamma(nspokes - x + 1);
+                if (nspokes_even &amp;&amp; x == last)
+                    ln_numer -= std::log(2);
+                double prob_x = exp(ln_numer - ln_denom);
+                if (prob_x &amp;gt; 1.0)
+                    prob_x = 1.0;
+                total_prob += prob_x;
+                v[x-first] = prob_x;
+                }
+            assert(std::fabs(total_prob - 1.0) &amp;lt; 1.e-8);
+            _poly_prob[nspokes] = v;
+        }
+        return _poly_prob[nspokes];
+    } 
 
 </code></pre></div></div>
 
@@ -546,26 +601,24 @@ _poly_prob[6][1] = ------- C = 2/5
             _tree_manipulator-&amp;gt;rectifyNumInternals(-1);
             
             _tree_manipulator-&amp;gt;refreshNavigationPointers();
-            assert(_new_edge_proportion &amp;lt; 1.0);
-            double scaler = 1.0/(1.0 - _new_edge_proportion);
-            _tree_manipulator-&amp;gt;scaleAllEdgeLengths(scaler);
+            _chosen_node-&amp;gt;setEdgeLength(_orig_edge_proportion*_tree_length);
             double TL_after_revert_add_edge = _tree_manipulator-&amp;gt;calcTreeLength();
             assert(std::fabs(_tree_length -TL_after_revert_add_edge) &amp;lt; 1.e-8);
         }
         else {
-            Node * v = _tree_manipulator-&amp;gt;getUnusedNode();
+            Node * v = _tree_manipulator-&amp;gt;getUnusedNode(_orig_lchild);
             _tree_manipulator-&amp;gt;rectifyNumInternals(+1);
-            _tree_manipulator-&amp;gt;scaleAllEdgeLengths(1.0 - _orig_edge_proportion);
+            _chosen_node-&amp;gt;setEdgeLength(_chosen_edgelen);
             v-&amp;gt;setEdgeLength(_orig_edge_proportion*_tree_length);
-            for (Node * child = _orig_lchild; child;) {
+            for (Node * child = _first_child; child;) {
                 Node * child_rsib = child-&amp;gt;getRightSib();
                 _tree_manipulator-&amp;gt;detachSubtree(child);
                 _tree_manipulator-&amp;gt;insertSubtreeOnRight(child, v);
                 child = child_rsib;
             }
             _tree_manipulator-&amp;gt;insertSubtreeOnRight(v, _orig_par);
-
             _tree_manipulator-&amp;gt;refreshNavigationPointers();
+            
             double TL_after_revert_del_edge = _tree_manipulator-&amp;gt;calcTreeLength();
             assert(std::fabs(_tree_length - TL_after_revert_del_edge) &amp;lt; 1.e-8);
         }
@@ -590,7 +643,7 @@ _poly_prob[6][1] = ------- C = 2/5
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-19/01-modifying-treeupdater.html">&lt;&nbsp;19.1</a> | 19.2 | <a href="//win//steps/step-19/03-the-topo-prior-calculator.html">19.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-19/01-modifying-treeupdater.html">&lt;&nbsp;19.1</a> | 19.2 | <a href="/win/steps/step-19/03-the-topo-prior-calculator.html">19.3&nbsp;&gt;</a></h3>
 </div>
 
 

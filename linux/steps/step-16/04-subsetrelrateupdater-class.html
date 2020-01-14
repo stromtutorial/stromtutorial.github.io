@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/03-exchangeabilitiesupdater-class.html">&lt;&nbsp;16.3</a> | 16.4 | <a href="//linux//steps/step-16/05-pinvar-omega-updater.html">16.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/03-exchangeabilitiesupdater-class.html">&lt;&nbsp;16.3</a> | 16.4 | <a href="/linux/steps/step-16/05-pinvar-omega-updater.html">16.5&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -70,7 +70,7 @@ namespace strom {
                                             SubsetRelRateUpdater(Model::SharedPtr model);
                                             ~SubsetRelRateUpdater();
         
-            double                          calcLogPrior();
+            virtual double                  calcLogPrior();
 
         private:
         
@@ -94,9 +94,9 @@ namespace strom {
         DirichletUpdater::clear();
         _name = "Subset Relative Rates";
         _model = model;
-    }   
+    }
 
-    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {  
+    inline SubsetRelRateUpdater::~SubsetRelRateUpdater() {
         //std::cout &amp;lt;&amp;lt; "Destroying a SubsetRelRateUpdater" &amp;lt;&amp;lt; std::endl;
     }   
 
@@ -134,9 +134,9 @@ namespace strom {
         for (unsigned i = 0; i &amp;lt; num_subsets; i++) {
             _curr_point[i] = relative_rates[i]*subset_sizes[i]/num_sites;
         }
-    }   
+    }
     
-    inline void SubsetRelRateUpdater::pushToModel() {  
+    inline void SubsetRelRateUpdater::pushToModel() {
         Model::subset_sizes_t &amp; subset_sizes = _model-&amp;gt;getSubsetSizes();
         unsigned num_sites   = _model-&amp;gt;getNumSites();
         unsigned num_subsets = _model-&amp;gt;getNumSubsets();
@@ -150,7 +150,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/03-exchangeabilitiesupdater-class.html">&lt;&nbsp;16.3</a> | 16.4 | <a href="//linux//steps/step-16/05-pinvar-omega-updater.html">16.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/03-exchangeabilitiesupdater-class.html">&lt;&nbsp;16.3</a> | 16.4 | <a href="/linux/steps/step-16/05-pinvar-omega-updater.html">16.5&nbsp;&gt;</a></h3>
 </div>
 
 

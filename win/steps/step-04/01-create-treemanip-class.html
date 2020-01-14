@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 4.1 | <a href="//win//steps/step-04/02-test-treemanip.html">4.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 4.1 | <a href="/win/steps/step-04/02-test-treemanip.html">4.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>There are benefits to keeping the <code class="highlighter-rouge">Tree</code> and <code class="highlighter-rouge">Node</code> classes simple, so in this step we will create a <code class="highlighter-rouge">TreeManip</code> class that will own, manage and manipulate a <code class="highlighter-rouge">Tree</code> object.</p>
@@ -70,8 +70,11 @@ namespace strom {
 
             void                        setTree(Tree::SharedPtr t);
             Tree::SharedPtr             getTree();
+
             double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
             void                        scaleAllEdgeLengths(double scaler);
+
             void                        createTestTree();
             void                        clear();
 
@@ -95,18 +98,18 @@ namespace strom {
 <h2 id="two-constructors-and-a-destructor">Two constructors and a destructor</h2>
 <p>We still need to define bodies for each of the functions in the class declaration above. Here are the bodies for the two constructors and the destructor. These functions currently do little more than announce that a <code class="highlighter-rouge">TreeManip</code> object is being created or destroyed, except that the constructor that takes a tree shared pointer argument calls the member function <code class="highlighter-rouge">setTree</code>, which is defined below. These three member function definitions should go after the semicolon (<code class="highlighter-rouge">;</code>) ending the class declaration but before the curly bracket (<code class="highlighter-rouge">}</code>) that closes the namespace.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline TreeManip::TreeManip() {  
-        std::cerr &amp;lt;&amp;lt; "Constructing a TreeManip" &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Constructing a TreeManip" &amp;lt;&amp;lt; std::endl;
         clear();
-    }  
+    }
 
-    inline TreeManip::TreeManip(Tree::SharedPtr t) {  
-        std::cerr &amp;lt;&amp;lt; "Constructing a TreeManip with a supplied tree" &amp;lt;&amp;lt; std::endl;
+    inline TreeManip::TreeManip(Tree::SharedPtr t) {
+        std::cout &amp;lt;&amp;lt; "Constructing a TreeManip with a supplied tree" &amp;lt;&amp;lt; std::endl;
         clear();
         setTree(t);
-    }  
+    } 
 
-    inline TreeManip::~TreeManip() {  
-        std::cerr &amp;lt;&amp;lt; "Destroying a TreeManip" &amp;lt;&amp;lt; std::endl;
+    inline TreeManip::~TreeManip() {
+        std::cout &amp;lt;&amp;lt; "Destroying a TreeManip" &amp;lt;&amp;lt; std::endl;
     }  
 
 </code></pre></div></div>
@@ -148,8 +151,16 @@ namespace strom {
 
 </code></pre></div></div>
 
+<h2 id="the-countedges-function">The countEdges function</h2>
+<p>Another function that will not be needed for awhile. This function returns the length of the managed <code class="highlighter-rouge">Tree</code>’s <code class="highlighter-rouge">_preorder</code> vector, which will always be equal to the number of edges in the tree.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned TreeManip::countEdges() const { 
+        return (unsigned)_tree-&amp;gt;_preorder.size();
+    } 
+
+</code></pre></div></div>
+
 <h2 id="the-scalealledgelengths-function">The scaleAllEdgeLengths function</h2>
-<p>This function, like <code class="highlighter-rouge">calcTreeLength</code>, will not be needed for some time, but it is easy to add now so it will be in place later when we need to scale all edge lengths in the tree up or down. This function simply scales all edge lengths in the tree by multiplying each by the supplied value <code class="highlighter-rouge">scaler</code>.</p>
+<p>This function, like <code class="highlighter-rouge">calcTreeLength</code> and <code class="highlighter-rouge">countEdges</code>, will not be needed for some time, but it is easy to add now so it will be in place later when we need to scale all edge lengths in the tree up or down. This function simply scales all edge lengths in the tree by multiplying each by the supplied value <code class="highlighter-rouge">scaler</code>.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::scaleAllEdgeLengths(double scaler) {  
         for (auto nd : _tree-&amp;gt;_preorder) {
             nd-&amp;gt;setEdgeLength(scaler*nd-&amp;gt;_edge_length);
@@ -194,42 +205,42 @@ namespace strom {
         root_node-&amp;gt;_left_child = first_internal;
         root_node-&amp;gt;_right_sib = 0;
         root_node-&amp;gt;_number = 5;
-        root_node-&amp;gt;_name = "root node";
+        root_node-&amp;gt;_name = "root_node";
         root_node-&amp;gt;_edge_length = 0.0;
 
         first_internal-&amp;gt;_parent = root_node;
         first_internal-&amp;gt;_left_child = second_internal;
         first_internal-&amp;gt;_right_sib = 0;
         first_internal-&amp;gt;_number = 4;
-        first_internal-&amp;gt;_name = "first internal node";
+        first_internal-&amp;gt;_name = "first_internal_node";
         first_internal-&amp;gt;_edge_length = 0.1;
 
         second_internal-&amp;gt;_parent = first_internal;
         second_internal-&amp;gt;_left_child = first_leaf;
         second_internal-&amp;gt;_right_sib = third_leaf;
         second_internal-&amp;gt;_number = 3;
-        second_internal-&amp;gt;_name = "second internal node";
+        second_internal-&amp;gt;_name = "second_internal_node";
         second_internal-&amp;gt;_edge_length = 0.1;
 
         first_leaf-&amp;gt;_parent = second_internal;
         first_leaf-&amp;gt;_left_child = 0;
         first_leaf-&amp;gt;_right_sib = second_leaf;
         first_leaf-&amp;gt;_number = 0;
-        first_leaf-&amp;gt;_name = "first leaf";
+        first_leaf-&amp;gt;_name = "first_leaf";
         first_leaf-&amp;gt;_edge_length = 0.1;
 
         second_leaf-&amp;gt;_parent = second_internal;
         second_leaf-&amp;gt;_left_child = 0;
         second_leaf-&amp;gt;_right_sib = 0;
         second_leaf-&amp;gt;_number = 1;
-        second_leaf-&amp;gt;_name = "second leaf";
+        second_leaf-&amp;gt;_name = "second_leaf";
         second_leaf-&amp;gt;_edge_length = 0.1;
 
         third_leaf-&amp;gt;_parent = first_internal;
         third_leaf-&amp;gt;_left_child = 0;
         third_leaf-&amp;gt;_right_sib = 0;
         third_leaf-&amp;gt;_number = 2;
-        third_leaf-&amp;gt;_name = "third leaf";
+        third_leaf-&amp;gt;_name = "third_leaf";
         third_leaf-&amp;gt;_edge_length = 0.2;
 
         _tree-&amp;gt;_is_rooted = true;
@@ -360,6 +371,8 @@ namespace strom {
             unsigned                    numLeaves() const;
             unsigned                    numInternals() const;
             unsigned                    numNodes() const;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//void                        createTestTree();&lt;/strong&gt;&lt;/span&gt;
 
         private:
 
@@ -507,7 +520,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 4.1 | <a href="//win//steps/step-04/02-test-treemanip.html">4.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-04/00-tree-manipulator.html">&lt;&nbsp;4.0</a> | 4.1 | <a href="/win/steps/step-04/02-test-treemanip.html">4.2&nbsp;&gt;</a></h3>
 </div>
 
 

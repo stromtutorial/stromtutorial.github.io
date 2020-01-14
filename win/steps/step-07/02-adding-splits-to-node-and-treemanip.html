@@ -42,12 +42,12 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-07/01-split-class.html">&lt;&nbsp;7.1</a> | 7.2 | <a href="//win//steps/step-07/03-tree-summary.html">7.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-07/01-split-class.html">&lt;&nbsp;7.1</a> | 7.2 | <a href="/win/steps/step-07/03-tree-summary.html">7.3&nbsp;&gt;</a></h3>
 </div>
 
 <p>Before we can do anything interesting with our <code class="highlighter-rouge">Split</code> class, we need to add a <code class="highlighter-rouge">Split</code> object to the <code class="highlighter-rouge">Node</code> class and a <code class="highlighter-rouge">storeSplits</code> member function to the <code class="highlighter-rouge">TreeManip</code> class.</p>
 
-<h2 id="adding-splits-to-the-node-class">Adding splits to the <code class="highlighter-rouge">Node</code> class</h2>
+<h2 id="adding-splits-to-the-node-class">Adding splits to the Node class</h2>
 
 <p>Uncomment the line that includes the <em>split.hpp</em> header, which is located at the top of the <em>node.hpp</em> file. Also uncomment the line that declares a data member of type <code class="highlighter-rouge">Split</code> just below <code class="highlighter-rouge">_edge_length</code> inside the <code class="highlighter-rouge">Node</code> class declaration. Finally, uncomment the <code class="highlighter-rouge">getSplit</code> accessor member function. The changes needed in the <code class="highlighter-rouge">Node</code> class are shown below.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
@@ -105,7 +105,7 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="adding-the-storesplits-member-function-to-the-treemanip-class">Adding the <code class="highlighter-rouge">storeSplits</code> member function to the <code class="highlighter-rouge">TreeManip</code> class</h2>
+<h2 id="adding-the-storesplits-member-function-to-the-treemanip-class">Adding the storeSplits member function to the TreeManip class</h2>
 
 <p>Add the following member function prototype to the <code class="highlighter-rouge">TreeManip</code> class declaration (just below <code class="highlighter-rouge">buildFromNewick</code> member function prototype).</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
@@ -137,7 +137,7 @@ namespace strom {
             void                        scaleAllEdgeLengths(double scaler);
 
             void                        createTestTree();
-            std::string                 makeNewick(unsigned precision) const;
+            std::string                 makeNewick(unsigned precision, bool use_names = false) const;
 
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);&lt;/strong&gt;&lt;/span&gt;
@@ -147,6 +147,7 @@ namespace strom {
 
         private:
 
+            Node *                      findNextPreorder(Node * nd);
             void                        refreshPreorder();
             void                        refreshLevelorder();
             void                        renumberInternals();
@@ -205,7 +206,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-07/01-split-class.html">&lt;&nbsp;7.1</a> | 7.2 | <a href="//win//steps/step-07/03-tree-summary.html">7.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-07/01-split-class.html">&lt;&nbsp;7.1</a> | 7.2 | <a href="/win/steps/step-07/03-tree-summary.html">7.3&nbsp;&gt;</a></h3>
 </div>
 
 

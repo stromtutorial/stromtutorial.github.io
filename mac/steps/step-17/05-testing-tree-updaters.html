@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-17/04-modify-treemanip.html">&lt;&nbsp;17.4</a> | 17.5 | <a href="//mac//steps/step-18/00-heated-chains.html">18.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-17/04-modify-treemanip.html">&lt;&nbsp;17.4</a> | 17.5 | <a href="/mac/steps/step-18/00-heated-chains.html">18.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -97,7 +97,7 @@ expectedLnL = -6676.396
             for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
                 DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
                 std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
@@ -182,7 +182,8 @@ expectedLnL = -6676.396
                 _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15s %15s %15s") % "Updater" % "Tuning Param." % "Accept %" % "No. Updates"));
                 for (unsigned i = 0; i &amp;lt; n; ++i) {
                     _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%30s %15.3f %15.1f %15d") % names[i] % lambdas[i] % accepts[i] % nupdates[i]));
-                }            }
+                }         
+            }
             else {
                 _output_manager-&amp;gt;outputConsole("MCMC skipped because there are no free parameters in the model");
             }
@@ -211,7 +212,7 @@ In Tracer, bring the panel labeled “Marginal Density” to the front and click
 
 <h3 id="check-the-subset-relative-rates">Check the subset relative rates</h3>
 
-<p>The subset relative rates have a prior distribution related to Dirichlet(1,1,1). The difference lies in the fact that it is the product of subset rates and subset proportions that is distributed as Dirichlet(1,1,1), not the rates themselves. Select all three subset relative rates (m-0, m-1, and m-2) under Traces on the left. These three densities should be identical (“Marginal Density” panel), and they should all have means close to 1.0 and variances close to 0.5.</p>
+<p>The subset relative rates have a prior distribution related to Dirichlet(1,1,1). The difference lies in the fact that it is the product of subset rates and subset proportions that is distributed as Dirichlet(1,1,1), not the rates themselves. Select all three subset relative rates (m-0, m-1, and m-2) under Traces on the left. These three densities should be nearly identical (“Marginal Density” panel), and they should all have means close to 1.0 and variances close to 0.5.</p>
 
 <h3 id="check-the-state-frequencies">Check the state frequencies</h3>
 
@@ -220,26 +221,26 @@ In Tracer, bring the panel labeled “Marginal Density” to the front and click
 </code></pre></div></div>
 <p>where n is the number of dimensions (i.e. the number of Dirichlet parameters). For nucleotide state frequencies, n = 4 so the variance of one component should equal (1/4)(3/4)/5 = 3/80 = 0.0375. Being flat, each state frequency has the same probability as any other state frequency, so the mean for each should be 1/4 = 0.25.</p>
 
-<p>Select all 4 state frequencies for any subset (e.g. piA-0, piC-0, piG-0, and piT-0) under Traces on the left. These 4 densities should be identical (“Marginal Density” panel), and they should all have means close to 1/4 and variances close to 0.0375.</p>
+<p>Select all 4 state frequencies for any subset (e.g. piA-0, piC-0, piG-0, and piT-0) under Traces on the left. These 4 densities should be nearly identical (“Marginal Density” panel), and they should all have means close to 1/4 and variances close to 0.0375.</p>
 
 <h3 id="check-the-exchangeabilities">Check the exchangeabilities</h3>
 
-<p>The exchangeabilities have prior Dirichlet(1,1,1,1,1,1). Select all 6 exchangeabilities for any subset (e.g. rAC-0, rAG-0, rAT-0, rCG-0, rCT-0, and rGT-0) under Traces on the left. These 6 densities should be identical (“Marginal Density” panel), and they should all have means close to 0.167 and variances close to 0.0198. These values can be obtained using the formula given above with n = 6 rather than n = 4.</p>
+<p>The exchangeabilities have prior Dirichlet(1,1,1,1,1,1). Select all 6 exchangeabilities for any subset (e.g. rAC-0, rAG-0, rAT-0, rCG-0, rCT-0, and rGT-0) under Traces on the left. These 6 densities should be nearly identical (“Marginal Density” panel), and they should all have means close to 0.167 and variances close to 0.0198. These values can be obtained using the formula given above with n = 6 rather than n = 4.</p>
 
 <h3 id="check-pinvar">Check pinvar</h3>
 
-<p>The pinvar parameter has prior Beta(1,1), which is just a special case of a flat Dirichlet distribution. Hence, using n = 2, we find that pinvar should have mean 0.5 and variance (1/2)(1/2)/3 = 1/12 = 0.0833.</p>
+<p>The pinvar parameter has prior Beta(1,1), which is just a special case of a flat Dirichlet distribution. Hence, using n = 2, we find that pinvar should have mean 0.5 and variance (1/2)(1/2)/3 = 1/12 = 0.0833. Again, Tracer may not do well near 0 and 1 with this density due to the fact that it is using a “black-box” density estimator that doesn’t know that the density should drop to exactly 0.0 at pinvar values of 0.0 and 1.0.</p>
 
 <h3 id="check-the-rate-variance">Check the rate variance</h3>
 
-<p>Fihnally, the rate variance parameter has prior Exponential(1), which has mean 1 and variance 1.</p>
+<p>Finally, the rate variance parameter has prior Exponential(1), which has mean 1 and variance 1.</p>
 
 <h2 id="on-to-heated-chains">On to heated chains</h2>
 
 <p>The next step of the tutorial will introduce multiple chains (Metropolis coupling) to the MCMC analysis to improve mixing. We will also add a program option (<code class="highlighter-rouge">usedata</code>) to make ignoring data (exploring the prior) easy.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-17/04-modify-treemanip.html">&lt;&nbsp;17.4</a> | 17.5 | <a href="//mac//steps/step-18/00-heated-chains.html">18.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-17/04-modify-treemanip.html">&lt;&nbsp;17.4</a> | 17.5 | <a href="/mac/steps/step-18/00-heated-chains.html">18.0&nbsp;&gt;</a></h3>
 </div>
 
 

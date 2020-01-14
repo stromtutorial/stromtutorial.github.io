@@ -42,11 +42,11 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="//linux//steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="/linux/steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
 </div>
 
 
-<p>Add the following highlighted line to <em>main.cpp</em> (after <code class="highlighter-rouge">createTestTree()</code>):</p>
+<p>Add the following two highlighted lines to <em>main.cpp</em> (after <code class="highlighter-rouge">createTestTree()</code>):</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
 #include "node.hpp"
 #include "tree.hpp"
@@ -61,12 +61,14 @@ int main(int argc, const char * argv[]) {
     TreeManip tm;
     tm.createTestTree();
     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; tm.makeNewick(3, true) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
     std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
 
     return 0;
 }   
 
 </code></pre></div></div>
+<p>The first of these lines will generate a newick tree description using numbers (because the default value of the <code class="highlighter-rouge">makeNewick</code> parameter <code class="highlighter-rouge">use_names</code> is <code class="highlighter-rouge">false</code>), while the second one will generate a newick descriptions in which the names stored in each tip node are used.</p>
 
 <h2 id="installing-the-boost-header-files">Installing the Boost header files</h2>
 
@@ -91,26 +93,27 @@ tar zxvf ~/boost_1_71_0.tar.gz
 </code></pre></div></div>
 
 <p>We now need to modify the <em>meson.build</em> file to tell meson where to find the boost headers:</p>
-<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp',
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp', 
 	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
 	version : '1.0')
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
-executable('strom', 'main.cpp', install: true, install_dir: '.', include_directories: incl_boost)
+executable('strom', 'main.cpp', install: true, install_dir: '.', include_directories: incl_boost)   
 
 </code></pre></div></div>
 
 <p>I’ve added an <code class="highlighter-rouge">include_directories</code> command pointing to the boost install directory and stored this directory as the meson variable <code class="highlighter-rouge">incl_boost</code>. You should of course use the correct absolute path to <em>your</em> boost installation; unless your user name is <code class="highlighter-rouge">paul</code>, the <code class="highlighter-rouge">include_directories</code> command will not work as written above! Note that I’ve also appended <code class="highlighter-rouge">, include_directories: incl_boost</code> to the end of the <code class="highlighter-rouge">executable</code> command.</p>
 
 <h2 id="compile-and-run">Compile and run</h2>
-<p>Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional line appear in the output when the program is run:</p>
+<p>Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional lines appear in the output when the program is run:</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>((1:0.100,2:0.100):0.100,3:0.200)
+((first_leaf:0.100,second_leaf:0.100):0.100,third_leaf:0.200)
 </code></pre></div></div>
 
 <p>Note that 3 decimal places are used in outputting edge lengths because you supplied 3 as an argument to the <code class="highlighter-rouge">makeNewick</code> function.</p>
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="//linux//steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-05/01-create-newick-description.html">&lt;&nbsp;5.1</a> | 5.2 | <a href="/linux/steps/step-06/00-building-trees.html">6.0&nbsp;&gt;</a></h3>
 </div>
 
 

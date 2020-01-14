@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-19/05-modifying-the-likelihood-class.html">&lt;&nbsp;19.5</a> | 19.6 | <a href="//win//steps/step-19/07-adding-polytomy-updater-to-chain.html">19.7&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-19/05-modifying-the-likelihood-class.html">&lt;&nbsp;19.5</a> | 19.6 | <a href="/win/steps/step-19/07-adding-polytomy-updater-to-chain.html">19.7&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -73,7 +73,7 @@ namespace strom {
             friend class Updater;
             friend class TreeUpdater;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class PolytomyUpdater;&lt;/strong&gt;&lt;/span&gt;
-        
+
         public:
 
                                         Tree();
@@ -95,7 +95,7 @@ namespace strom {
             Node::PtrVector             _preorder;
             Node::PtrVector             _levelorder;
             Node::Vector                _nodes;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::stack&amp;lt;Node *&amp;gt;          _unused_nodes;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;Node *&amp;gt;         _unused_nodes;&lt;/strong&gt;&lt;/span&gt;
 
         public:
 
@@ -121,13 +121,13 @@ namespace strom {
     class TreeManip;
     class Likelihood;
     class Updater;
-    
+
     class Node {
         friend class Tree;
         friend class TreeManip;
         friend class Likelihood;
         friend class Updater;
-        
+
         public:
                                         Node();
                                         ~Node();
@@ -158,12 +158,15 @@ namespace strom {
                     bool                isAltTMatrix()              {return _flags &amp; Flag::AltTMatrix;}
                     void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}
                     void                clearAltTMatrix()           {_flags &amp;= ~Flag::AltTMatrix;}
+                    
+                    void                flipTMatrix()               {isAltTMatrix() ? clearAltTMatrix() : setAltTMatrix();}
+                    void                flipPartial()               {isAltPartial() ? clearAltPartial() : setAltPartial();}
 
                     double              getEdgeLength()             {return _edge_length;}
                     void                setEdgeLength(double v);
 
                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                clearPointers()             {_left_child = _right_sib = _parent = 0;}&lt;/strong&gt;&lt;/span&gt;
-                    
+                                        
             static const double _smallest_edge_length;
 
             typedef std::vector&amp;lt;Node&amp;gt;    Vector;
@@ -198,6 +201,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Node::clear() { 
         _flags = 0;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;clearPointers();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//_left_child = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//_right_sib = 0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//_parent = 0;&lt;/strong&gt;&lt;/span&gt;
         _number = -1;
         _name = "";
         _edge_length = _smallest_edge_length;
@@ -219,6 +225,7 @@ namespace strom {
 #include &amp;lt;boost/range/adaptor/reversed.hpp&amp;gt;
 #include &amp;lt;boost/format.hpp&amp;gt;
 #include "tree.hpp"
+#include "lot.hpp"
 #include "xstrom.hpp"
 
 namespace strom {
@@ -237,21 +244,22 @@ namespace strom {
             unsigned                    countEdges() const;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                    countInternals() const;&lt;/strong&gt;&lt;/span&gt;
             void                        scaleAllEdgeLengths(double scaler);
-
+            
             void                        createTestTree();
-            std::string                 makeNewick(unsigned precision) const;
+            std::string                 makeNewick(unsigned precision, bool use_names = false) const;
 
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
             void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);
             void                        rerootAtNodeNumber(int node_number);
         
+            Node *                      randomInternalEdge(Lot::SharedPtr lot);
+            Node *                      randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included);
             void                        LargetSimonSwap(Node * a, Node * b);
-            Node *                      randomInternalEdge(double uniform01);
-
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                        isPolytomy(Node * nd) const;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        nniNodeSwap(Node * a, Node * b);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned                    countChildren(Node * nd) const;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findLeftSib(Node * nd);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findNextPreorder(Node * nd);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findRightmostChild(Node * nd);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findLastPreorderInClade(Node * start);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        insertSubtreeOnLeft(Node * s, Node * u);&lt;/strong&gt;&lt;/span&gt;
@@ -259,7 +267,7 @@ namespace strom {
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        detachSubtree(Node * s);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        rectifyNumInternals(int incr);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        refreshNavigationPointers();&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      getUnusedNode();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      getUnusedNode(Node * sought = 0);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        putUnusedNode(Node * nd);&lt;/strong&gt;&lt;/span&gt;
             
             void                        selectAll();
@@ -268,7 +276,6 @@ namespace strom {
             void                        deselectAllPartials();
             void                        selectAllTMatrices();
             void                        deselectAllTMatrices();
-
             void                        selectPartialsHereToRoot(Node * a);
             void                        flipPartialsAndTMatrices();
 
@@ -276,6 +283,7 @@ namespace strom {
             
         private:
 
+            Node *                      findNextPreorder(Node * nd);
             void                        refreshPreorder();
             void                        refreshLevelorder();
             void                        renumberInternals();
@@ -293,6 +301,21 @@ namespace strom {
             typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
     };
 
+
+</code></pre></div></div>
+
+<h2 id="add-function-ispolytomy">Add function isPolytomy</h2>
+
+<p>This function returns true if the supplied <code class="highlighter-rouge">nd</code> points to a <code class="highlighter-rouge">Node</code> object representing a polytomy (i.e. <code class="highlighter-rouge">nd</code> has more than 2 children).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool TreeManip::isPolytomy(Node * nd) const {   
+        Node * lchild = nd-&amp;gt;_left_child;
+        assert(lchild);    // should only call this function for internal nodes
+        
+        Node * rchild = lchild-&amp;gt;_right_sib;
+        if (rchild &amp;&amp; rchild-&amp;gt;_right_sib)
+            return true;
+        return false;
+    }   
 
 </code></pre></div></div>
 
@@ -335,32 +358,55 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="simplifying-the-refreshpreorder-function">Simplifying the refreshPreorder function</h2>
+<h2 id="modifying-the-randominternaledge-function">Modifying the randomInternalEdge function</h2>
+<p>Add a special case to this function to handle the star tree situation in which there are no internal edges in the tree:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::randomInternalEdge(Lot::SharedPtr lot) {   
+        // Unrooted case:                        Rooted case:
+        //
+        // 2     3     4     5                   1     2     3     4
+        //  \   /     /     /                     \   /     /     /
+        //   \ /     /     /                       \ /     /     /
+        //    8     /     /                         7     /     /
+        //     \   /     /                           \   /     /
+        //      \ /     /                             \ /     /
+        //       7     /                               6     /
+        //        \   /                                 \   /
+        //         \ /                                   \ /
+        //          6   nleaves = 5                       5    nleaves = 4
+        //          |   preorder length = 7               |    preorder length = 7
+        //          |   num_internal_edges = 7 - 5 = 2    |    num_internal_edges = 7 - 4 - 1 = 2
+        //          1   choose node 7 or node 8          root  choose node 6 or node 7
+        //
+        // _preorder = [6, 7, 8, 2, 3, 4, 5]     _preorder = [5, 6, 7, 1, 2, 3, 4]
+        //
+        // Note: _preorder is actually a vector of T *, but is shown here as a
+        // vector of integers solely to illustrate the algorithm below
+        
+        int num_internal_edges = (unsigned)_tree-&amp;gt;_preorder.size() - _tree-&amp;gt;_nleaves - (_tree-&amp;gt;_is_rooted ? 1 : 0);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (num_internal_edges == 0) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Star tree: return hub node, which is the first node in the preorder sequence&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;return _tree-&amp;gt;_preorder[0];&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
 
-<p>The changes to the <code class="highlighter-rouge">refreshPreorder</code> function highlighed below are not necessary, but serve to simply this function and others by making use of a new function <code class="highlighter-rouge">findNextPreorder</code>. In the next major version of the tutorial, these changes will be moved earlier in the tutorial when <code class="highlighter-rouge">refreshPreorder</code> is first introduced.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::refreshPreorder() {  
-        // Create vector of node pointers in preorder sequence
-        _tree-&amp;gt;_preorder.clear();
-        _tree-&amp;gt;_preorder.reserve(_tree-&amp;gt;_nodes.size() - 1); // _preorder does not include root node
+        // Add one to skip first node in _preorder vector, which is an internal node whose edge
+        // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
+        double uniform_deviate = lot-&amp;gt;uniform();
+        unsigned index_of_chosen = 1 + (unsigned)std::floor(uniform_deviate*num_internal_edges);
 
-        if (!_tree-&amp;gt;_root)
-            return;
-
-        Node * first_preorder = _tree-&amp;gt;_root-&amp;gt;_left_child;
-
-        // sanity check: first preorder node should be the only child of the root node
-        assert(first_preorder-&amp;gt;_right_sib == 0);
-
-        Node * nd = first_preorder;
-        _tree-&amp;gt;_preorder.push_back(nd);
-
-        while (true) {
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;nd = findNextPreorder(nd);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd)&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_tree-&amp;gt;_preorder.push_back(nd);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;break;&lt;/strong&gt;&lt;/span&gt;
-        }   // end while loop
+        unsigned internal_nodes_visited = 0;
+        Node * chosen_node = 0;
+        for (auto nd : _tree-&amp;gt;_preorder) {
+            if (nd-&amp;gt;_left_child) {
+                if (internal_nodes_visited == index_of_chosen) {
+                    chosen_node = nd;
+                    break;
+                }
+                else
+                    ++internal_nodes_visited;
+            }
+        }
+        assert(chosen_node);
+        return chosen_node;
     }   
 
 </code></pre></div></div>
@@ -372,7 +418,7 @@ namespace strom {
         assert(_tree-&amp;gt;_preorder.size() &amp;gt; 0);
         
         // Renumber internal nodes in postorder sequence
-        int curr_internal = _tree-&amp;gt;_nleaves;
+        unsigned curr_internal = _tree-&amp;gt;_nleaves;
         for (auto nd : boost::adaptors::reverse(_tree-&amp;gt;_preorder)) {
             if (nd-&amp;gt;_left_child) {
                 // nd is an internal node
@@ -387,52 +433,14 @@ namespace strom {
             
         _tree-&amp;gt;_ninternals = curr_internal - _tree-&amp;gt;_nleaves;
         
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(_tree-&amp;gt;_unused_nodes.empty());&lt;/strong&gt;&lt;/span&gt;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (; curr_internal &amp;lt; _tree-&amp;gt;_nodes.size(); curr_internal++) {&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_tree-&amp;gt;_unused_nodes.clear();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (; curr_internal &amp;lt; (unsigned)_tree-&amp;gt;_nodes.size(); curr_internal++) {&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * curr = &amp;_tree-&amp;gt;_nodes[curr_internal];&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;putUnusedNode(curr);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(curr-&amp;gt;_number == -1);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;curr-&amp;gt;_number = curr_internal;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
         
-    }   
-
-</code></pre></div></div>
-
-<h2 id="adding-the-findnextpreorder-function">Adding the findNextPreorder function</h2>
-
-<p>This function was introduced to simplify the refreshPreorder function. In a future version of the tutorial, this function will be introduced earlier.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::findNextPreorder(Node * nd) {  
-        assert(nd);
-        Node * next = 0;
-        if (!nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
-            // nd has no children and no siblings, so next preorder is the right sibling of
-            // the first ancestral node that has a right sibling.
-            Node * anc = nd-&amp;gt;_parent;
-            while (anc &amp;&amp; !anc-&amp;gt;_right_sib)
-                anc = anc-&amp;gt;_parent;
-            if (anc) {
-                // We found an ancestor with a right sibling
-                next = anc-&amp;gt;_right_sib;
-            }
-            else {
-                // nd is last preorder node in the tree
-                next = 0;
-            }
-        }
-        else if (nd-&amp;gt;_right_sib &amp;&amp; !nd-&amp;gt;_left_child) {
-            // nd has no children (it is a tip), but does have a sibling on its right
-            next = nd-&amp;gt;_right_sib;
-        }
-        else if (nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
-            // nd has children (it is an internal node) but no siblings on its right
-            next = nd-&amp;gt;_left_child;
-        }
-        else {
-            // nd has both children and siblings on its right
-            next = nd-&amp;gt;_left_child;
-        }
-        return next;
     }   
 
 </code></pre></div></div>
@@ -558,23 +566,39 @@ namespace strom {
 <h2 id="adding-the-getunusednode-and-putunusednode-functions">Adding the getUnusedNode and putUnusedNode functions</h2>
 
 <p>Polytomies in trees mean that not all elements of the tree’s <code class="highlighter-rouge">_nodes</code> vector are used. The Tree class’s <code class="highlighter-rouge">_unused_nodes</code> stack keeps a list of nodes that are currently not being used. These unused nodes are tapped by the <code class="highlighter-rouge">Likelihood::defineOperations</code> function to help in computing the likelihood on polytomous trees. the <code class="highlighter-rouge">getUnusedNode</code> removes a node from the top of the stack and returns a pointer to the removed Node object. The <code class="highlighter-rouge">putUnusedNode</code> function takes a <code class="highlighter-rouge">Node</code> pointer and pushes it onto the <code class="highlighter-rouge">_unused_nodes</code> stack.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::getUnusedNode() {  
-        assert(_tree-&amp;gt;_unused_nodes.size() &amp;gt; 0);
-        Node * nd = _tree-&amp;gt;_unused_nodes.top();
-        _tree-&amp;gt;_unused_nodes.pop();
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::getUnusedNode(Node * sought) {  
+        assert(!_tree-&amp;gt;_unused_nodes.empty());
+        Node * nd = 0;
+        if (sought) {
+            unsigned i = 0;
+            for (Node * und : _tree-&amp;gt;_unused_nodes) {
+                if (und == sought) {
+                    nd = und;
+                    _tree-&amp;gt;_unused_nodes.erase(_tree-&amp;gt;_unused_nodes.begin()+i);
+                    break;
+                }
+                ++i;
+            }
+            assert(nd);
+        }
+        else {
+            nd = _tree-&amp;gt;_unused_nodes.back();
+            _tree-&amp;gt;_unused_nodes.pop_back();
+        }
         nd-&amp;gt;clearPointers();
         return nd;
     }   
     
     inline void TreeManip::putUnusedNode(Node * nd) {   
-        _tree-&amp;gt;_unused_nodes.push(nd);
+        nd-&amp;gt;clearPointers();
+        _tree-&amp;gt;_unused_nodes.push_back(nd);
     }   
 
 </code></pre></div></div>
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-19/05-modifying-the-likelihood-class.html">&lt;&nbsp;19.5</a> | 19.6 | <a href="//win//steps/step-19/07-adding-polytomy-updater-to-chain.html">19.7&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-19/05-modifying-the-likelihood-class.html">&lt;&nbsp;19.5</a> | 19.6 | <a href="/win/steps/step-19/07-adding-polytomy-updater-to-chain.html">19.7&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 13.1 | <a href="//mac//steps/step-13/02-test-lot.html">13.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 13.1 | <a href="/mac/steps/step-13/02-test-lot.html">13.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>Create a class whose objects can generate pseudorandom numbers.</p>
@@ -159,9 +159,9 @@ All are stored as shared pointers and so must be dereferenced to be called as fu
         _normal_variate_generator = std::shared_ptr&amp;lt;normal_variate_generator_t&amp;gt;(new normal_variate_generator_t(_generator, boost::random::normal_distribution&amp;lt;&amp;gt;()));
         _gamma_variate_generator = std::shared_ptr&amp;lt;gamma_variate_generator_t&amp;gt;(new gamma_variate_generator_t(_generator, boost::random::gamma_distribution&amp;lt;&amp;gt;(_gamma_shape)));
         _uniform_int_generator = std::shared_ptr&amp;lt;uniform_int_generator_t&amp;gt;(new uniform_int_generator_t(_generator, boost::random::uniform_int_distribution&amp;lt;&amp;gt;(_low, _high)));
-    }  
+    }
         
-    inline Lot::~Lot() {  
+    inline Lot::~Lot() {
         //std::cout &amp;lt;&amp;lt; "Destroying a Lot" &amp;lt;&amp;lt; std::endl;
         _uniform_variate_generator.reset();
         _normal_variate_generator.reset();
@@ -183,7 +183,10 @@ All are stored as shared pointers and so must be dereferenced to be called as fu
 <h2 id="the-uniform-member-function">The uniform member function</h2>
 <p>This function calls the <code class="highlighter-rouge">_uniform_variate_generator</code> functor to generate a draw from a Uniform(0,1) distribution.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Lot::uniform() {  
-        return (*_uniform_variate_generator)();
+        double u = (*_uniform_variate_generator)();
+        while (u &amp;lt;= 0.0)
+            u = (*_uniform_variate_generator)();
+        return u;
     }   
 
 </code></pre></div></div>
@@ -192,7 +195,8 @@ All are stored as shared pointers and so must be dereferenced to be called as fu
 <p>This function calls the <code class="highlighter-rouge">_uniform_variate_generator</code> functor to generate a draw from a Uniform(0,1) distribution, then returns the log of that value.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Lot::logUniform() {   
         double u = (*_uniform_variate_generator)();
-        assert(u &amp;gt; 0.0);
+        while (u &amp;lt;= 0.0)
+            u = (*_uniform_variate_generator)();
         return std::log(u);
     }   
 
@@ -237,7 +241,7 @@ All are stored as shared pointers and so must be dereferenced to be called as fu
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 13.1 | <a href="//mac//steps/step-13/02-test-lot.html">13.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-13/00-adding-pseudorandom-number-generator.html">&lt;&nbsp;13.0</a> | 13.1 | <a href="/mac/steps/step-13/02-test-lot.html">13.2&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-17/01-the-tree-updater-class.html">&lt;&nbsp;17.1</a> | 17.2 | <a href="//linux//steps/step-17/03-modify-chain.html">17.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-17/01-the-tree-updater-class.html">&lt;&nbsp;17.1</a> | 17.2 | <a href="/linux/steps/step-17/03-modify-chain.html">17.3&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -92,9 +92,9 @@ namespace strom {
         // std::cout &amp;lt;&amp;lt; "Creating a TreeLengthUpdater..." &amp;lt;&amp;lt; std::endl;
         clear();
         _name = "Tree Length";
-    }   
+    }
 
-    inline TreeLengthUpdater::~TreeLengthUpdater() {    
+    inline TreeLengthUpdater::~TreeLengthUpdater() {
         // std::cout &amp;lt;&amp;lt; "Destroying a TreeLengthUpdater..." &amp;lt;&amp;lt; std::endl;
     }   
 
@@ -116,7 +116,7 @@ namespace strom {
 
 <p>This overrides the base class version and calls the base class function <code class="highlighter-rouge">calcEdgeLengthPrior</code> to do the work. Edge lengths are the only parameters changed when this updater is invoked, so the only component of the prior that needs to be calculated is the joint prior on tree length and edge length proportions. We will need to be careful, however, because <code class="highlighter-rouge">TreeUpdater</code> returns a joint prior for tree topology, tree length, and edge length proportions, and if both updaters’ <code class="highlighter-rouge">calcLogPrior</code> function is called in the process of generating the overall prior, we will end up including the tree lengths and edge length proportions twice. We will handle this in a crude way now (by simply excluding one of these updaters when generating the prior), but will be forced to create a more sophisticated system in Step 19 when we add yet another updater that modifies tree topology and edge length proportions.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double TreeLengthUpdater::calcLogPrior() {   
-        return Updater::calcEdgeLengthPrior();
+        return Updater::calcLogEdgeLengthPrior();
     }   
 
 </code></pre></div></div>
@@ -126,9 +126,9 @@ namespace strom {
 <p>The <code class="highlighter-rouge">pullFromModel</code> function stores the current tree length in its <code class="highlighter-rouge">_curr_point</code> data member. The value of <code class="highlighter-rouge">_curr_point</code> changes when <code class="highlighter-rouge">proposeNewState</code> is called (after a copy is stored in <code class="highlighter-rouge">_prev_point</code>), and the function <code class="highlighter-rouge">pushToModel</code> rescales the tree based on the ratio of the new tree length (<code class="highlighter-rouge">_curr_point</code>) to the previous tree length (<code class="highlighter-rouge">_prev_point</code>).</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeLengthUpdater::pullFromModel() {    
         _curr_point = _tree_manipulator-&amp;gt;calcTreeLength();
-    }   
+    }
 
-    inline void TreeLengthUpdater::pushToModel() const {    
+    inline void TreeLengthUpdater::pushToModel() const {
         double scaler = _curr_point/_prev_point;
         _tree_manipulator-&amp;gt;scaleAllEdgeLengths(scaler);
     }   
@@ -173,7 +173,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-17/01-the-tree-updater-class.html">&lt;&nbsp;17.1</a> | 17.2 | <a href="//linux//steps/step-17/03-modify-chain.html">17.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-17/01-the-tree-updater-class.html">&lt;&nbsp;17.1</a> | 17.2 | <a href="/linux/steps/step-17/03-modify-chain.html">17.3&nbsp;&gt;</a></h3>
 </div>
 
 

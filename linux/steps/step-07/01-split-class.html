@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 7.1 | <a href="//linux//steps/step-07/02-adding-splits-to-node-and-treemanip.html">7.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 7.1 | <a href="/linux/steps/step-07/02-adding-splits-to-node-and-treemanip.html">7.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>The <code class="highlighter-rouge">Split</code> class provides an object that can store the set of taxa that represent descendants of a given <code class="highlighter-rouge">Node</code> object. We will provide a <code class="highlighter-rouge">Split</code> object for every <code class="highlighter-rouge">Node</code>.</p>
@@ -116,19 +116,19 @@ namespace strom {
         _nleaves = 0;
         _bits_per_unit = (CHAR_BIT)*sizeof(Split::split_unit_t);
         clear();
-        //std::cout &amp;lt;&amp;lt; "Constructing a Split" &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Constructing a Split" &amp;lt;&amp;lt; std::endl;
     } 
 
-    inline Split::Split(const Split &amp; other) { 
+    inline Split::Split(const Split &amp; other) {
         _mask = other._mask;
         _nleaves = other._nleaves;
         _bits_per_unit = (CHAR_BIT)*sizeof(Split::split_unit_t);
         _bits = other._bits;
-        //std::cout &amp;lt;&amp;lt; "Constructing a Split by copying an existing split" &amp;lt;&amp;lt; std::endl;
-    } 
+        std::cout &amp;lt;&amp;lt; "Constructing a Split by copying an existing split" &amp;lt;&amp;lt; std::endl;
+    }
 
-    inline Split::~Split() { 
-        //std::cout &amp;lt;&amp;lt; "Destroying a Split" &amp;lt;&amp;lt; std::endl;
+    inline Split::~Split() {
+        std::cout &amp;lt;&amp;lt; "Destroying a Split" &amp;lt;&amp;lt; std::endl;
     } 
 
 </code></pre></div></div>
@@ -179,11 +179,11 @@ else
         _nleaves = other._nleaves;
         _bits = other._bits;
         return *this;
-    } 
+    }
 
     inline bool Split::operator==(const Split &amp; other) const { 
         return (_bits == other._bits);
-    } 
+    }
 
     inline bool Split::operator&amp;lt;(const Split &amp; other) const { 
         assert(_bits.size() == other._bits.size());
@@ -468,7 +468,7 @@ split f: ---***---*
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 7.1 | <a href="//linux//steps/step-07/02-adding-splits-to-node-and-treemanip.html">7.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-07/00-summarizing-trees.html">&lt;&nbsp;7.0</a> | 7.1 | <a href="/linux/steps/step-07/02-adding-splits-to-node-and-treemanip.html">7.2&nbsp;&gt;</a></h3>
 </div>
 
 

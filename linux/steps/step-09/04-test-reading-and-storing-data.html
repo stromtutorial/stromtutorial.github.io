@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-09/03-create-the-data-class.html">&lt;&nbsp;9.3</a> | 9.4 | <a href="//linux//steps/step-10/00-calculating-the-likelihood.html">10.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-09/03-create-the-data-class.html">&lt;&nbsp;9.3</a> | 9.4 | <a href="/linux/steps/step-10/00-calculating-the-likelihood.html">10.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -72,7 +72,9 @@ namespace strom {
 
             std::string                 _data_file_name;
             std::string                 _tree_file_name;
+            
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Partition::SharedPtr        _partition;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Data::SharedPtr             _data;&lt;/strong&gt;&lt;/span&gt;
 
             TreeSummary::SharedPtr      _tree_summary;
 
@@ -148,6 +150,7 @@ namespace strom {
         _tree_file_name = "";
         _tree_summary   = nullptr;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_partition.reset(new Partition());&lt;/strong&gt;&lt;/span&gt;
+        _data = nullptr;
     }   
 
 </code></pre></div></div>
@@ -192,19 +195,18 @@ end;
 
 <p>In order to get <em>rbcL.nex</em> installed to the same directory as the strom executable file, we need to add one more <code class="highlighter-rouge">install_data</code> line to the very end of our <em>meson.build</em> file:</p>
 <div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp', 
-	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
-	version : '1.0')
+    default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
+    version : '1.0')
 cpp = meson.get_compiler('cpp')
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;lib_filesystem = cpp.find_library('boost_filesystem', dirs: ['/home/paul/lib/static'], required: true)&lt;/strong&gt;&lt;/span&gt;
 lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)
-lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/staticlib/static'], required: true)
+lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: true)
 incl_ncl = include_directories('/home/paul/include')
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_ncl,lib_program_options,lib_filesystem], include_directories: [incl_ncl,incl_boost])&lt;/strong&gt;&lt;/span&gt;
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;install_data('strom.conf', install_dir: '.')&lt;/strong&gt;&lt;/span&gt;
 install_data('test.tre', install_dir: '.')
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;install_data('rbcL.nex', install_dir: '.')&lt;/strong&gt;&lt;/span&gt;
-install_data('datatest.nex', install_dir: '.')  
 
 </code></pre></div></div>
 <p>I’ve also highlighted 3 other lines here. The new line that defines the dependency <code class="highlighter-rouge">lib_filesystem</code> and the addition of this dependency to the <code class="highlighter-rouge">executable</code> command are both needed in order to show the current working directory (see below). Also highlighted is a line that copies the <code class="highlighter-rouge">strom.conf</code> to the install directory.</p>
@@ -223,57 +225,7 @@ subset = third:3-60\3
 <p>We’ve already arranged for the data file to be in the working directory when strom is run, but users of your program may not know where strom is expecting data files to reside. You can help your future users by getting the program to tell you its current working directory when it starts up. We accomplish this by placing the following (highlighted) line just inside the <code class="highlighter-rouge">Strom::run</code> function:</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
         std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
-        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;   
-        
-        try {   
-            std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;
-            Data d;
-            d.setPartition(_partition);
-            d.getDataFromFile(_data_file_name);
-
-            // Report information about data partition subsets
-            unsigned nsubsets = d.getNumSubsets();
-            std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; d.getNumTaxa() &amp;lt;&amp;lt; std::endl;
-            std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;
-            for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
-                DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
-                std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
-                }
-            }   
-        catch (XStrom &amp; x) {
-            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
-        }
-
-        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
-    }   
-
-}   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
 
 </code></pre></div></div>
 
@@ -288,14 +240,14 @@ subset = third:3-60\3
         
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;try {&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\n*** Reading and storing the data in the file " &amp;lt;&amp;lt; _data_file_name &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Data d;&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;d.setPartition(_partition);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;d.getDataFromFile(_data_file_name);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_data = Data::SharedPtr(new Data());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_data-&amp;gt;setPartition(_partition);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_data-&amp;gt;getDataFromFile(_data_file_name);&lt;/strong&gt;&lt;/span&gt;
 
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Report information about data partition subsets&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned nsubsets = d.getNumSubsets();&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; d.getNumTaxa() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned nsubsets = _data-&amp;gt;getNumSubsets();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "\nNumber of taxa: " &amp;lt;&amp;lt; _data-&amp;gt;getNumTaxa() &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; "Number of partition subsets: " &amp;lt;&amp;lt; nsubsets &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);&lt;/strong&gt;&lt;/span&gt;
@@ -318,7 +270,7 @@ subset = third:3-60\3
 <h2 id="adding-genetic-code-definitions-to-maincpp">Adding genetic code definitions to main.cpp</h2>
 
 <p>The <code class="highlighter-rouge">_definitions</code> data member of the <code class="highlighter-rouge">GeneticCode</code> class was declared static, so we need to initialize it outside of the <code class="highlighter-rouge">GeneticCode</code> class in a source code (cpp) file. As <em>main.cpp</em> is the only source code file in our project (all others are header files), we must modify <em>main.cpp</em> to initialize <em>_definitions</em>.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt;
 #include "strom.hpp"
 
 using namespace strom;
@@ -364,7 +316,7 @@ int main(int argc, const char * argv[]) {
     }
 
     return 0;
-} 
+}
 
 </code></pre></div></div>
 
@@ -374,7 +326,7 @@ int main(int argc, const char * argv[]) {
 Partition subset second comprises sites 2-60\3 and has type nucleotide
 Partition subset third comprises sites 3-60\3 and has type nucleotide
 Starting...
-Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-09/test"
 
 *** Reading and storing the data in the file rbcL.nex
 storing implied block: TAXA
@@ -470,7 +422,11 @@ end;
 </code></pre></div></div>
 
 <p>Now modify your <em>strom.conf</em> file to look like this:</p>
-<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>datafile = datatest.nex
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code># datafile = rbcL.nex 
+# subset = first:1-60\3
+# subset = second:2-60\3
+# subset = third:3-60\3
+datafile = datatest.nex
 subset = rbcL[codon,plantplastid]:1-20
 subset = rbcL[protein]:21-40
 subset = morph[standard]:41-45 
@@ -480,12 +436,12 @@ subset = morph[standard]:41-45
 
 <p>You should also add the following highlighted line to the bottom of your <em>meson.build</em> file if you want <em>datatest.nex</em> to be copied to the installation directory when strom is built.</p>
 <div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp', 
-	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
-	version : '1.0')
+    default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
+    version : '1.0')
 cpp = meson.get_compiler('cpp')
 lib_filesystem = cpp.find_library('boost_filesystem', dirs: ['/home/paul/lib/static'], required: true)  
 lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)
-lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/staticlib/static'], required: true)
+lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: true)
 incl_ncl = include_directories('/home/paul/include')
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_ncl,lib_program_options,lib_filesystem], include_directories: [incl_ncl,incl_boost])    
@@ -501,7 +457,7 @@ install_data('rbcL.nex', install_dir: '.')
 Partition subset rbcL comprises sites 21-40 and has type protein
 Partition subset morph comprises sites 41-45 and has type standard
 Starting...
-Current working directory: "/Users/plewis/Documents/websites/cpptutorial/steps/step-09/test"
+Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-09/test"
 
 *** Reading and storing the data in the file datatest.nex
 storing implied block: TAXA
@@ -530,7 +486,7 @@ Finished!
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-09/03-create-the-data-class.html">&lt;&nbsp;9.3</a> | 9.4 | <a href="//linux//steps/step-10/00-calculating-the-likelihood.html">10.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-09/03-create-the-data-class.html">&lt;&nbsp;9.3</a> | 9.4 | <a href="/linux/steps/step-10/00-calculating-the-likelihood.html">10.0&nbsp;&gt;</a></h3>
 </div>
 
 

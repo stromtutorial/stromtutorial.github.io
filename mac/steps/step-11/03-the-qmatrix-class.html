@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-11/02-the-model-class.html">&lt;&nbsp;11.2</a> | 11.3 | <a href="//mac//steps/step-11/04-the-asrv-class.html">11.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-11/02-the-model-class.html">&lt;&nbsp;11.2</a> | 11.3 | <a href="/mac/steps/step-11/04-the-asrv-class.html">11.4&nbsp;&gt;</a></h3>
 </div>
 
 <p>Classes that inherit from the <code class="highlighter-rouge">QMatrix</code> class handle everything associated with the instantaneous rate matrix. The <code class="highlighter-rouge">Model</code> simply has to send the exchangeabilities and state frequencies to its data member <code class="highlighter-rouge">_qmatrix</code>, and the <code class="highlighter-rouge">QMatrix</code> objects stored there handle computing the eigenvalues, eigenvectors, and inverse eigenvectors that BeagleLib needs.</p>
@@ -130,9 +130,9 @@ namespace strom {
 <h2 id="constructor-and-destructor">Constructor and destructor</h2>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline QMatrix::QMatrix() { 
         //std::cout &amp;lt;&amp;lt; "Creating a QMatrix object" &amp;lt;&amp;lt; std::endl;
-    } 
+    }
     
-    inline QMatrix::~QMatrix() { 
+    inline QMatrix::~QMatrix() {
         //std::cout &amp;lt;&amp;lt; "Destroying a QMatrix object" &amp;lt;&amp;lt; std::endl;
     } 
 
@@ -165,13 +165,13 @@ namespace strom {
 <p>These three functions provide a way to change the values of the <code class="highlighter-rouge">_state_freqs_fixed</code>, <code class="highlighter-rouge">_exchangeabilities_fixed</code>, and <code class="highlighter-rouge">_omega_fixed</code> data members, respectively.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrix::fixStateFreqs(bool is_fixed) { 
         _state_freqs_fixed = is_fixed;
-    }   
+    }
     
-    inline void QMatrix::fixExchangeabilities(bool is_fixed) {  
+    inline void QMatrix::fixExchangeabilities(bool is_fixed) {
         _exchangeabilities_fixed = is_fixed;
-    }   
+    }
     
-    inline void QMatrix::fixOmega(bool is_fixed) {  
+    inline void QMatrix::fixOmega(bool is_fixed) {
         _omega_fixed = is_fixed;
     }   
 
@@ -182,13 +182,13 @@ namespace strom {
 <p>These three functions are accessors for the values of the <code class="highlighter-rouge">_state_freqs_fixed</code>, <code class="highlighter-rouge">_exchangeabilities_fixed</code>, and <code class="highlighter-rouge">_omega_fixed</code> data members, respectively.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline bool QMatrix::isFixedStateFreqs() const { 
         return _state_freqs_fixed;
-    }   
+    }
     
-    inline bool QMatrix::isFixedExchangeabilities() const { 
+    inline bool QMatrix::isFixedExchangeabilities() const {
         return _exchangeabilities_fixed;
-    }   
+    }
     
-    inline bool QMatrix::isFixedOmega() const { 
+    inline bool QMatrix::isFixedOmega() const {
         return _omega_fixed;
     }   
 
@@ -280,11 +280,11 @@ namespace strom {
         clear();
     } 
 
-    inline QMatrixNucleotide::~QMatrixNucleotide() { 
+    inline QMatrixNucleotide::~QMatrixNucleotide() {
         //std::cout &amp;lt;&amp;lt; "Destroying a QMatrixNucleotide object" &amp;lt;&amp;lt; std::endl;
-    } 
+    }
 
-    inline void QMatrixNucleotide::clear() { 
+    inline void QMatrixNucleotide::clear() {
         QMatrix::clear();
 
         QMatrix::freq_xchg_t xchg = {1,1,1,1,1,1};
@@ -303,9 +303,9 @@ namespace strom {
 <p>These two functions are accessors for <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code>, respectively.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getExchangeabilitiesSharedPtr() { 
         return _exchangeabilities;
-    } 
+    }
     
-    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() { 
+    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() {
         return _state_freqs;
     } 
 
@@ -326,13 +326,13 @@ namespace strom {
 <p>These are accessors that return pointers to the C-style arrays beneath the hood of the <code class="highlighter-rouge">Eigen::Matrix</code> data members <code class="highlighter-rouge">_eigenvectors</code>, <code class="highlighter-rouge">_inverse_eigenvectors</code>, and <code class="highlighter-rouge">_eigenvalues</code>, respectively. The reason we do not return references to the <code class="highlighter-rouge">Eigen::Matrix</code> objects directly is that these functions are used to fill buffers in BeagleLib, which expects C-style arrays.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const double * QMatrixNucleotide::getEigenvectors() const { 
         return _eigenvectors.data();
-    } 
+    }
     
-    inline const double * QMatrixNucleotide::getInverseEigenvectors() const { 
+    inline const double * QMatrixNucleotide::getInverseEigenvectors() const {
         return _inverse_eigenvectors.data();
     } 
     
-    inline const double * QMatrixNucleotide::getEigenvalues() const { 
+    inline const double * QMatrixNucleotide::getEigenvalues() const {
         return _eigenvalues.data();
     } 
 
@@ -343,9 +343,9 @@ namespace strom {
 <p>These two functions return pointers to the C-style arrays beneath the hood of the data members <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code>, respectively. The reason we do not return the shared pointers <code class="highlighter-rouge">_exchangeabilities</code> and <code class="highlighter-rouge">_state_freqs</code> themselves is that these functions are used to fill buffers in BeagleLib, which expects C-style arrays. In order to obtain the C-style array from a <code class="highlighter-rouge">std::shared_ptr</code> pointing to a <code class="highlighter-rouge">std::vector</code>, first obtain a reference to the vector pointed to (<code class="highlighter-rouge">*</code>), then obtain the memory address (<code class="highlighter-rouge">&amp;</code>) of the first element of the vector (<code class="highlighter-rouge">[0]</code>).</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const double * QMatrixNucleotide::getExchangeabilities() const { 
         return &amp;(*_exchangeabilities)[0];
-    } 
+    }
 
-    inline const double * QMatrixNucleotide::getStateFreqs() const { 
+    inline const double * QMatrixNucleotide::getStateFreqs() const {
         return &amp;(*_state_freqs)[0];
     } 
 
@@ -440,9 +440,9 @@ namespace strom {
 <p>Because the omega parameter is not used in the GTR model, these two functions should not be called at all, which explains why their only line is <code class="highlighter-rouge">assert(false)</code> to catch any usage of these functions in the debug version of the program.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void QMatrixNucleotide::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) { 
         assert(false);
-    } 
+    }
 
-    inline void QMatrixNucleotide::setOmega(QMatrix::omega_t omega) { 
+    inline void QMatrixNucleotide::setOmega(QMatrix::omega_t omega) {
         assert(false);
     } 
 
@@ -614,7 +614,7 @@ namespace strom {
         
             GeneticCode::SharedPtr      _genetic_code;
     };
-    
+
     inline QMatrixCodon::QMatrixCodon(GeneticCode::SharedPtr gcode) {
         //std::cout &amp;lt;&amp;lt; "Constructing a QMatrixCodon object" &amp;lt;&amp;lt; std::endl;
         assert(gcode);
@@ -803,7 +803,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-11/02-the-model-class.html">&lt;&nbsp;11.2</a> | 11.3 | <a href="//mac//steps/step-11/04-the-asrv-class.html">11.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-11/02-the-model-class.html">&lt;&nbsp;11.2</a> | 11.3 | <a href="/mac/steps/step-11/04-the-asrv-class.html">11.4&nbsp;&gt;</a></h3>
 </div>
 
 

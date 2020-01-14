@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-06/01-create-buildfromnewick.html">&lt;&nbsp;6.1</a> | 6.2 | <a href="//linux//steps/step-06/03-test-building-trees.html">6.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-06/01-create-buildfromnewick.html">&lt;&nbsp;6.1</a> | 6.2 | <a href="/linux/steps/step-06/03-test-building-trees.html">6.3&nbsp;&gt;</a></h3>
 </div>
 
 <p>Unexpected things happen while a program is running. Users may not use the program in the way intended by the developer, and assumptions made by the developer that are violated by the user should result in an informative message rather than a non-informative crash. The way this is handled in C++ is through exceptions. An exception object is “thrown” when the program realizes that an assumption has been violated, and the object is “caught” at another place in the program where it can be reported to the user. Look for the <code class="highlighter-rouge">try</code> block inside the <code class="highlighter-rouge">buildFromNewick</code> function. If anything bad happens inside the <code class="highlighter-rouge">try</code> block, an exception is thrown and the exception object is caught in the <code class="highlighter-rouge">catch</code> block near the bottom of the <code class="highlighter-rouge">buildFromNewick</code> function. Note what happens when the exception is caught: the <code class="highlighter-rouge">clear</code> function is called to ensure that the <code class="highlighter-rouge">Tree</code> object is not left in a partially-built state, then the exception is thrown again. We will experiment with catching the second throw in the main function and reporting the problem there, but for now we need to create the <code class="highlighter-rouge">XStrom</code> exception class.</p>
@@ -76,7 +76,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-06/01-create-buildfromnewick.html">&lt;&nbsp;6.1</a> | 6.2 | <a href="//linux//steps/step-06/03-test-building-trees.html">6.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-06/01-create-buildfromnewick.html">&lt;&nbsp;6.1</a> | 6.2 | <a href="/linux/steps/step-06/03-test-building-trees.html">6.3&nbsp;&gt;</a></h3>
 </div>
 
 

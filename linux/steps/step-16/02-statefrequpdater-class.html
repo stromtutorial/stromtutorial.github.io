@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/01-dirichlet-updater-base-class.html">&lt;&nbsp;16.1</a> | 16.2 | <a href="//linux//steps/step-16/03-exchangeabilitiesupdater-class.html">16.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/01-dirichlet-updater-base-class.html">&lt;&nbsp;16.1</a> | 16.2 | <a href="/linux/steps/step-16/03-exchangeabilitiesupdater-class.html">16.3&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -85,9 +85,9 @@ namespace strom {
         _name = "State Frequencies";
         assert(qmatrix);
         _qmatrix = qmatrix;
-    }   
+    }
 
-    inline StateFreqUpdater::~StateFreqUpdater() {  
+    inline StateFreqUpdater::~StateFreqUpdater() {
         //std::cout &amp;lt;&amp;lt; "Destroying a StateFreqUpdater" &amp;lt;&amp;lt; std::endl;
     }   
 
@@ -99,9 +99,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void StateFreqUpdater::pullFromModel() {  
         QMatrix::freq_xchg_ptr_t freqs = _qmatrix-&amp;gt;getStateFreqsSharedPtr();
         _curr_point.assign(freqs-&amp;gt;begin(), freqs-&amp;gt;end());
-    }   
+    }
     
-    inline void StateFreqUpdater::pushToModel() {  
+    inline void StateFreqUpdater::pushToModel() {
         _qmatrix-&amp;gt;setStateFreqs(_curr_point);
     }   
 
@@ -112,7 +112,7 @@ namespace strom {
 <p>The <code class="highlighter-rouge">DirichletUpdater</code> base class does almost all the work, so only a small amount of work in the constructor and the <code class="highlighter-rouge">pullFromModel</code> and <code class="highlighter-rouge">pushToModel</code> functions was needed to implement a state frequency updater.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/01-dirichlet-updater-base-class.html">&lt;&nbsp;16.1</a> | 16.2 | <a href="//linux//steps/step-16/03-exchangeabilitiesupdater-class.html">16.3&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/01-dirichlet-updater-base-class.html">&lt;&nbsp;16.1</a> | 16.2 | <a href="/linux/steps/step-16/03-exchangeabilitiesupdater-class.html">16.3&nbsp;&gt;</a></h3>
 </div>
 
 

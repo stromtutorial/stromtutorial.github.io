@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-09/02-create-the-partition-class.html">&lt;&nbsp;9.2</a> | 9.3 | <a href="//mac//steps/step-09/04-test-reading-and-storing-data.html">9.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-09/02-create-the-partition-class.html">&lt;&nbsp;9.2</a> | 9.3 | <a href="/mac/steps/step-09/04-test-reading-and-storing-data.html">9.4&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -159,9 +159,9 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Data::Data() {   
         //std::cout &amp;lt;&amp;lt; "Creating a Data object" &amp;lt;&amp;lt; std::endl;
         clear();
-    }   
+    }
 
-    inline Data::~Data() {   
+    inline Data::~Data() {
         //std::cout &amp;lt;&amp;lt; "Destroying a Data object" &amp;lt;&amp;lt; std::endl;
     }   
 
@@ -179,13 +179,13 @@ namespace strom {
 <p>The next 3 member functions provide access: (1) to the <code class="highlighter-rouge">Partition</code> object (<code class="highlighter-rouge">getPartition</code>, through a shared pointer); (2) to the number of data subsets in the partition (<code class="highlighter-rouge">getNumSubsets</code>); and (3) to the names assigned to the data subsets by the user (<code class="highlighter-rouge">getSubsetName</code>).</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Partition::SharedPtr Data::getPartition() {    
         return _partition;
-    }    
+    }
 
-    inline unsigned Data::getNumSubsets() const {    
+    inline unsigned Data::getNumSubsets() const {
         return (_partition ? _partition-&amp;gt;getNumSubsets() : 1);
-    }    
+    }
     
-    inline std::string Data::getSubsetName(unsigned subset) const {    
+    inline std::string Data::getSubsetName(unsigned subset) const {
         return _partition ? _partition-&amp;gt;getSubsetName(subset) : std::string("default");
     }    
 
@@ -195,21 +195,21 @@ namespace strom {
 <p>Next come 5 member functions (<code class="highlighter-rouge">getPartitionKey</code>, <code class="highlighter-rouge">getPatternCounts</code>, <code class="highlighter-rouge">getMonomorphic</code>, <code class="highlighter-rouge">getTaxonNames</code>, and <code class="highlighter-rouge">getDataMatrix</code>) that are all accessors.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline const Data::partition_key_t &amp; Data::getPartitionKey() const {    
         return _partition_key;
-    }    
+    }
     
-    inline const Data::pattern_counts_t &amp; Data::getPatternCounts() const {    
+    inline const Data::pattern_counts_t &amp; Data::getPatternCounts() const {
         return _pattern_counts;
-    }    
+    }
     
-    inline const Data::monomorphic_vect_t &amp; Data::getMonomorphic() const {    
+    inline const Data::monomorphic_vect_t &amp; Data::getMonomorphic() const {
         return _monomorphic;
-    }    
+    }
 
-    inline const Data::taxon_names_t &amp; Data::getTaxonNames() const {    
+    inline const Data::taxon_names_t &amp; Data::getTaxonNames() const {
         return _taxon_names;
-    }    
+    }
 
-    inline const Data::data_matrix_t &amp; Data::getDataMatrix() const {    
+    inline const Data::data_matrix_t &amp; Data::getDataMatrix() const {
         return _data_matrix;
     }    
 
@@ -741,7 +741,7 @@ R 0101 = 0101 &amp; 0101
 <p>The <code class="highlighter-rouge">_pattern_map_vect</code> data member is used by <code class="highlighter-rouge">compressPatterns()</code> but is cleared before that function returns. It serves as a temporary work space, and does not hold onto its contents once <code class="highlighter-rouge">_data_matrix</code> and <code class="highlighter-rouge">_pattern_counts</code> are rebuilt. For the same reason (we have all the data stored in our own data structures now), the function <code class="highlighter-rouge">MultiFormatReader::DeleteBlocksFromFactories</code> is called to delete data stored by NCL.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-09/02-create-the-partition-class.html">&lt;&nbsp;9.2</a> | 9.3 | <a href="//mac//steps/step-09/04-test-reading-and-storing-data.html">9.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-09/02-create-the-partition-class.html">&lt;&nbsp;9.2</a> | 9.3 | <a href="/mac/steps/step-09/04-test-reading-and-storing-data.html">9.4&nbsp;&gt;</a></h3>
 </div>
 
 

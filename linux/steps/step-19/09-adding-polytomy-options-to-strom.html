@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-19/08-modifying-model-outputmanager.html">&lt;&nbsp;19.8</a> | 19.9 | <a href="//linux//steps/step-19/10-testing-polytomies.html">19.10&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-19/08-modifying-model-outputmanager.html">&lt;&nbsp;19.8</a> | 19.9 | <a href="/linux/steps/step-19/10-testing-polytomies.html">19.10&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -74,7 +74,7 @@ namespace strom {
             void                                    clear();
             void                                    processCommandLineOptions(int argc, const char * argv[]);
             void                                    run();
-        
+                    
         private:
             bool                                    processAssignmentString(Model::SharedPtr m, const std::string &amp; which, const std::string &amp; definition);
             void                                    handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition); 
@@ -148,8 +148,8 @@ namespace strom {
         _use_gpu                    = true;
         _ambig_missing              = true;
         _expected_log_likelihood    = 0.0;
-        _use_underflow_scaling      = false;
         _data                       = nullptr;
+        _use_underflow_scaling      = false;
         _lot                        = nullptr;
         _random_seed                = 1;
         _num_iter                   = 1000;
@@ -214,7 +214,7 @@ namespace strom {
             ("usedata",       boost::program_options::value(&amp;_using_stored_data)-&amp;gt;default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)")
             ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
-            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
+            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(true),          "scale site-likelihoods to prevent underflow (slower but safer)")
         ;   
 
 </code></pre></div></div>
@@ -305,7 +305,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-19/08-modifying-model-outputmanager.html">&lt;&nbsp;19.8</a> | 19.9 | <a href="//linux//steps/step-19/10-testing-polytomies.html">19.10&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-19/08-modifying-model-outputmanager.html">&lt;&nbsp;19.8</a> | 19.9 | <a href="/linux/steps/step-19/10-testing-polytomies.html">19.10&nbsp;&gt;</a></h3>
 </div>
 
 

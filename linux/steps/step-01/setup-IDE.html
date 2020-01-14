@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/linux/steps/">Table of Contents</a> | 1.0 | <a href="//linux//steps/step-02/00-node-and-tree-classes.html">2.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="linux/steps/">Table of Contents</a> | 1.0 | <a href="/linux/steps/step-02/00-node-and-tree-classes.html">2.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -109,7 +109,11 @@ touch main.cpp
 <h2 id="editing-mesonbuild">Editing <em>meson.build</em></h2>
 
 <p>Use your favorite text editor to add the following text to the currently empty file <em>~/Documents/strom/src/meson.build</em>:</p>
-<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp', 
+	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
+	version : '1.0')
+executable('strom', 'main.cpp', install: true, install_dir: '.') 
+
 </code></pre></div></div>
 <p>We will add to this file as the program develops, but this much will enable us to compile the file <em>main.cpp</em> using the <a href="https://en.wikipedia.org/wiki/C%2B%2B11">C++11 programming language standard</a>.</p>
 
@@ -167,7 +171,7 @@ mkdir build
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="/linux/steps/">Table of Contents</a> | 1.0 | <a href="//linux//steps/step-02/00-node-and-tree-classes.html">2.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="linux/steps/">Table of Contents</a> | 1.0 | <a href="/linux/steps/step-02/00-node-and-tree-classes.html">2.0&nbsp;&gt;</a></h3>
 </div>
 
 

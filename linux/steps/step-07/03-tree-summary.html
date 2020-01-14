@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-07/02-adding-splits-to-node-and-treemanip.html">&lt;&nbsp;7.2</a> | 7.3 | <a href="//linux//steps/step-07/04-test-tree-summary.html">7.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-07/02-adding-splits-to-node-and-treemanip.html">&lt;&nbsp;7.2</a> | 7.3 | <a href="/linux/steps/step-07/04-test-tree-summary.html">7.4&nbsp;&gt;</a></h3>
 </div>
 
 <p>The <code class="highlighter-rouge">TreeSummary</code> class will read a tree file, keep track of the number of distinct tree topologies found therein, and count the number of trees having each unique topology.</p>
@@ -101,16 +101,16 @@ namespace strom {
 
 <p>The constructor and destructor function do nothing except report that a <code class="highlighter-rouge">TreeSummary</code> object was created or destroyed, respectively.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline TreeSummary::TreeSummary() { 
-        //std::cout &amp;lt;&amp;lt; "Constructing a TreeSummary" &amp;lt;&amp;lt; std::endl;
-    }   
+        std::cout &amp;lt;&amp;lt; "Constructing a TreeSummary" &amp;lt;&amp;lt; std::endl;
+    } 
 
-    inline TreeSummary::~TreeSummary() { 
-        //std::cout &amp;lt;&amp;lt; "Destroying a TreeSummary" &amp;lt;&amp;lt; std::endl;
+    inline TreeSummary::~TreeSummary() {
+        std::cout &amp;lt;&amp;lt; "Destroying a TreeSummary" &amp;lt;&amp;lt; std::endl;
     }   
 
 </code></pre></div></div>
 
-<h2 id="the-gettree-member-function">The <code class="highlighter-rouge">getTree</code> member function</h2>
+<h2 id="the-gettree-member-function">The getTree member function</h2>
 
 <p>This function returns a shared pointer to a tree built from the tree description stored in <code class="highlighter-rouge">_newicks[index]</code>. If index is too large, an <code class="highlighter-rouge">XStrom</code> exception is thrown.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Tree::SharedPtr TreeSummary::getTree(unsigned index) {   
@@ -127,7 +127,7 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="the-getnewick-accessor">The <code class="highlighter-rouge">getNewick</code> accessor</h2>
+<h2 id="the-getnewick-accessor">The getNewick accessor</h2>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline std::string TreeSummary::getNewick(unsigned index) { 
         if (index &amp;gt;= _newicks.size())
             throw XStrom("getNewick called with index &amp;gt;= number of stored trees");
@@ -137,7 +137,7 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="the-clear-member-function">The <code class="highlighter-rouge">clear</code> member function</h2>
+<h2 id="the-clear-member-function">The clear member function</h2>
 
 <p>The clear function simply empties the <code class="highlighter-rouge">_treeIDs</code> and <code class="highlighter-rouge">_newicks</code> vectors.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeSummary::clear() {  
@@ -147,7 +147,7 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="the-readtreefile-member-function">The <code class="highlighter-rouge">readTreefile</code> member function</h2>
+<h2 id="the-readtreefile-member-function">The readTreefile member function</h2>
 
 <p>This function reads the tree file specified by <code class="highlighter-rouge">filename</code>, skipping the first skip trees. We make use of the NCL’s <code class="highlighter-rouge">MultiFormatReader</code> class to find all TAXA blocks. If the NEXUS-formatted tree file does not contain a TAXA block, the NCL will create one for the taxa that it finds in the TREES block. For each TAXA block found, the member function <code class="highlighter-rouge">clear()</code> is called to reset the <code class="highlighter-rouge">TreeSummary</code> object. (Typically, there will be only one TAXA block in each tree file, but if there happens to be more than one, only the last will be stored.) The <code class="highlighter-rouge">readTreefile</code> function then stores each newick tree description found in <code class="highlighter-rouge">_newicks</code>, and, for each, builds the tree using the <code class="highlighter-rouge">TreeManip::buildFromNewick</code> function and uses <code class="highlighter-rouge">TreeManip::storeSplits</code> to create a tree ID (called <code class="highlighter-rouge">splitset</code>) for the tree. If the tree ID for this tree has never been seen, it creates a new entry in the <code class="highlighter-rouge">_treeIDs</code> map for this tree ID and associates it with a vector of length 1 containing the index of this tree. If the tree ID has already been seen, it simply adds the current tree index to the vector already associated with that tree ID.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeSummary::readTreefile(const std::string filename, unsigned skip) {  
@@ -216,7 +216,7 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="the-showsummary-member-function">The <code class="highlighter-rouge">showSummary</code> member function</h2>
+<h2 id="the-showsummary-member-function">The showSummary member function</h2>
 
 <p>Finally, add the body of the <code class="highlighter-rouge">showSummary</code> function, which reports the information stored in <code class="highlighter-rouge">_treeIDs</code> in a couple of different ways. It first outputs the number of trees it read from the file. Next, it iterates through all distinct tree topologies stored in <code class="highlighter-rouge">_treeIDs</code>, reporting the index of each tree having that topology. It finishes by producing a table showing the number of trees found for each distinct tree topology, sorted from most frequent topology to the least frequent topology.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeSummary::showSummary() const {  
@@ -252,7 +252,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-07/02-adding-splits-to-node-and-treemanip.html">&lt;&nbsp;7.2</a> | 7.3 | <a href="//linux//steps/step-07/04-test-tree-summary.html">7.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-07/02-adding-splits-to-node-and-treemanip.html">&lt;&nbsp;7.2</a> | 7.3 | <a href="/linux/steps/step-07/04-test-tree-summary.html">7.4&nbsp;&gt;</a></h3>
 </div>
 
 

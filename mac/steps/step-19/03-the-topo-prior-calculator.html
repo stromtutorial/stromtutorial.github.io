@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/02-the-polytomyupdater-class.html">&lt;&nbsp;19.2</a> | 19.3 | <a href="//mac//steps/step-19/04-adding-topo-prior-to-updater.html">19.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/02-the-polytomyupdater-class.html">&lt;&nbsp;19.2</a> | 19.3 | <a href="/mac/steps/step-19/04-adding-topo-prior-to-updater.html">19.4&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -65,7 +65,7 @@ namespace strom {
             typedef std::shared_ptr&amp;lt;PolytomyTopoPriorCalculator&amp;gt; SharedPtr;
                                             
                                             PolytomyTopoPriorCalculator();
-                                            ~PolytomyTopoPriorCalculator();
+            virtual                         ~PolytomyTopoPriorCalculator();
 
             bool                            isResolutionClassPrior() const;
             bool                            isPolytomyPrior() const;
@@ -107,6 +107,7 @@ namespace strom {
 
             unsigned                        sample(Lot::SharedPtr rng);
 
+            void                            clear();
             void                            reset();
 
         private:
@@ -135,23 +136,26 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="the-topopriorcalculator-constructor-and-destructor">The TopoPriorCalculator constructor and destructor</h2>
+<h2 id="the-topopriorcalculator-constructor-destructor-and-clear-function">The TopoPriorCalculator constructor, destructor, and clear function</h2>
 
-<p>The constructor sets <code class="highlighter-rouge">_is_rooted</code> to false, <code class="highlighter-rouge">_is_resolution_class_prior</code> to true, <code class="highlighter-rouge">_C</code> to 1.0, <code class="highlighter-rouge">_ntax</code> to 4, and <code class="highlighter-rouge">_topo_priors_dirty</code> to true. The destructor clears the vectors <code class="highlighter-rouge">_counts</code>, <code class="highlighter-rouge">_nfactors</code> and <code class="highlighter-rouge">_topology_prior</code>.</p>
+<p>The constructor calls the <code class="highlighter-rouge">clear</code> member function to perform initialization, and the destructor does nothing, as usual.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    PolytomyTopoPriorCalculator::PolytomyTopoPriorCalculator() {    
+        //std::cout &amp;lt;&amp;lt; "PolytomyTopoPriorCalculator being created" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }   
+
+    PolytomyTopoPriorCalculator::~PolytomyTopoPriorCalculator() {   
+        //std::cout &amp;lt;&amp;lt; "PolytomyTopoPriorCalculator being destroyed" &amp;lt;&amp;lt; std::endl;
+    }   
+
+    inline void PolytomyTopoPriorCalculator::clear() {
         _topo_priors_dirty            = true;
         _is_rooted                    = false;
         _is_resolution_class_prior    = true;
         _C                            = 1.0;
-        _ntax                        = 4;
-        _counts_dirty                = true;
-        _log_scaling_factor          = 10.0;
-    }   
-
-    PolytomyTopoPriorCalculator::~PolytomyTopoPriorCalculator() {   
-        _counts.clear();
-        _topology_prior.clear();
-        _nfactors.clear();
+        _ntax                         = 4;
+        _counts_dirty                 = true;
+        _log_scaling_factor           = 10.0;
     }   
 
 </code></pre></div></div>
@@ -868,7 +872,6 @@ p_5 = 1/[n_1 C^4 + n_2 C^3 + n_3 C^2 + n_4 C^1 + n_5 C^0]
 
 <p>Returns copy of the <code class="highlighter-rouge">_topology_prior</code> vector, which contains in its <code class="highlighter-rouge">m</code>th element the unnormalized prior for tree topologies having exactly <code class="highlighter-rouge">m</code> internal nodes. The <code class="highlighter-rouge">0</code>th element of <code class="highlighter-rouge">_topology_prior</code> holds the normalizing constant.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    std::vector&amp;lt;double&amp;gt; PolytomyTopoPriorCalculator::getTopoPriorVect() {   
-        //@POL this function could be const were it not for lazy evaluation
         if (_topo_priors_dirty)
             reset();
         return _topology_prior;
@@ -949,7 +952,7 @@ p_5 = 1/[n_1 C^4 + n_2 C^3 + n_3 C^2 + n_4 C^1 + n_5 C^0]
 <p>Lewis, P. O., Holder, M. T., and Holsinger, K. E. 2005. Polytomies and bayesian phylogenetic inference. Systematic Biology 54(2):241–253. <a href="https://doi.org/10.1080/10635150590924208">https://doi.org/10.1080/10635150590924208</a></p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/02-the-polytomyupdater-class.html">&lt;&nbsp;19.2</a> | 19.3 | <a href="//mac//steps/step-19/04-adding-topo-prior-to-updater.html">19.4&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/02-the-polytomyupdater-class.html">&lt;&nbsp;19.2</a> | 19.3 | <a href="/mac/steps/step-19/04-adding-topo-prior-to-updater.html">19.4&nbsp;&gt;</a></h3>
 </div>
 
 

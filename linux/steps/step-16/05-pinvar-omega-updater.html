@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/04-subsetrelrateupdater-class.html">&lt;&nbsp;16.4</a> | 16.5 | <a href="//linux//steps/step-16/06-test-updaters.html">16.6&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/04-subsetrelrateupdater-class.html">&lt;&nbsp;16.4</a> | 16.5 | <a href="/linux/steps/step-16/06-test-updaters.html">16.6&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -83,33 +83,32 @@ namespace strom {
             ASRV::SharedPtr             _asrv;
     };
 
-    // member function bodies go here
-        
-    inline PinvarUpdater::PinvarUpdater(ASRV::SharedPtr asrv) { 
+    // member function bodies go here    
+    inline PinvarUpdater::PinvarUpdater(ASRV::SharedPtr asrv) {
         //std::cout &amp;lt;&amp;lt; "PinvarUpdater being created" &amp;lt;&amp;lt; std::endl;
         clear();
         _name = "Proportion of Invariable Sites";
         assert(asrv);
         _asrv = asrv;
-    } 
+    }
 
-    inline PinvarUpdater::~PinvarUpdater() { 
+    inline PinvarUpdater::~PinvarUpdater() {
         //std::cout &amp;lt;&amp;lt; "PinvarUpdater being destroyed" &amp;lt;&amp;lt; std::endl;
         _asrv.reset();
-    } 
+    }
 
-    inline void PinvarUpdater::clear() { 
+    inline void PinvarUpdater::clear() {
         Updater::clear();
         _prev_point = 0.0;
         _asrv = nullptr;
         reset();
-    } 
+    }
 
-    inline double PinvarUpdater::getCurrentPoint() const { 
+    inline double PinvarUpdater::getCurrentPoint() const {
         return *(_asrv-&amp;gt;getPinvarSharedPtr());
-    } 
+    }
     
-    inline double PinvarUpdater::calcLogPrior() { 
+    inline double PinvarUpdater::calcLogPrior() {
         // Assumes Beta(a,b) prior with mean a/(a+b) and variance a*b/((a + b + 1)*(a + b)^2)
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];
@@ -127,13 +126,13 @@ namespace strom {
         else
             log_prior = Updater::_log_zero;
         return log_prior;
-    } 
+    }
 
-    inline void PinvarUpdater::revert() { 
+    inline void PinvarUpdater::revert() {
         _asrv-&amp;gt;setPinvar(_prev_point);
-    } 
+    }
 
-    inline void PinvarUpdater::proposeNewState() { 
+    inline void PinvarUpdater::proposeNewState() {
         if (_lambda &amp;gt; 1.0)
             _lambda = 1.0;
         
@@ -153,7 +152,7 @@ namespace strom {
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator-&amp;gt;selectAllPartials();
         _tree_manipulator-&amp;gt;selectAllTMatrices();
-    } 
+    }
 
 }   
 
@@ -194,33 +193,32 @@ namespace strom {
             QMatrix::SharedPtr          _q;
     };
 
-    // member function bodies go here
-        
-    inline OmegaUpdater::OmegaUpdater(QMatrix::SharedPtr q) { 
+    // member function bodies go here    
+    inline OmegaUpdater::OmegaUpdater(QMatrix::SharedPtr q) {
         //std::cout &amp;lt;&amp;lt; "OmegaUpdater being created" &amp;lt;&amp;lt; std::endl;
         clear();
         _name = "Omega";
         assert(q);
         _q = q;
-    } 
+    }
 
     inline OmegaUpdater::~OmegaUpdater() { 
         //std::cout &amp;lt;&amp;lt; "OmegaUpdater being destroyed" &amp;lt;&amp;lt; std::endl;
         _q.reset();
-    } 
+    }
 
-    inline void OmegaUpdater::clear() { 
+    inline void OmegaUpdater::clear() {
         Updater::clear();
         _prev_point = 0.0;
         _q = nullptr;
         reset();
-    } 
+    }
 
-    inline double OmegaUpdater::getCurrentPoint() const { 
+    inline double OmegaUpdater::getCurrentPoint() const {
         return *(_q-&amp;gt;getOmegaSharedPtr());
     } 
     
-    inline double OmegaUpdater::calcLogPrior() { 
+    inline double OmegaUpdater::calcLogPrior() {
         // Assumes Gamma(a,b) prior with mean a*b and variance a*b^2
         assert(_prior_parameters.size() == 2);
         double prior_a = _prior_parameters[0];
@@ -239,11 +237,11 @@ namespace strom {
         return log_prior;
     } 
 
-    inline void OmegaUpdater::revert() { 
+    inline void OmegaUpdater::revert() {
         _q-&amp;gt;setOmega(_prev_point);
-    } 
+    }
 
-    inline void OmegaUpdater::proposeNewState() { 
+    inline void OmegaUpdater::proposeNewState() {
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
         
@@ -264,7 +262,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/04-subsetrelrateupdater-class.html">&lt;&nbsp;16.4</a> | 16.5 | <a href="//linux//steps/step-16/06-test-updaters.html">16.6&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/04-subsetrelrateupdater-class.html">&lt;&nbsp;16.4</a> | 16.5 | <a href="/linux/steps/step-16/06-test-updaters.html">16.6&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -43,7 +43,7 @@
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="//mac//steps/step-07/03-tree-summary.html">&lt; 7.3</a> | 7.4 | <a href="//mac//steps/step-08/00-adding-program-options.html">8.0 &gt;</a>
+<a href="/mac/steps/step-07/03-tree-summary.html">&lt; 7.3</a> | 7.4 | <a href="/mac/steps/step-08/00-adding-program-options.html">8.0 &gt;</a>
 </h3>
 </div>
 
@@ -254,13 +254,20 @@ Finished!
 
 </code></pre></div></div>
 
+<h2 id="testtre-does-not-refer-to-a-valid-file">“test.tre” does not refer to a valid file</h2>
+
+<p>If you get the error message above, it means that you have tried to run <code class="highlighter-rouge">strom</code> from a directory other than the directory containing the tree file (<em>test.tre</em>). The <em>test.tre</em> file should have been installed in the same directory as the strom executable when you issued the command <code class="highlighter-rouge">meson install</code>. If you used a command like this to run strom:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>../../distr/strom
+</code></pre></div></div>
+<p>then you will get the error because <code class="highlighter-rouge">strom</code> will look for the <em>test.tre</em> file in the current working directory, which differs from the directory where <em>test.tre</em> resides.</p>
+
 <h2 id="lost-at-sea">Lost at sea</h2>
 <p>Important! The lines of output above will be lost in a sea of constructor and destructor notifications unless you comment those out. Visit the <code class="highlighter-rouge">Node</code>, <code class="highlighter-rouge">Tree</code>, <code class="highlighter-rouge">Split</code>, <code class="highlighter-rouge">TreeManip</code>, and <code class="highlighter-rouge">TreeSummary</code> classes and use <code class="highlighter-rouge">//</code> to comment out the <code class="highlighter-rouge">std::cout &lt;&lt; "Constructing a XXXX" &lt;&lt; std::endl;</code> statement inside the constructor and the <code class="highlighter-rouge">std::cout &lt;&lt; "Destroying a XXXX" &lt;&lt; std::endl;</code> statement inside the destructor. In future steps, these “reporter” output lines will be created already commented out so that they can be easily turned on if needed during debugging but not clutter the output during normal operation.</p>
 
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="//mac//steps/step-07/03-tree-summary.html">&lt; 7.3</a> | 7.4 | <a href="//mac//steps/step-08/00-adding-program-options.html">8.0 &gt;</a>
+<a href="/mac/steps/step-07/03-tree-summary.html">&lt; 7.3</a> | 7.4 | <a href="/mac/steps/step-08/00-adding-program-options.html">8.0 &gt;</a>
 </h3>
 </div>
 

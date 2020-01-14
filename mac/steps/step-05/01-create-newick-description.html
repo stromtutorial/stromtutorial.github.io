@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="//mac//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="/mac/steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>Our next goal is to create a newick string for the tree currently stored in a <code class="highlighter-rouge">TreeManip</code> object. Add the <code class="highlighter-rouge">makeNewick</code> function declaration in the public area of the <code class="highlighter-rouge">TreeManip</code> class declaration, and add the <code class="highlighter-rouge">makeNewick</code> function body just above the terminating curly bracket of the namespace (i.e. just before the end of the file):</p>
@@ -66,10 +66,11 @@ namespace strom {
             Tree::SharedPtr             getTree();
 
             double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
             void                        scaleAllEdgeLengths(double scaler);
 
             void                        createTestTree();
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                 makeNewick(unsigned precision) const;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string                 makeNewick(unsigned precision, bool use_names = false) const;&lt;/strong&gt;&lt;/span&gt;
 
             void                        clear();
 
@@ -84,27 +85,43 @@ namespace strom {
     
     //...   
     
-    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline std::string TreeManip::makeNewick(unsigned precision) const {&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;inline std::string TreeManip::makeNewick(unsigned precision, bool use_names) const {&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::string newick;&lt;/strong&gt;&lt;/span&gt;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const boost::format tip_node_format( boost::str(boost::format("%%d:%%.%df") % precision) );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const boost::format tip_node_name_format( boost::str(boost::format("%%s:%%.%df") % precision) );&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const boost::format tip_node_number_format( boost::str(boost::format("%%d:%%.%df") % precision) );&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;const boost::format internal_node_format( boost::str(boost::format("):%%.%df") % precision) );&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::stack&amp;lt;Node *&amp;gt; node_stack;&lt;/strong&gt;&lt;/span&gt;
 
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node * root_tip = (_tree-&amp;gt;_is_rooted ? 0 : _tree-&amp;gt;_root);&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto nd : _tree-&amp;gt;_preorder) {&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//...&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;_left_child) {&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += "(";&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;node_stack.push(nd);&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (root_tip) {&lt;/strong&gt;&lt;/span&gt;
-                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_format) % (root_tip-&amp;gt;_number + 1) % nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (use_names) {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_name_format)&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% root_tip-&amp;gt;_name&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;} else {&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_number_format)&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% (root_tip-&amp;gt;_number + 1)&lt;/strong&gt;&lt;/span&gt;
+                            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += ",";&lt;/strong&gt;&lt;/span&gt;
                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;root_tip = 0;&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_format) % (nd-&amp;gt;_number + 1) % nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (use_names) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_name_format)&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% nd-&amp;gt;_name&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;} else {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += boost::str(boost::format(tip_node_number_format)&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% (nd-&amp;gt;_number + 1)&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;% nd-&amp;gt;_edge_length);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;_right_sib)&lt;/strong&gt;&lt;/span&gt;
                     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;newick += ",";&lt;/strong&gt;&lt;/span&gt;
                 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
@@ -160,15 +177,16 @@ The goal of this function is to turn a tree in memory into a newick
                 node_stack.push(nd);    
 
 </code></pre></div></div>
-<p>When a tip node is visited, the <code class="highlighter-rouge">tip_node_format</code> string is used to add a number (one greater than the node’s <code class="highlighter-rouge">_number</code>) followed by a colon and then the edge length for that tip node.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                    newick += boost::str(boost::format(tip_node_format) % (root_tip-&amp;gt;_number + 1) % nd-&amp;gt;_edge_length);  
+<p>When a tip node is visited, the <code class="highlighter-rouge">tip_node_name_format</code> or <code class="highlighter-rouge">tip_node_number_format</code> string is used (depending on the argument passed into the parameter <code class="highlighter-rouge">use_names</code>) to add the node name (if <code class="highlighter-rouge">use_names</code> is <code class="highlighter-rouge">true</code>) or a number (if <code class="highlighter-rouge">use_names</code> is <code class="highlighter-rouge">false</code>). The name or number is followed by a colon and then the edge length for that tip node.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        const boost::format tip_node_name_format( boost::str(boost::format("%%s:%%.%df") % precision) );    
+        const boost::format tip_node_number_format( boost::str(boost::format("%%d:%%.%df") % precision) );  
 
 </code></pre></div></div>
-<p>The Boost library’s format class is used to format the string. Here we are creating an object of type <code class="highlighter-rouge">boost::format</code> (the <code class="highlighter-rouge">boost</code> part is the Boost namespace, while <code class="highlighter-rouge">format</code> is the class). The variable’s name is <code class="highlighter-rouge">tip_node_format</code>. This works much like Python or sprintf in C: placeholders (single percent symbols followed by a letter such as d, f, or s) are substituted for the supplied integer, floating point value, or string, respectively. Each doubled percent (<code class="highlighter-rouge">%%</code>) ends up being a single literal <code class="highlighter-rouge">%</code> in the string after replacements, so the above statement will be equal to the following after replacement of the <code class="highlighter-rouge">%d</code> by the supplied precision (assume that precision = 5 for this example):</p>
+<p>The Boost library’s format class is used to format the string. Here we are creating two objects of type <code class="highlighter-rouge">boost::format</code> (the <code class="highlighter-rouge">boost</code> part is the Boost namespace, while <code class="highlighter-rouge">format</code> is the class). The variables’ names are <code class="highlighter-rouge">tip_node_name_format</code> and <code class="highlighter-rouge">tip_node_number_format</code>. This works much like Python or sprintf in C: placeholders (single percent symbols followed by a letter such as d, f, or s) are substituted for the supplied integer, floating point value, or string, respectively. Each doubled percent (<code class="highlighter-rouge">%%</code>) ends up being a single literal <code class="highlighter-rouge">%</code> in the string after replacements, so the above statement will be equal to the following after replacement of the <code class="highlighter-rouge">%d</code> by the supplied precision (assume that precision = 5 for this example):</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>const boost::format tip_node_format("%d:%.5f");
 </code></pre></div></div>
 <p>You might wonder why the <code class="highlighter-rouge">boost::str(...)</code> is necessary. The <code class="highlighter-rouge">boost::format</code> constructor takes a string as its sole argument, not a <code class="highlighter-rouge">boost::format</code> object, and the Boost format library does not provide an implicit conversion of format objects to string objects, so the <code class="highlighter-rouge">boost::str</code> function provides an explicit way to do this conversion. This is done intentionally in order to make it easier to report errors accurately when compiling formats. You could also call <code class="highlighter-rouge">boost::format</code>’s <code class="highlighter-rouge">str</code> function to accomplish the conversion:</p>
-<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>const boost::format tip_node_format( (boost::format("%%d:%%.%df") % precision).str() );
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>const boost::format tip_node_number_format( (boost::format("%%d:%%.%df") % precision).str() );
 </code></pre></div></div>
 <p>The <a href="https://www.boost.org/doc/libs/1_64_0/libs/format/doc/format.html#examples">Boost format documentation</a> provides some examples of using <code class="highlighter-rouge">boost::format</code>.</p>
 
@@ -190,7 +208,7 @@ The goal of this function is to turn a tree in memory into a newick
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="//mac//steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-05/00-saving-trees.html">&lt;&nbsp;5.0</a> | 5.1 | <a href="/mac/steps/step-05/02-test-makenewick.html">5.2&nbsp;&gt;</a></h3>
 </div>
 
 

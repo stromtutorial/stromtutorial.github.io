@@ -42,11 +42,11 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="//linux//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="/linux/steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
 </div>
 
 
-<p>Now all that is needed is to make some small changes to the <code class="highlighter-rouge">Node</code>, <code class="highlighter-rouge">Tree</code>, and <code class="highlighter-rouge">TreeManip</code> classes, and update the <code class="highlighter-rouge">Strom::run</code> function to set up <code class="highlighter-rouge">Chain</code> and run it. For this exercise we will use another variation on the rbcL data set used before.</p>
+<p>Now all that is needed is to make changes to the <code class="highlighter-rouge">Node</code> and <code class="highlighter-rouge">TreeManip</code> classes to accommodate flipping transition matrices and partials, make <code class="highlighter-rouge">Updater</code> a friend of <code class="highlighter-rouge">Tree</code> and <code class="highlighter-rouge">Node</code>, and update the <code class="highlighter-rouge">Strom::run</code> function to set up <code class="highlighter-rouge">Chain</code> and run it. For this exercise we will use another variation on the rbcL data set used before.</p>
 
 <p>Download <a href="/assets/data/rbcl10.nex">rbcl10.nex</a> and <a href="/assets/data/rbcl10.tre">rbcl10.tre</a> to your working directory with the other downloaded data and tree files.</p>
 
@@ -79,9 +79,438 @@ Rate matrix R:
 Shape     0.253596 (3.94322)
 </code></pre></div></div>
 
-<h2 id="making-updater-a-friend-of-node-and-tree">Making Updater a friend of Node and Tree</h2>
+<h2 id="adding-selectability-to-the-node-class">Adding selectability to the Node class</h2>
 
-<p>Edit <em>node.hpp</em> and <em>tree.hpp</em> and uncomment the <code class="highlighter-rouge">class Updater;</code> and <code class="highlighter-rouge">friend class Updater;</code> lines that are currently commented out.</p>
+<p>Edit <em>node.hpp</em> and uncomment the <code class="highlighter-rouge">class Updater;</code> and <code class="highlighter-rouge">friend class Updater;</code> lines that are currently commented out. In addition, add the methods and data structures highlighted below in bold, blue text:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#pragma once    
+
+#include &amp;lt;string&amp;gt;
+#include &amp;lt;vector&amp;gt;
+#include  &amp;lt;iostream&amp;gt;
+#include "split.hpp"
+
+namespace strom {
+
+    class Tree;
+    class TreeManip;
+    class Likelihood;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;class Updater;&lt;/strong&gt;&lt;/span&gt;
+
+    class Node {
+        friend class Tree;
+        friend class TreeManip;
+        friend class Likelihood;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;friend class Updater;&lt;/strong&gt;&lt;/span&gt;
+
+        public:
+                                        Node();
+                                        ~Node();
+
+                    Node *              getParent()                 {return _parent;}
+                    Node *              getLeftChild()              {return _left_child;}
+                    Node *              getRightSib()               {return _right_sib;}
+                    int                 getNumber()                 {return _number;}
+                    std::string         getName()                   {return _name;}
+                    Split               getSplit()                  {return _split;}
+        
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isSelected()                {return _flags &amp; Flag::Selected;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                select()                    {_flags |= Flag::Selected;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                deselect()                  {_flags &amp;= ~Flag::Selected;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isSelPartial()              {return _flags &amp; Flag::SelPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                selectPartial()             {_flags |= Flag::SelPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                deselectPartial()           {_flags &amp;= ~Flag::SelPartial;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isSelTMatrix()              {return _flags &amp; Flag::SelTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                selectTMatrix()             {_flags |= Flag::SelTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                deselectTMatrix()           {_flags &amp;= ~Flag::SelTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isAltPartial()              {return _flags &amp; Flag::AltPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                setAltPartial()             {_flags |= Flag::AltPartial;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                clearAltPartial()           {_flags &amp;= ~Flag::AltPartial;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                isAltTMatrix()              {return _flags &amp; Flag::AltTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                setAltTMatrix()             {_flags |= Flag::AltTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                clearAltTMatrix()           {_flags &amp;= ~Flag::AltTMatrix;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                flipTMatrix()               {isAltTMatrix() ? clearAltTMatrix() : setAltTMatrix();}&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                flipPartial()               {isAltPartial() ? clearAltPartial() : setAltPartial();}&lt;/strong&gt;&lt;/span&gt;
+
+                    double              getEdgeLength()             {return _edge_length;}
+                    void                setEdgeLength(double v);
+
+            static const double _smallest_edge_length;
+
+            typedef std::vector&amp;lt;Node&amp;gt;    Vector;
+            typedef std::vector&amp;lt;Node *&amp;gt;  PtrVector;
+        
+        private:
+        
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;enum Flag {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Selected   = (1 &amp;lt;&amp;lt; 0),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;SelPartial = (1 &amp;lt;&amp;lt; 1),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;SelTMatrix = (1 &amp;lt;&amp;lt; 2),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;AltPartial = (1 &amp;lt;&amp;lt; 3),&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;AltTMatrix = (1 &amp;lt;&amp;lt; 4)&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;};&lt;/strong&gt;&lt;/span&gt;
+
+            void                clear();
+
+            Node *              _left_child;
+            Node *              _right_sib;
+            Node *              _parent;
+            int                 _number;
+            std::string         _name;
+            double              _edge_length;
+            Split               _split;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;int                 _flags;&lt;/strong&gt;&lt;/span&gt;
+    };
+
+    inline Node::Node() {
+        //std::cout &amp;lt;&amp;lt; "Creating Node object" &amp;lt;&amp;lt; std::endl;
+        clear();
+    }
+
+    inline Node::~Node() {
+        //std::cout &amp;lt;&amp;lt; "Destroying Node object" &amp;lt;&amp;lt; std::endl;
+    }
+
+    inline void Node::clear() {
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_flags = 0;&lt;/strong&gt;&lt;/span&gt;
+        _left_child = 0;
+        _right_sib = 0;
+        _parent = 0;
+        _number = -1;
+        _name = "";
+        _edge_length = _smallest_edge_length;
+    }
+
+    inline void Node::setEdgeLength(double v) {
+        _edge_length = (v &amp;lt; _smallest_edge_length ? _smallest_edge_length : v);
+    }
+
+}   
+
+</code></pre></div></div>
+<p>The <code class="highlighter-rouge">Flag</code> enum provides binary attributes for every node that can be turned on or off. The <code class="highlighter-rouge">select()</code>, <code class="highlighter-rouge">selectPartial()</code>, <code class="highlighter-rouge">selectTMatrix()</code>, <code class="highlighter-rouge">setAltPartial()</code>, and <code class="highlighter-rouge">setAltTMatrix()</code> member functions set (i.e. make the value 1) bits at positions 1, 2, 3, 4, and 5, respectively, while the member functions <code class="highlighter-rouge">deselect()</code>, <code class="highlighter-rouge">deselectPartial()</code>, <code class="highlighter-rouge">deselectTMatrix()</code>, <code class="highlighter-rouge">clearAltPartial()</code>, and <code class="highlighter-rouge">clearAltTMatrix()</code> unset (i.e. make the value 0 at) the same bit positions. As an example, suppose a node has 0 at all bit positions except position 4 (<code class="highlighter-rouge">Flag::AltPartial</code>). Here is what the node’s flag data member looks like in binary representation (showing only the 5 bits relevant to this discussion):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>flags = 0 1 0 0 0
+        | | | |  \Selected 
+        | | |  \SelPartial
+        | |  \SelTMatrix
+        |  \AltPartial
+         \AltTMatrix
+</code></pre></div></div>
+<p>If <code class="highlighter-rouge">selectTMatrix()</code> is called for this node, the result will be to set the 3rd bit (from the right) in addition to the bit already set in the 4th position (due to the fact that this is an OR operation):</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>flags = 0 1 0 0 0
+      | 0 0 1 0 0
+-----------------
+        0 1 1 0 0    
+        | | | |  \Selected 
+        | | |  \SelPartial
+        | |  \SelTMatrix
+        |  \AltPartial
+         \AltTMatrix
+</code></pre></div></div>
+<p>If <code class="highlighter-rouge">clearAltPartial()</code> is called for this node, the result will be to unset only the 4th bit (note that <code class="highlighter-rouge">~(0 1 0 0 0) = 1 0 1 1 1</code>:</p>
+<div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>flags = 0 1 1 0 0
+      &amp; 1 0 1 1 1
+--------------------
+        0 0 1 0 0
+        | | | |  \Selected 
+        | | |  \SelPartial
+        | |  \SelTMatrix
+        |  \AltPartial
+        \AltTMatrix
+</code></pre></div></div>
+
+<p>If bit operations still seem confusing, take a look at <a href="https://en.wikipedia.org/wiki/Bitwise_operations_in_C">this explanation</a>.</p>
+
+<p>These member functions allow us to:</p>
+<ul>
+  <li>select or deselect a node (which we will not be using in the tutorial but which you may find useful for debugging - e.g. selected nodes can be enumerated or displayed differently than unselected nodes);</li>
+  <li>select or deselect a node’s transition matrix (to trigger recalculation after the node’s edge length is modified);</li>
+  <li>select or deselect a node’s partial array (to trigger recalculation if anything above the node has changed);</li>
+  <li>set or clear the alt status of a node’s transition probability matrix (the alt state causes a different memory location in BeagleLib to be used to store the transition matrix);</li>
+  <li>set or clear the alt status of a node’s partials array (the alt state causes a different memory location in BeagleLib to be used to store the partials); and</li>
+  <li>flip either the transition matrix or partials array to the alt state or back again (we will flip the state of relevant nodes before calculating the likelihood for a proposed update, then flip back again if the proposal was rejected).</li>
+</ul>
+
+<h2 id="add-functions-to-treemanip-to-select-or-deselect-nodes">Add functions to TreeManip to select or deselect nodes</h2>
+
+<p>The added Node functions are normally called by <code class="highlighter-rouge">TreeManip</code> functions. Add the indicated function prototypes to the <code class="highlighter-rouge">TreeManip</code> class declaration:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class TreeManip {   
+        public:
+                                        TreeManip();
+                                        TreeManip(Tree::SharedPtr t);
+                                        ~TreeManip();
+
+            void                        setTree(Tree::SharedPtr t);
+            Tree::SharedPtr             getTree();
+
+            double                      calcTreeLength() const;
+            unsigned                    countEdges() const;
+            void                        scaleAllEdgeLengths(double scaler);
+
+            void                        createTestTree();
+            std::string                 makeNewick(unsigned precision, bool use_names = false) const;
+
+            void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        storeSplits(std::set&amp;lt;Split&amp;gt; &amp; splitset);
+            void                        rerootAtNodeNumber(int node_number);
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectAll();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        deselectAll();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectAllPartials();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        deselectAllPartials();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectAllTMatrices();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        deselectAllTMatrices();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        selectPartialsHereToRoot(Node * a);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        flipPartialsAndTMatrices();&lt;/strong&gt;&lt;/span&gt;
+
+            void                        clear();
+
+        private:
+
+            Node *                      findNextPreorder(Node * nd);
+            void                        refreshPreorder();
+            void                        refreshLevelorder();
+            void                        renumberInternals();
+            void                        rerootAtNode(Node * prospective_root);
+            void                        extractNodeNumberFromName(Node * nd, std::set&amp;lt;unsigned&amp;gt; &amp; used);
+            void                        extractEdgeLen(Node * nd, std::string edge_length_string);
+            unsigned                    countNewickLeaves(const std::string newick);
+            void                        stripOutNexusComments(std::string &amp; newick);
+            bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);
+
+            Tree::SharedPtr             _tree;
+
+        public:
+
+            typedef std::shared_ptr&amp;lt; TreeManip &amp;gt; SharedPtr;
+    };  
+
+</code></pre></div></div>
+
+<p>Add the bodies of these functions somewhere below the class declaration and before the curly bracket closing the namespace:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void TreeManip::selectAll() {    
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.select();
+        }
+    }
+
+    inline void TreeManip::deselectAll() {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.deselect();
+        }
+    }
+
+    inline void TreeManip::selectAllPartials() {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes)
+            nd.selectPartial();
+    }
+
+    inline void TreeManip::deselectAllPartials() {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.deselectPartial();
+        }
+    }
+
+    inline void TreeManip::selectAllTMatrices() {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes)
+            nd.selectTMatrix();
+    }
+
+    inline void TreeManip::deselectAllTMatrices() {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            nd.deselectTMatrix();
+        }
+    }
+
+    inline void TreeManip::selectPartialsHereToRoot(Node * a) {
+        a-&amp;gt;selectPartial();
+        while (a-&amp;gt;_parent) {
+            a = a-&amp;gt;_parent;
+            a-&amp;gt;selectPartial();
+        }
+    }
+
+    inline void TreeManip::flipPartialsAndTMatrices() {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
+            if (nd.isSelPartial())
+                nd.flipPartial();
+            
+            if (nd.isSelTMatrix())
+                nd.flipTMatrix();
+        }
+    }   
+
+</code></pre></div></div>
+
+<h2 id="modifying-the-likelihood-class-to-allow-alternate-partials-and-transition-matrix-indices">Modifying the Likelihood class to allow alternate partials and transition matrix indices</h2>
+
+<p>The ability to set a flag for a node indicating that an alternate partials index (or transition matrix index) is only useful if the <code class="highlighter-rouge">Likelihood</code> class pays attention to these flags. The first step is to reserve enough memory in BeagleLIb to accommodate alternate sets of indices. The highlighted lines below double the amount of memory allocated for partials, transition matrices, and scaler buffers.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector&amp;lt;unsigned&amp;gt; &amp; subset_indices) { 
+        unsigned num_subsets = (unsigned)subset_indices.size();
+        
+        bool is_invar_model = (nrates &amp;lt; 0 ? true : false);
+        unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
+        
+        unsigned num_patterns = 0;
+        for (auto s : subset_indices) {
+            num_patterns += _data-&amp;gt;getNumPatternsInSubset(s);
+        }
+        
+        unsigned num_internals = calcNumInternalsInFullyResolvedTree();
+
+        // add 1 to num_edges so that subroot node will have a tmatrix, root tip's tmatrix is never used
+        unsigned num_edges = calcNumEdgesInFullyResolvedTree();
+        unsigned num_nodes = num_edges + 1;
+        unsigned num_transition_probs = num_nodes*num_subsets;
+        
+        long requirementFlags = 0;
+
+        long preferenceFlags = BEAGLE_FLAG_PRECISION_SINGLE | BEAGLE_FLAG_THREADING_CPP;
+        if (_underflow_scaling) {
+            preferenceFlags |= BEAGLE_FLAG_SCALING_MANUAL;
+            preferenceFlags |= BEAGLE_FLAG_SCALERS_LOG;
+        }
+        if (_prefer_gpu)
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
+        else
+            preferenceFlags |= BEAGLE_FLAG_PROCESSOR_CPU;
+        
+        BeagleInstanceDetails instance_details;
+        unsigned npartials = num_internals + _ntaxa;
+        unsigned nscalers = num_internals;  // one scale buffer for every internal node
+        unsigned nsequences = 0;
+        if (_ambiguity_equals_missing) {
+            npartials -= _ntaxa;
+            nsequences += _ntaxa;
+        }
+        
+        int inst = beagleCreateInstance(
+             _ntaxa,                                // tips
+             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;2*npartials,                           // partials&lt;/strong&gt;&lt;/span&gt;
+             nsequences,                            // sequences
+             nstates,                               // states
+             num_patterns,                          // patterns (total across all subsets that use this instance)
+             num_subsets,                           // models (one for each distinct eigen decomposition)
+             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;2*num_subsets*num_transition_probs,    // transition matrices (one for each edge in each subset)&lt;/strong&gt;&lt;/span&gt;
+             ngammacat,                             // rate categories
+             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;(_underflow_scaling ? 2*nscalers + 1 : 0),  // scale buffers (+1 is for the cumulative scaler at index 0)&lt;/strong&gt;&lt;/span&gt;
+             NULL,                                  // resource restrictions
+             0,                                     // length of resource list
+             preferenceFlags,                       // preferred flags
+             requirementFlags,                      // required flags
+             &amp;instance_details);                    // pointer for details
+        
+        if (inst &amp;lt; 0) {
+            // beagleCreateInstance returns one of the following:
+            //   valid instance (0, 1, 2, ...)
+            //   error code (negative integer)
+            throw XStrom(boost::str(boost::format("Likelihood init function failed to create BeagleLib instance (BeagleLib error code was %d)") % _beagle_error[inst]));
+        }
+        
+        InstanceInfo info;
+        info.handle         = inst;
+        info.resourcenumber = instance_details.resourceNumber;
+        info.resourcename   = instance_details.resourceName;
+        info.nstates        = nstates;
+        info.nratecateg     = ngammacat;
+        info.invarmodel     = is_invar_model;
+        info.subsets        = subset_indices;
+        info.npatterns      = num_patterns;
+        info.partial_offset = num_internals;
+        info.tmatrix_offset = num_nodes;
+        _instances.push_back(info);
+    }   
+
+</code></pre></div></div>
+
+<p>Next, modify <code class="highlighter-rouge">getScalerIndex</code>, <code class="highlighter-rouge">getTMatrixIndex</code>, and <code class="highlighter-rouge">getPartialIndex</code> so that they return the alternate indices when the appropriate node flags are set. Replace the bodies of each of these three functions with the versions below:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline unsigned Likelihood::getScalerIndex(Node * nd, InstanceInfo &amp; info) const {  
+        unsigned sindex = BEAGLE_OP_NONE;
+        if (_underflow_scaling) {
+            sindex = nd-&amp;gt;_number - _ntaxa + 1; // +1 to skip the cumulative scaler vector
+            if (nd-&amp;gt;isAltPartial())
+                sindex += info.partial_offset;
+        }
+        return sindex;
+    } 
+    
+    inline unsigned Likelihood::getPartialIndex(Node * nd, InstanceInfo &amp; info) const {
+        // Note: do not be tempted to subtract _ntaxa from pindex: BeagleLib does this itself
+        assert(nd-&amp;gt;_number &amp;gt;= 0);
+        unsigned pindex = nd-&amp;gt;_number;
+        if (pindex &amp;gt;= _ntaxa) {
+            if (nd-&amp;gt;isAltPartial())
+                pindex += info.partial_offset;
+        }
+        return pindex;
+    }
+    
+    inline unsigned Likelihood::getTMatrixIndex(Node * nd, InstanceInfo &amp; info, unsigned subset_index) const {
+        unsigned tindex = 2*subset_index*info.tmatrix_offset + nd-&amp;gt;_number;
+        if (nd-&amp;gt;isAltTMatrix())
+            tindex += info.tmatrix_offset;
+        return tindex;
+    }   
+
+</code></pre></div></div>
+
+<p>Finally, tell <code class="highlighter-rouge">defineOperations</code> to only recalculate transition matrices or partials if the node is selected. This will be important later when only a few nodes are affected by a proposal (no sense in recalculating the partial likelihoods for a clade if that clade was not involved in the MCMC proposal).</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Likelihood::defineOperations(Tree::SharedPtr t) {  
+        assert(_instances.size() &amp;gt; 0);
+        assert(t);
+        assert(t-&amp;gt;isRooted() == _rooted);
+        
+        _relrate_normalizing_constant = _model-&amp;gt;calcNormalizingConstantForSubsetRelRates();
+
+        // Start with a clean slate
+        for (auto &amp; info : _instances) {
+            _operations[info.handle].clear();
+            _pmatrix_index[info.handle].clear();
+            _edge_lengths[info.handle].clear();
+            _eigen_indices[info.handle].clear();
+            _category_rate_indices[info.handle].clear();
+        }
+                
+        // Loop through all nodes in reverse level order
+        for (auto nd : boost::adaptors::reverse(t-&amp;gt;_levelorder)) {
+            assert(nd-&amp;gt;_number &amp;gt;= 0);
+            if (!nd-&amp;gt;_left_child) {
+                // This is a leaf
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;isSelTMatrix())&lt;/strong&gt;&lt;/span&gt;
+                    queueTMatrixRecalculation(nd);
+            }
+            else {
+                // This is an internal node
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;isSelTMatrix())&lt;/strong&gt;&lt;/span&gt;
+                    queueTMatrixRecalculation(nd);
+
+                // Internal nodes have partials to be calculated, so define
+                // an operation to compute the partials for this node
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (nd-&amp;gt;isSelPartial()) {&lt;/strong&gt;&lt;/span&gt;
+                    Node * lchild = nd-&amp;gt;_left_child;
+                    assert(lchild);
+                    Node * rchild = lchild-&amp;gt;_right_sib;
+                    assert(rchild);
+                    queuePartialsRecalculation(nd, lchild, rchild);
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            }
+        }
+    }  
+
+</code></pre></div></div>
+
+<h2 id="make-updater-a-friend-of-tree">Make Updater a friend of Tree</h2>
+
+<p>Edit <em>tree.hpp</em> and uncomment the <code class="highlighter-rouge">class Updater;</code> and <code class="highlighter-rouge">friend class Updater;</code> lines that are currently commented out.</p>
 
 <h2 id="modifying-the-model-class">Modifying the Model class</h2>
 <p>Make the following blue-highlighted additions to the <code class="highlighter-rouge">Model</code> class.</p>
@@ -186,21 +615,21 @@ Shape     0.253596 (3.94322)
 <p>Add these 5 function bodies somewhere before the right curly bracket that closes the <code class="highlighter-rouge">strom</code> namespace in <em>model.hpp</em>:</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Model::state_freq_params_t &amp; Model::getStateFreqParams() {   
         return _state_freq_params;
-    }  
+    }
     
-    inline Model::exchangeability_params_t &amp; Model::getExchangeabilityParams() {  
+    inline Model::exchangeability_params_t &amp; Model::getExchangeabilityParams() {
         return _exchangeability_params;
-    }  
+    }
     
-    inline Model::omega_params_t &amp; Model::getOmegaParams() {  
+    inline Model::omega_params_t &amp; Model::getOmegaParams() {
         return _omega_params;
-    }  
+    }
     
-    inline Model::ratevar_params_t &amp; Model::getRateVarParams() {  
+    inline Model::ratevar_params_t &amp; Model::getRateVarParams() {
         return _ratevar_params;
-    }  
+    } 
     
-    inline Model::pinvar_params_t &amp; Model::getPinvarParams() {  
+    inline Model::pinvar_params_t &amp; Model::getPinvarParams() {
         return _pinvar_params;
     }  
 
@@ -563,9 +992,9 @@ namespace strom {
         _ambig_missing              = true;
         _model.reset(new Model());
         _expected_log_likelihood    = 0.0;
+        _data                       = nullptr;
+        _likelihood                 = nullptr;
         _use_underflow_scaling      = false;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_data                       = nullptr;&lt;/strong&gt;&lt;/span&gt;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_likelihood                 = nullptr;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_lot                        = nullptr;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_random_seed                = 1;&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_num_iter                   = 1000;&lt;/strong&gt;&lt;/span&gt;
@@ -611,7 +1040,7 @@ namespace strom {
             ("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")
             ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
-            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)") 
+            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(false),          "scale site-likelihoods to prevent underflow (slower but safer)")
         ;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
@@ -682,7 +1111,7 @@ namespace strom {
             for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
                 DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
                 std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
@@ -714,12 +1143,10 @@ namespace strom {
                 throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
 
             std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
-            TreeManip tm(tree);
-            tm.selectAllPartials();
-            tm.selectAllTMatrices();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;TreeManip tm(tree);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;tm.selectAllPartials();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;tm.selectAllTMatrices();&lt;/strong&gt;&lt;/span&gt;
             double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
             
             if (_expected_log_likelihood != 0.0) 
@@ -923,7 +1350,7 @@ install_data('datatest.nex', install_dir: '.')
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="//linux//steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-14/03-the-chain-class.html">&lt;&nbsp;14.3</a> | 14.4 | <a href="/linux/steps/step-15/00-managing-output.html">15.0&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="//win//steps/step-19/00-polytomies.html">19.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/win/steps/step-19/00-polytomies.html">19.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -68,39 +68,39 @@ samplefreq  = 10
 <p>Note that chain summaries are provided for all four chains.</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Chain 0 (power 1.00000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4167
-                  Exchangeabilities        1000.000           100.0            4155
-                Gamma Rate Variance          10.317            30.1            4161
-     Proportion of Invariable Sites           1.000           100.0            4279
- Tree Topology and Edge Proportions        1000.000           100.0           79038
-                        Tree Length          10.929            31.5            4200
+                  State Frequencies        1000.000           100.0            4203
+                  Exchangeabilities        1000.000           100.0            4255
+                Gamma Rate Variance          10.568            29.6            4250
+     Proportion of Invariable Sites           1.000           100.0            4209
+         Tree Topol. and Edge Prop.        1000.000           100.0           78939
+                        Tree Length          13.137            29.7            4144
 
 Chain 1 (power 0.66667)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4169
-                  Exchangeabilities        1000.000           100.0            4221
-                Gamma Rate Variance          14.331            29.9            4230
-     Proportion of Invariable Sites           1.000           100.0            4119
- Tree Topology and Edge Proportions        1000.000           100.0           79054
-                        Tree Length          10.682            30.6            4207
+                  State Frequencies        1000.000           100.0            4173
+                  Exchangeabilities        1000.000           100.0            4222
+                Gamma Rate Variance          13.741            30.3            4229
+     Proportion of Invariable Sites           1.000           100.0            4122
+         Tree Topol. and Edge Prop.        1000.000           100.0           79047
+                        Tree Length          13.716            28.1            4207
 
 Chain 2 (power 0.50000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4204
-                  Exchangeabilities        1000.000           100.0            4218
-                Gamma Rate Variance          13.999            29.3            4221
-     Proportion of Invariable Sites           1.000           100.0            4203
- Tree Topology and Edge Proportions        1000.000           100.0           79096
-                        Tree Length          12.619            31.6            4058
+                  State Frequencies        1000.000           100.0            4165
+                  Exchangeabilities        1000.000           100.0            4154
+                Gamma Rate Variance          10.863            30.6            4159
+     Proportion of Invariable Sites           1.000           100.0            4279
+         Tree Topol. and Edge Prop.        1000.000           100.0           79040
+                        Tree Length          11.490            29.4            4203
 
 Chain 3 (power 0.40000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4201
-                  Exchangeabilities        1000.000           100.0            4255
-                Gamma Rate Variance          11.183            30.0            4250
-     Proportion of Invariable Sites           1.000           100.0            4205
- Tree Topology and Edge Proportions        1000.000           100.0           78946
-                        Tree Length          12.456            31.5            4143
+                  State Frequencies        1000.000           100.0            4204
+                  Exchangeabilities        1000.000           100.0            4217
+                Gamma Rate Variance          13.100            30.6            4224
+     Proportion of Invariable Sites           1.000           100.0            4204
+         Tree Topol. and Edge Prop.        1000.000           100.0           79095
+                        Tree Length          12.140            29.4            4056
 </code></pre></div></div>
 
 <p>The acceptance fractions are near 30% (which is what we specified as the target acceptance percentage in the <code class="highlighter-rouge">Chain::createUpdaters</code> function) for <em>Gamma Rate Variance</em> and <em>Tree Length</em>. For <em>State Frequencies</em>, <em>Exchangeabilities</em>, and <em>Tree Topology and Edge Proportions</em>, the tuning parameter has maxed out at a boldness of 1000 and the acceptance percentages are both 100%. For <em>Proportion of Invariable Sites</em>, the acceptance percentage is also 100% but the tuning parameter maxed out at 1.0 rather than 1000. Why is this? The parameters modified by these four updaters are the only parameters with truly flat priors, and, under a flat prior, all possible combinations have equal probability density. Because there are no downhill moves when updating state frequencies, exchangeabilities, tree topology, edge length proportions, or the proportion of invariable sites, all proposals are accepted. It is impossible to tune the samplers in this case because the proposal will be accepted regardless of how far away the proposed point is from the current point. You should not see this behavior when analyzing real data because sequence data contains information about these parameters that results in a posterior that is not perfectly flat. The fact that the <em>Proportion of Invariable Sites</em> tuning parameter maxes out at 1 rather than 1000 is due to the highlighted lines at the beginning of the <code class="highlighter-rouge">PinvarUpdater::proposeNewState</code> function:</p>
@@ -133,10 +133,10 @@ Chain 3 (power 0.40000)
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
 </span>                        0            1            2            3
 <span class="gd">----------------------------------------------------------------
-</span>           0          ---        16481        16646        16991
-           1        11517          ---        16703        16646
-           2         8490        13087          ---        16533
-           3         6718        10472        13723          ---
+</span>           0          ---        16520        16589        16824
+           1        11719          ---        16561        16908
+           2         8699        13130          ---        16598
+           3         6898        10922        13951          ---
 <span class="gd">----------------------------------------------------------------
 </span></code></pre></div></div>
 
@@ -150,7 +150,7 @@ Chain 3 (power 0.40000)
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="//win//steps/step-19/00-polytomies.html">19.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-18/01-modifying-strom-for-heated-chains.html">&lt;&nbsp;18.1</a> | 18.2 | <a href="/win/steps/step-19/00-polytomies.html">19.0&nbsp;&gt;</a></h3>
 </div>
 
 

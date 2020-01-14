@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="//linux//steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="/linux/steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -85,7 +85,8 @@ int main(int argc, const char * argv[]) {
 
 <p>Some data members (<code class="highlighter-rouge">_program_name</code>, <code class="highlighter-rouge">_major_version</code>, and <code class="highlighter-rouge">_minor_version</code>) of the <code class="highlighter-rouge">Strom</code> class were declared static. We must therefore initialize these in <em>main.cpp</em>, as it is our only source code file, just like we have been doing for <code class="highlighter-rouge">Node::_smallest_edge_length</code>.</p>
 
-<h2 id="compiling-the-boost-program_options-library">Compiling the Boost <code class="highlighter-rouge">program_options</code> library</h2>
+<h2 id="compiling-the-boost-program_options-library">Compiling the Boost program_options library</h2>
+
 <p>The extra capability we’ve added to our program requires us to:</p>
 <ul>
   <li>compile the Boost <code class="highlighter-rouge">program_options</code> library,</li>
@@ -93,7 +94,7 @@ int main(int argc, const char * argv[]) {
 Let’s take these one at a time</li>
 </ul>
 
-<h3 id="compile-the-boost-program_options-library">Compile the Boost <code class="highlighter-rouge">program_options</code> library</h3>
+<h3 id="compile-the-boost-program_options-library">Compile the Boost program_options library</h3>
 
 <p>Navigate to where you previously (<a href="/steps/step-05/02-test-makenewick.html">in step 5</a>) installed the Boost headers (<em>~/Documents/libraries/boost_1_71_0</em>) and enter the following command:</p>
 <div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./bootstrap.sh --with-toolset=gcc --with-libraries=program_options,filesystem,system
@@ -120,15 +121,15 @@ The following directory should be added to linker library paths:
 <h3 id="tell-meson-where-to-find-libboost_program_optionsa-for-linking-purposes">Tell meson where to find <em>libboost_program_options.a</em> for linking purposes</h3>
 <p>Here is the meson.build file we’ve been building up, with the highlighted lines either added or modified to accommodate program options:</p>
 <div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>project('strom', 'cpp',
-	default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
-	version : '1.0')
+    default_options : ['cpp_std=c++11','cpp_link_args=-static','prefix=/home/paul/Documents/strom/distr'],
+    version : '1.0')
 cpp = meson.get_compiler('cpp')
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)&lt;/strong&gt;&lt;/span&gt;
-lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/staticlib/static'], required: true)
+lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: true)
 incl_ncl = include_directories('/home/paul/include')
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_ncl,lib_program_options], include_directories: [incl_ncl,incl_boost])&lt;/strong&gt;&lt;/span&gt;
-&lt;span style="color:#0000ff"&gt;&lt;strong&gt;install_data('test.tre', install_dir: '.')&lt;/strong&gt;&lt;/span&gt;
+install_data('test.tre', install_dir: '.')
 
 </code></pre></div></div>
 <p>Note the meson variable <code class="highlighter-rouge">lib_program_options</code> stores the location of the <em>libboost_program_options.a</em>, and this variable is added to the <code class="highlighter-rouge">lib_ncl</code> variable to form a list that is supplied to the <code class="highlighter-rouge">dependencies</code> argument to the executables command.</p>
@@ -145,8 +146,6 @@ incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 <div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./strom --treefile test.tre
 </code></pre></div></div>
 <p>Because the name of the tree file is no longer hard-coded in the main function, the program forces you to supply these file names.</p>
-<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./gostrom.sh --treefile test.tre
-</code></pre></div></div>
 
 <h2 id="expected-output">Expected output</h2>
 <p>Here is the output you should see if everything is working correctly:</p>
@@ -190,7 +189,7 @@ treefile = test.tre
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="//linux//steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-08/01-the-strom-class.html">&lt;&nbsp;8.1</a> | 8.2 | <a href="/linux/steps/step-09/00-reading-and-storing-data.html">9.0&nbsp;&gt;</a></h3>
 </div>
 
 

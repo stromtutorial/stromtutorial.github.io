@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 15.1 | <a href="//mac//steps/step-15/02-adding-helper-functions-to-data-and-model.html">15.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 15.1 | <a href="/mac/steps/step-15/02-adding-helper-functions-to-data-and-model.html">15.2&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -105,9 +105,9 @@ namespace strom {
         //std::cout &amp;lt;&amp;lt; "Constructing an OutputManager" &amp;lt;&amp;lt; std::endl;
         _tree_file_name = "trees.t";
         _param_file_name = "params.p";
-    }   
+    }
 
-    inline OutputManager::~OutputManager() { 
+    inline OutputManager::~OutputManager() {
         //std::cout &amp;lt;&amp;lt; "Destroying an OutputManager" &amp;lt;&amp;lt; std::endl;
     } 
 
@@ -128,9 +128,9 @@ namespace strom {
        
         _treefile &amp;lt;&amp;lt; "begin trees;\n";
         _treefile &amp;lt;&amp;lt; data-&amp;gt;createTranslateStatement() &amp;lt;&amp;lt; std::endl;
-    }   
+    }
 
-    inline void OutputManager::closeTreeFile() {    
+    inline void OutputManager::closeTreeFile() {
         assert(_treefile.is_open());
         _treefile &amp;lt;&amp;lt; "end;\n";
         _treefile.close();
@@ -149,9 +149,9 @@ namespace strom {
         if (!_parameterfile.is_open())
             throw XStrom(boost::str(boost::format("Could not open parameter file \"%s\"") % _param_file_name));
         _parameterfile &amp;lt;&amp;lt; boost::str(boost::format("%s\t%s\t%s\t%s\t%s") % "iter" % "lnL" % "lnPr" % "TL" % model-&amp;gt;paramNamesAsString("\t")) &amp;lt;&amp;lt; std::endl;
-    }   
+    }
 
-    inline void OutputManager::closeParameterFile() {   
+    inline void OutputManager::closeParameterFile() {
         assert(_parameterfile.is_open());
         _parameterfile.close();
     }   
@@ -165,13 +165,13 @@ namespace strom {
         std::cout &amp;lt;&amp;lt; s &amp;lt;&amp;lt; std::endl;
     }
     
-    inline void OutputManager::outputTree(unsigned iter, TreeManip::SharedPtr tm) {  
+    inline void OutputManager::outputTree(unsigned iter, TreeManip::SharedPtr tm) {
         assert(_treefile.is_open());
         assert(tm);
         _treefile &amp;lt;&amp;lt; boost::str(boost::format("  tree iter_%d = %s;") % iter % tm-&amp;gt;makeNewick(5)) &amp;lt;&amp;lt; std::endl;
     }
     
-    inline void OutputManager::outputParameters(unsigned iter, double lnL, double lnP, double TL, Model::SharedPtr model) {   
+    inline void OutputManager::outputParameters(unsigned iter, double lnL, double lnP, double TL, Model::SharedPtr model) {
         assert(model);
         assert(_parameterfile.is_open());
         _parameterfile &amp;lt;&amp;lt; boost::str(boost::format("%d\t%.5f\t%.5f\t%.5f\t%s") % iter % lnL % lnP % TL % model-&amp;gt;paramValuesAsString("\t")) &amp;lt;&amp;lt; std::endl;
@@ -180,7 +180,7 @@ namespace strom {
 </code></pre></div></div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 15.1 | <a href="//mac//steps/step-15/02-adding-helper-functions-to-data-and-model.html">15.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-15/00-managing-output.html">&lt;&nbsp;15.0</a> | 15.1 | <a href="/mac/steps/step-15/02-adding-helper-functions-to-data-and-model.html">15.2&nbsp;&gt;</a></h3>
 </div>
 
 

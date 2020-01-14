@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/05-pinvar-omega-updater.html">&lt;&nbsp;16.5</a> | 16.6 | <a href="//linux//steps/step-17/00-updating-the-tree.html">17.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/05-pinvar-omega-updater.html">&lt;&nbsp;16.5</a> | 16.6 | <a href="/linux/steps/step-17/00-updating-the-tree.html">17.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -63,7 +63,7 @@
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Updater::SharedPtr u = StateFreqUpdater::SharedPtr(new StateFreqUpdater(statefreq_shptr));&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLikelihood(likelihood);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLot(lot);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(0.001);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setLambda(1.0);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setTargetAcceptanceRate(0.3);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setPriorParameters(std::vector&amp;lt;double&amp;gt;(statefreq_shptr-&amp;gt;getStateFreqsSharedPtr()-&amp;gt;size(), 1.0));&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;u-&amp;gt;setWeight(wstd); sum_weights += wstd;&lt;/strong&gt;&lt;/span&gt;
@@ -227,7 +227,7 @@ cpp = meson.get_compiler('cpp')
 lib_filesystem = cpp.find_library('boost_filesystem', dirs: ['/home/paul/lib/static'], required: true)
 lib_program_options = cpp.find_library('boost_program_options', dirs: ['/home/paul/lib/static'], required: true)
 lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: true)
-lib_beagle = cpp.find_library('hmsbeagle', dirs: ['/home/paul/lib/static'], required: true)
+lib_beagle = cpp.find_library('hmsbeagle', dirs: ['/home/paul/lib'], required: true)
 incl_beagle = include_directories('/home/paul/include/libhmsbeagle-1')
 incl_ncl = include_directories('/home/paul/include')
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
@@ -252,7 +252,7 @@ install_data('datatest.nex', install_dir: '.')
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-16/05-pinvar-omega-updater.html">&lt;&nbsp;16.5</a> | 16.6 | <a href="//linux//steps/step-17/00-updating-the-tree.html">17.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-16/05-pinvar-omega-updater.html">&lt;&nbsp;16.5</a> | 16.6 | <a href="/linux/steps/step-17/00-updating-the-tree.html">17.0&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-11/03-the-qmatrix-class.html">&lt;&nbsp;11.3</a> | 11.4 | <a href="//win//steps/step-11/05-adding-model-to-likelihood.html">11.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-11/03-the-qmatrix-class.html">&lt;&nbsp;11.3</a> | 11.4 | <a href="/win/steps/step-11/05-adding-model-to-likelihood.html">11.5&nbsp;&gt;</a></h3>
 </div>
 
 <p>The <code class="highlighter-rouge">ASRV</code> class handles everything associated with among-site rate heterogeneity for the <code class="highlighter-rouge">Model</code>. The <code class="highlighter-rouge">Model</code> has only to provide the variance among rates and the <code class="highlighter-rouge">ASRV</code> object recalculates the rate category boundaries and discrete gamma rate category means. Hiding the details of rate heterogeneity in this way makes it easy to later swap in a different version of <code class="highlighter-rouge">ASRV</code> that does not use the discrete gamma distribution to model among-site rate heterogeneity.</p>
@@ -120,13 +120,13 @@ namespace strom {
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline ASRV::ASRV() {   
         //std::cout &amp;lt;&amp;lt; "Constructing a ASRV" &amp;lt;&amp;lt; std::endl;
         clear();
-    }   
+    }
 
-    inline ASRV::~ASRV() {   
+    inline ASRV::~ASRV() {
         //std::cout &amp;lt;&amp;lt; "Destroying a ASRV" &amp;lt;&amp;lt; std::endl;
-    }   
+    }
 
-    inline void ASRV::clear() {   
+    inline void ASRV::clear() {
         // Rate homogeneity is the default
         _invar_model = false;
         _ratevar_fixed = false;
@@ -263,17 +263,17 @@ namespace strom {
 <p>The first 2 of these functions set the <code class="highlighter-rouge">_ratevar_fixed</code> and <code class="highlighter-rouge">_pinvar_fixed</code> data members, respectively. Each stores a bool value that determines whether their particular model parameter will be fixed or allowed to vary in, say, an MCMC analysis. The second set of 2 functions serve as accessors for these bool values.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void ASRV::fixRateVar(bool is_fixed) {  
         _ratevar_fixed = is_fixed;
-    }   
+    }
 
-    inline void ASRV::fixPinvar(bool is_fixed) {  
+    inline void ASRV::fixPinvar(bool is_fixed) {
         _pinvar_fixed = is_fixed;
-    }   
+    }
 
-    inline bool ASRV::isFixedRateVar() const {  
+    inline bool ASRV::isFixedRateVar() const {
         return _ratevar_fixed;
-    }   
+    }
 
-    inline bool ASRV::isFixedPinvar() const {  
+    inline bool ASRV::isFixedPinvar() const {
         return _pinvar_fixed;
     }   
 
@@ -289,7 +289,7 @@ namespace strom {
 
 <p>The mean of one category is computed as follows:</p>
 
-<p><img src="../../assets/img/rateMean.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
+<p><img src="/assets/img/rateMean.png" alt="Q matrix for the GTR model" class="center-math-image" /></p>
 
 <p>This involves a ratio of integrals of two Gamma distributions. The Gamma distribution in the numerator has shape α + 1, while the Gamma distribution in the denominator has shape α, and both have scale β = 1/α. The values <em>u</em> and <em>v</em> define the boundaries of the category for which the mean is being calculated. Calcluation of these two integrals is done using the quantile and cdf functions for the Gamma distribution provided by the <a href="https://www.boost.org/doc/libs/1_65_1/libs/math/doc/html/index.html">Boost Math library</a>.</p>
 
@@ -365,7 +365,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//win//steps/step-11/03-the-qmatrix-class.html">&lt;&nbsp;11.3</a> | 11.4 | <a href="//win//steps/step-11/05-adding-model-to-likelihood.html">11.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/win/steps/step-11/03-the-qmatrix-class.html">&lt;&nbsp;11.3</a> | 11.4 | <a href="/win/steps/step-11/05-adding-model-to-likelihood.html">11.5&nbsp;&gt;</a></h3>
 </div>
 
 

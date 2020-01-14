@@ -43,12 +43,12 @@
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="//mac//steps/step-05/01-create-newick-description.html">&lt; 5.1</a> | 5.2 | <a href="//mac//steps/step-06/00-building-trees.html">6.0 &gt;</a>
+<a href="/mac/steps/step-05/01-create-newick-description.html">&lt; 5.1</a> | 5.2 | <a href="/mac/steps/step-06/00-building-trees.html">6.0 &gt;</a>
 </h3>
 </div>
 
 
-<p>Add the following highlighted line to <em>main.cpp</em> (after <code class="highlighter-rouge">createTestTree()</code>):</p>
+<p>Add the following two highlighted lines to <em>main.cpp</em> (after <code class="highlighter-rouge">createTestTree()</code>):</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#include &amp;lt;iostream&amp;gt; 
 #include "node.hpp"
 #include "tree.hpp"
@@ -63,12 +63,14 @@ int main(int argc, const char * argv[]) {
     TreeManip tm;
     tm.createTestTree();
     &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; tm.makeNewick(3) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
+    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::cout &amp;lt;&amp;lt; tm.makeNewick(3, true) &amp;lt;&amp;lt; std::endl;&lt;/strong&gt;&lt;/span&gt;
     std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
 
     return 0;
 }   
 
 </code></pre></div></div>
+<p>The first of these lines will generate a newick tree description using numbers (because the default value of the <code class="highlighter-rouge">makeNewick</code> parameter <code class="highlighter-rouge">use_names</code> is <code class="highlighter-rouge">false</code>), while the second one will generate a newick descriptions in which the names stored in each tip node are used.</p>
 
 <h2 id="installing-the-boost-header-files">Installing the Boost header files</h2>
 
@@ -93,8 +95,9 @@ int main(int argc, const char * argv[]) {
 <p>Click the <code class="highlighter-rouge">+</code> button at the bottom left corner and type <code class="highlighter-rouge">$(BOOST_ROOT)</code> (this will expand to the custom path you defined earlier).</p>
 
 <h2 id="compile-and-run">Compile and run</h2>
-<p>Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional line appear in the output when the program is run:</p>
+<p>Go ahead and compile strom again. This time it should compile and install cleanly. You should see the following additional lines appear in the output when the program is run:</p>
 <div class="bash-output highlighter-rouge"><div class="highlight"><pre class="highlight"><code>((1:0.100,2:0.100):0.100,3:0.200)
+((first_leaf:0.100,second_leaf:0.100):0.100,third_leaf:0.200)
 </code></pre></div></div>
 
 <p>Note that 3 decimal places are used in outputting edge lengths because you supplied 3 as an argument to the <code class="highlighter-rouge">makeNewick</code> function.</p>
@@ -102,7 +105,7 @@ int main(int argc, const char * argv[]) {
 
 <div class="titlebar">
 	<h3 class="subsection">
-<a href="//mac//steps/step-05/01-create-newick-description.html">&lt; 5.1</a> | 5.2 | <a href="//mac//steps/step-06/00-building-trees.html">6.0 &gt;</a>
+<a href="/mac/steps/step-05/01-create-newick-description.html">&lt; 5.1</a> | 5.2 | <a href="/mac/steps/step-06/00-building-trees.html">6.0 &gt;</a>
 </h3>
 </div>
 

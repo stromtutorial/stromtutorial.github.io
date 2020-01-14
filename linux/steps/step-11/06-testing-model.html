@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-11/05-adding-model-to-likelihood.html">&lt;&nbsp;11.5</a> | 11.6 | <a href="//linux//steps/step-12/00-the-large-tree-problem.html">12.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-11/05-adding-model-to-likelihood.html">&lt;&nbsp;11.5</a> | 11.6 | <a href="/linux/steps/step-12/00-the-large-tree-problem.html">12.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -71,9 +71,9 @@ incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;incl_eigen = include_directories('/home/paul/Documents/libraries/eigen-eigen-323c052e1731')&lt;/strong&gt;&lt;/span&gt;
 &lt;span style="color:#0000ff"&gt;&lt;strong&gt;executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: [lib_beagle,lib_ncl,lib_program_options,lib_filesystem], include_directories: [incl_beagle,incl_ncl,incl_boost,incl_eigen])&lt;/strong&gt;&lt;/span&gt;
 install_data('strom.conf', install_dir: '.')
-install_data('test.tre', install_dir: '.')
+#install_data('test.tre', install_dir: '.')
 install_data('rbcL.nex', install_dir: '.')
-install_data('datatest.nex', install_dir: '.')
+#install_data('datatest.nex', install_dir: '.')
 install_data('rbcLjc.tre', install_dir: '.')
 install_data('go.sh', install_dir: '.')
 
@@ -122,12 +122,14 @@ install_data('go.sh', install_dir: '.')
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
         _data_file_name = "";
         _tree_file_name = "";
-        _tree_summary   = nullptr;
+        _tree_summary = nullptr;
         _partition.reset(new Partition());
-        _use_gpu        = true;
-        _ambig_missing  = true;
+        _use_gpu = true;
+        _ambig_missing = true;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_model.reset(new Model());&lt;/strong&gt;&lt;/span&gt;
         &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_expected_log_likelihood = 0.0;&lt;/strong&gt;&lt;/span&gt;
+        _data = nullptr; 
+        _likelihood = nullptr;
     }   
 
 </code></pre></div></div>
@@ -482,7 +484,7 @@ install_data('go.sh', install_dir: '.')
             for (unsigned subset = 0; subset &amp;lt; nsubsets; subset++) {
                 DataType dt = _partition-&amp;gt;getDataTypeForSubset(subset);
                 std::cout &amp;lt;&amp;lt; "  Subset " &amp;lt;&amp;lt; (subset+1) &amp;lt;&amp;lt; " (" &amp;lt;&amp;lt; _data-&amp;gt;getSubsetName(subset) &amp;lt;&amp;lt; ")" &amp;lt;&amp;lt; std::endl;
-                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; _partition-&amp;gt;getDataTypeForSubset(subset).getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
+                std::cout &amp;lt;&amp;lt; "    data type: " &amp;lt;&amp;lt; dt.getDataTypeAsString() &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    sites:     " &amp;lt;&amp;lt; _data-&amp;gt;calcSeqLenInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    patterns:  " &amp;lt;&amp;lt; _data-&amp;gt;getNumPatternsInSubset(subset) &amp;lt;&amp;lt; std::endl;
                 std::cout &amp;lt;&amp;lt; "    ambiguity: " &amp;lt;&amp;lt; (_ambig_missing || dt.isCodon() ? "treated as missing data (faster)" : "handled appropriately (slower)") &amp;lt;&amp;lt; std::endl;
@@ -512,12 +514,7 @@ install_data('go.sh', install_dir: '.')
                 throw XStrom(boost::format("Number of taxa in tree (%d) does not equal the number of taxa in the data matrix (%d)") % tree-&amp;gt;numLeaves() % _data-&amp;gt;getNumTaxa());
 
             std::cout &amp;lt;&amp;lt; "\n*** Calculating the likelihood of the tree" &amp;lt;&amp;lt; std::endl;
-            TreeManip tm(tree);
-            tm.selectAllPartials();
-            tm.selectAllTMatrices();
             double lnL = _likelihood-&amp;gt;calcLogLikelihood(tree);
-            tm.deselectAllPartials();
-            tm.deselectAllTMatrices();
             std::cout &amp;lt;&amp;lt; boost::str(boost::format("log likelihood = %.5f") % lnL) &amp;lt;&amp;lt; std::endl;
             
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_expected_log_likelihood != 0.0)&lt;/strong&gt;&lt;/span&gt;
@@ -540,7 +537,7 @@ install_data('go.sh', install_dir: '.')
 <p>The addition of the <code class="highlighter-rouge">expectedLnL</code> line provides the log-likelihood we expect our program to compute. Running the program should produce the expected log-likelihood. Your program now has the capability to compute the likelihood under a model involving data partitioning.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-11/05-adding-model-to-likelihood.html">&lt;&nbsp;11.5</a> | 11.6 | <a href="//linux//steps/step-12/00-the-large-tree-problem.html">12.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-11/05-adding-model-to-likelihood.html">&lt;&nbsp;11.5</a> | 11.6 | <a href="/linux/steps/step-12/00-the-large-tree-problem.html">12.0&nbsp;&gt;</a></h3>
 </div>
 
 

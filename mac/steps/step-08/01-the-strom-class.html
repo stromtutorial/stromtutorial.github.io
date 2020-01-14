@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-08/00-adding-program-options.html">&lt;&nbsp;8.0</a> | 8.1 | <a href="//mac//steps/step-08/02-testing-program-options.html">8.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-08/00-adding-program-options.html">&lt;&nbsp;8.0</a> | 8.1 | <a href="/mac/steps/step-08/02-testing-program-options.html">8.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>By the time you are finished with this lesson, your program will be able to obtain the name of the tree file to be processed from the user via command line options. It will also be possible to obtain the program version and help using command line switches.</p>
@@ -101,7 +101,7 @@ namespace strom {
 </code></pre></div></div>
 <p>Our usual destructor function just notifies us (if its single line is uncommented) that a <code class="highlighter-rouge">Strom</code> object has been destroyed.</p>
 
-<h2 id="the-clear-function">The <code class="highlighter-rouge">clear</code> function</h2>
+<h2 id="the-clear-function">The clear function</h2>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
         _data_file_name = "";
         _tree_file_name = "";
@@ -111,7 +111,7 @@ namespace strom {
 </code></pre></div></div>
 <p>The <code class="highlighter-rouge">clear</code> function currently just sets each of the two non-static data members to the empty string.</p>
 
-<h2 id="the-processcommandlineoptions-function">The <code class="highlighter-rouge">processCommandLineOptions</code> function</h2>
+<h2 id="the-processcommandlineoptions-function">The processCommandLineOptions function</h2>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
         boost::program_options::variables_map vm;
         boost::program_options::options_description desc("Allowed options");
@@ -176,7 +176,7 @@ namespace strom {
 
 <p>If the user did not ask for either help or version, we must assume they wish to run the program. In order for the program to run, we need to have a tree file name. If this was not specified, the program exits with a suitable error message.</p>
 
-<h2 id="the-run-function">The <code class="highlighter-rouge">run</code> function</h2>
+<h2 id="the-run-function">The run function</h2>
 <p>The <code class="highlighter-rouge">Strom::run</code> function can now take over all the duties that the main function performed before. Because <code class="highlighter-rouge">_data_file_name</code> and <code class="highlighter-rouge">_tree_file_name</code> are data members, and we’ve guaranteed that the user has supplied a value for the tree file name on the command line, we are free to use <code class="highlighter-rouge">_tree_file_name</code> in place of the hard coded literal string we used before.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {   
         std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
@@ -203,7 +203,7 @@ namespace strom {
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-08/00-adding-program-options.html">&lt;&nbsp;8.0</a> | 8.1 | <a href="//mac//steps/step-08/02-testing-program-options.html">8.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-08/00-adding-program-options.html">&lt;&nbsp;8.0</a> | 8.1 | <a href="/mac/steps/step-08/02-testing-program-options.html">8.2&nbsp;&gt;</a></h3>
 </div>
 
 

@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-07/03-tree-summary.html">&lt;&nbsp;7.3</a> | 7.4 | <a href="//linux//steps/step-08/00-adding-program-options.html">8.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-07/03-tree-summary.html">&lt;&nbsp;7.3</a> | 7.4 | <a href="/linux/steps/step-08/00-adding-program-options.html">8.0&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -230,7 +230,7 @@ lib_ncl = cpp.find_library('ncl', dirs: ['/home/paul/lib/static'], required: tru
 incl_ncl = include_directories('/home/paul/include')                            
 incl_boost = include_directories('/home/paul/Documents/libraries/boost_1_71_0')
 executable('strom', 'main.cpp', install: true, install_dir: '.', dependencies: lib_ncl, include_directories: [incl_ncl,incl_boost])
-install_data('test.tre', install_dir: '.')
+install_data('test.tre', install_dir: '.')  
 
 </code></pre></div></div>
 
@@ -242,7 +242,8 @@ incl_ncl = include_directories('/home/paul/include')
 <p>The <code class="highlighter-rouge">cpp</code> variable is first set to the meson object that stores information about the C++ compiler. The <code class="highlighter-rouge">find_library</code> function of the compiler object is then used to locate the file <em>libncl.so</em>. The convention for library file naming is to follow the pattern <code class="highlighter-rouge">libXXX.so</code>, so all that <code class="highlighter-rouge">find_library</code> needs to know is the <code class="highlighter-rouge">XXX</code> part (<code class="highlighter-rouge">ncl</code> here) and a list of directories (<code class="highlighter-rouge">['/home/plewis/lib/ncl']</code> here) to include in the search. The resulting <code class="highlighter-rouge">lib_ncl</code> variable is passed to the <code class="highlighter-rouge">dependencies</code> option of the <code class="highlighter-rouge">executables</code> command.</p>
 
 <p>The last line,</p>
-<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<div class="meson highlighter-rouge"><div class="highlight"><pre class="highlight"><code>install_data('test.tre', install_dir: '.')  
+
 </code></pre></div></div>
 <p>copies the tree file <em>test.tre</em> to the directory where the program is installed by meson. Specifying <code class="highlighter-rouge">'.'</code> for <code class="highlighter-rouge">install_dir</code> means that <em>test.tre</em> will be copied directly to the directory specified by the <code class="highlighter-rouge">prefix</code> variable defined in the <code class="highlighter-rouge">default_options</code> section of the project command starting on the first line of <em>meson.build</em>. If we had specified <code class="highlighter-rouge">install_dir: 'data'</code>, then <em>test.tre</em> would be copied to <code class="highlighter-rouge">/home/plewis/Documents/strom/distr/data</code> instead.</p>
 
@@ -271,12 +272,19 @@ Finished!
 
 </code></pre></div></div>
 
+<h2 id="testtre-does-not-refer-to-a-valid-file">“test.tre” does not refer to a valid file</h2>
+
+<p>If you get the error message above, it means that you have tried to run <code class="highlighter-rouge">strom</code> from a directory other than the directory containing the tree file (<em>test.tre</em>). The <em>test.tre</em> file should have been installed in the same directory as the strom executable when you issued the command <code class="highlighter-rouge">meson install</code>. If you used a command like this to run strom:</p>
+<div class="bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>../../distr/strom
+</code></pre></div></div>
+<p>then you will get the error because <code class="highlighter-rouge">strom</code> will look for the <em>test.tre</em> file in the current working directory, which differs from the directory where <em>test.tre</em> resides.</p>
+
 <h2 id="lost-at-sea">Lost at sea</h2>
 <p>Important! The lines of output above will be lost in a sea of constructor and destructor notifications unless you comment those out. Visit the <code class="highlighter-rouge">Node</code>, <code class="highlighter-rouge">Tree</code>, <code class="highlighter-rouge">Split</code>, <code class="highlighter-rouge">TreeManip</code>, and <code class="highlighter-rouge">TreeSummary</code> classes and use <code class="highlighter-rouge">//</code> to comment out the <code class="highlighter-rouge">std::cout &lt;&lt; "Constructing a XXXX" &lt;&lt; std::endl;</code> statement inside the constructor and the <code class="highlighter-rouge">std::cout &lt;&lt; "Destroying a XXXX" &lt;&lt; std::endl;</code> statement inside the destructor. In future steps, these “reporter” output lines will be created already commented out so that they can be easily turned on if needed during debugging but not clutter the output during normal operation.</p>
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-07/03-tree-summary.html">&lt;&nbsp;7.3</a> | 7.4 | <a href="//linux//steps/step-08/00-adding-program-options.html">8.0&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-07/03-tree-summary.html">&lt;&nbsp;7.3</a> | 7.4 | <a href="/linux/steps/step-08/00-adding-program-options.html">8.0&nbsp;&gt;</a></h3>
 </div>
 
 

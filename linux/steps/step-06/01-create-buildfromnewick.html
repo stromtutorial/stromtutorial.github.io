@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="//linux//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="/linux/steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
 </div>
 
 <p>We not only need the ability to create descriptions of existing trees, we need to build trees from descriptions. In this section of the tutorial, we will ultimately create the function <code class="highlighter-rouge">buildFromNewick</code>, but first we need to create several helper functions that will be called from within <code class="highlighter-rouge">buildFromNewick</code>. For some of the functions, I depend on comments in the code itself to explain what is happening. So, if it feels that I’m not explaining things adequately, see if you can understand how the function works by reading the comments (lines starting with <code class="highlighter-rouge">//</code>) I’ve placed in the function body itself.</p>
@@ -79,7 +79,7 @@ namespace strom {
             void                        scaleAllEdgeLengths(double scaler);
 
             void                        createTestTree();
-            std::string                 makeNewick(unsigned precision) const;
+            std::string                 makeNewick(unsigned precision, bool use_names = false) const;
 
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        rerootAtNodeNumber(int node_number);&lt;/strong&gt;&lt;/span&gt;
@@ -88,6 +88,7 @@ namespace strom {
 
         private:
 
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Node *                      findNextPreorder(Node * nd);&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        refreshPreorder();&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        refreshLevelorder();&lt;/strong&gt;&lt;/span&gt;
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                        renumberInternals();&lt;/strong&gt;&lt;/span&gt;
@@ -243,6 +244,45 @@ namespace strom {
 
 </code></pre></div></div>
 
+<h2 id="the-findnextpreorder-member-function">The findNextPreorder member function</h2>
+
+<p>This function is a helper function that simplifies <code class="highlighter-rouge">refreshPreorder</code> (next). It follows <code class="highlighter-rouge">_left_child</code>, <code class="highlighter-rouge">_right_sib</code>, and <code class="highlighter-rouge">_parent</code> pointers to locate the next node in preorder sequence. If a left child exists, then that is the next node in the preorder. Failing that, the right sibling is chosen. If there is neither a left child nor a right sibling, then we are located at the top right corner of a clade and must backtrack down through parents until a right sibling appears (unless we have already visited the last node in preorder sequence, in which case our backtracking will take us all the way down to the root node).</p>
+
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline Node * TreeManip::findNextPreorder(Node * nd) {  
+        assert(nd);
+        Node * next = 0;
+        if (!nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
+            // nd has no children and no siblings, so next preorder is the right sibling of
+            // the first ancestral node that has a right sibling.
+            Node * anc = nd-&amp;gt;_parent;
+            while (anc &amp;&amp; !anc-&amp;gt;_right_sib)
+                anc = anc-&amp;gt;_parent;
+            if (anc) {
+                // We found an ancestor with a right sibling
+                next = anc-&amp;gt;_right_sib;
+            }
+            else {
+                // nd is last preorder node in the tree
+                next = 0;
+            }
+        }
+        else if (nd-&amp;gt;_right_sib &amp;&amp; !nd-&amp;gt;_left_child) {
+            // nd has no children (it is a tip), but does have a sibling on its right
+            next = nd-&amp;gt;_right_sib;
+        }
+        else if (nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
+            // nd has children (it is an internal node) but no siblings on its right
+            next = nd-&amp;gt;_left_child;
+        }
+        else {
+            // nd has both children and siblings on its right
+            next = nd-&amp;gt;_left_child;
+        }
+        return next;
+    }   
+
+</code></pre></div></div>
+
 <h2 id="the-refreshpreorder-member-function">The refreshPreorder member function</h2>
 
 <p>This private function must be called whenever the structure of the tree changes. It rebuilds the <code class="highlighter-rouge">_preorder vector</code> by visiting nodes in preorder sequence and storing pointers to these nodes as it goes.</p>
@@ -263,37 +303,11 @@ namespace strom {
         _tree-&amp;gt;_preorder.push_back(nd);
 
         while (true) {
-            if (!nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
-                // nd has no children and no siblings, so next preorder is the right sibling of
-                // the first ancestral node that has a right sibling.
-                Node * anc = nd-&amp;gt;_parent;
-                while (anc &amp;&amp; !anc-&amp;gt;_right_sib)
-                    anc = anc-&amp;gt;_parent;
-                if (anc) {
-                    // We found an ancestor with a right sibling
-                    _tree-&amp;gt;_preorder.push_back(anc-&amp;gt;_right_sib);
-                    nd = anc-&amp;gt;_right_sib;
-                }
-                else {
-                    // nd is last preorder node in the tree
-                    break;
-                }
-            }
-            else if (nd-&amp;gt;_right_sib &amp;&amp; !nd-&amp;gt;_left_child) {
-                // nd has no children (it is a tip), but does have a sibling on its right
-                _tree-&amp;gt;_preorder.push_back(nd-&amp;gt;_right_sib);
-                nd = nd-&amp;gt;_right_sib;
-            }
-            else if (nd-&amp;gt;_left_child &amp;&amp; !nd-&amp;gt;_right_sib) {
-                // nd has children (it is an internal node) but no siblings on its right
-                _tree-&amp;gt;_preorder.push_back(nd-&amp;gt;_left_child);
-                nd = nd-&amp;gt;_left_child;
-            }
-            else {
-                // nd has both children and siblings on its right
-                _tree-&amp;gt;_preorder.push_back(nd-&amp;gt;_left_child);
-                nd = nd-&amp;gt;_left_child;
-            }
+            nd = findNextPreorder(nd);
+            if (nd)
+                _tree-&amp;gt;_preorder.push_back(nd);
+            else
+                break;
         }   // end while loop
     }   
 
@@ -360,7 +374,7 @@ namespace strom {
         assert(_tree-&amp;gt;_preorder.size() &amp;gt; 0);
         
         // Renumber internal nodes in postorder sequence
-        int curr_internal = _tree-&amp;gt;_nleaves;
+        unsigned curr_internal = _tree-&amp;gt;_nleaves;
         for (auto nd : boost::adaptors::reverse(_tree-&amp;gt;_preorder)) {
             if (nd-&amp;gt;_left_child) {
                 // nd is an internal node
@@ -378,7 +392,7 @@ namespace strom {
         // If the tree has polytomies, then there are Node objects stored in 
         // the _tree-&amp;gt;_nodes vector that have not yet been numbered. These can
         // be identified because their _number is currently equal to -1.
-        for (auto nd : _tree-&amp;gt;_nodes) {
+        for (auto &amp; nd : _tree-&amp;gt;_nodes) {
             if (nd._number == -1)
                 nd._number = curr_internal++;
         } 
@@ -772,7 +786,7 @@ namespace strom {
             clear();
             throw x;
         }
-    }   
+    }  
 
 </code></pre></div></div>
 
@@ -817,7 +831,7 @@ LParen_Valid    = 00000000000000000000000000001001
 <p>After the main loop has finished (because a terminating right parenthesis was encountered), unrooted trees are rooted arbitrarily at the leaf node whose number is 0. The functions <code class="highlighter-rouge">refreshPreorder</code> and <code class="highlighter-rouge">refreshLevelorder</code> are called to ensure that the tree can be navigated correctly using the <code class="highlighter-rouge">_preorder</code> and <code class="highlighter-rouge">_levelorder</code> vectors, respectively.</p>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//linux//steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="//linux//steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/linux/steps/step-06/00-building-trees.html">&lt;&nbsp;6.0</a> | 6.1 | <a href="/linux/steps/step-06/02-xstrom-exception-class.html">6.2&nbsp;&gt;</a></h3>
 </div>
 
 

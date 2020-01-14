@@ -42,7 +42,7 @@
 </div>
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/03-the-topo-prior-calculator.html">&lt;&nbsp;19.3</a> | 19.4 | <a href="//mac//steps/step-19/05-modifying-the-likelihood-class.html">19.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/03-the-topo-prior-calculator.html">&lt;&nbsp;19.3</a> | 19.4 | <a href="/mac/steps/step-19/05-modifying-the-likelihood-class.html">19.5&nbsp;&gt;</a></h3>
 </div>
 
 
@@ -95,7 +95,7 @@ namespace strom {
             virtual void                            clear();
 
             virtual double                          calcLogPrior() = 0;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  calcLogTopologyPrior() const;&lt;/strong&gt;&lt;/span&gt;
+            double                                  calcLogTopologyPrior() const;
             double                                  calcLogEdgeLengthPrior() const; 
             double                                  calcLogLikelihood() const;
             virtual double                          update(double prev_lnL);
@@ -118,7 +118,7 @@ namespace strom {
             double                                  _prob;
             double                                  _lambda;
             double                                  _log_hastings_ratio;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _log_jacobian;&lt;/strong&gt;&lt;/span&gt;
+            double                                  _log_jacobian;
             double                                  _target_acceptance;
             unsigned                                _naccepts;
             unsigned                                _nattempts;
@@ -126,7 +126,6 @@ namespace strom {
             std::vector&amp;lt;double&amp;gt;                     _prior_parameters;
             
             double                                  _heating_power;
-
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;mutable PolytomyTopoPriorCalculator     _topo_prior_calculator;&lt;/strong&gt;&lt;/span&gt;
             
             static const double                     _log_zero;
@@ -137,88 +136,24 @@ namespace strom {
 
 </code></pre></div></div>
 
-<h2 id="modifying-the-reset-function">Modifying the reset function</h2>
+<h2 id="modify-the-calclogtopologyprior-function">Modify the calcLogTopologyPrior function</h2>
 
-<p>Set the new data member <code class="highlighter-rouge">_log_jacobian</code> to zero in the reset function:</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Updater::reset() { 
-        _log_hastings_ratio = 0.0;
-        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_log_jacobian       = 0.0;&lt;/strong&gt;&lt;/span&gt;
-    } 
-
-</code></pre></div></div>
-
-<h2 id="modify-the-update-function">Modify the update function</h2>
-
-<p>Modify the update function to take account of the new _log_jacobian data member.</p>
-<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::update(double prev_lnL) { 
-        double prev_log_prior = calcLogPrior();
-
-        // Clear any nodes previously selected so that we can detect those nodes
-        // whose partials and/or transition probabilities need to be recalculated
-        _tree_manipulator-&amp;gt;deselectAllPartials();
-        _tree_manipulator-&amp;gt;deselectAllTMatrices();
-        
-        // Set model to proposed state and calculate _log_hastings_ratio
-        proposeNewState();
-        
-        // Use alternative partials and transition probability buffer for any selected nodes
-        // This allows us to easily revert to the previous values if the move is rejected
-        _tree_manipulator-&amp;gt;flipPartialsAndTMatrices();
-
-        // Calculate the log-likelihood and log-prior for the proposed state
-        double log_likelihood = calcLogLikelihood();
-        double log_prior = calcLogPrior();
-        
-        // Decide whether to accept or reject the proposed state
-        bool accept = true;
-        if (log_prior &amp;gt; _log_zero) {
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_R = 0.0;&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _heating_power*(log_likelihood - prev_lnL);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _heating_power*(log_prior - prev_log_prior);&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _log_hastings_ratio;&lt;/strong&gt;&lt;/span&gt;
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += _log_jacobian;&lt;/strong&gt;&lt;/span&gt;
-            
-            double logu = _lot-&amp;gt;logUniform();
-
-            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (logu &amp;gt; log_R)&lt;/strong&gt;&lt;/span&gt;
-                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;accept = false;&lt;/strong&gt;&lt;/span&gt;
-        }
-        else
-            accept = false;
-
-        if (accept) {
-            _naccepts++;
-        }
-        else {
-            revert();
-            _tree_manipulator-&amp;gt;flipPartialsAndTMatrices();
-            log_likelihood = prev_lnL;
-        }
-
-        tune(accept);
-        reset();
-
-        return log_likelihood;
-    } 
-
-</code></pre></div></div>
-
-<h2 id="add-the-calclogtopologyprior-function">Add the calcLogTopologyPrior function</h2>
-
-<p>This function uses the data member <code class="highlighter-rouge">_topo_prior_calculator</code> to compute the log of the tree topology prior.</p>
+<p>This function must be modified to take account of polytomous trees. It uses the <code class="highlighter-rouge">TopoPriorCalculator</code> class to compute the prior for a tree topology with a specified number of internal nodes.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcLogTopologyPrior() const {   
-        Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
-        assert(tree);
-        if (tree-&amp;gt;isRooted())
-            _topo_prior_calculator.chooseRooted();
-        else
-            _topo_prior_calculator.chooseUnrooted();
-        _topo_prior_calculator.setNTax(tree-&amp;gt;numLeaves());
-        unsigned m = tree-&amp;gt;numInternals();
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(tree);&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (tree-&amp;gt;isRooted())&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_topo_prior_calculator.chooseRooted();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_topo_prior_calculator.chooseUnrooted();&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_topo_prior_calculator.setNTax(tree-&amp;gt;numLeaves());&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned m = tree-&amp;gt;numInternals();&lt;/strong&gt;&lt;/span&gt;
                 
-        double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);&lt;/strong&gt;&lt;/span&gt;
 
-        return log_topology_prior;
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;return log_topology_prior;&lt;/strong&gt;&lt;/span&gt;
     }   
 
 </code></pre></div></div>
@@ -238,7 +173,7 @@ namespace strom {
 
 <h2 id="modify-the-calclogedgelengthprior-function">Modify the calcLogEdgeLengthPrior function</h2>
 
-<p>The <code class="highlighter-rouge">calcLogEdgeLengthPrior</code> function must be modified because, if polytomies may be present, we must now count the number of edges in the tree can can no longer use a formula that only works for binary trees.</p>
+<p>The <code class="highlighter-rouge">calcLogEdgeLengthPrior</code> function must be modified because, if polytomies may be present, we must now count the number of edges in the tree and can can no longer use a formula that only works for binary trees.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::calcLogEdgeLengthPrior() const { 
         double log_prior = 0.0;
         Tree::SharedPtr tree = _tree_manipulator-&amp;gt;getTree();
@@ -277,13 +212,13 @@ namespace strom {
 
         log_prior = log_gamma_prior_on_TL + log_edge_length_proportions_prior;
         return log_prior;
-    } 
+    }   
 
 </code></pre></div></div>
 
 
 <div class="titlebar">
-	<h3 class="subsection"><a href="//mac//steps/step-19/03-the-topo-prior-calculator.html">&lt;&nbsp;19.3</a> | 19.4 | <a href="//mac//steps/step-19/05-modifying-the-likelihood-class.html">19.5&nbsp;&gt;</a></h3>
+	<h3 class="subsection"><a href="/mac/steps/step-19/03-the-topo-prior-calculator.html">&lt;&nbsp;19.3</a> | 19.4 | <a href="/mac/steps/step-19/05-modifying-the-likelihood-class.html">19.5&nbsp;&gt;</a></h3>
 </div>
 
 
