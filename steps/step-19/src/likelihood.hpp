@@ -705,8 +705,8 @@ namespace strom {
                 // Internal nodes have partials to be calculated, so define
                 // an operation to compute the partials for this node
                 if (nd->isSelPartial()) {
-                    TreeManip tm(t);
-                    if (tm.isPolytomy(nd)) {   ///!j
+                    TreeManip tm(t);   ///!j
+                    if (tm.isPolytomy(nd)) {
                         // Internal node is a polytomy
                         unsigned nchildren = tm.countChildren(nd);
                         Node * a = nd->_left_child;
@@ -719,12 +719,12 @@ namespace strom {
 
                             queuePartialsRecalculation(c, a, b, nd);
                             
-                            // Tackle next arm of the polytomy  ///!p
+                            // Tackle next arm of the polytomy
                             b = b->_right_sib;
                             a = c;
-                        }   ///!q
+                        }
                         
-                        // Now add operation to compute the partial for the real internal node  ///!r
+                        // Now add operation to compute the partial for the real internal node
                         queuePartialsRecalculation(nd, a, b);
                     }
                     else {
@@ -734,7 +734,7 @@ namespace strom {
                         Node * rchild = lchild->_right_sib;
                         assert(rchild);
                         queuePartialsRecalculation(nd, lchild, rchild);
-                    }   ///!s
+                    }   ///!k
                 }
             }
         }
@@ -745,7 +745,7 @@ namespace strom {
             unsigned instance_specific_subset_index = 0;
             for (unsigned s : info.subsets) {
             
-                if (polytomy) {  ///!d
+                if (polytomy) {  ///!da
                     // nd has been pulled out of tree's _unused_nodes vector to break up the polytomy
                     // Note that the parameter "polytomy" is the polytomous node itself
                     
@@ -776,20 +776,18 @@ namespace strom {
                         _polytomy_map[spolytomy].push_back(snd);
                     }
                     
-                }  ///!dd
+                }  ///!db
                 
                 addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
                 ++instance_specific_subset_index;
             }
         }
-    }   //end_queuePartialsRecalculation
+    }   ///end_queuePartialsRecalculation
     
     inline void Likelihood::queueTMatrixRecalculation(Node * nd) {
         Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();
 
-        // Loop through all instances
         for (auto & info : _instances) {
-            // Loop through all subsets assigned to this instance
             unsigned instance_specific_subset_index = 0;
             for (unsigned s : info.subsets) {
                 double subset_relative_rate = subset_relrates[s]/_relrate_normalizing_constant;

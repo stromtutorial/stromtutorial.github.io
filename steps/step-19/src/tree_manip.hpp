@@ -44,7 +44,6 @@ namespace strom {
             void                        nniNodeSwap(Node * a, Node * b); 
             unsigned                    countChildren(Node * nd) const;
             Node *                      findLeftSib(Node * nd);
-            Node *                      findNextPreorder(Node * nd);
             Node *                      findRightmostChild(Node * nd);
             Node *                      findLastPreorderInClade(Node * start);
             void                        insertSubtreeOnLeft(Node * s, Node * u);
@@ -68,6 +67,7 @@ namespace strom {
             
         private:
 
+            Node *                      findNextPreorder(Node * nd);
             void                        refreshPreorder();
             void                        refreshLevelorder();
             void                        renumberInternals();
@@ -872,7 +872,7 @@ namespace strom {
         }
     }
 
-    inline Node * TreeManip::randomInternalEdge(Lot::SharedPtr lot) {
+    inline Node * TreeManip::randomInternalEdge(Lot::SharedPtr lot) {   ///begin_randomInternalEdge
         // Unrooted case:                        Rooted case:
         //
         // 2     3     4     5                   1     2     3     4
@@ -895,10 +895,10 @@ namespace strom {
         // vector of integers solely to illustrate the algorithm below
         
         int num_internal_edges = (unsigned)_tree->_preorder.size() - _tree->_nleaves - (_tree->_is_rooted ? 1 : 0);
-        if (num_internal_edges == 0) {
+        if (num_internal_edges == 0) {  ///!za
             // Star tree: return hub node, which is the first node in the preorder sequence
             return _tree->_preorder[0];
-        }
+        }   ///!zb
 
         // Add one to skip first node in _preorder vector, which is an internal node whose edge
         // is either a terminal edge (if tree is unrooted) or invalid (if tree is rooted)
@@ -919,7 +919,7 @@ namespace strom {
         }
         assert(chosen_node);
         return chosen_node;
-    }
+    }   ///end_randomInternalEdge
 
     inline Node * TreeManip::randomChild(Lot::SharedPtr lot, Node * x, Node * avoid, bool parent_included) {
         // Count number of children of x

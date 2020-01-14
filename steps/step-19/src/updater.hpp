@@ -274,7 +274,7 @@ namespace strom {
         return log_topology_prior;
     }   ///end_calcLogTopologyPrior
 
-    inline double Updater::calcLogEdgeLengthPrior() const {
+    inline double Updater::calcLogEdgeLengthPrior() const { ///begin_calcLogEdgeLengthPrior
         double log_prior = 0.0;
         Tree::SharedPtr tree = _tree_manipulator->getTree();
         assert(tree);
@@ -312,7 +312,7 @@ namespace strom {
 
         log_prior = log_gamma_prior_on_TL + log_edge_length_proportions_prior;
         return log_prior;
-    }
+    }   ///end_calcLogEdgeLengthPrior
 
     inline double Updater::getLogZero() {
         return _log_zero;

@@ -39,9 +39,9 @@ Initialize the `_identity_matrix` data member in the first few lines of `newInst
 
 ## Modify the queuePartialsRecalculation function
 
-Add the highlighted lines in the `queuePartialsRecalculation` member function:
+Add the `polytomy` parameter and the highlighted lines below in the `queuePartialsRecalculation` member function:
 ~~~~~~
-{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"!begin_queuePartialsRecalculation-end_queuePartialsRecalculation","begin_queuePartialsRecalculation,d-dd" }}
+{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"!begin_queuePartialsRecalculation-end_queuePartialsRecalculation","begin_queuePartialsRecalculation,da-db" }}
 ~~~~~~
 {:.cpp}
 
@@ -51,7 +51,7 @@ This is the main modification made to the `Likelihood` class to allow for polyto
 
 Add or change the highlighted lines in the `defineOperations` member function:
 ~~~~~~
-{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-end_defineOperations","i,j-k,l-m,n-o,p-q,r-s" }}
+{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_defineOperations-end_defineOperations","j-k" }}
 ~~~~~~
 {:.cpp}
 

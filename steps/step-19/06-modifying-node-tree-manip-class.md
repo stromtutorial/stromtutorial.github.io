@@ -73,11 +73,10 @@ Counts and returns the number of internal nodes in the managed tree.
 ~~~~~~
 {:.cpp}
 
-## Simplifying the refreshPreorder function
-
-The changes to the `refreshPreorder` function highlighed below are not necessary, but serve to simply this function and others by making use of a new function `findNextPreorder`. In the next major version of the tutorial, these changes will be moved earlier in the tutorial when `refreshPreorder` is first introduced.
+## Modifying the randomInternalEdge function
+Add a special case to this function to handle the star tree situation in which there are no internal edges in the tree:
 ~~~~~~
-{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_refreshPreorder-end_refreshPreorder","e-f" }}
+{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_randomInternalEdge-end_randomInternalEdge","za-zb" }}
 ~~~~~~
 {:.cpp}
 
@@ -86,14 +85,6 @@ The changes to the `refreshPreorder` function highlighed below are not necessary
 In the previous version of this function, the internal nodes that were not used because of the presence of polytomies were simply numbered. Now that there is the possibility that a tree can make use of these initially unused nodes, we will modify this function to store these currently unused nodes in the `_unused_nodes` vector of the managed Tree object. 
 ~~~~~~
 {{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_renumberInternals-end_renumberInternals","g-h" }}
-~~~~~~
-{:.cpp}
-
-## Adding the findNextPreorder function
-
-This function was introduced to simplify the refreshPreorder function. In a future version of the tutorial, this function will be introduced earlier.
-~~~~~~
-{{ "steps/step-19/src/tree_manip.hpp" | polcodesnippet:"begin_findNextPreorder-end_findNextPreorder","" }}
 ~~~~~~
 {:.cpp}
 
