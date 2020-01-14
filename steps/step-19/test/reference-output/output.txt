@@ -1,0 +1,104 @@
+Partition subset default comprises sites 1-1314 and has type nucleotide
+Starting...
+Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-19/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+*** Reading and storing tree number 1 in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+Number of taxa: 10
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     1314
+    patterns:  424
+    ambiguity: handled appropriately (slower)
+
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites        1314
+       num. patterns         424
+         num. states           4
+     rate categories           1
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           1
+               omega           -
+       rate variance           1
+              pinvar           1
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.25,0.25,0.25,0.25)
+
+  exchangeabilities:
+             1: (0.166667,0.166667,0.166667,0.166667,0.166667,0.166667)
+
+  omega:
+             1: -
+
+  rate variance:
+             1: -
+
+  pinvar:
+             1: 0.5
+
+Created BeagleLib instance 0 (4 states, 1 rate, 1 subset, is invar. sites model)
+
+*** BeagleLib 3.1.2 resources:
+Preferred resource: CPU
+Available resources:
+  resource 0: CPU
+Resources used:
+  instance 0: CPU (resource 0)
+
+
+*** MCMC analysis beginning...
+Starting log likelihood = -7122.32214
+Number of chains is 1
+Burning in for 100 iterations.
+Running after burn-in for 10000 iterations.
+Sampling every 1 iterations.
+Sample size is 10000
+
+   iteration      logLike     logPrior           TL
+           0  -7122.32214     18.17199      1.75014
+        1000  -6867.76049     14.55412      1.72997
+        2000  -6815.55198     14.56949      1.57626
+        3000  -6809.15207     18.19624      1.50769
+        4000  -6810.96373     18.21079      1.36215
+        5000  -6806.84684     18.19653      1.50475
+        6000  -6781.35172     18.20172      1.45289
+        7000  -6780.69331     18.19086      1.56145
+        8000  -6775.83190     18.19507      1.51934
+        9000  -6777.10417     18.21117      1.35831
+       10000  -6775.49137     18.20000      1.47009
+
+Chain 0 (power 1.00000)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.708             0.5             436
+                  Exchangeabilities           1.009             1.3             450
+     Proportion of Invariable Sites           0.430            10.0             478
+         Tree Topol. and Edge Prop.           0.276            16.5            3781
+                         Polytomies           0.020             2.5            3947
+                        Tree Length           0.309            39.2             908
+
+Finished!
