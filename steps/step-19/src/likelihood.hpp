@@ -882,7 +882,7 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::calculatePartials() {
+    inline void Likelihood::calculatePartials() {   ///begin_calculatePartials
         assert(_instances.size() > 0);
         if (_operations.size() == 0)
             return;
@@ -900,7 +900,7 @@ namespace strom {
                 if (code != 0)
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
                 
-                if (_underflow_scaling) {
+                if (_underflow_scaling) {   ///!za
                     // Accumulate scaling factors across polytomy helpers and assign them to their parent node
                     for (auto & m : _polytomy_map) {
                         for (unsigned subset = 0; subset < nsubsets; subset++) {
@@ -910,7 +910,7 @@ namespace strom {
                             }
                         }
                     }
-                }
+                }   ///!zb
             }
             else {
                 // no partitioning, just one data subset
@@ -922,7 +922,7 @@ namespace strom {
                 if (code != 0) 
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
                 
-                if (_underflow_scaling) {
+                if (_underflow_scaling) { ///!zc
                     // Accumulate scaling factors across polytomy helpers and assign them to their parent node
                     for (auto & m : _polytomy_map) {
                         code = beagleAccumulateScaleFactors(info.handle, &m.second[0], (int)m.second.size(), m.first);
@@ -930,10 +930,10 @@ namespace strom {
                             throw XStrom(boost::format("failed to transfer scaling factors to polytomous node. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
                         }
                     }
-                }
+                }   ///!zd
             }   
         }
-    }
+    }   ///end_calculatePartials
     
     inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {
         int code = 0;

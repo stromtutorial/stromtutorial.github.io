@@ -17,6 +17,14 @@ The following highlighted changes need to be made to the class declaration in {%
 ~~~~~~
 {:.cpp}
 
+## Modify the calcLogTopologyPrior function
+
+This function must be modified to take account of polytomous trees. It uses the `TopoPriorCalculator` class to compute the prior for a tree topology with a specified number of internal nodes.
+~~~~~~
+{{ "steps/step-19/src/updater.hpp" | polcodesnippet:"begin_calcLogTopologyPrior-end_calcLogTopologyPrior","za-zb" }}
+~~~~~~
+{:.cpp}
+
 ## Add the setTopologyPriorOptions function
 
 This function calls the appropriate functions in the `PolytomyTopoPriorCalculator` object to set the C parameter for the topology prior as well as the type of polytomy prior (resolution class or standard polytomy).

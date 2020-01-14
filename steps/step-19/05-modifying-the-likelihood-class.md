@@ -55,6 +55,14 @@ Add or change the highlighted lines in the `defineOperations` member function:
 ~~~~~~
 {:.cpp}
 
+## Modify the calculatePartials function
+
+The polytomy helper nodes that were brought out of storage to help in computing the partials for polytomous nodes will be put back into storage after the likelihood calculation, so we must accumulate the scalers for these nodes now and transfer the sum of log scalers to the polytomous node itself if we don't want to lose them.
+~~~~~~
+{{ "steps/step-19/src/likelihood.hpp" | polcodesnippet:"begin_calculatePartials-end_calculatePartials","za-zb,zc-zd" }}
+~~~~~~
+{:.cpp}
+
 ## Modify the calcLogLikelihood function
 
 All we need to do to the `calcLogLikelihood` function is to return the nodes we pulled out of storage back to their previous, unused state.

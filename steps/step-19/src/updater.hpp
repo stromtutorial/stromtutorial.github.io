@@ -260,7 +260,7 @@ namespace strom {
     }   ///end_setTopologyPriorOptions
     
     inline double Updater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
-        Tree::SharedPtr tree = _tree_manipulator->getTree();
+        Tree::SharedPtr tree = _tree_manipulator->getTree();    ///!za
         assert(tree);
         if (tree->isRooted())
             _topo_prior_calculator.chooseRooted();
@@ -271,7 +271,7 @@ namespace strom {
                 
         double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
 
-        return log_topology_prior;
+        return log_topology_prior;  ///!zb
     }   ///end_calcLogTopologyPrior
 
     inline double Updater::calcLogEdgeLengthPrior() const { ///begin_calcLogEdgeLengthPrior
