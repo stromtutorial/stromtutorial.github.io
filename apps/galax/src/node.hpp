@@ -47,6 +47,8 @@ namespace strom {
             int                 _number;
             std::string         _name;
             double              _edge_length;
+            double              _height;        //POLNEW added
+            std::string         _edge_support;  //POLNEW added
             Split               _split;
     };
 
@@ -66,6 +68,7 @@ namespace strom {
         _number = -1;
         _name = "";
         _edge_length = _smallest_edge_length;
+        _height = 0.0;
     }
 
     inline void Node::setEdgeLength(double v) {

@@ -9,6 +9,10 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/format.hpp>
 #include "tree.hpp"
+#include "split.hpp"
+#include "galaxinfo.hpp"    //POLNEW (required only by annotateTree)
+#include "galaxutil.hpp"    //POLNEW (required only by addToCCDMap)
+#include "galaxtypes.hpp"    //POLNEW (required only by addToCCDMap and addToProfile)
 #include "xstrom.hpp"
 
 namespace strom {
@@ -30,10 +34,25 @@ namespace strom {
             std::string                 makeNewick(unsigned precision, bool use_names = false) const;
 
             void                        buildFromNewick(const std::string newick, bool rooted, bool allow_polytomies);
+            void                        buildStarTree(unsigned nleaves, bool rooted, unsigned root_number = 0);
+            void                        buildFromSplitVector(const std::vector<Split> & splits, bool rooted);    //POLNEW added
+
             void                        storeSplits(std::set<Split> & splitset);
             void                        rerootAtNodeNumber(int node_number);
 
             void                        clear();
+
+            void                        addToCCDMap(ccd_map_t & ccdmap,
+                                            subset_tree_set_t & treeCCD,
+                                            subset_tree_map_t & treeMap,
+                                            bool update_treemap,
+                                            unsigned subset_index,
+                                            unsigned num_subsets);                      //POLNEW added
+            void                        addToProfile(time_vect_t & profile_times,
+                                            weight_vect_t & profile_weights,
+                                            const clade_info_map_t & clade_map);        //POLNEW added
+            void                        annotateTree(GalaxInfo::_galaxinfo_vect_t & annotate_info);
+
 
         private:
 
@@ -48,6 +67,15 @@ namespace strom {
             void                        stripOutNexusComments(std::string & newick);
             bool                        canHaveSibling(Node * nd, bool rooted, bool allow_polytomies);
 
+            bool                        isPolytomy(Node * nd) const;                    //POLNEW added
+            unsigned                    countChildren(Node * nd) const;                 //POLNEW added
+            Node *                      findLeftSib(Node * nd);                         //POLNEW added
+            Node *                      findRightmostChild(Node * nd);                  //POLNEW added
+            Node *                      findLastPreorderInClade(Node * start);          //POLNEW added
+            void                        insertSubtreeOnLeft(Node * s, Node * u);        //POLNEW added
+            void                        insertSubtreeOnRight(Node * s, Node * u);       //POLNEW added
+            void                        detachSubtree(Node * s);                        //POLNEW added
+            
             Tree::SharedPtr             _tree;
 
         public:
@@ -794,6 +822,156 @@ namespace strom {
         }
     }
 
+    inline void TreeManip::buildStarTree(unsigned nleaves, bool rooted, unsigned root_number) {
+        assert(nleaves > 2);
+        try {
+            _tree.reset(new Tree());
+            _tree->_is_rooted = rooted;
+            _tree->_nleaves = nleaves;
+            unsigned num_nodes = 2*nleaves - (rooted ? 0 : 2);
+            _tree->_nodes.resize(num_nodes);
+            _tree->_preorder.assign(_tree->_preorder.size(), 0);
+
+            unsigned curr_node_index = 0;
+            unsigned curr_tip_number = 0;
+            Node * root = &_tree->_nodes[curr_node_index];
+            root->_edge_length = 1.0;
+            if (!rooted)
+                root->_number = root_number;
+
+            Node * hub = &_tree->_nodes[++curr_node_index];
+            root->_left_child = hub;
+            hub->_parent = root;
+            hub->_edge_length = 1.0;
+            hub->_edge_support = "";
+            hub->_number = nleaves;
+
+            for (unsigned i = (rooted ? 0 : 1); i < nleaves; ++i) {
+                Node * nd = &_tree->_nodes[++curr_node_index];
+                nd->_right_sib = hub->_left_child;
+                nd->_parent = hub;
+                nd->_edge_length = 1.0;
+                nd->_edge_support = "";
+                if (!rooted && curr_tip_number == root_number)
+                    curr_tip_number++;
+                nd->_number = curr_tip_number++;
+                hub->_left_child = nd;
+            }
+
+            assert(curr_tip_number == nleaves || root_number == nleaves);
+
+            refreshPreorder();
+            refreshLevelorder();
+        }
+        catch(XStrom x) {
+            clear();
+            throw x;
+        }
+    }
+
+    inline void TreeManip::buildFromSplitVector(const std::vector<Split> & split_vect, bool rooted) {
+        assert(split_vect.size() == 0 || split_vect[0].getNLeaves() > 2);
+
+        try {
+            // Make a copy of split_vect because we will need to sort splits
+            //TODO: why is sorting split_vect bad?
+            std::vector<Split> splits(split_vect.begin(), split_vect.end());
+
+            // Determine number of root tip if tree is unrooted. Assume splits are
+            // already correctly polarized. If the tree is unrooted, the tip that
+            // will serve as root will be unset in all splits.
+            auto sit = splits.begin();
+            unsigned nleaves = sit->getNLeaves();
+            unsigned root_number = nleaves;
+            if (!rooted) {
+                // Set, in tmp, every bit set in any split in splits vector
+                Split tmp;
+                tmp.resize(nleaves);
+                for (; sit != splits.end(); sit++) {
+                    tmp.addSplit(*sit);
+                }
+                
+                // Root tip should be the only taxon whose bit is still unset
+                for (unsigned i = 0; i < nleaves; i++) {
+                    if (tmp.getBitAt(i) == 0) {
+                        assert(root_number == nleaves);
+                        root_number = i;
+                    }
+                }
+            }
+
+            // Sort the split objects from smallest to largest so that more inclusive splits will
+            // follow the less inclusive splits. For example,
+            // ---**-*- less inclusive split
+            // ---***** more inclusive split
+            std::sort(splits.begin(), splits.end());
+
+            // Build a star tree to begin with
+            buildStarTree(nleaves, rooted, root_number);
+
+            // Star tree used ntips + 1 nodes if unrooted, ntips + 2 nodes if rooted
+            unsigned curr_node_index = nleaves + (rooted ? 1 : 0);
+
+            Node * subroot = _tree->_preorder[0];
+            Node * root = subroot->_parent;
+            assert(root == subroot->_parent);
+
+            // Loop over all splits, pulling out taxa specified under a new ancestral node for each
+            for (Split & s : splits) {
+                // The first split should correspond to the subroot, but we continue here because it makes
+                // no sense to detach and then reattach all leaf nodes
+                if (subroot->_split.subsumedIn(s))
+                    continue;
+
+                // Create a new node to hold the taxa in the current split
+                assert(curr_node_index + 1 < _tree->_nodes.size());
+                Node * anc = &_tree->_nodes[++curr_node_index];
+                assert(anc);
+                anc->_edge_length = 1.0;
+                anc->_edge_support = boost::str(
+                    boost::format("[&P=%.5f,I=%.5f,D=%.5f,IC=%.5f]")
+                        % s.getWeight()
+                        % s.getInfo()
+                        % s.getDisparity()
+                        % s.getCertainty()
+                    );
+
+                // Store nodes whose bits are set in selected_nodes stack
+                std::stack<Node *> selected_nodes;
+                unsigned which = 0;
+                Node * nd = _tree->_preorder[which];
+                while (nd) {
+                    if (nd->_split.subsumedIn(s)) {
+                        selected_nodes.push(nd);
+                        nd = findLastPreorderInClade(nd);
+                        if (nd)
+                            nd = findNextPreorder(nd);
+                    }
+                    else
+                        nd = findNextPreorder(nd);
+                }
+                
+                // Detach all nodes stored in selected_nodes stack and add to anc
+                while (!selected_nodes.empty()) {
+                    Node * nd = selected_nodes.top();
+                    detachSubtree(nd);
+                    insertSubtreeOnLeft(nd, anc);
+                    selected_nodes.pop();
+                }
+
+                // Add anc to subroot (only descendant of tip serving as the root)
+                insertSubtreeOnLeft(anc, subroot);
+
+                refreshPreorder();
+                refreshLevelorder();
+            }
+        }
+        catch(XStrom x) {
+            clear();
+            throw x;
+        }
+    }
+    
     inline void TreeManip::storeSplits(std::set<Split> & splitset) {
         // Start by clearing and resizing all splits
         for (auto & nd : _tree->_nodes) {
@@ -819,6 +997,54 @@ namespace strom {
         }
     }
 
+    inline bool TreeManip::isPolytomy(Node * nd) const {
+        Node * lchild = nd->_left_child;
+        assert(lchild);    // should only call this function for internal nodes
+        Node * rchild = lchild->_right_sib;
+        if (rchild && rchild->_right_sib)
+            return true;
+        return false;
+    }
+
+    inline unsigned TreeManip::countChildren(Node * nd) const {
+        assert(nd);
+        unsigned nchildren = 0;
+        Node * child = nd->getLeftChild();
+        while (child) {
+            nchildren++;
+            child = child->getRightSib();
+        }
+        return nchildren;
+    }
+
+    inline Node * TreeManip::findLeftSib(Node * nd) {
+        assert(nd);
+        assert(nd->_parent);
+        Node * child = nd->_parent->_left_child;
+        while (child && child->_right_sib != nd)
+            child = child->_right_sib;
+        return child;
+    }
+    
+    inline Node * TreeManip::findRightmostChild(Node * nd) {
+        assert(nd);
+        Node * child = nd->getLeftChild();
+        while (child->getRightSib())
+            child = child->getRightSib();
+        return child;
+    }
+    
+    inline Node * TreeManip::findLastPreorderInClade(Node * start) {
+        assert(start);
+        Node * curr = start;
+        Node * rchild = findRightmostChild(curr);
+        while (rchild) {
+            curr = rchild;
+            rchild = findRightmostChild(curr);
+        }
+        return curr;
+    }
+    
     inline Node * TreeManip::findNextPreorder(Node * nd) {
         assert(nd);
         Node * next = 0;
@@ -851,5 +1077,179 @@ namespace strom {
         }
         return next;
     }
+    
+    inline void TreeManip::insertSubtreeOnLeft(Node * s, Node * u) {
+        assert(u);
+        assert(s);
+        s->_right_sib  = u->_left_child;
+        s->_parent     = u;
+        u->_left_child = s;
+    }   ///end_insertSubtreeOnLeft
 
+    inline void TreeManip::insertSubtreeOnRight(Node * s, Node * u) {
+        assert(u);
+        assert(s);
+
+        s->_right_sib = 0;
+        s->_parent    = u;
+        if (u->_left_child) {
+            Node * u_rchild = findRightmostChild(u);
+            u_rchild->_right_sib = s;
+        }
+        else
+            u->_left_child = s;
+    }
+    
+    inline void TreeManip::detachSubtree(Node * s) {
+        assert(s);
+        assert(s->_parent);
+        
+        // Save pointers to relevant nodes
+        Node * s_leftsib  = findLeftSib(s);
+        Node * s_rightsib = s->_right_sib;
+        Node * s_parent   = s->_parent;
+
+        // Completely detach s and seal up the wound
+        s->_parent = 0;
+        s->_right_sib = 0;
+        if (s_leftsib)
+            s_leftsib->_right_sib = s_rightsib;
+        else
+            s_parent->_left_child = s_rightsib;
+    }
+
+inline void TreeManip::addToCCDMap(
+        ccd_map_t & ccdmap,
+        subset_tree_set_t & treeCCD,
+        subset_tree_map_t & treeMap,
+        bool update_treemap,
+        unsigned subset_index,
+        unsigned num_subsets) {
+    // will hold conditional clade definitions (each of which is a split_vect_t) for this tree
+    split_set_t splitset;
+    storeSplits(splitset);
+
+    tree_id_t tree_vector;
+    for (Node * nd : _tree->_preorder) {
+        if (nd->_left_child) {
+            Node * a = nd->_left_child;
+            Node * b = nd->_left_child->_right_sib;
+
+            // Assuming trees are binary (no polytomies), so _left_child should have only one right sibling
+            if (b->_right_sib)
+                throw XStrom("Expecting all input trees to be binary, but found a polytomy");
+
+            split_vect_t v;
+            v.push_back(nd->_split);
+
+            // increment the unconditional clade count
+            efficientIncrementSubset<ccd_map_t, split_vect_t>(ccdmap, v, subset_index, num_subsets);
+
+            if (a->_split < b->_split) {
+                v.push_back(a->_split);
+                v.push_back(b->_split);
+            }
+            else {
+                v.push_back(b->_split);
+                v.push_back(a->_split);
+            }
+
+            // increment the conditional clade count
+            efficientIncrementSubset<ccd_map_t, split_vect_t>(ccdmap, v, subset_index, num_subsets);
+
+            // add SplitVector v to tree_vector if not a trivial split
+            if (nd->_split.countOnBits() > 2)
+                tree_vector.push_back(v);
+        }
+    }
+
+    // tree_vector now contains a split_vect_t representation of every non-trivial
+    // conditional clade combination in the tree. Add this "tree ID" to treeCCD for this subset
+    // so that later we can estimate the posterior for this tree topology using the CCD
+    std::sort(tree_vector.begin(), tree_vector.end());
+    treeCCD[subset_index].insert(tree_vector);
+
+    // Now update treeMap[subset_index], which is a map in which keys are tree IDs and values are counts.
+    // This makes it possible to compute naive entropy estimates
+    if (update_treemap)
+        efficientAddTo(treeMap[subset_index], tree_vector, 1);
+    }
+    
+    inline void TreeManip::addToProfile(time_vect_t & profile_times, weight_vect_t & profile_weights, const clade_info_map_t & clade_map) {
+        for (Node * nd : _tree->_preorder) {
+            if (nd->_left_child) {
+                Node * a = nd->_left_child;
+                Node * b = a->_right_sib;
+
+                // Assuming trees are binary (no polytomies), so _left_child should have only one right sibling
+                if (b->_right_sib)
+                    throw XStrom("Expecting all input trees to be binary, but found a polytomy");
+
+                std::string s = nd->_split.createPatternRepresentation();
+                auto it = clade_map.find(s);
+                if (it != clade_map.end()) {
+                    double h = nd->_height;
+                    profile_times.push_back(h);
+
+                    double w = it->second;
+                    profile_weights.push_back(w);
+                }
+            }
+        }
+    }
+
+    inline void TreeManip::annotateTree(GalaxInfo::_galaxinfo_vect_t & annotate_info) {
+        double log2 = log(2.0);
+        for (Node * nd : _tree->_preorder) {
+            if (nd->_left_child) {
+                bool split_found = false;
+                bool ic_computed = false;
+                for (GalaxInfo & c : annotate_info) {
+                    Split asplit;
+                    asplit.createFromPattern(c._name);
+                    asplit.setWeight(c._value[2]);
+                    if (nd->_split == asplit) {
+                        double info = c._value[0];
+                        double d    = c._value[1];
+                        double w    = c._value[2];
+
+                        nd->_split.setInfo(info);
+                        nd->_split.setWeight(w);
+                        nd->_split.setDisparity(d);
+
+                        split_found = true;
+                    }
+                    else if (split_found && !asplit.isCompatible(nd->_split)) {
+                        // calculate internode certainty
+                        //TODO: this can be done more efficiently using the conditional clade distribution
+                        double p = nd->_split.getWeight();
+                        double q = asplit.getWeight();
+                        double ic = 1.0 + (p/(p+q))*log(p/(p+q))/log2 + (q/(p+q))*log(q/(p+q))/log2;
+                        nd->_split.setCertainty(ic);
+                        ic_computed = true;
+                        break;
+                    }
+                }
+                    
+                if (split_found) {
+                    if (!ic_computed) {
+                        nd->_split.setCertainty(1.0);    // no conflicting splits found
+                    }
+                }
+                else {
+                    nd->_split.setInfo(0.0);
+                    nd->_split.setWeight(0.0);
+                    nd->_split.setDisparity(0.0);
+                    nd->_split.setCertainty(0.0);
+                }
+
+                double w = nd->_split.getWeight();
+                double i = nd->_split.getInfo();
+                double d = nd->_split.getDisparity();
+                double c = nd->_split.getCertainty();
+                nd->_edge_support = boost::str(boost::format("[&P=%.5f,I=%.5f,D=%.5f,IC=%.5f]") % w % i % d % c);
+            }
+        }
+    }
+    
 }

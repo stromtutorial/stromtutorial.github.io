@@ -6,6 +6,7 @@
 #include <map>
 #include <climits>
 #include <cassert>
+#include "xstrom.hpp"
 
 namespace strom {
 
@@ -21,24 +22,47 @@ namespace strom {
 
             void                                                clear();
             void                                                resize(unsigned nleaves);
+            void                                                createFromPattern(std::string s, char on_symbol = '*', char off_symbol = '-');  //POLNEW added
 
             typedef unsigned long                               split_unit_t;
             typedef std::vector<split_unit_t>                   split_t;
             typedef std::set<Split>                             treeid_t;
             typedef std::map< treeid_t, std::vector<unsigned> > treemap_t;
-            typedef std::tuple<unsigned,unsigned,unsigned>      split_metrics_t;
+            //typedef std::tuple<unsigned,unsigned,unsigned>      split_metrics_t;                      //POLNEW deleted
 
-            split_unit_t                                        getBits(unsigned unit_index) const;
+            const split_t &                                     getBits() const;                        //POLNEW added
+            split_unit_t                                        getMask() const;                        //POLNEW added
+            unsigned                                            getNLeaves() const;                     //POLNEW added
+            unsigned                                            getBitsPerUnit() const;                 //POLNEW added
+            //split_unit_t                                        getBits(unsigned unit_index) const;   //POLNEW deleted
+            
+            void                                                addSplit(const Split & other);
+
             bool                                                getBitAt(unsigned leaf_index) const;
             void                                                setBitAt(unsigned leaf_index);
-            void                                                addSplit(const Split & other);
+            
+            unsigned                                            countOnBits() const;                    //POLNEW added
+            unsigned                                            countOffBits() const;                   //POLNEW added
 
             bool                                                isEquivalent(const Split & other) const;
             bool                                                isCompatible(const Split & other) const;
             bool                                                conflictsWith(const Split & other) const;
+            bool                                                subsumedIn(const Split & other) const;  //POLNEW added
 
             std::string                                         createPatternRepresentation() const;
-            split_metrics_t                                     getSplitMetrics() const;
+            //split_metrics_t                                     getSplitMetrics() const;              //POLNEW deleted
+            
+            void                                                setInfo(double info);       //POLNEW added
+            double                                              getInfo() const;            //POLNEW added
+
+            void                                                setWeight(double w);        //POLNEW added
+            double                                              getWeight() const;          //POLNEW added
+
+            void                                                setCertainty(double ic);    //POLNEW added
+            double                                              getCertainty() const;       //POLNEW added
+
+            void                                                setDisparity(double d);     //POLNEW added
+            double                                              getDisparity() const;       //POLNEW added
 
         private:
 
@@ -46,6 +70,11 @@ namespace strom {
             split_t                                             _bits;
             unsigned                                            _bits_per_unit;
             unsigned                                            _nleaves;
+
+            double                                              _info;              //POLNEW added
+            double                                              _weight;            //POLNEW added
+            double                                              _certainty;         //POLNEW added
+            double                                              _disparity;         //POLNEW added
 
         public:
 
@@ -79,6 +108,30 @@ namespace strom {
             u = 0L;
         }
     }
+
+    inline void Split::createFromPattern(std::string s, char on_symbol, char off_symbol) {
+        // Sets non-constant data members using a pattern supplied in the form of the string s
+        // consisting of a sequence of on and off symbols. For example, assuming _bits_per_unit = 8,
+        // calling the function with the pattern "--*---***-" sets _nleaves to 10, _nunits to 2,
+        // _bits[0] to 142 (binary 10001110), and _bits[1] to 0.
+        unsigned slen = (unsigned)s.size();
+        std::vector<unsigned> on_bits;
+        for (unsigned k = 0; k < slen; ++k) {
+            if (s[k] == on_symbol)
+                on_bits.push_back(k);
+            else if (s[k] != off_symbol)
+                throw XStrom(str(boost::format("character in pattern (%c) not recognized as either the on symbol (%c) or the off symbol (%c)") % s[k] % on_symbol % off_symbol));
+            }
+
+        // No funny characters were found in the supplied pattern string, so we have a green light to build the split
+        resize(slen);
+        split_unit_t unity = 1;
+        for (auto k : on_bits) {
+            unsigned i = k/_bits_per_unit;
+            unsigned j = k % _bits_per_unit;
+            _bits[i] |= (unity << j);
+            }
+        }
 
     inline Split & Split::operator=(const Split & other) {
         _nleaves = other._nleaves;
@@ -119,10 +172,26 @@ namespace strom {
         _bits[unit_index] |= bit_to_set;
     }
 
-    inline Split::split_unit_t Split::getBits(unsigned unit_index) const {
-        assert(unit_index < _bits.size());
-        return _bits[unit_index];
+    inline const Split::split_t & Split::getBits() const {
+        return _bits;
     }
+
+    inline Split::split_unit_t Split::getMask() const {
+        return _mask;
+    }
+
+    inline unsigned Split::getNLeaves() const {
+        return _nleaves;
+    }
+
+    inline unsigned Split::getBitsPerUnit() const {
+        return _bits_per_unit;
+    }
+
+    //inline Split::split_unit_t Split::getBits(unsigned unit_index) const {
+    //    assert(unit_index < _bits.size());
+    //    return _bits[unit_index];
+    //}
 
     inline bool Split::getBitAt(unsigned leaf_index) const {
         unsigned unit_index = leaf_index/_bits_per_unit;
@@ -218,6 +287,94 @@ namespace strom {
 
     inline bool Split::conflictsWith(const Split & other) const {
         return !isCompatible(other);
+    }
+    
+    inline unsigned Split::countOnBits() const {
+        // This assumes that the unused bits in the last unit are all 0.
+        unsigned num_bits_set = 0;
+        for (auto b : _bits) {
+            // The  Kernighan method of counting bits is used below: see exercise 2-9 in the Kernighan and Ritchie book.
+            // As an example, consider v = 10100010
+            // c = 0:
+            //   v     = 10100010
+            //   v - 1 = 10100001
+            //   ----------------
+            //   new v = 10100000
+            // c = 1:
+            //   v     = 10100000
+            //   v - 1 = 10011111
+            //   ----------------
+            //   new v = 10000000
+            // c = 2:
+            //   v     = 10000000
+            //   v - 1 = 01111111
+            //   ----------------
+            //   new v = 00000000
+            // c = 3:
+            //   break out of loop because v = 0
+            //
+            auto v = b;
+            unsigned c = 0;
+            for (; v; ++c) {
+                v &= v - 1;
+            }
+            num_bits_set += c;
+        }
+        return num_bits_set;
+    }
+
+    inline unsigned Split::countOffBits() const {
+        return _nleaves - countOnBits();
+    }
+
+    //   If this split is subsumed in other, then a bitwise AND for any unit should equal the unit from this split. If this
+    //   tis not the case, it means there was a 0 in other for a bit that is set in this split. For example:
+    //
+    //        **-*--**-*-  <-- this split
+    //        *****-****-  <-- other split
+    //        ----------------------------
+    //        **-*--**-*-  <-- bitwise AND
+    //
+    //    In the above example, this split is subsumed in the other split because the bitwise AND equals this split.
+    //    Note that every split is, by definition, subsumed in itself.
+    inline bool Split::subsumedIn(const Split & other) const {
+        for (unsigned i = 0; i < _bits.size(); ++i) {
+            if ((_bits[i] & other._bits[i]) != _bits[i])
+                return false;
+            }
+        return true;
+    }
+    
+    inline void Split::setInfo(double info) {
+        _info = info;
+    }
+
+    inline double Split::getInfo() const {
+        return _info;
+    }
+
+    inline void Split::setWeight(double w) {
+        _weight = w;
+    }
+
+    inline double Split::getWeight() const {
+        return _weight;
+    }
+
+    inline void Split::setCertainty(double ic) {
+        _certainty = ic;
+    }
+
+    inline double Split::getCertainty() const {
+        return (_weight < 1.0 ? _certainty : 1.0);
+    }
+
+    inline void Split::setDisparity(double d) {
+        _disparity = d;
+    }
+
+    inline double Split::getDisparity() const {
+        return _disparity;
     }
 
 }

@@ -159,12 +159,13 @@ namespace strom {
         std::cout << "Starting..." << std::endl;
         showSettings();
         
-//        try {
-//            Galax(output_file_name, boost::str(boost::format("%d.%d.%d") % major_version % minor_version % bugfix_version)).run(tree_file_name, list_file_name, skipped_newicks, trees_rooted, mapto_file_name, mapto_trees_rooted, save_details, outgroup_taxon);
-//        }
-//        catch (XStrom & x) {
-//            std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
-//        }
+        try {
+            Galax galax(_output_file_name, boost::str(boost::format("%d.%d") % _major_version % _minor_version));
+            galax.run(_tree_file_name, _list_file_name, _skipped_newicks, _trees_rooted, _mapto_file_name, _mapto_trees_rooted, _save_details, _outgroup_taxon);
+        }
+        catch (XStrom & x) {
+            std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
+        }
 
         std::cout << "\nFinished!" << std::endl;
     }
