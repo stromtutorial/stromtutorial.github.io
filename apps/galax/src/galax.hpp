@@ -229,11 +229,12 @@ namespace strom {
         }
 
         // Now create the map by iterating through each element of the translate statement
-        std::regex re("(\\d+)\\s+'?([\\S\\s]+?)'?,?");
+        std::regex re("(\\d+)\\s+([^,]+),?");
         std::sregex_iterator m1(translate_contents.begin(), translate_contents.end(), re);
         std::sregex_iterator m2;
         for (; m1 != m2; ++m1) {
             const std::match_results<std::string::const_iterator>& what = *m1;
+            
             unsigned taxon_index = 0;
             try {
                 taxon_index = boost::lexical_cast<unsigned>(what[1].str());
