@@ -521,6 +521,7 @@ namespace strom {
                     c = c->_right_sib;
                 d = a->_right_sib;
                 c->_right_sib = d;
+                a->_right_sib = 0;
             }
 
             // Graft node b onto node a (but don't unhook node b from its parent just yet)
@@ -788,13 +789,15 @@ namespace strom {
             if (inside_quoted_name)
                 throw XStrom(boost::str(boost::format("Expecting single quote to mark the end of node name at position %d in tree description") % node_name_position));
 
-            if (!_tree->_is_rooted) {
+            if (_tree->_is_rooted) {
+                refreshPreorder();
+                refreshLevelorder();
+            }
+            else {
                 // Root at leaf whose _number = 0
+                // refreshPreorder() and refreshLevelorder() called after rerooting
                 rerootAtNodeNumber(0);
             }
-
-            refreshPreorder();
-            refreshLevelorder();
             renumberInternals();
         }
         catch(XStrom x) {
