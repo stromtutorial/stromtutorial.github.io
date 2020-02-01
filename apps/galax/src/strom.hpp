@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include "tree_summary.hpp"
-#include "galax.hpp"
+#include "phyloinfo.hpp"
 #include <boost/program_options.hpp>
 
 namespace strom {
@@ -75,7 +75,7 @@ namespace strom {
             ("outfile,o", boost::program_options::value(&_output_file_name),
                 "file name prefix of output file to create (.txt extension will be added)")
             ("outgroup,g", boost::program_options::value(&_outgroup_taxon),
-                "number of taxon to use as the outgroup (where first taxon listed in treefile translate statement is 1)")
+                "number of taxon to use as the outgroup (greater than or equal to 1)")
             ("mapto,m", boost::program_options::value(&_mapto_file_name),
                 "information estimates will be mapped onto this tree in addition to the merged consensus tree")
             ("maptorooted,e", boost::program_options::value(&_mapto_trees_rooted),
@@ -160,8 +160,10 @@ namespace strom {
         showSettings();
         
         try {
-            Galax galax(_output_file_name, boost::str(boost::format("%d.%d") % _major_version % _minor_version));
-            galax.run(_tree_file_name, _list_file_name, _skipped_newicks, _trees_rooted, _mapto_file_name, _mapto_trees_rooted, _save_details, _outgroup_taxon);
+            //Galax galax(_output_file_name, boost::str(boost::format("%d.%d") % _major_version % _minor_version));
+            //galax.run(_tree_file_name, _list_file_name, _skipped_newicks, _trees_rooted, _mapto_file_name, _mapto_trees_rooted, _save_details, _outgroup_taxon);
+            PhyloInfo info(_tree_file_name, _list_file_name, _output_file_name, _skipped_newicks, _trees_rooted, _save_details, _outgroup_taxon, _program_name, _major_version, _minor_version);
+            info.run();
         }
         catch (XStrom & x) {
             std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
