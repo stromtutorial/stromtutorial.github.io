@@ -16,15 +16,31 @@ namespace strom {
         
             typedef std::shared_ptr< GalaxInfo >             SharedPtr;
 
-                                        GalaxData(const tree_counts_vect_t & tree_counts, const name_vect_t & tree_file_names, unsigned rooted_num_taxa, unsigned outgroup);
+                                        GalaxData(                  const tree_counts_vect_t & tree_counts,
+                                                                    const name_vect_t & tree_file_names,
+                                                                    unsigned rooted_num_taxa,
+                                                                    unsigned outgroup);
                                         ~GalaxData() {}
 
             void                        newClade(const split_vect_t & v, count_vect_t & c);
             void                        conditionalClade(const split_vect_t & v, count_vect_t & c);
             std::vector<double>         finalizeClade(std::string & detailedinfostr);
-            std::pair<unsigned,double>  estimateCoverageForSubset(ccd_map_t & ccdmap, subset_tree_set_t & treeCCD, subset_tree_map_t & treeMap, std::string & details, unsigned subset_index);
-            std::pair<unsigned,double>  estimateMergedCoverage(ccd_map_t & ccdmap, subset_tree_set_t & treeCCD, subset_tree_map_t & treeMap, std::string & details);
-            void                        estimateCoverage(ccd_map_t & ccdmap, subset_tree_set_t & treeCCD, subset_tree_map_t & treeMap, std::string & details);
+            
+            std::pair<unsigned,double>  estimateCoverageForSubset(  ccd_map_t & ccdmap,
+                                                                    subset_tree_set_t & treeCCD,
+                                                                    subset_tree_map_t & treeMap,
+                                                                    std::string & details,
+                                                                    unsigned subset_index);
+                                                                    
+            std::pair<unsigned,double>  estimateMergedCoverage(     ccd_map_t & ccdmap,
+                                                                    subset_tree_set_t & treeCCD,
+                                                                    subset_tree_map_t & treeMap,
+                                                                    std::string & details);
+                                                                    
+            void                        estimateCoverage(           ccd_map_t & ccdmap,
+                                                                    subset_tree_set_t & treeCCD,
+                                                                    subset_tree_map_t & treeMap,
+                                                                    std::string & details);
 
             double                      calcNaiveEntropyForSubset(subset_tree_map_t & treeMap, unsigned subset_index);
             double                      calcNaiveEntropyForMerged(subset_tree_map_t & treeMap, tree_map_t & m);
@@ -86,16 +102,14 @@ namespace strom {
             _total_trees = std::accumulate(_tree_counts.begin(), _tree_counts.end(), 0);
 
             // Determine maximum possible entropy
-            //Split first_clade = (ccdmap.begin()->first)[0];
-            //unsigned ntaxa = first_clade.countOnBits() + first_clade.countOffBits();
-            //if (!_rooted)
-            //    ntaxa -= 1;
             _total_entropy = lognrooted(rooted_num_taxa);
     }
 
     void GalaxData::newClade(const split_vect_t & v, std::vector<double> & c) {
         assert(v.size() == 1);  // this should be an unconditional clade entry
-        _clade = v[0];   // keep track of the current parent clade
+        
+        // keep track of the current parent clade for subsequent calls to conditionalClade
+        _clade = v[0];
 
         // Individual subsets
         unsigned subset_index = 0;
@@ -114,8 +128,9 @@ namespace strom {
     }
 
     void GalaxData::conditionalClade(const split_vect_t & v, std::vector<double> & c) {
-        assert(v.size() == 3); // parent clade, left clade, right clade
-        assert(v[0] == _clade); // parent clade, left clade, right clade
+        //TODO: accommodate polytomies
+        assert(v.size() == 3);  // parent clade, left clade, right clade
+        assert(v[0] == _clade); // newClade should have been called beforehand to set _clade
 
         // Individual subsets
         unsigned subset_index = 0;
@@ -132,8 +147,45 @@ namespace strom {
         double sum_counts = std::accumulate(c.begin(), c.end(), 0.0);
         double p = sum_counts/_clade_denom[_num_subsets];
         _clade_H[_num_subsets] -= p*log(p);
-
         _clade_Hp[_num_subsets] -= p*(lognrooted(v[1].countOnBits()) + lognrooted(v[2].countOnBits()));
+    }
+
+    std::vector<double> GalaxData::finalizeClade(std::string & detailedinfostr) {
+        double sum_I = 0.0;
+        for (unsigned subset_index = 0; subset_index < _num_subsets; ++subset_index) {
+            // Compute I for previous clade
+            _clade_prob[subset_index] = _clade_denom[subset_index]/_tree_counts[subset_index]; // marginal posterior clade probability
+
+            _I[subset_index] = _clade_prob[subset_index]*(_clade_Hp[subset_index] - _clade_H[subset_index]);
+            _total_I[subset_index] += _I[subset_index];
+
+            _Ipct[subset_index] = 100.0*_I[subset_index]/_total_entropy;
+            sum_I += _I[subset_index];
+        }
+
+        // handle merged case
+        // Compute I for previous clade
+        _clade_prob[_num_subsets] = _clade_denom[_num_subsets]/_total_trees; // marginal posterior clade probability
+
+        _I[_num_subsets] = _clade_prob[_num_subsets]*(_clade_Hp[_num_subsets] - _clade_H[_num_subsets]);
+        _total_I[_num_subsets] += _I[_num_subsets];
+
+        _Ipct[_num_subsets] = 100.0*_I[_num_subsets]/_total_entropy;
+
+        // Compute clade-specific D (note: not percent of maximum D)
+        double D = (sum_I/_num_subsets) - _I[_num_subsets];
+
+        saveDetailedInfoForClade(detailedinfostr, D);
+
+        // store numbers for this clade in clade_info vector
+        std::vector<double> tmp;
+        tmp.push_back(_Ipct[_num_subsets]);
+        tmp.push_back(D);
+        tmp.push_back(_clade_prob[_num_subsets]);
+        tmp.push_back(_I[_num_subsets]);  // added for information profiling
+        _total_D += D;
+
+        return tmp;
     }
 
     void GalaxData::saveDetailedInfoForClade(std::string & detailedinfostr, double D) {
@@ -186,44 +238,6 @@ namespace strom {
                 % _Ipct[_num_subsets]
                 % D);
         }
-    }
-
-    std::vector<double> GalaxData::finalizeClade(std::string & detailedinfostr) {
-        double sum_I = 0.0;
-        for (unsigned subset_index = 0; subset_index < _num_subsets; ++subset_index) {
-            // Compute I for previous clade
-            _clade_prob[subset_index] = _clade_denom[subset_index]/_tree_counts[subset_index]; // marginal posterior clade probability
-
-            _I[subset_index] = _clade_prob[subset_index]*(_clade_Hp[subset_index] - _clade_H[subset_index]);
-            _total_I[subset_index] += _I[subset_index];
-
-            _Ipct[subset_index] = 100.0*_I[subset_index]/_total_entropy;
-            sum_I += _I[subset_index];
-        }
-
-        // handle merged case
-        // Compute I for previous clade
-        _clade_prob[_num_subsets] = _clade_denom[_num_subsets]/_total_trees; // marginal posterior clade probability
-
-        _I[_num_subsets] = _clade_prob[_num_subsets]*(_clade_Hp[_num_subsets] - _clade_H[_num_subsets]);
-        _total_I[_num_subsets] += _I[_num_subsets];
-
-        _Ipct[_num_subsets] = 100.0*_I[_num_subsets]/_total_entropy;
-
-        // Compute clade-specific D (note: not percent of maximum D)
-        double D = (sum_I/_num_subsets) - _I[_num_subsets];
-
-        saveDetailedInfoForClade(detailedinfostr, D);
-
-        // store numbers for this clade in clade_info vector
-        std::vector<double> tmp;
-        tmp.push_back(_Ipct[_num_subsets]);
-        tmp.push_back(D);
-        tmp.push_back(_clade_prob[_num_subsets]);
-        tmp.push_back(_I[_num_subsets]);  // added for information profiling
-        _total_D += D;
-
-        return tmp;
     }
 
     double GalaxData::calcNaiveEntropyForMerged(subset_tree_map_t & treeMap, tree_map_t & m) {

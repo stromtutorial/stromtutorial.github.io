@@ -338,6 +338,12 @@ namespace strom {
         std::regex taxonexpr("[(,]\\s*(\\d+|\\S+?|['].+?['])\\s*(?=[,):])");
         std::sregex_iterator m1(newick.begin(), newick.end(), taxonexpr);
         std::sregex_iterator m2;
+        //while (m1 != m2) {
+        //    std::smatch what = *m1;
+        //    std::cerr << "what.prefix(): " << what.prefix() << std::endl;
+        //    std::cerr << "what.str():    " << what.str() << std::endl;
+        //    m1++;
+        //}
         return (unsigned)std::distance(m1, m2);
     }
 
@@ -540,6 +546,7 @@ namespace strom {
                     c = c->_right_sib;
                 d = a->_right_sib;
                 c->_right_sib = d;
+                a->_right_sib = 0;
             }
 
             // Graft node b onto node a (but don't unhook node b from its parent just yet)
@@ -807,13 +814,16 @@ namespace strom {
             if (inside_quoted_name)
                 throw XStrom(boost::str(boost::format("Expecting single quote to mark the end of node name at position %d in tree description") % node_name_position));
 
-            if (!_tree->_is_rooted) {
+            if (_tree->_is_rooted) {
+                refreshPreorder();
+                refreshLevelorder();
+            }
+            else {
                 // Root at leaf whose _number = 0
+                // Rerooting refreshes preorder and levelorder
                 rerootAtNodeNumber(0);
             }
 
-            refreshPreorder();
-            refreshLevelorder();
             renumberInternals();
         }
         catch(XStrom x) {
@@ -1119,13 +1129,16 @@ namespace strom {
     }
 
 inline void TreeManip::addToCCDMap(
-        ccd_map_t & ccdmap,
+        ccd_map_t &         ccdmap,
         subset_tree_set_t & treeCCD,
         subset_tree_map_t & treeMap,
-        bool update_treemap,
-        unsigned subset_index,
-        unsigned num_subsets) {
-    // will hold conditional clade definitions (each of which is a split_vect_t) for this tree
+        bool                update_treemap,
+        unsigned            subset_index,
+        unsigned            num_subsets) {
+
+    // Traverse tree to set the split for each node
+    //TODO: could avoid extra traversal by creating splits in this function
+    //TODO: splitset is not used here and is only created because storeSplits requires it
     split_set_t splitset;
     storeSplits(splitset);
 
@@ -1136,13 +1149,14 @@ inline void TreeManip::addToCCDMap(
             Node * b = nd->_left_child->_right_sib;
 
             // Assuming trees are binary (no polytomies), so _left_child should have only one right sibling
+            //TODO: accommodate polytomies
             if (b->_right_sib)
                 throw XStrom("Expecting all input trees to be binary, but found a polytomy");
 
             split_vect_t v;
             v.push_back(nd->_split);
 
-            // increment the unconditional clade count
+            // Increment unconditional clade count
             efficientIncrementSubset<ccd_map_t, split_vect_t>(ccdmap, v, subset_index, num_subsets);
 
             if (a->_split < b->_split) {
@@ -1154,7 +1168,7 @@ inline void TreeManip::addToCCDMap(
                 v.push_back(a->_split);
             }
 
-            // increment the conditional clade count
+            // Increment the conditional clade count
             efficientIncrementSubset<ccd_map_t, split_vect_t>(ccdmap, v, subset_index, num_subsets);
 
             // add SplitVector v to tree_vector if not a trivial split

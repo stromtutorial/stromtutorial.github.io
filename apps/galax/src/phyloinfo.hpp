@@ -278,33 +278,17 @@ namespace strom {
                         std::string newick = d.GetNewick();
                         _newicks.push_back(newick);
 
-#if 1
-                        // build the tree
-                        tm.buildFromNewick(newick, _rooted, false); //POLY
+                        // Build the tree
+                        tm.buildFromNewick(newick, _rooted, false); //POLYTOMY
                         if (!_rooted)
                             tm.rerootAtNodeNumber(_outgroup - 1);
+                            
+                        // ccdmap[{s}]     holds unconditional clade count for vector containing just one split s
+                        // ccdmap[{s,a,b}] holds conditional clade count for vector comprising triplets (s, lchild, rchild)
+                        // _treeCCD[i]     holds the tree id (vector of triplets found in this tree) for subset i
+                        // _treeMap[i]     holds map (keys = tree id, value = count) for subset i (used for naive info calculation)
                         tm.addToCCDMap(ccdmap, _treeCCD, _treeMap, _show_details, subset_index, num_subsets);
-#else
-                        unsigned tree_index = (unsigned)_newicks.size() - 1;
 
-                        // store set of splits
-                        splitset.clear();
-                        tm.storeSplits(splitset);
-
-                        // iterator iter will point to the value corresponding to key splitset
-                        // or to end (if splitset is not already a key in the map)
-                        Split::treemap_t::iterator iter = _treeIDs.lower_bound(splitset);
-
-                        if (iter == _treeIDs.end() || iter->first != splitset) {
-                            // splitset key not found in map, need to create an entry
-                            std::vector<unsigned> v(1, tree_index);  // vector of length 1 with only element set to tree_index
-                            _treeIDs.insert(iter, Split::treemap_t::value_type(splitset, v));
-                        }
-                        else {
-                            // splitset key was found in map, need to add this tree's index to vector
-                            iter->second.push_back(tree_index);
-                        }
-#endif
                     } // trees loop
                 } // if _skip < ntrees
             } // TREES block loop
@@ -315,20 +299,16 @@ namespace strom {
     }
 
     inline void PhyloInfo::estimateInfo(ccd_map_t & ccdmap, std::string & summaryinfostr, std::string & detailedinfostr, GalaxInfo::_galaxinfo_vect_t & clade_info) {
-        // ccdmap: key = SplitVector defining (un)conditional clade, value = CountVector (counts for each subset)
-        // summaryinfostr: holds summary output over all clades
-        // detailedinfostr: holds detailed output for each clade
-        // clade_info: vector of GalaxInfo objects that is filled here and used to build and label majority rule tree later
+        // ccdmap[{s}]      holds unconditional clade count for vector containing just one split s
+        // ccdmap[{s,a,b}]  holds conditional clade count for vector comprising triplets (s, lchild, rchild)
+        // summaryinfostr   holds summary output over all clades
+        // detailedinfostr  holds detailed output for each clade
+        // clade_info       vector of GalaxInfo objects that is filled here and used to build and label majority rule tree later
         
         _start_time = getCurrentTime();
 
         assert(ccdmap.size() > 0);
-        Split clade;
         clade_info.clear();
-        bool first = true;
-        std::vector<double> tmp;
-
-        //std::cerr << "***** In Galax::estimateInfo, _outgroup = " << (_rooted ? 0 : _outgroup) << std::endl;
 
         // Create a GalaxData object to do most of the work
         unsigned ntaxa = (unsigned)_taxon_labels.size();
@@ -337,8 +317,6 @@ namespace strom {
             gd.setShowDetails(true);
         else
             gd.setShowDetails(false);
-
-        //unsigned total_trees = std::accumulate(_tree_counts.begin(), _tree_counts.end(), 0);
 
         // Provide a key to the taxa in split representations in both output files
         std::string tmpstr = "Order of taxa in split representations:\n";
@@ -360,19 +338,20 @@ namespace strom {
         detailedinfostr += "  Ipct     = information for current clade as percent of maximum information\n";
         detailedinfostr += "  D        = component of dissonance specific to current clade\n\n";
 
+        Split clade;
+        std::vector<double> tmp;
+        bool first = true;
         for (ccd_map_t::iterator it = ccdmap.begin(); it != ccdmap.end(); ++it) {
-            // *it comprises a key (SplitVector) and a value (CountVector)
+            // *it comprises a key (split_vect_t) and a value (count_vect_t)
             // it->first is the key: it is a vector containing either
             //       a) 1 split (represents an unconditional clade probability) or
             //       b) 3 splits (represents a conditional clade probability, with
             //          first split being parent clade and remaining two splits
             //          representing the bipartition of that parent split)
             // it->second is the value: it is a vector of counts, with one element for each subset
-            //const SplitVector   & v     = it->first;
-            //std::vector<double> & count = it->second;
-            //double sum_counts = std::accumulate(count.begin(), count.end(), 0.0);
 
-            // The following depends on ccdmap keys (split vectors) being sorted such that an
+            // The following depends on the fact that std::map sorts keys using (by default) std::less.
+            // ccdmap keys (split vectors) are thus guaranteed to be sorted such that an
             // entry for an unconditional clade, e.g. (ABC), precedes any conditional clade entries,
             // e.g. (ABC,A,BC) that have that clade as parent. Thus, when next unconditional
             // clade entry is encountered, we know that there are no more conditional clade entries
@@ -389,18 +368,17 @@ namespace strom {
                     gd.conditionalClade(it->first, it->second);
                 }
                 else {
-                    // Just found next unconditional clade entry, so now is the time to finish computing
-                    // information content for the previous clade
-
+                    // Just found next unconditional clade entry, so compute information content for the previous clade now
                     tmp = gd.finalizeClade(detailedinfostr);
-                    gd.newClade(it->first, it->second);
 
                     // tmp[0] = Ipct
                     // tmp[1] = D (not Dpct)
                     // tmp[2] = P
                     // tmp[3] = I
                     clade_info.push_back(GalaxInfo(clade.createPatternRepresentation(), tmp));
+
                     clade = (it->first)[0];
+                    gd.newClade(it->first, it->second);
                 }
             }
         }
