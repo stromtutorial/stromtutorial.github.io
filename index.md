@@ -14,9 +14,6 @@ This tutorial teaches you how to create C++ software that performs Bayesian phyl
 
 This is the third version of the tutorial. It differs from the [second version](https://phylogeny.uconn.edu/tutorial-v2/) in the order in which features are added, in adding invariable sites and codon models, and in allowing data partitioning. 
 
-Note: (Many more) bugs have been fixed! If you are in the middle of the tutorial now, I would advise that you replace your code for the step you are on with the source code files for that step from the repository. The easy way to do this is to visit the [GitHub repository](https://github.com/stromtutorial/stromtutorial.github.io/tree/source), ensure you are on the `source` branch (not the `master` branch), navigate to your current step in the `steps` directory, and find the source code files for that step in the `src` directory under that step. See the Version History section of the source branch [README](https://github.com/stromtutorial/stromtutorial.github.io/tree/source) (specifically version 3.2) to see my notes on this update.
-{:.poltodo}
-
 #### Begin Tutorial
 
 Three versions of the tutorial are provided. The Mac and Windows versions use graphical IDEs (Integrated Development Environments). The Mac version uses the Xcode IDE, while the Windows version uses the Visual Studio IDE. The Linux version shows you how to build software on an Ubuntu system without using a graphical IDE using the meson/ninja approach. Get started using your platform of choice below:
