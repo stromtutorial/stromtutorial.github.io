@@ -186,12 +186,12 @@ namespace strom {
         }
         
         // match_obj always yields 2 strings that can be indexed using the operator[] function
-        // match_obj[0] equals entire subset label/type string (e.g. "rbcL[codon:standard]")
+        // match_obj[0] equals entire subset label/type string (e.g. "rbcL[codon,standard]")
         // match_obj[1] equals the subset label (e.g. "rbcL")
         
         // Two more elements will exist if the user has specified a data type for this partition subset
-        // match_obj[2] equals data type inside square brackets (e.g. "[codon:standard]")
-        // match_obj[3] equals data type only (e.g. "codon:standard")
+        // match_obj[2] equals data type inside square brackets (e.g. "[codon,standard]")
+        // match_obj[3] equals data type only (e.g. "codon,standard")
         
         std::string subset_name = match_obj[1].str();
         DataType dt;    // nucleotide by default
@@ -201,12 +201,18 @@ namespace strom {
             boost::to_lower(datatype);
 
             // check for comma plus genetic code in case of codon
-            std::regex re(R"(codon\s*,\s*(\S+))");
+            std::regex recodon(R"(codon\s*,\s*(\S+))");
+            std::regex remorph(R"(standard\s*,\s*(\d+))");
             std::smatch m;
-            if (std::regex_match(datatype, m, re)) {
+            if (std::regex_match(datatype, m, recodon)) {
                 dt.setCodon();
                 std::string genetic_code_name = m[1].str();
                 dt.setGeneticCodeFromName(genetic_code_name);
+            }
+            else if (std::regex_match(datatype, m, remorph)) {
+                dt.setStandard();
+                std::string num_states = m[1].str();
+                dt.setNumStatesFromString(num_states);
             }
             else if (datatype == "codon") {
                 dt.setCodon();  // assumes standard genetic code
@@ -218,7 +224,7 @@ namespace strom {
                 dt.setNucleotide();
                 }
             else if (datatype == "standard") {
-                dt.setStandard();
+                dt.setStandard();   // assumes number of states = 2
                 }
             else {
                 throw XStrom(boost::format("Datatype \"%s\" specified for subset(s) \"%s\" is invalid: must be either nucleotide, codon, protein, or standard") % datatype % subset_name);

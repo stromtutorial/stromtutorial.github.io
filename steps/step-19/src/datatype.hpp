@@ -23,6 +23,8 @@ namespace strom {
             void                            setStandardNumStates(unsigned nstates);
             void                            setGeneticCodeFromName(std::string genetic_code_name);
             void                            setGeneticCode(GeneticCode::SharedPtr gcode);
+            
+            void                            setNumStatesFromString(std::string nstates_str);
 
             unsigned                        getDataType() const;
             unsigned                        getNumStates() const;
@@ -36,6 +38,7 @@ namespace strom {
             unsigned                        _datatype;
             unsigned                        _num_states;
             GeneticCode::SharedPtr          _genetic_code;
+            unsigned                        _num_standard_states;
     };
     
     // member function bodies go here
@@ -94,6 +97,21 @@ namespace strom {
         _genetic_code = GeneticCode::SharedPtr(new GeneticCode(genetic_code_name));
     }
     
+    inline void DataType::setNumStatesFromString(std::string nstates_str) {
+        int int_value = 2;
+        try {
+            int_value = std::stoi(nstates_str);
+        }
+        catch(std::invalid_argument) {
+            throw XStrom(boost::format("Could not interpret \"%s\" as a number in partition subset definition") % nstates_str);
+        }
+        if (int_value < 2) {
+            throw XStrom(boost::format("expecting number of states for standard datatype to be 2 or greater, but %d was specified") % int_value);
+        }
+        assert(isStandard());
+        _num_standard_states = (unsigned)int_value;
+    }
+
     inline void DataType::setGeneticCode(GeneticCode::SharedPtr gcode) {
         assert(isCodon());
         assert(gcode);

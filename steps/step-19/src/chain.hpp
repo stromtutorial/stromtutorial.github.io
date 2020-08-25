@@ -153,12 +153,17 @@ namespace strom {
         // Add exchangeability parameter updaters to _updaters 
         Model::exchangeability_params_t & exchangeability_shptr_vect = _model->getExchangeabilityParams();
         for (auto exchangeability_shptr : exchangeability_shptr_vect) {
+            unsigned nrates = (unsigned)exchangeability_shptr->getNumExchangeabilities();
             Updater::SharedPtr u = ExchangeabilityUpdater::SharedPtr(new ExchangeabilityUpdater(exchangeability_shptr));
             u->setLikelihood(likelihood);
             u->setLot(lot);
             u->setLambda(1.0);
             u->setTargetAcceptanceRate(0.3);
-            u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+            if (nrates == 6)
+                u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+            else {
+                u->setPriorParameters(std::vector<double>(nrates, 1.0));
+            }
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
         }
