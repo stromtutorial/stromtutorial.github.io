@@ -445,9 +445,9 @@ namespace strom {
             unsigned m = chain.getTreeManip()->calcResolutionClass();   ///!g
             if (time_to_report) {
                 if (logPrior == Updater::getLogZero())
-                    _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
+                    _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));
                 else
-                    _output_manager->outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+                    _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12.5f %12.5f") % iteration % m % logLike % logPrior % TL));
             }
             if (time_to_sample) {
                 _output_manager->outputTree(iteration, chain.getTreeManip());
@@ -769,7 +769,7 @@ namespace strom {
 
             // Create an output manager and open output files
             _output_manager.reset(new OutputManager);
-            _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s") % "iteration" % "logLike" % "logPrior" % "TL"));
+            _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s %12s") % "iteration" % "m" % "logLike" % "logPrior" % "TL"));
             _output_manager->openTreeFile("trees.tre", _data);
             _output_manager->openParameterFile("params.txt", _chains[0].getModel());
             sample(0, _chains[0]);
