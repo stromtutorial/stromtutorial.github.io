@@ -1,5 +1,7 @@
 #pragma once
 
+#define POLNEW
+
 #include <tuple>
 #include <limits>
 #include <cmath>
@@ -200,20 +202,33 @@ namespace strom {
             datatype = match_obj[3].str();
             boost::to_lower(datatype);
 
+#if defined(POLNEW)
             // check for comma plus genetic code in case of codon
             std::regex recodon(R"(codon\s*,\s*(\S+))");
+
+            // check for comma plus number of states in case of standard
             std::regex remorph(R"(standard\s*,\s*(\d+))");
+#else
+            std::regex re(R"(codon\s*,\s*(\S+))");
+#endif
             std::smatch m;
-            if (std::regex_match(datatype, m, recodon)) {
+#if defined(POLNEW)
+            if (std::regex_match(datatype, m, recodon))
+#else
+            if (std::regex_match(datatype, m, re))
+#endif
+            {
                 dt.setCodon();
                 std::string genetic_code_name = m[1].str();
                 dt.setGeneticCodeFromName(genetic_code_name);
             }
+#if defined(POLNEW)
             else if (std::regex_match(datatype, m, remorph)) {
                 dt.setStandard();
                 std::string num_states = m[1].str();
                 dt.setNumStatesFromString(num_states);
             }
+#endif
             else if (datatype == "codon") {
                 dt.setCodon();  // assumes standard genetic code
             }
@@ -224,7 +239,11 @@ namespace strom {
                 dt.setNucleotide();
                 }
             else if (datatype == "standard") {
+#if defined(POLNEW)
                 dt.setStandard();   // assumes number of states = 2
+#else
+                dt.setStandard();
+#endif
                 }
             else {
                 throw XStrom(boost::format("Datatype \"%s\" specified for subset(s) \"%s\" is invalid: must be either nucleotide, codon, protein, or standard") % datatype % subset_name);

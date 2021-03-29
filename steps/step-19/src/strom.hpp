@@ -221,8 +221,13 @@ namespace strom {
             handleAssignmentStrings(m, vm, "rmatrix",   partition_rmatrix,   "default:equal");
             handleAssignmentStrings(m, vm, "omega",     partition_omega,     "default:0.1"  );
             handleAssignmentStrings(m, vm, "ncateg",    partition_ncateg,    "default:1"    );
+#if defined(POLNEW)
+            handleAssignmentStrings(m, vm, "ratevar",   partition_ratevar,   "default:[0.0]"  );
+            handleAssignmentStrings(m, vm, "pinvar",    partition_pinvar,    "default:[0.0] "  );
+#else
             handleAssignmentStrings(m, vm, "ratevar",   partition_ratevar,   "default:1.0"  );
-            handleAssignmentStrings(m, vm, "pinvar",    partition_pinvar,    "default:0.0"  );
+            handleAssignmentStrings(m, vm, "pinvar",    partition_pinvar,    "default:0.0 "  );
+#endif
             handleAssignmentStrings(m, vm, "relrate",   partition_relrates,  "default:equal");
             handleAssignmentStrings(m, vm, "tree",      partition_tree,      "default:1");
             _likelihoods.push_back(likelihood);

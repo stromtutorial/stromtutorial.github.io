@@ -329,6 +329,13 @@ namespace strom {
         // for the zero-length edges inserted to arbitrarily 
         // resolve each polytomy)
         _identity_matrix.assign(nstates*nstates*ngammacat, 0.0);
+#if defined(POLNEW)
+        for (unsigned k = 0; k < ngammacat; k++) {
+            for (unsigned i = 0; i < nstates; i++) {
+                _identity_matrix[k*nstates*nstates + i*nstates + i] = 1.0;
+            }
+        }
+#else
         for (unsigned k = 0; k < ngammacat; k++) {
             unsigned offset = k*nstates*nstates;
             _identity_matrix[0+offset]  = 1.0;
@@ -336,6 +343,7 @@ namespace strom {
             _identity_matrix[10+offset] = 1.0;
             _identity_matrix[15+offset] = 1.0;
         }   ///!h
+#endif
         
         //...   
         ///after_identity_matrix_init
@@ -373,7 +381,7 @@ namespace strom {
             nsequences += _ntaxa;
         }
         
-        int inst = beagleCreateInstance(
+         int inst = beagleCreateInstance(
              _ntaxa,                        // tips
              2*npartials,                   // partials
              nsequences,                    // sequences

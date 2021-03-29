@@ -1,5 +1,7 @@
 #pragma once    ///start
 
+#define POLNEW
+
 #include <memory>
 #include <boost/format.hpp>
 #include "lot.hpp"
@@ -153,17 +155,23 @@ namespace strom {
         // Add exchangeability parameter updaters to _updaters 
         Model::exchangeability_params_t & exchangeability_shptr_vect = _model->getExchangeabilityParams();
         for (auto exchangeability_shptr : exchangeability_shptr_vect) {
+#if defined(POLNEW)
             unsigned nrates = (unsigned)exchangeability_shptr->getNumExchangeabilities();
+#endif
             Updater::SharedPtr u = ExchangeabilityUpdater::SharedPtr(new ExchangeabilityUpdater(exchangeability_shptr));
             u->setLikelihood(likelihood);
             u->setLot(lot);
             u->setLambda(1.0);
             u->setTargetAcceptanceRate(0.3);
+#if defined(POLNEW)
             if (nrates == 6)
                 u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
             else {
                 u->setPriorParameters(std::vector<double>(nrates, 1.0));
             }
+#else
+            u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+#endif
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
         }

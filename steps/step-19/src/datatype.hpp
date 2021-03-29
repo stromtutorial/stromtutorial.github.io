@@ -1,5 +1,7 @@
 #pragma once
 
+#define POLNEW
+
 #include "genetic_code.hpp"
 #include <boost/format.hpp>
 
@@ -24,7 +26,9 @@ namespace strom {
             void                            setGeneticCodeFromName(std::string genetic_code_name);
             void                            setGeneticCode(GeneticCode::SharedPtr gcode);
             
+#if defined(POLNEW)
             void                            setNumStatesFromString(std::string nstates_str);
+#endif
 
             unsigned                        getDataType() const;
             unsigned                        getNumStates() const;
@@ -38,7 +42,9 @@ namespace strom {
             unsigned                        _datatype;
             unsigned                        _num_states;
             GeneticCode::SharedPtr          _genetic_code;
-            unsigned                        _num_standard_states;
+//#if defined(POLNEW)
+//            unsigned                        _num_standard_states;
+//#endif
     };
     
     // member function bodies go here
@@ -97,6 +103,7 @@ namespace strom {
         _genetic_code = GeneticCode::SharedPtr(new GeneticCode(genetic_code_name));
     }
     
+#if defined(POLNEW)
     inline void DataType::setNumStatesFromString(std::string nstates_str) {
         int int_value = 2;
         try {
@@ -109,8 +116,10 @@ namespace strom {
             throw XStrom(boost::format("expecting number of states for standard datatype to be 2 or greater, but %d was specified") % int_value);
         }
         assert(isStandard());
-        _num_standard_states = (unsigned)int_value;
+        //_num_standard_states = (unsigned)int_value;
+        _num_states = (unsigned)int_value;
     }
+#endif
 
     inline void DataType::setGeneticCode(GeneticCode::SharedPtr gcode) {
         assert(isCodon());

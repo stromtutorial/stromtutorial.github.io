@@ -1,5 +1,7 @@
 #pragma once
 
+#define POLNEW
+
 #include <fstream>
 #include <regex>
 #include <string>
@@ -344,6 +346,10 @@ namespace strom {
                 throw XStrom(boost::format("Partition subset has data type \"%s\" but data read from file has data type \"standard\"") % dt.getDataTypeAsString());
             assert(charBlock->GetSymbols());
             std::string symbols = std::string(charBlock->GetSymbols());
+#if defined(POLNEW)
+            if ((unsigned)symbols.size() != dt.getNumStates())
+                throw XStrom(boost::format("You specified %d states in the subset definition, but data file declares that there are %d states (symbols list is \"%s\")") % dt.getNumStates() % symbols.size() % symbols);
+#endif
             dt.setStandardNumStates((unsigned)symbols.size());
         }
         else {
