@@ -216,7 +216,8 @@ namespace strom {
             std::regex recodon(R"(codon\s*,\s*(\S+))");
 
             // check for comma plus number of states in case of standard
-            std::regex remorph(R"(standard\s*,\s*(\d+)\s*(,\s*(condvar))*)");
+            //std::regex remorph(R"(standard\s*,\s*(\d+)\s*(,\s*(condvar))*)");
+            std::regex remorph(R"(standard\s*,\s*(\d+)\s*(,\s*(\S+))*)");
 #else
             std::regex re(R"(codon\s*,\s*(\S+))");
 #endif
@@ -237,6 +238,11 @@ namespace strom {
                 // m[1] = "2"
                 // m[2] = ",condvar"
                 // m[3] = "condvar"
+                //
+                // or
+                //
+                // m[0] = "standard,2"
+                // m[1] = "2"
                 dt.setStandard();
                 std::string num_states = m[1].str();
                 dt.setNumStatesFromString(num_states);
@@ -244,6 +250,8 @@ namespace strom {
                     std::string condvar = m[3].str();
                     boost::to_lower(condvar);
                     if (condvar == "condvar")
+                        dt.setCondVar(true);
+                    else if (condvar == "")
                         dt.setCondVar(true);
                     else {
                         throw XStrom(boost::format("expecting keyword \"condvar\" in standard datatype definition for subset \"%s\" but instead found \"%s\"") % subset_name % condvar);

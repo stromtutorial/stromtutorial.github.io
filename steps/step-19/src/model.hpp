@@ -232,6 +232,7 @@ namespace strom {
 
             // Determine whether state freqs are unique for this subset
 #if defined(POLNEW)
+            //TODO: state freqs are not independent parameters here
             //if (!_subset_datatypes[i].isStandard()) {
                 QMatrix::freq_xchg_ptr_t pfreq = _qmatrix[i]->getStateFreqsSharedPtr();
                 QMatrix::freq_xchg_t & freq = *pfreq;

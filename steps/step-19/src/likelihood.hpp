@@ -1062,6 +1062,35 @@ namespace strom {
             throw XStrom(boost::str(boost::format("failed to calculate edge log-likelihoods in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
         }
         
+#if defined(POLNEW)
+        if (true) {
+            // Condition on variability for subsets for which condvar was specified
+            std::vector<double> site_log_likelihoods(info.npatterns, 0.0);
+            double * siteLogLs = &site_log_likelihoods[0];
+            beagleGetSiteLogLikelihoods(info.handle, siteLogLs);
+            auto counts = _data->getPatternCounts();
+            auto datatype = _data->getPartition()->getSubsetDataTypes();
+            for (unsigned s : info.subsets) {
+                if (datatype[s].isCondVar()) {
+                    unsigned nsites = 0;
+                    auto interval = _data->getSubsetBeginEnd(s);
+                    std::vector<double> dummy_lnL;
+                    for (unsigned p = interval.first; p < interval.second; p++) {
+                        nsites += counts[p];
+                        if (counts[p] == 0)
+                            dummy_lnL.push_back(site_log_likelihoods[p]);
+                    }
+                    double sum_like = 0.0;
+                    for (unsigned i = 0; i < dummy_lnL.size(); i++) {
+                        sum_like += exp(dummy_lnL[i]);
+                    }
+                    double log_prob_var = log(1.0 - sum_like);
+                    log_likelihood -= (double)nsites*log_prob_var;
+                }
+            }
+        }
+#endif
+        
         if (info.invarmodel) {
             auto monomorphic = _data->getMonomorphic();
             auto counts = _data->getPatternCounts();
