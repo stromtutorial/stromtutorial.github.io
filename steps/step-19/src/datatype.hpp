@@ -27,7 +27,9 @@ namespace strom {
             void                            setGeneticCode(GeneticCode::SharedPtr gcode);
             
 #if defined(POLNEW)
+            void                            setCondVar(bool yes);
             void                            setNumStatesFromString(std::string nstates_str);
+            bool                            isCondVar() const;
 #endif
 
             unsigned                        getDataType() const;
@@ -42,17 +44,24 @@ namespace strom {
             unsigned                        _datatype;
             unsigned                        _num_states;
             GeneticCode::SharedPtr          _genetic_code;
-//#if defined(POLNEW)
-//            unsigned                        _num_standard_states;
-//#endif
+#if defined(POLNEW)
+            bool                            _condvar;
+#endif
     };
     
     // member function bodies go here
     
+#if defined(POLNEW)
+    inline DataType::DataType() : _datatype(0), _num_states(0), _condvar(false) {
+        //std::cout << "Creating a DataType object" << std::endl;
+        setNucleotide();
+    }
+#else
     inline DataType::DataType() : _datatype(0), _num_states(0) {
         //std::cout << "Creating a DataType object" << std::endl;
         setNucleotide();
     }
+#endif
     
     inline DataType::~DataType() {
         //std::cout << "Destroying a DataType object" << std::endl;
@@ -104,6 +113,10 @@ namespace strom {
     }
     
 #if defined(POLNEW)
+    inline void DataType::setCondVar(bool yes) {
+        _condvar = yes;
+    }
+
     inline void DataType::setNumStatesFromString(std::string nstates_str) {
         int int_value = 2;
         try {
@@ -119,6 +132,10 @@ namespace strom {
         //_num_standard_states = (unsigned)int_value;
         _num_states = (unsigned)int_value;
     }
+    
+    inline bool DataType::isCondVar() const {
+        return _condvar;
+    }
 #endif
 
     inline void DataType::setGeneticCode(GeneticCode::SharedPtr gcode) {
@@ -132,7 +149,7 @@ namespace strom {
         _num_states = nstates;
         _genetic_code = nullptr;
     }
-
+    
     inline unsigned DataType::getDataType() const {
         return _datatype;
     }

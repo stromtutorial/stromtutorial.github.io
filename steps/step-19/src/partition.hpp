@@ -179,7 +179,11 @@ namespace strom {
         std::string subset_definition = v[1];
 
         // now see if before_colon contains a data type specification in square brackets
+#if defined(POLNEW)
+        const char * pattern_string = R"((.+?)\s*(\[([\S\s]+?)\])*)";
+#else
         const char * pattern_string = R"((.+?)\s*(\[(\S+?)\])*)";
+#endif
         std::regex re(pattern_string);
         std::smatch match_obj;
         bool matched = std::regex_match(before_colon, match_obj, re);
@@ -199,7 +203,12 @@ namespace strom {
         DataType dt;    // nucleotide by default
         std::string datatype = "nucleotide";
         if (match_obj.size() == 4 && match_obj[3].length() > 0) {
+#if defined(POLNEW)
             datatype = match_obj[3].str();
+            boost::trim(datatype);
+#else
+            datatype = match_obj[3].str();
+#endif
             boost::to_lower(datatype);
 
 #if defined(POLNEW)
@@ -207,7 +216,7 @@ namespace strom {
             std::regex recodon(R"(codon\s*,\s*(\S+))");
 
             // check for comma plus number of states in case of standard
-            std::regex remorph(R"(standard\s*,\s*(\d+))");
+            std::regex remorph(R"(standard\s*,\s*(\d+)\s*(,\s*(condvar))*)");
 #else
             std::regex re(R"(codon\s*,\s*(\S+))");
 #endif
@@ -224,9 +233,22 @@ namespace strom {
             }
 #if defined(POLNEW)
             else if (std::regex_match(datatype, m, remorph)) {
+                // m[0] = "standard,2,condvar"
+                // m[1] = "2"
+                // m[2] = ",condvar"
+                // m[3] = "condvar"
                 dt.setStandard();
                 std::string num_states = m[1].str();
                 dt.setNumStatesFromString(num_states);
+                if (match_obj.size() == 4) {
+                    std::string condvar = m[3].str();
+                    boost::to_lower(condvar);
+                    if (condvar == "condvar")
+                        dt.setCondVar(true);
+                    else {
+                        throw XStrom(boost::format("expecting keyword \"condvar\" in standard datatype definition for subset \"%s\" but instead found \"%s\"") % subset_name % condvar);
+                    }
+                }
             }
 #endif
             else if (datatype == "codon") {

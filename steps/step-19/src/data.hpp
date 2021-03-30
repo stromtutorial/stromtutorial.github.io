@@ -260,6 +260,10 @@ namespace strom {
             row.resize(npatterns);
         }
 
+#if defined(POLNEW)
+        auto datatype = _partition->getSubsetDataTypes();
+#endif
+
         unsigned p = 0;
         for (unsigned subset = 0; subset < nsubsets; subset++) {
             for (auto & pc : _pattern_map_vect[subset]) {
@@ -275,6 +279,10 @@ namespace strom {
                     ++t;
                 }
                 // constant_state equals 0 if polymorphic or state code of state present if monomorphic
+#if defined(POLNEW)
+                if (datatype[subset].isCondVar() && constant_state > 0)
+                    throw XStrom("subsets declared condvar cannot have constant sites");
+#endif
                 _monomorphic[p] = constant_state;
                 ++p;
             }
