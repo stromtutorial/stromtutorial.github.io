@@ -171,7 +171,13 @@ namespace strom {
             u->setLot(lot);
             u->setLambda(1.0);
             u->setTargetAcceptanceRate(0.3);
+#if 0 //defined(POLNEW)
+            // These settings result in a Lognormal distribution with mean 1 and variance 2
+            u->setPriorParameters({-std::log(3)/2, std::sqrt(std::log(3))});
+            // These settings result in a Gamma distribution with mean 1 and variance 1
+#else
             u->setPriorParameters({1.0, 1.0});
+#endif
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
         }
