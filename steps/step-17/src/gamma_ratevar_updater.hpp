@@ -66,6 +66,19 @@ namespace strom {
             log_prior -= prior_a*std::log(prior_b);
             log_prior -= std::lgamma(prior_a);
         }
+        else if (curr_point == 0.0) {
+            if (prior_a == 1.0) {
+                assert(prior_b > 0.0);
+                return -std::log(prior_b);
+            }
+            else if (prior_a > 1.0) {
+                log_prior = Updater::_log_zero;
+            }
+            else {
+                // prior_a < 1.0
+                log_prior = -Updater::_log_zero;
+            }
+        }
         else
             log_prior = Updater::_log_zero;
         return log_prior;
@@ -78,13 +91,17 @@ namespace strom {
     inline void GammaRateVarUpdater::proposeNewState() {
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
-        
-        // Propose new value using multiplier with boldness _lambda
-        double m = exp(_lambda*(_lot->uniform() - 0.5));
-        _asrv->setRateVar(m*_prev_point);
+
+        // Propose new value using window of width _lambda centered over _prev_point
+        double u = _lot->uniform();
+        double new_point = (_prev_point - _lambda/2.0) + u*_lambda;
+        assert(new_point != 0.0);
+        if (new_point < 0.0)
+            new_point *= -1.0;
+        _asrv->setRateVar(new_point);
         
         // Calculate log of Hastings ratio
-        _log_hastings_ratio = log(m);
+        _log_hastings_ratio = 0.0;  // symmetric proposal
         
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator->selectAllPartials();
