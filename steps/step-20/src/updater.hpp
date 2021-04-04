@@ -1,5 +1,7 @@
 #pragma once    ///start
 
+#define POLNEW
+
 #include "tree.hpp"
 #include "tree_manip.hpp"
 #include "lot.hpp"
@@ -27,6 +29,9 @@ namespace strom {
             void                                    setLot(Lot::SharedPtr lot);
             void                                    setLambda(double lambda);
             void                                    setHeatingPower(double p);
+#if defined(POLNEW)
+            void                                    setHeatLikelihoodOnly(bool yes);
+#endif
             void                                    setTuning(bool on);
             void                                    setTargetAcceptanceRate(double target);
             void                                    setPriorParameters(const std::vector<double> & c);
@@ -74,6 +79,9 @@ namespace strom {
             bool                                    _tuning;
             std::vector<double>                     _prior_parameters;
 
+#if defined(POLNEW)
+            bool                                    _heat_likelihood_only;
+#endif
             double                                  _heating_power;
             mutable PolytomyTopoPriorCalculator     _topo_prior_calculator; ///!f
             
@@ -101,6 +109,9 @@ namespace strom {
         _naccepts               = 0;
         _nattempts              = 0;
         _heating_power          = 1.0;
+#if defined(POLNEW)
+        _heat_likelihood_only   = false;
+#endif
         _prior_parameters.clear();
         reset();
     } ///end_clear
@@ -250,6 +261,12 @@ namespace strom {
 
         return log_likelihood;
     } ///end_update
+    
+#if defined(POLNEW)
+    inline void Updater::setHeatLikelihoodOnly(bool yes) {
+        _heat_likelihood_only = yes;
+    }
+#endif
     
     inline void Updater::setTopologyPriorOptions(bool resclass, double C) { ///begin_setTopologyPriorOptions
         _topo_prior_calculator.setC(C);
