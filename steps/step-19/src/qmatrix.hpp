@@ -1,7 +1,5 @@
 #pragma once
 
-#define POLNEW
-
 #include <algorithm>
 #include <vector>
 #include <Eigen/Dense>
@@ -52,20 +50,12 @@ namespace strom {
             virtual const double *                  getEigenvalues() const = 0;
 
             void                                    setActive(bool activate);
-            
-#if defined(POLNEW)
-            virtual unsigned                        getNumStates() const = 0;
-            virtual unsigned                        getNumExchangeabilities() const = 0;
-#endif
         
         protected:
         
             virtual void                            recalcRateMatrix() = 0;
             void                                    normalizeFreqsOrExchangeabilities(freq_xchg_ptr_t v);
 
-#if defined(POLNEW)
-            unsigned                                _nstates;
-#endif
             bool                                    _is_active;
             bool                                    _state_freqs_fixed;
             bool                                    _exchangeabilities_fixed;
@@ -125,14 +115,6 @@ namespace strom {
         }
     }
     
-    //******************************************************************************
-    //******************************************************************************
-    //*****************************                     ****************************
-    //*****************************  QMatrixNucleotide  ****************************
-    //*****************************                     ****************************
-    //******************************************************************************
-    //******************************************************************************
-    
     class QMatrixNucleotide : public QMatrix {
 
         public:
@@ -165,10 +147,6 @@ namespace strom {
             const double *              getInverseEigenvectors() const;
             const double *              getEigenvalues() const;
         
-#if defined(POLNEW)
-            unsigned                    getNumStates() const;
-            unsigned                    getNumExchangeabilities() const;
-#endif
 
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         
@@ -192,7 +170,6 @@ namespace strom {
     
     inline QMatrixNucleotide::QMatrixNucleotide() {
         //std::cout << "Constructing a QMatrixNucleotide object" << std::endl;
-        _nstates = 4;
         clear();
     }
 
@@ -212,49 +189,12 @@ namespace strom {
         recalcRateMatrix();
     }
 
-#if defined(POLNEW)
-    inline unsigned QMatrixNucleotide::getNumStates() const {
-        return 4;
-    }
-
-    inline unsigned QMatrixNucleotide::getNumExchangeabilities() const {
-        return 6;
-    }
-#endif
-
-    inline void QMatrixNucleotide::setEqualStateFreqs(QMatrix::freq_xchg_ptr_t freq_ptr) {
-        _state_freqs = freq_ptr;
-        _state_freqs->assign(4, 0.25);
-        recalcRateMatrix();
-    }
-
-    inline void QMatrixNucleotide::setStateFreqsSharedPtr(QMatrix::freq_xchg_ptr_t freq_ptr) {
-        if (freq_ptr->size() != 4)
-            throw XStrom(boost::format("Expecting 4 state frequencies and got %d: perhaps you meant to specify a subset data type other than nucleotide") % freq_ptr->size());
-        double sum_of_freqs = std::accumulate(freq_ptr->begin(), freq_ptr->end(), 0.0);
-        if (std::fabs(sum_of_freqs - 1.0) > 0.001)
-            throw XStrom(boost::format("Expecting sum of 4 state frequencies to be 1, but instead got %g") % sum_of_freqs);
-        _state_freqs = freq_ptr;
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixNucleotide::setStateFreqs(QMatrix::freq_xchg_t & freqs) {
-        if (freqs.size() != 4)
-            throw XStrom(boost::format("Expecting 4 state frequencies and got %d: perhaps you meant to specify a subset data type other than nucleotide") % freqs.size());
-        std::copy(freqs.begin(), freqs.end(), _state_freqs->begin());
-        recalcRateMatrix();
-    }
-
-    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() {
-        return _state_freqs;
-    }
-
     inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getExchangeabilitiesSharedPtr() {
         return _exchangeabilities;
     }
-
-    inline const double * QMatrixNucleotide::getExchangeabilities() const {
-        return &(*_exchangeabilities)[0];
+    
+    inline QMatrix::freq_xchg_ptr_t QMatrixNucleotide::getStateFreqsSharedPtr() {
+        return _state_freqs;
     }
 
     inline QMatrix::omega_ptr_t QMatrixNucleotide::getOmegaSharedPtr() {
@@ -262,11 +202,6 @@ namespace strom {
         return nullptr;
     }
     
-    inline double QMatrixNucleotide::getOmega() const {
-        assert(false);
-        return 0.0;
-    }
-
     inline const double * QMatrixNucleotide::getEigenvectors() const {
         return _eigenvectors.data();
     }
@@ -278,9 +213,18 @@ namespace strom {
     inline const double * QMatrixNucleotide::getEigenvalues() const {
         return _eigenvalues.data();
     }
+    
+    inline const double * QMatrixNucleotide::getExchangeabilities() const {
+        return &(*_exchangeabilities)[0];
+    }
 
     inline const double * QMatrixNucleotide::getStateFreqs() const {
         return &(*_state_freqs)[0];
+    }
+
+    inline double QMatrixNucleotide::getOmega() const {
+        assert(false);
+        return 0.0;
     }
 
     inline void QMatrixNucleotide::setEqualExchangeabilities(QMatrix::freq_xchg_ptr_t xchg_ptr) {
@@ -304,6 +248,29 @@ namespace strom {
         recalcRateMatrix();
     }
     
+    inline void QMatrixNucleotide::setEqualStateFreqs(QMatrix::freq_xchg_ptr_t freq_ptr) {
+        _state_freqs = freq_ptr;
+        _state_freqs->assign(4, 0.25);
+        recalcRateMatrix();
+    }
+    
+    inline void QMatrixNucleotide::setStateFreqsSharedPtr(QMatrix::freq_xchg_ptr_t freq_ptr) {
+        if (freq_ptr->size() != 4)
+            throw XStrom(boost::format("Expecting 4 state frequencies and got %d: perhaps you meant to specify a subset data type other than nucleotide") % freq_ptr->size());
+        double sum_of_freqs = std::accumulate(freq_ptr->begin(), freq_ptr->end(), 0.0);
+        if (std::fabs(sum_of_freqs - 1.0) > 0.001)
+            throw XStrom(boost::format("Expecting sum of 4 state frequencies to be 1, but instead got %g") % sum_of_freqs);
+        _state_freqs = freq_ptr;
+        recalcRateMatrix();
+    }
+    
+    inline void QMatrixNucleotide::setStateFreqs(QMatrix::freq_xchg_t & freqs) {
+        if (freqs.size() != 4)
+            throw XStrom(boost::format("Expecting 4 state frequencies and got %d: perhaps you meant to specify a subset data type other than nucleotide") % freqs.size());
+        std::copy(freqs.begin(), freqs.end(), _state_freqs->begin());
+        recalcRateMatrix();
+    }
+    
     inline void QMatrixNucleotide::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) {
         assert(false);
     }
@@ -311,7 +278,7 @@ namespace strom {
     inline void QMatrixNucleotide::setOmega(QMatrix::omega_t omega) {
         assert(false);
     }
-    
+
     inline void QMatrixNucleotide::recalcRateMatrix() {
         // Must have assigned both _state_freqs and _exchangeabilities to recalculate rate matrix
         if (!_is_active || !(_state_freqs && _exchangeabilities))
@@ -371,620 +338,6 @@ namespace strom {
         _eigenvalues            = solver.eigenvalues();
     }
   
-#if defined(POLNEW)
-    //******************************************************************************
-    //******************************************************************************
-    //******************************                   *****************************
-    //******************************  QMatrixStandard  *****************************
-    //******************************                   *****************************
-    //******************************************************************************
-    //******************************************************************************
-    
-    class QMatrixStandard : public QMatrix {
-
-        public:
-            typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>      eigenMatrixXd_t;
-            typedef Eigen::VectorXd                                                             eigenVectorXd_t;
-        
-                                        QMatrixStandard(unsigned nstates);
-                                        ~QMatrixStandard();
-        
-            void                        clear();
-
-            void                        setEqualStateFreqs(freq_xchg_ptr_t freq_ptr);
-            void                        setStateFreqsSharedPtr(freq_xchg_ptr_t freq_ptr);
-            void                        setStateFreqs(freq_xchg_t & freq);
-            freq_xchg_ptr_t             getStateFreqsSharedPtr();
-            const double *              getStateFreqs() const;
-            
-            void                        setEqualExchangeabilities(freq_xchg_ptr_t xchg_ptr);
-            void                        setExchangeabilitiesSharedPtr(freq_xchg_ptr_t xchg_ptr);
-            void                        setExchangeabilities(freq_xchg_t & xchg);
-            freq_xchg_ptr_t             getExchangeabilitiesSharedPtr();
-            const double *              getExchangeabilities() const;
-
-            void                        setOmegaSharedPtr(omega_ptr_t omega);
-            void                        setOmega(omega_t omega);
-            omega_ptr_t                 getOmegaSharedPtr();
-            double                      getOmega() const;
-
-            const double *              getEigenvectors() const;
-            const double *              getInverseEigenvectors() const;
-            const double *              getEigenvalues() const;
-
-            unsigned                    getNumStates() const;
-            unsigned                    getNumExchangeabilities() const;
-
-            EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-        protected:
-        
-            virtual void                recalcRateMatrix();
-
-        private:
-        
-            // workspaces for computing eigenvectors/eigenvalues
-            eigenMatrixXd_t             _sqrtPi;
-            eigenMatrixXd_t             _sqrtPiInv;
-            eigenMatrixXd_t             _Q;
-            eigenMatrixXd_t             _eigenvectors;
-            eigenMatrixXd_t             _inverse_eigenvectors;
-            eigenVectorXd_t             _eigenvalues;
-
-            freq_xchg_ptr_t             _state_freqs;
-            freq_xchg_ptr_t             _exchangeabilities;
-    };
-
-    inline QMatrixStandard::QMatrixStandard(unsigned nstates) {
-        //std::cout << "Constructing a QMatrixStandard object" << std::endl;
-        _nstates = nstates;
-        clear();
-    }
-
-    inline QMatrixStandard::~QMatrixStandard() {
-        //std::cout << "Destroying a QMatrixStandard object" << std::endl;
-    }
-
-    inline void QMatrixStandard::clear() {
-        QMatrix::clear();
-                
-        // state frequencies in this model are completely determined by the
-        // relative rates (exchangeabilities)
-        _state_freqs_fixed = true;
-        
-        // ---    r1   r2   r3   r4
-        //  r5   ---   r6   r7   r8
-        //  r9   r10  ---  r11  r12
-        // r13   r14  r15  ---  r16
-        // r17   r18  r19  r20  ---
-        //
-        // nstates = 5
-        // number of rates = nstates*(nstates - 1) = 5*4 = 20
-        
-        unsigned nrates = _nstates*(_nstates - 1);
-        QMatrix::freq_xchg_t xchg(nrates, 1.);
-        _exchangeabilities = std::make_shared<QMatrix::freq_xchg_t>(xchg);
-
-        QMatrix::freq_xchg_t freq_vect(_nstates, 1./_nstates);
-        _state_freqs = std::make_shared<QMatrix::freq_xchg_t>(freq_vect);
-        
-        _Q.resize(_nstates, _nstates);
-        _eigenvectors.resize(_nstates, _nstates);
-        _inverse_eigenvectors.resize(_nstates, _nstates);
-        _eigenvalues.resize(_nstates);
-        
-        recalcRateMatrix();
-    }
-    
-    inline unsigned QMatrixStandard::getNumStates() const {
-        return _nstates;
-    }
-
-    inline unsigned QMatrixStandard::getNumExchangeabilities() const {
-        return _nstates*(_nstates-1);
-    }
-
-    inline void QMatrixStandard::setEqualStateFreqs(QMatrix::freq_xchg_ptr_t freq_ptr) {
-        _state_freqs = freq_ptr;
-        _state_freqs->assign(_nstates, 1.0/_nstates);
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixStandard::setStateFreqsSharedPtr(QMatrix::freq_xchg_ptr_t freq_ptr) {
-        if (freq_ptr->size() != _nstates)
-            throw XStrom(boost::format("Expecting %d state frequencies but only %d were specified") % _nstates % freq_ptr->size());
-        double sum_of_freqs = std::accumulate(freq_ptr->begin(), freq_ptr->end(), 0.0);
-        if (std::fabs(sum_of_freqs - 1.0) > 0.001)
-            throw XStrom(boost::format("Expecting sum of state frequencies to be 1, but instead got %g") % sum_of_freqs);
-        _state_freqs = freq_ptr;
-        recalcRateMatrix();
-    }
-
-    inline void QMatrixStandard::setStateFreqs(QMatrix::freq_xchg_t & freqs) {
-        if (freqs.size() != _nstates)
-            throw XStrom(boost::format("Expecting %d state frequencies and instead got %d in the setStateFreqs function of the standard data type model") % _nstates % freqs.size());
-        std::copy(freqs.begin(), freqs.end(), _state_freqs->begin());
-        recalcRateMatrix();
-    }
-
-    inline QMatrix::freq_xchg_ptr_t QMatrixStandard::getStateFreqsSharedPtr() {
-        return _state_freqs;
-    }
-
-    inline const double * QMatrixStandard::getStateFreqs() const {
-        return &(*_state_freqs)[0];
-    }
-
-    inline void QMatrixStandard::setEqualExchangeabilities(QMatrix::freq_xchg_ptr_t xchg_ptr) {
-        _exchangeabilities = xchg_ptr;
-        unsigned nrates = _nstates*(_nstates - 1);
-        _exchangeabilities->assign(nrates, 1.);
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixStandard::setExchangeabilitiesSharedPtr(QMatrix::freq_xchg_ptr_t xchg_ptr) {
-        unsigned nrates = _nstates*(_nstates - 1);
-        if (xchg_ptr->size() != nrates)
-            throw XStrom(boost::format("Expecting %d rmatrix elements but only %d were specified") % nrates % xchg_ptr->size());
-        _exchangeabilities = xchg_ptr;
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixStandard::setExchangeabilities(QMatrix::freq_xchg_t & xchg) {
-        unsigned nrates = _nstates*(_nstates - 1);
-        if (xchg.size() != nrates)
-            throw XStrom(boost::format("Expecting %d rates and got %d") % nrates % xchg.size());
-        std::copy(xchg.begin(), xchg.end(), _exchangeabilities->begin());
-        recalcRateMatrix();
-    }
-    
-    inline QMatrix::freq_xchg_ptr_t QMatrixStandard::getExchangeabilitiesSharedPtr() {
-        return _exchangeabilities;
-    }
-    
-    inline const double * QMatrixStandard::getExchangeabilities() const {
-        return &(*_exchangeabilities)[0];
-    }
-    
-    inline void QMatrixStandard::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) {
-        assert(false);
-    }
-
-    inline void QMatrixStandard::setOmega(QMatrix::omega_t omega) {
-        assert(false);
-    }
-
-    inline QMatrix::omega_ptr_t QMatrixStandard::getOmegaSharedPtr() {
-        assert(false);
-        return nullptr;
-    }
-    
-    inline double QMatrixStandard::getOmega() const {
-        assert(false);
-        return 0.0;
-    }
-
-    inline const double * QMatrixStandard::getEigenvectors() const {
-        return _eigenvectors.data();
-    }
-    
-    inline const double * QMatrixStandard::getInverseEigenvectors() const {
-        return _inverse_eigenvectors.data();
-    }
-    
-    inline const double * QMatrixStandard::getEigenvalues() const {
-        return _eigenvalues.data();
-    }
-    
-    inline void QMatrixStandard::recalcRateMatrix() {
-        unsigned nrates = _nstates*(_nstates - 1);
-        assert(_exchangeabilities->size() == nrates);
-        assert(_state_freqs->size() == _nstates);
-        const double * r = getExchangeabilities();
-        
-        // Calculate (unscaled) instantaneous rate matrix
-        _Q = Eigen::MatrixXd::Zero(_nstates,_nstates);
-        unsigned k = 0;
-        for (unsigned i = 0; i < _nstates; i++) {
-            double row_sum = 0.0;
-            for (unsigned j = 0; j < _nstates; j++) {
-                if (i != j) {
-                    row_sum += r[k];
-                    _Q(i,j) = r[k++];
-                }
-            _Q(i,i) = -row_sum;
-            }
-        }
-        
-        // Calculate equilibrium frequencies
-        //
-        // Definition of equilibrium frequencies:
-        //
-        //    P^T pi = pi
-        //
-        // where P is the transition probability matrix (over any time period, including
-        // infinitesimal dt), P^T is P transposed, and pi is the stationary distribution.
-        //
-        // For 2 states, this becomes
-        //
-        //  /            \/     \   /                   \   /     \
-        //  | P00   P10  || pi0 |   | pi0 P00 + pi1 P10 |   | pi0 |
-        //  |            ||     | = |                   | = |     |
-        //  | P01   P11  || pi1 |   | pi0 P01 + pi1 P11 |   | pi1 |
-        //  \            /\     /   \                   /   \     /
-        //        P^T       pi
-        //
-        // Noting that P(dt) = I + Q dt, we can write
-        //
-        //  (I + Q^T dt) pi = I pi + Q^T pi dt
-        //
-        // The right-hand side equals pi iff Q^T pi = zero vector.
-        //
-        // Let Q equal this 3x3 matrix:
-        //
-        //     /                 \        /                 \
-        //     | -a-b   a    b   |        | -a-b   c    e   |
-        //     |                 |        |                 |
-        // Q = |   c  -c-d   d   |  Q^T = |   a  -c-d   f   |
-        //     |                 |        |                 |
-        //     |   e    f  -e-f  |        |   b    e  -e-f  |
-        //     \                 /        \                 /
-        //
-        // The linear equation we need to solve is this:
-        //
-        //  /              \ /     \   /   \
-        //  | -a-b  c   e  | | pi1 |   | 0 |
-        //  |              | |     |   |   |
-        //  |  a  -c-d  f  | | pi2 | = | 0 |
-        //  |              | |     |   |   |
-        //  |  b   d  -e-f | | pi3 |   | 0 |
-        //  \              / \     /   \   /
-        //
-        // This does not really represent 3 equations/3 unknowns because
-        // of the fact that the pi elements sum to 1. The reduced (2 dimensional)
-        // linear equation is thus (subtracting the third element, arbitrarily, in
-        // each row from each of the other elements and from the corresponding row
-        // on the right side):
-        //
-        //  /              \ /     \   /    \
-        //  | -a-b-e  c-e  | | pi1 |   | -e |
-        //  |              | |     |   |    |
-        //  |  a-f  -c-d-f | | pi2 | = | -f |
-        //  \              / \     /   \    /
-        //
-        //
-        // Construct reduced matrix A and vector b
-        Eigen::MatrixXd A(_nstates-1, _nstates-1);
-        Eigen::VectorXd b(_nstates-1);
-        for (unsigned i = 0; i < _nstates-1; i++) {
-            b(i) = -_Q(_nstates-1,i);
-            for (unsigned j = 0; j < _nstates-1; j++) {
-                A(i,j) = _Q(j,i) - _Q(_nstates-1,i);
-            }
-        }
-        Eigen::VectorXd f(_nstates-1);
-        f = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
-        
-        // Compute vector of equilibrium frequencies pi
-        for (unsigned i = 0; i < _nstates-1; i++) {
-            (*_state_freqs)[i] = f(i);
-        }
-        (*_state_freqs)[_nstates-1] = 1.0 - f.sum();
-        
-        double average_rate = 0.0;
-        for (unsigned i = 0; i < _nstates; i++)
-            average_rate -= (*_state_freqs)[i]*_Q(i,i);
-        double scaling_factor = 1.0/average_rate;
-
-        _Q *= scaling_factor;
-
-        // S is a symmetric matrix
-        Eigen::Map<const Eigen::ArrayXd> tmp(_state_freqs->data(), _nstates);
-        eigenMatrixXd_t sqrtPi = tmp.sqrt().matrix().asDiagonal();
-        eigenMatrixXd_t sqrtPiInv = sqrtPi.inverse();
-        eigenMatrixXd_t S = eigenMatrixXd_t(sqrtPi*_Q*sqrtPiInv);
-
-        // Can use efficient eigensystem solver because S is symmetric
-        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(S);
-        if (solver.info() != Eigen::Success) {
-            throw XStrom("Error in the calculation of eigenvectors and eigenvalues of the standard model rate matrix");
-        }
-
-        _eigenvectors           = sqrtPiInv*solver.eigenvectors();
-        _inverse_eigenvectors   = solver.eigenvectors().transpose()*sqrtPi;
-        _eigenvalues            = solver.eigenvalues();
-    }
-#endif
-
-#if defined(POLNEW)
-    //******************************************************************************
-    //******************************************************************************
-    //******************************                   *****************************
-    //******************************   QMatrixBinary   *****************************
-    //******************************                   *****************************
-    //******************************************************************************
-    //******************************************************************************
-    
-    class QMatrixBinary : public QMatrix {
-
-        public:
-            typedef Eigen::Matrix<double, 2, 2, Eigen::RowMajor>    eigenMatrix2d_t;
-            typedef Eigen::Vector2d                                 eigenVector2d_t;
-        
-                                        QMatrixBinary();
-                                        ~QMatrixBinary();
-        
-            void                        clear();
-
-            void                        setEqualStateFreqs(freq_xchg_ptr_t freq_ptr);
-            void                        setStateFreqsSharedPtr(freq_xchg_ptr_t freq_ptr);
-            void                        setStateFreqs(freq_xchg_t & freq);
-            freq_xchg_ptr_t             getStateFreqsSharedPtr();
-            const double *              getStateFreqs() const;
-            
-            void                        setEqualExchangeabilities(freq_xchg_ptr_t xchg_ptr);
-            void                        setExchangeabilitiesSharedPtr(freq_xchg_ptr_t xchg_ptr);
-            void                        setExchangeabilities(freq_xchg_t & xchg);
-            freq_xchg_ptr_t             getExchangeabilitiesSharedPtr();
-            const double *              getExchangeabilities() const;
-
-            void                        setOmegaSharedPtr(omega_ptr_t omega);
-            void                        setOmega(omega_t omega);
-            omega_ptr_t                 getOmegaSharedPtr();
-            double                      getOmega() const;
-
-            const double *              getEigenvectors() const;
-            const double *              getInverseEigenvectors() const;
-            const double *              getEigenvalues() const;
-
-            unsigned                    getNumStates() const;
-            unsigned                    getNumExchangeabilities() const;
-            
-            EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-        protected:
-        
-            virtual void                recalcRateMatrix();
-
-        private:
-        
-            // workspaces for computing eigenvectors/eigenvalues
-            eigenMatrix2d_t             _sqrtPi;
-            eigenMatrix2d_t             _sqrtPiInv;
-            eigenMatrix2d_t             _Q;
-            eigenMatrix2d_t             _eigenvectors;
-            eigenMatrix2d_t             _inverse_eigenvectors;
-            eigenMatrix2d_t             _eigenvalues;
-
-            freq_xchg_ptr_t             _state_freqs;
-            freq_xchg_ptr_t             _exchangeabilities;
-    };
-
-    inline QMatrixBinary::QMatrixBinary() {
-        //std::cout << "Constructing a QMatrixBinary object" << std::endl;
-        _nstates = 2;
-        clear();
-    }
-
-    inline QMatrixBinary::~QMatrixBinary() {
-        //std::cout << "Destroying a QMatrixBinary object" << std::endl;
-    }
-
-    inline void QMatrixBinary::clear() {
-        QMatrix::clear();
-        
-        // state frequencies in this model are completely determined by the
-        // relative rates (exchangeabilities)
-        //_state_freqs_fixed = true;
-        
-        // ---    r1
-        //  r2   ---
-        //
-        // nstates = 2
-        // number of rates = 2
-        
-        QMatrix::freq_xchg_t xchg = {1,1};
-        _exchangeabilities = std::make_shared<QMatrix::freq_xchg_t>(xchg);
-
-        QMatrix::freq_xchg_t freq_vect = {0.5, 0.5};
-        _state_freqs = std::make_shared<QMatrix::freq_xchg_t>(freq_vect);
-        
-        recalcRateMatrix();
-    }
-    
-    inline unsigned QMatrixBinary::getNumStates() const {
-        return 2;
-    }
-
-    inline unsigned QMatrixBinary::getNumExchangeabilities() const {
-        return 2;
-    }
-
-    inline void QMatrixBinary::setEqualStateFreqs(QMatrix::freq_xchg_ptr_t freq_ptr) {
-        _state_freqs = freq_ptr;
-        _state_freqs->assign(2, 0.5);
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixBinary::setStateFreqsSharedPtr(QMatrix::freq_xchg_ptr_t freq_ptr) {
-        if (freq_ptr->size() != 2)
-            throw XStrom(boost::format("Expecting 2 state frequencies and got %d: perhaps you meant to specify a subset data type other than standard binary") % freq_ptr->size());
-        double sum_of_freqs = (*freq_ptr)[0] + (*freq_ptr)[1];
-        if (std::fabs(sum_of_freqs - 1.0) > 0.001)
-            throw XStrom(boost::format("Expecting sum of state frequencies to be 1, but instead got %g") % sum_of_freqs);
-        _state_freqs = freq_ptr;
-        recalcRateMatrix();
-    }
-
-    inline void QMatrixBinary::setStateFreqs(QMatrix::freq_xchg_t & freqs) {
-        if (freqs.size() != 2)
-            throw XStrom(boost::format("Expecting 2 state frequencies and instead got %d: perhaps you meant to specify a subset data type other than standard binary") % freqs.size());
-        std::copy(freqs.begin(), freqs.end(), _state_freqs->begin());
-        recalcRateMatrix();
-    }
-
-    inline QMatrix::freq_xchg_ptr_t QMatrixBinary::getStateFreqsSharedPtr() {
-        return _state_freqs;
-    }
-
-    inline QMatrix::freq_xchg_ptr_t QMatrixBinary::getExchangeabilitiesSharedPtr() {
-        return _exchangeabilities;
-    }
-    
-    inline const double * QMatrixBinary::getExchangeabilities() const {
-        return &(*_exchangeabilities)[0];
-    }
-    
-    inline QMatrix::omega_ptr_t QMatrixBinary::getOmegaSharedPtr() {
-        assert(false);
-        return nullptr;
-    }
-    
-    inline double QMatrixBinary::getOmega() const {
-        assert(false);
-        return 0.0;
-    }
-
-    inline const double * QMatrixBinary::getEigenvectors() const {
-        return _eigenvectors.data();
-    }
-    
-    inline const double * QMatrixBinary::getInverseEigenvectors() const {
-        return _inverse_eigenvectors.data();
-    }
-    
-    inline const double * QMatrixBinary::getEigenvalues() const {
-        return _eigenvalues.data();
-    }
-    
-    inline const double * QMatrixBinary::getStateFreqs() const {
-        return &(*_state_freqs)[0];
-    }
-
-    inline void QMatrixBinary::setEqualExchangeabilities(QMatrix::freq_xchg_ptr_t xchg_ptr) {
-        _exchangeabilities = xchg_ptr;
-        _exchangeabilities->assign(2, 0.5);
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixBinary::setExchangeabilitiesSharedPtr(QMatrix::freq_xchg_ptr_t xchg_ptr) {
-        if (xchg_ptr->size() != 2)
-            throw XStrom(boost::format("Expecting 2 rates and got %d: perhaps you meant to specify a subset data type other than standard binary") % xchg_ptr->size());
-        _exchangeabilities = xchg_ptr;
-        normalizeFreqsOrExchangeabilities(_exchangeabilities);
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixBinary::setExchangeabilities(QMatrix::freq_xchg_t & xchg) {
-        if (xchg.size() != 2)
-            throw XStrom(boost::format("Expecting 2 rates and got %d: perhaps you meant to specify a subset data type other than standard binary") % xchg.size());
-        std::copy(xchg.begin(), xchg.end(), _exchangeabilities->begin());
-        recalcRateMatrix();
-    }
-    
-    inline void QMatrixBinary::setOmegaSharedPtr(QMatrix::omega_ptr_t omega_ptr) {
-        assert(false);
-    }
-
-    inline void QMatrixBinary::setOmega(QMatrix::omega_t omega) {
-        assert(false);
-    }
-
-    inline void QMatrixBinary::recalcRateMatrix() {
-        // Must have assigned _exchangeabilities to recalculate rate matrix
-        if (!_is_active || !_exchangeabilities)
-            return;
-        
-        assert(_exchangeabilities->size() == 2);
-        assert(_state_freqs->size() == 2);
-        const double * rmatrix = getExchangeabilities();
-        double r0 = rmatrix[0]; // alpha
-        double r1 = rmatrix[1]; // beta
-        double rsum = r0 + r1;
-        double pi0 = r1/rsum;
-        double pi1 = r0/rsum;
-        
-        // Compute vector of equilibrium frequencies
-        (*_state_freqs)[0] = pi0;
-        (*_state_freqs)[1] = pi1;
-
-        _sqrtPi(0,0) = sqrt(pi0);
-        _sqrtPi(0,1) = 0.0;
-        _sqrtPi(1,0) = 0.0;
-        _sqrtPi(1,1) = sqrt(pi1);
-        
-        _sqrtPiInv(0,0) = 1.0/sqrt(pi0);
-        _sqrtPiInv(0,1) = 0.0;
-        _sqrtPiInv(1,0) = 0.0;
-        _sqrtPiInv(1,1) = 1.0/sqrt(pi1);
-        
-        double average_rate = pi0*r1 + pi1*r0;
-        double scaling_factor = 1.0/average_rate;
-
-        // Calculate (unscaled) instantaneous rate matrix
-        r0 *= scaling_factor; // alpha
-        r1 *= scaling_factor; // beta
-        rsum = r0 + r1;
-        _Q(0,0) = -r0;
-        _Q(0,1) =  r0;
-        _Q(1,0) =  r1;
-        _Q(1,1) = -r1;
-                
-        _eigenvectors(0,0) =   1.0;
-        _eigenvectors(0,1) = -r0/r1;
-        _eigenvectors(1,0) =   1.0;
-        _eigenvectors(1,1) =   1.0;
-        
-        _inverse_eigenvectors(0,0) =  r1/rsum;
-        _inverse_eigenvectors(0,1) =  r0/rsum;
-        _inverse_eigenvectors(1,0) = -r1/rsum;
-        _inverse_eigenvectors(1,1) =  r1/rsum;
-        
-        _eigenvalues(0) = 0.0;
-        _eigenvalues(1) = -rsum;
-        
-#if 0
-        double v = 0.088337277;
-        eigenMatrix2d_t L;
-        L(0,0) = 1.0;
-        L(0,1) = 0.0;
-        L(1,0) = 0.0;
-        L(1,1) = exp(-rsum*v);
-        eigenMatrix2d_t P = _eigenvectors*L*_inverse_eigenvectors;
-        std::cerr << "r0   = " << r0 << std::endl;
-        std::cerr << "r1   = " << r1 << std::endl;
-        std::cerr << "rsum = " << rsum << std::endl;
-        std::cerr << "\n_eigenvectors" << std::endl;
-        std::cerr << _eigenvectors << std::endl;
-        std::cerr << "\n_inverse_eigenvectors" << std::endl;
-        std::cerr << _inverse_eigenvectors << std::endl;
-        std::cerr << "\nL" << std::endl;
-        std::cerr << L << std::endl;
-        std::cerr << "\nP" << std::endl;
-        std::cerr << P << std::endl;
-        std::cerr << "\nExpected P matrix:" << std::endl;
-        std::cerr << boost::format("%12.5f %12.5f") % (0.5 + 0.5*exp(-2.0*v)) % (0.5 - 0.5*exp(-2.0*v)) << std::endl;
-        std::cerr << boost::format("%12.5f %12.5f") % (0.5 - 0.5*exp(-2.0*v)) % (0.5 + 0.5*exp(-2.0*v)) << std::endl;
-        std::cerr << std::endl;
-        L(0,0) = 0.0;
-        L(1,1) = -rsum;
-        eigenMatrix2d_t Q = _eigenvectors*L*_inverse_eigenvectors;
-        std::cerr << "\nQ" << std::endl;
-        std::cerr << Q << std::endl;
-        std::cerr << std::endl;
-#endif
-    }
-    
-#endif
-    
-    //******************************************************************************
-    //******************************************************************************
-    //******************************                   *****************************
-    //******************************   QMatrixCodon    *****************************
-    //******************************                   *****************************
-    //******************************************************************************
-    //******************************************************************************
-    
     class QMatrixCodon : public QMatrix {
 
         public:
@@ -1017,11 +370,6 @@ namespace strom {
             const double *              getInverseEigenvectors() const;
             const double *              getEigenvalues() const;
         
-#if defined(POLNEW)
-            unsigned                    getNumStates() const;
-            unsigned                    getNumExchangeabilities() const;
-#endif
-
         protected:
         
             virtual void                recalcRateMatrix();
@@ -1049,7 +397,6 @@ namespace strom {
         //std::cout << "Constructing a QMatrixCodon object" << std::endl;
         assert(gcode);
         _genetic_code = gcode;
-        _nstates = 61;
         clear();
     }
 
@@ -1079,17 +426,6 @@ namespace strom {
         
         recalcRateMatrix();
     }
-
-#if defined(POLNEW)
-    inline unsigned QMatrixCodon::getNumStates() const {
-        return 61;
-    }
-
-    inline unsigned QMatrixCodon::getNumExchangeabilities() const {
-        assert(false);
-        return 0;
-    }
-#endif
 
     inline QMatrix::freq_xchg_ptr_t QMatrixCodon::getExchangeabilitiesSharedPtr() {
         assert(false);

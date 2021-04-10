@@ -236,7 +236,7 @@ namespace strom {
             if (f.second) {
                 unique_freq.push_back(freq_addr);
                 if (!_qmatrix[i]->isFixedStateFreqs())
-                _state_freq_params.push_back(_qmatrix[i]);
+                    _state_freq_params.push_back(_qmatrix[i]);
                 index = (unsigned)unique_freq.size();
             }
             else {
@@ -246,8 +246,7 @@ namespace strom {
             ss["freqs"] += boost::str(boost::format("%12d") % index);
 
             // Determine whether exchangeabilities are unique for this subset
-            if (_subset_datatypes[i].isNucleotide())
-            {
+            if (_subset_datatypes[i].isNucleotide()) {
                 QMatrix::freq_xchg_ptr_t pxchg = _qmatrix[i]->getExchangeabilitiesSharedPtr();
                 QMatrix::freq_xchg_t & xchg = *pxchg;
                 double * xchg_addr = &xchg[0];
@@ -382,8 +381,7 @@ namespace strom {
 
         s += "\n  exchangeabilities:\n";
         for (unsigned i = 0; i < _num_subsets; i++) {
-            if (_subset_datatypes[i].isNucleotide())
-            {
+            if (_subset_datatypes[i].isNucleotide()) {
                 QMatrix::freq_xchg_t & xchg = *(_qmatrix[i]->getExchangeabilitiesSharedPtr());
                 std::vector<std::string> xchg_as_strings(xchg.size());
                 std::transform(xchg.begin(), xchg.end(), xchg_as_strings.begin(), [](double x) {return boost::str(boost::format("%g") % x);});
@@ -568,14 +566,6 @@ namespace strom {
             throw XStrom(boost::str(boost::format("proportion of invariable sites must be greater than or equal to zero but the value %.5f was supplied") % *pinvar));
         if (*pinvar >= 1.0)
             throw XStrom(boost::str(boost::format("proportion of invariable sites must be less than one but the value %.5f was supplied") % *pinvar));
-#if defined(w)
-        if (_subset_datatypes[subset].isStandard()) {
-            if (*pinvar != 0.0)
-                throw XStrom(boost::str(boost::format("proportion of invariable sites must be equal to zero for standard data type but the value %.5f was supplied") % *pinvar));
-            if (!fixed)
-                throw XStrom("proportion of invariable sites must be fixed for standard data type (either comment out pinvar line in conf file or specify \"pinvar = default:[0.0]\")");
-        }
-#endif
         _asrv[subset]->setPinvarSharedPtr(pinvar);
         _asrv[subset]->fixPinvar(fixed);
     }
@@ -604,19 +594,7 @@ namespace strom {
             _qmatrix[subset]->setEqualStateFreqs(state_frequencies);
         else
             _qmatrix[subset]->setStateFreqsSharedPtr(state_frequencies);
-#if defined(POLNEW)
-        if (_subset_datatypes[subset].isStandard()) {
-            // state frequencies are computed from the exchangeabilities in standard models
-            // and thus cannot be independent parameters
-            //TODO: should warn user about this, otherwise user will not be aware that the frequencies they specify are not actually being used
-            _qmatrix[subset]->fixStateFreqs(true);
-        }
-        else {
-            _qmatrix[subset]->fixStateFreqs(fixed);
-        }
-#else
         _qmatrix[subset]->fixStateFreqs(fixed);
-#endif
     }
     
     inline void Model::setSubsetOmega(QMatrix::omega_ptr_t omega, unsigned subset, bool fixed) {
@@ -699,14 +677,6 @@ namespace strom {
                 s += boost::str(boost::format("rAC-%d%srAG-%d%srAT-%d%srCG-%d%srCT-%d%srGT-%d%s") % k % sep % k % sep % k % sep % k % sep % k % sep % k % sep);
                 s += boost::str(boost::format("piA-%d%spiC-%d%spiG-%d%spiT-%d%s") % k % sep % k % sep % k % sep % k % sep);
             }
-#if defined(POLNEW)
-            else if (_subset_datatypes[k].isStandard()) {
-                unsigned nstates = (unsigned)_subset_datatypes[k].getNumStates();
-                unsigned nrates = nstates*(nstates-1);
-                for (unsigned rate = 0; rate < nrates; rate++)
-                    s += boost::str(boost::format("r%d-%d%s") % rate % k % sep);
-            }
-#endif
             else if (_subset_datatypes[k].isCodon()) {
                 s += boost::str(boost::format("omega-%d%s") % k % sep);
                 for (std::string codon : _subset_datatypes[0].getGeneticCode()->_codons)
@@ -737,14 +707,6 @@ namespace strom {
                 QMatrix::freq_xchg_t f = *_qmatrix[k]->getStateFreqsSharedPtr();
                 s += boost::str(boost::format("%.5f%s%.5f%s%.5f%s%.5f%s") % f[0] % sep % f[1] % sep % f[2] % sep % f[3] % sep);
             }
-#if defined(POLNEW)
-            else if (_subset_datatypes[k].isStandard()) {
-                QMatrix::freq_xchg_t x = *_qmatrix[k]->getExchangeabilitiesSharedPtr();
-                unsigned nrates = (unsigned)x.size();
-                for (unsigned rate = 0; rate < nrates; rate++)
-                    s += boost::str(boost::format("%.5f%s") % x[rate] % sep);
-            }
-#endif
             else if (_subset_datatypes[k].isCodon()) {
                 s += boost::str(boost::format("%.5f%s") % _qmatrix[k]->getOmega() % sep);
                 QMatrix::freq_xchg_t f = *_qmatrix[k]->getStateFreqsSharedPtr();

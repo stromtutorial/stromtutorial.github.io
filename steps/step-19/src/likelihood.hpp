@@ -373,7 +373,7 @@ namespace strom {
             nsequences += _ntaxa;
         }
         
-         int inst = beagleCreateInstance(
+        int inst = beagleCreateInstance(
              _ntaxa,                        // tips
              2*npartials,                   // partials
              nsequences,                    // sequences

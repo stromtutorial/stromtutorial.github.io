@@ -23,7 +23,7 @@ namespace strom {
             void                            setStandardNumStates(unsigned nstates);
             void                            setGeneticCodeFromName(std::string genetic_code_name);
             void                            setGeneticCode(GeneticCode::SharedPtr gcode);
-            
+
             unsigned                        getDataType() const;
             unsigned                        getNumStates() const;
             std::string                     getDataTypeAsString() const;
@@ -105,7 +105,7 @@ namespace strom {
         _num_states = nstates;
         _genetic_code = nullptr;
     }
-    
+
     inline unsigned DataType::getDataType() const {
         return _datatype;
     }
