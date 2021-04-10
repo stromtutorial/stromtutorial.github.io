@@ -85,6 +85,5 @@ Feel free to run the program again, this time setting `usedata=yes` (or leaving 
 
 You now have a program that can carry out a Bayesian phylogenetic analysis using either a GTR+I+G or a codon model, allowing data to be partitioned, and can use multiple chains during MCMC. With slight modification, your program can make use of the GPU version of BeagleLib when computing likelihoods, which greatly speeds up the codon model if GPUs are available.
 
-In the final step in the tutorial, we will implement reversible-jump MCMC to make it possible to explore trees containing polytomies. We will also add options so that the user can choose different parameters for the prior distributions.
-
+In the next step in the tutorial, we will implement reversible-jump MCMC to make it possible to explore trees containing polytomies. 
 

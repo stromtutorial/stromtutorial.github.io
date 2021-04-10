@@ -1,6 +1,6 @@
 Partition subset default comprises sites 1-1314 and has type nucleotide
 Starting...
-Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-19/test"
+Current working directory: "/Users/plewis/Documents/websites/stromtutorial.github.io/steps/step-19/test"
 
 *** Reading and storing the data in the file rbcl10.nex
 storing read block: TAXA
@@ -79,18 +79,18 @@ Running after burn-in for 10000 iterations.
 Sampling every 1 iterations.
 Sample size is 10000
 
-   iteration      logLike     logPrior           TL
-           0  -7122.32214     18.17199      1.75014
-        1000  -6867.76049     14.55412      1.72997
-        2000  -6815.55198     14.56949      1.57626
-        3000  -6809.15207     18.19624      1.50769
-        4000  -6810.96373     18.21079      1.36215
-        5000  -6806.84684     18.19653      1.50475
-        6000  -6781.35172     18.20172      1.45289
-        7000  -6780.69331     18.19086      1.56145
-        8000  -6775.83190     18.19507      1.51934
-        9000  -6777.10417     18.21117      1.35831
-       10000  -6775.49137     18.20000      1.47009
+   iteration            m      logLike     logPrior           TL
+           0            8  -7122.32214     18.17199      1.75014
+        1000            7  -6867.76049     14.55412      1.72997
+        2000            7  -6815.55198     14.56949      1.57626
+        3000            8  -6809.15207     18.19624      1.50769
+        4000            8  -6810.96373     18.21079      1.36215
+        5000            8  -6806.84684     18.19653      1.50475
+        6000            8  -6781.35172     18.20172      1.45289
+        7000            8  -6780.69331     18.19086      1.56145
+        8000            8  -6775.83190     18.19507      1.51934
+        9000            8  -6777.10417     18.21117      1.35831
+       10000            8  -6775.49137     18.20000      1.47009
 
 Chain 0 (power 1.00000)
                             Updater   Tuning Param.        Accept %     No. Updates

@@ -492,7 +492,7 @@ namespace strom {
             }
         }
     }
-    
+
     inline void Strom::startTuningChains() {
         _swaps.assign(_num_chains*_num_chains, 0);
         for (auto & c : _chains) {
@@ -778,7 +778,8 @@ namespace strom {
             _output_manager->openTreeFile("trees.tre", _data);
             _output_manager->openParameterFile("params.txt", _chains[0].getModel());
             sample(0, _chains[0]);
-                        // Burn-in the chains
+            
+            // Burn-in the chains
             startTuningChains();
             for (unsigned iteration = 1; iteration <= _num_burnin_iter; ++iteration) {
                 stepChains(iteration, false);
@@ -796,7 +797,7 @@ namespace strom {
             
             // Create swap summary
             swapSummary();
-
+            
             // Close output files
             _output_manager->closeTreeFile();
             _output_manager->closeParameterFile();

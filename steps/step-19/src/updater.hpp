@@ -48,7 +48,7 @@ namespace strom {
             double                                  calcLogEdgeLengthPrior() const; 
             double                                  calcLogLikelihood() const;
             virtual double                          update(double prev_lnL);
-        
+
             static double                           getLogZero();
             
         protected:
@@ -73,7 +73,7 @@ namespace strom {
             unsigned                                _nattempts;
             bool                                    _tuning;
             std::vector<double>                     _prior_parameters;
-            
+
             double                                  _heating_power;
             mutable PolytomyTopoPriorCalculator     _topo_prior_calculator; ///!f
             

@@ -1,6 +1,6 @@
 ---
 layout: home
-title: Strom 3
+title: Strom 3.3
 subtitle: A tutorial for building Bayesian phylogenetic software using C++
 ---
 <!-- <div class="row" style="display: flex; align-items: center;">
@@ -36,3 +36,6 @@ If there is anything in this tutorial that is well-designed, it is due to the pa
 #### Licence
 The software that you will create falls under the permissive open-source [MIT License](license.html).
 
+#### Version history
+
+For the version history, see the [README file in the source branch of the GitHub repository](https://github.com/stromtutorial/stromtutorial.github.io/tree/source).

@@ -26,6 +26,14 @@ $STROM &>output.txt
 
 echo
 echo "Comparing output files with reference..."
+diff output.txt reference-output/output.txt > diff-output.txt
+if [ -s diff-output.txt ]
+then
+     echo "  output.txt differs from reference (see diff-output.txt for details)"
+else
+     echo "  output.txt is identical to reference"
+fi
+
 diff params.txt reference-output/params.txt > diff-params.txt
 if [ -s diff-params.txt ]
 then
