@@ -1,6 +1,6 @@
 ---
 layout: home
-title: Strom 3
+title: Strom 3.3
 subtitle: A tutorial for building Bayesian phylogenetic software using C++
 ---
 <!-- <div class="row" style="display: flex; align-items: center;">

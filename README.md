@@ -38,5 +38,5 @@ This (major) update fixes numerous bugs relating to the calculation of the likel
 
 31-March-2021. Replaced body of GammaRateVarUpdater::proposeNewState function to employ a window-based proposal rather than a multiplicative proposal, which fails if the gamma rate variance parameter is zero. Also fixed a bug in the GammaRateVarUpdater::calcLogPrior function, which now handles the case of curr_point equal to zero. 
 
-5-April-2021. Added step 20 on the steppingstone method for estinating marginal likelihood.
+9-April-2021. Added step 20 on the steppingstone method for estinating marginal likelihood.
 
