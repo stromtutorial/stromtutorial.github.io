@@ -1,4 +1,6 @@
-#pragma once    ///start
+#pragma once
+
+#define POLNEW
 
 #include <memory>
 #include <boost/format.hpp>
@@ -16,13 +18,13 @@
 #include "exchangeability_updater.hpp"
 #include "subset_relrate_updater.hpp"
 #include "tree_updater.hpp"
-#include "polytomy_updater.hpp" ///!a
+#include "polytomy_updater.hpp"
 #include "tree_length_updater.hpp"
-///end_includes
+
 
 namespace strom {
 
-    class Chain {
+    class Chain {   
     
         friend class Likelihood;
 
@@ -49,6 +51,10 @@ namespace strom {
 
             void                                    setHeatingPower(double p);
             double                                  getHeatingPower() const;
+
+            void                                    setNextHeatingPower(double p);  
+            void                                    storeLogLikelihood();
+            double                                  calcLogSteppingstoneRatio() const;  
 
             void                                    setChainIndex(unsigned idx);
             double                                  getChainIndex() const;
@@ -77,8 +83,13 @@ namespace strom {
 
             unsigned                                _chain_index;
             double                                  _heating_power;
+
+            bool                                    _heat_likelihood_only;  
+            double                                  _next_heating_power;
+            std::vector<double>                     _ss_loglikes;           
+
             double                                  _log_likelihood;
-    };
+    }; 
     
     inline Chain::Chain() {
         //std::cout << "Chain being created" << std::endl;
@@ -89,13 +100,16 @@ namespace strom {
         //std::cout << "Chain being destroyed" << std::endl;
     } 
 
-    inline void Chain::clear() {
+    inline void Chain::clear() {    
         _log_likelihood = 0.0;
         _updaters.clear();
         _chain_index = 0;
         setHeatingPower(1.0);
+        _heat_likelihood_only = false;  
+        _next_heating_power = 1.0;
+        _ss_loglikes.clear();           
         startTuning();
-    }
+    }   
 
     inline void Chain::startTuning() {
         for (auto u : _updaters)
@@ -107,16 +121,16 @@ namespace strom {
             u->setTuning(false);
     }
 
-    inline void Chain::setTreeFromNewick(std::string & newick) { ///begin_setTreeFromNewick
+    inline void Chain::setTreeFromNewick(std::string & newick) { 
         assert(_updaters.size() > 0);
         if (!_tree_manipulator)
             _tree_manipulator.reset(new TreeManip);
-        _tree_manipulator->buildFromNewick(newick, false, true); ///!b
+        _tree_manipulator->buildFromNewick(newick, false, true); 
         for (auto u : _updaters)
             u->setTreeManip(_tree_manipulator);
-    } ///end_setTreeFromNewick
+    } 
 
-    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { ///begin_createUpdaters
+    inline unsigned Chain::createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood) { 
         _model = model;
         _lot = lot;
         _updaters.clear();
@@ -124,19 +138,16 @@ namespace strom {
         double wstd             = 1.0;
         double wtreelength      = 1.0;
         double wtreetopology    = 19.0;
-        double wpolytomy        = 0.0;  ///!x
+        double wpolytomy        = 0.0;  
         double sum_weights      = 0.0;
         
-        if (_model->isAllowPolytomies()) {  ///!c
+        if (_model->isAllowPolytomies()) {  
             wstd             = 1.0;
             wtreelength      = 2.0;
             wtreetopology    = 9.0;
             wpolytomy        = 9.0;
-        }   ///!d
-        
-        //...
-        ///aa
-        
+        }   
+                
         // Add state frequency parameter updaters to _updaters
         Model::state_freq_params_t & statefreq_shptr_vect = _model->getStateFreqParams();
         for (auto statefreq_shptr : statefreq_shptr_vect) {
@@ -153,12 +164,23 @@ namespace strom {
         // Add exchangeability parameter updaters to _updaters 
         Model::exchangeability_params_t & exchangeability_shptr_vect = _model->getExchangeabilityParams();
         for (auto exchangeability_shptr : exchangeability_shptr_vect) {
+#if defined(POLNEW)
+            unsigned nrates = (unsigned)exchangeability_shptr->getNumExchangeabilities();
+#endif
             Updater::SharedPtr u = ExchangeabilityUpdater::SharedPtr(new ExchangeabilityUpdater(exchangeability_shptr));
             u->setLikelihood(likelihood);
             u->setLot(lot);
             u->setLambda(1.0);
             u->setTargetAcceptanceRate(0.3);
+#if defined(POLNEW)
+            if (nrates == 6)
+                u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+            else {
+                u->setPriorParameters(std::vector<double>(nrates, 1.0));
+            }
+#else
             u->setPriorParameters({1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+#endif
             u->setWeight(wstd); sum_weights += wstd;
             _updaters.push_back(u);
         }
@@ -214,7 +236,7 @@ namespace strom {
             _updaters.push_back(u);
         }
         
-        // Add tree updater and tree length updater to _updaters  ///begin_tree_updaters
+        // Add tree updater and tree length updater to _updaters  
         if (!_model->isFixedTree()) {
             double tree_length_shape = 1.0;
             double tree_length_scale = 10.0;
@@ -226,11 +248,11 @@ namespace strom {
             u->setLambda(0.5);
             u->setTargetAcceptanceRate(0.3);
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
-            u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC());  ///!e
+            u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC());  
             u->setWeight(wtreetopology); sum_weights += wtreetopology;
             _updaters.push_back(u);
 
-            if (_model->isAllowPolytomies()) {  ///!f
+            if (_model->isAllowPolytomies()) {  
                 Updater::SharedPtr u = PolytomyUpdater::SharedPtr(new PolytomyUpdater());
                 u->setLikelihood(likelihood);
                 u->setLot(lot);
@@ -240,7 +262,7 @@ namespace strom {
                 u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC());
                 u->setWeight(wpolytomy); sum_weights += wpolytomy;
                 _updaters.push_back(u);
-            }   ///!g
+            }   
 
             u = TreeLengthUpdater::SharedPtr(new TreeLengthUpdater());
             u->setLikelihood(likelihood);
@@ -248,7 +270,7 @@ namespace strom {
             u->setLambda(0.2);
             u->setTargetAcceptanceRate(0.3);
             u->setPriorParameters({tree_length_shape, tree_length_scale, dirichlet_param});
-            u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC()); ///!h
+            u->setTopologyPriorOptions(_model->isResolutionClassTopologyPrior(), _model->getTopologyPriorC()); 
             u->setWeight(wtreelength); sum_weights += wtreelength;
             _updaters.push_back(u);
         } 
@@ -258,7 +280,7 @@ namespace strom {
         }
         
         return (unsigned)_updaters.size();
-    } ///end_createUpdaters
+    } 
 
     inline TreeManip::SharedPtr Chain::getTreeManip() {
         return _tree_manipulator;
@@ -277,6 +299,36 @@ namespace strom {
         for (auto u : _updaters)
             u->setHeatingPower(p);
     }
+
+    inline void Chain::setNextHeatingPower(double p) {  
+        _heat_likelihood_only = true; // next heating power only set if doing steppingstone
+        for (auto u : _updaters)
+            u->setHeatLikelihoodOnly(true);
+        _next_heating_power = p;
+    }   
+    
+    inline void Chain::storeLogLikelihood() {   
+        double logLike = getLogLikelihood();
+        _ss_loglikes.push_back(logLike);
+    }   
+    
+    inline double Chain::calcLogSteppingstoneRatio() const {    
+        // Find the maximum log likelihood sampled by this chain
+        unsigned sample_size = (unsigned)_ss_loglikes.size();
+        assert(sample_size > 0);
+        double maxLogL = *(std::max_element(_ss_loglikes.begin(), _ss_loglikes.end()));
+        
+        // Compute sum, factoring out maxLnL
+        double sum_of_terms = 0.0;
+        for (auto logL : _ss_loglikes) {
+            sum_of_terms += exp((_next_heating_power - _heating_power)*(logL - maxLogL));
+        }
+        
+        // Compute the log of the steppingstone ratio
+        assert(sum_of_terms > 0.0);
+        double log_ratio = (_next_heating_power - _heating_power)*maxLogL + log(sum_of_terms) - log(sample_size);
+        return log_ratio;
+    }   
 
     inline double Chain::getChainIndex() const {
         return _chain_index;
@@ -338,14 +390,14 @@ namespace strom {
         return _updaters[0]->calcLogLikelihood();
     }
 
-    inline double Chain::calcLogJointPrior() const { ///begin_calcLogJointPrior
+    inline double Chain::calcLogJointPrior() const { 
         double lnP = 0.0;
         for (auto u : _updaters) {
-            if (u->_name != "Tree Length" && u->_name != "Polytomies" ) ///!i
+            if (u->_name != "Tree Length" && u->_name != "Polytomies" ) 
                 lnP += u->calcLogPrior();
         }
         return lnP;
-    } ///end_calcLogJointPrior
+    } 
 
     inline void Chain::start() {
         _tree_manipulator->selectAllPartials();

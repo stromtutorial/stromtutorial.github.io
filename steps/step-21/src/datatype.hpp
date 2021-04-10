@@ -1,5 +1,7 @@
 #pragma once
 
+#define POLNEW
+
 #include "genetic_code.hpp"
 #include <boost/format.hpp>
 
@@ -23,7 +25,13 @@ namespace strom {
             void                            setStandardNumStates(unsigned nstates);
             void                            setGeneticCodeFromName(std::string genetic_code_name);
             void                            setGeneticCode(GeneticCode::SharedPtr gcode);
-            
+
+#if defined(POLNEW)
+            void                            setCondVar(bool yes);
+            void                            setNumStatesFromString(std::string nstates_str);
+            bool                            isCondVar() const;
+#endif
+
             unsigned                        getDataType() const;
             unsigned                        getNumStates() const;
             std::string                     getDataTypeAsString() const;
@@ -36,14 +44,24 @@ namespace strom {
             unsigned                        _datatype;
             unsigned                        _num_states;
             GeneticCode::SharedPtr          _genetic_code;
+#if defined(POLNEW)
+            bool                            _condvar;
+#endif
     };
     
     // member function bodies go here
     
+#if defined(POLNEW)
+    inline DataType::DataType() : _datatype(0), _num_states(0), _condvar(false) {
+        //std::cout << "Creating a DataType object" << std::endl;
+        setNucleotide();
+    }
+#else
     inline DataType::DataType() : _datatype(0), _num_states(0) {
         //std::cout << "Creating a DataType object" << std::endl;
         setNucleotide();
     }
+#endif
     
     inline DataType::~DataType() {
         //std::cout << "Destroying a DataType object" << std::endl;
@@ -89,6 +107,32 @@ namespace strom {
         return (_datatype == 4);
     }
 
+#if defined(POLNEW)
+    inline void DataType::setCondVar(bool yes) {
+        _condvar = yes;
+    }
+
+    inline void DataType::setNumStatesFromString(std::string nstates_str) {
+        int int_value = 2;
+        try {
+            int_value = std::stoi(nstates_str);
+        }
+        catch(std::invalid_argument) {
+            throw XStrom(boost::format("Could not interpret \"%s\" as a number in partition subset definition") % nstates_str);
+        }
+        if (int_value < 2) {
+            throw XStrom(boost::format("expecting number of states for standard datatype to be 2 or greater, but %d was specified") % int_value);
+        }
+        assert(isStandard());
+        //_num_standard_states = (unsigned)int_value;
+        _num_states = (unsigned)int_value;
+    }
+    
+    inline bool DataType::isCondVar() const {
+        return _condvar;
+    }
+#endif
+
     inline void DataType::setGeneticCodeFromName(std::string genetic_code_name) {
         assert(isCodon());
         _genetic_code = GeneticCode::SharedPtr(new GeneticCode(genetic_code_name));
@@ -105,7 +149,7 @@ namespace strom {
         _num_states = nstates;
         _genetic_code = nullptr;
     }
-    
+
     inline unsigned DataType::getDataType() const {
         return _datatype;
     }

@@ -1,5 +1,7 @@
 #pragma once
 
+#define POLNEW
+
 #include <fstream>
 #include <regex>
 #include <string>
@@ -69,7 +71,11 @@ namespace strom {
             unsigned                                    storeTaxonNames(NxsTaxaBlock * taxaBlock, unsigned taxa_block_index);
             unsigned                                    storeData(unsigned ntax, unsigned nchar, NxsCharactersBlock * charBlock, NxsCharactersBlock::DataTypesEnum datatype);
             unsigned                                    buildSubsetSpecificMaps(unsigned ntaxa, unsigned seqlen, unsigned nsubsets);
+#if defined(POLNEW)
+            void                                        updatePatternMap(Data::pattern_vect_t & pattern, unsigned subset, unsigned count);
+#else
             void                                        updatePatternMap(Data::pattern_vect_t & pattern, unsigned subset);
+#endif
             void                                        compressPatterns();
 
             Partition::SharedPtr                        _partition;
@@ -204,9 +210,35 @@ namespace strom {
                 }
                 
                 // Add this pattern to _pattern_map_vect element corresponding to subset site_subset
+#if defined(POLNEW)
+                updatePatternMap(pattern, site_subset, 1);
+#else
                 updatePatternMap(pattern, site_subset);
+#endif
             }
         }
+        
+#if defined(POLNEW)
+        // Add dummy constant patterns for "condvar" subsets for which we are conditioning on variability
+        assert(_partition->getNumSubsets() == nsubsets);
+        for (unsigned subset = 0; subset < nsubsets; subset++) {
+            const DataType & dt = _partition->getDataTypeForSubset(subset);
+            if (dt.isCondVar()) {
+                unsigned nstates = dt.getNumStates();
+                for (unsigned s = 0; s < nstates; s++) {
+                    state_t state = (state_t)1 << s;
+
+                    // Create dummy constant site having same state at each tip
+                    for (unsigned taxon = 0; taxon < ntaxa; ++taxon) {
+                        pattern[taxon] = state;
+                    }
+                    
+                    // Add this pattern to new _pattern_map_vect with count 0
+                    updatePatternMap(pattern, subset, 0);
+                }
+            }
+        }
+#endif
         
         // Tally total number of patterns across all subsets
         unsigned npatterns = 0;
@@ -217,6 +249,24 @@ namespace strom {
         return npatterns;
     }
 
+#if defined(POLNEW)
+    inline void Data::updatePatternMap(Data::pattern_vect_t & pattern, unsigned subset, unsigned count) {
+        // If pattern is not already in pattern_map, insert it and set value to count.
+        // If it does exist, increment its current value by an amount count.
+        // (see item 24, p. 110, in Meyers' Efficient STL for more info on the technique used here)
+        pattern_map_t::iterator lowb = _pattern_map_vect[subset].lower_bound(pattern);
+        if (lowb != _pattern_map_vect[subset].end() && !(_pattern_map_vect[subset].key_comp()(pattern, lowb->first))) {
+            // this pattern has already been seen
+            assert(count > 0);  // should not be here if adding a dummy pattern - dummy patterns should all be unique!
+            lowb->second += count;
+        }
+        else
+            {
+            // this pattern has not yet been seen
+            _pattern_map_vect[subset].insert(lowb, pattern_map_t::value_type(pattern, count));
+        }
+    }
+#else
     inline void Data::updatePatternMap(Data::pattern_vect_t & pattern, unsigned subset) {
         // If pattern is not already in pattern_map, insert it and set value to 1.
         // If it does exist, increment its current value.
@@ -232,6 +282,7 @@ namespace strom {
             _pattern_map_vect[subset].insert(lowb, pattern_map_t::value_type(pattern, 1));
         }
     }
+#endif
 
     inline void Data::compressPatterns() {
         // Perform sanity checks
@@ -258,6 +309,10 @@ namespace strom {
             row.resize(npatterns);
         }
 
+#if defined(POLNEW)
+        auto datatype = _partition->getSubsetDataTypes();
+#endif
+
         unsigned p = 0;
         for (unsigned subset = 0; subset < nsubsets; subset++) {
             for (auto & pc : _pattern_map_vect[subset]) {
@@ -272,6 +327,12 @@ namespace strom {
                     _data_matrix[t][p] = sc;
                     ++t;
                 }
+#if defined(POLNEW)
+                // Note: if this is a dummy constant pattern for use with conditioning on variability,
+                // then pc.second will equal 0 (i.e. zero sites have this pattern).
+                if (datatype[subset].isCondVar() && constant_state > 0 && pc.second > 0)
+                    throw XStrom("subsets declared condvar cannot have constant sites");
+#endif
                 // constant_state equals 0 if polymorphic or state code of state present if monomorphic
                 _monomorphic[p] = constant_state;
                 ++p;
@@ -344,6 +405,10 @@ namespace strom {
                 throw XStrom(boost::format("Partition subset has data type \"%s\" but data read from file has data type \"standard\"") % dt.getDataTypeAsString());
             assert(charBlock->GetSymbols());
             std::string symbols = std::string(charBlock->GetSymbols());
+#if defined(POLNEW)
+            if ((unsigned)symbols.size() != dt.getNumStates())
+                throw XStrom(boost::format("You specified %d states in the subset definition, but data file declares that there are %d states (symbols list is \"%s\")") % dt.getNumStates() % symbols.size() % symbols);
+#endif
             dt.setStandardNumStates((unsigned)symbols.size());
         }
         else {

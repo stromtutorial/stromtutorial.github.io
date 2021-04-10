@@ -1,4 +1,6 @@
-#pragma once    ///start
+#pragma once
+
+#define POLNEW
 
 #include <map>
 #include <boost/algorithm/string.hpp>
@@ -7,7 +9,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include "libhmsbeagle/beagle.h"
 #include "tree.hpp"
-#include "tree_manip.hpp"   ///!a
+#include "tree_manip.hpp"   
 #include "data.hpp"
 #include "model.hpp"
 #include "xstrom.hpp"
@@ -78,7 +80,7 @@ namespace strom {
             void                                    setAmongSiteRateHeterogenetity();
             void                                    setModelRateMatrix();
             void                                    addOperation(InstanceInfo & info, Node * nd, Node * lchild, Node * rchild, unsigned subset_index);
-            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy = 0);   ///!c
+            void                                    queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy = 0);   
             void                                    queueTMatrixRecalculation(Node * nd);
             void                                    defineOperations(Tree::SharedPtr t);
             void                                    updateTransitionMatrices();
@@ -113,14 +115,14 @@ namespace strom {
             bool                                    _underflow_scaling;
             bool                                    _using_data;
 
-            std::vector<Node *>                     _polytomy_helpers;  ///!b
+            std::vector<Node *>                     _polytomy_helpers;  
             std::map<int, std::vector<int> >        _polytomy_map;
-            std::vector<double>                     _identity_matrix;   ///!bb
+            std::vector<double>                     _identity_matrix;   
 
         public:
             typedef std::shared_ptr< Likelihood >   SharedPtr;
     };
-    ///end_class_declaration
+    
     // member function bodies go here
 
     inline Likelihood::Likelihood() {
@@ -160,7 +162,7 @@ namespace strom {
         _instances.clear();
     }
 
-    inline void Likelihood::clear() {   ///begin_clear
+    inline void Likelihood::clear() {   
         finalizeBeagleLib(true);
         
         _ntaxa                      = 0;
@@ -184,7 +186,7 @@ namespace strom {
         _weights_indices.assign(1, 0);
         _freqs_indices.assign(1, 0);
         _scaling_indices.assign(1, 0);
-        _identity_matrix.assign(1, 0.0);    ///!f
+        _identity_matrix.assign(1, 0.0);    
 
         _model = Model::SharedPtr(new Model());        
 
@@ -200,7 +202,7 @@ namespace strom {
         _beagle_error[-6] = std::string("no resource matches requirements");
         _beagle_error[-7] = std::string("no implementation matches requirements");
         _beagle_error[-8] = std::string("floating-point range exceeded");
-    }   ///end_clear
+    }   
 
     inline std::string Likelihood::beagleLibVersion() const {
         return std::string(beagleGetVersion());
@@ -318,27 +320,35 @@ namespace strom {
         setPatternPartitionAssignments();
     }
     
-    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices) { ///begin_newInstance
+    inline void Likelihood::newInstance(unsigned nstates, int nrates, std::vector<unsigned> & subset_indices) { 
         unsigned num_subsets = (unsigned)subset_indices.size();
     
         bool is_invar_model = (nrates < 0 ? true : false);
         unsigned ngammacat = (unsigned)(is_invar_model ? -nrates : nrates);
     
-        // Create an identity matrix used for computing partials    ///!g
+        // Create an identity matrix used for computing partials    
         // for polytomies (represents the transition matrix
         // for the zero-length edges inserted to arbitrarily 
         // resolve each polytomy)
         _identity_matrix.assign(nstates*nstates*ngammacat, 0.0);
+#if defined(POLNEW)
+        for (unsigned k = 0; k < ngammacat; k++) {
+            for (unsigned i = 0; i < nstates; i++) {
+                _identity_matrix[k*nstates*nstates + i*nstates + i] = 1.0;
+            }
+        }
+#else
         for (unsigned k = 0; k < ngammacat; k++) {
             unsigned offset = k*nstates*nstates;
             _identity_matrix[0+offset]  = 1.0;
             _identity_matrix[5+offset]  = 1.0;
             _identity_matrix[10+offset] = 1.0;
             _identity_matrix[15+offset] = 1.0;
-        }   ///!h
+        }   
+#endif
         
         //...   
-        ///after_identity_matrix_init
+        
                 
         unsigned num_patterns = 0;
         for (auto s : subset_indices) {
@@ -366,14 +376,14 @@ namespace strom {
         
         BeagleInstanceDetails instance_details;
         unsigned npartials = num_internals + _ntaxa;
-        unsigned nscalers = num_internals;  // one scale buffer for every internal node ///!d
+        unsigned nscalers = num_internals;  // one scale buffer for every internal node 
         unsigned nsequences = 0;
         if (_ambiguity_equals_missing) {
             npartials -= _ntaxa;
             nsequences += _ntaxa;
         }
         
-         int inst = beagleCreateInstance(
+        int inst = beagleCreateInstance(
              _ntaxa,                        // tips
              2*npartials,                   // partials
              nsequences,                    // sequences
@@ -408,7 +418,7 @@ namespace strom {
         info.partial_offset = num_internals;
         info.tmatrix_offset = num_nodes;
         _instances.push_back(info);
-    }   ///end_newInstance
+    }   
 
     inline void Likelihood::setTipStates() {
         assert(_instances.size() > 0);
@@ -671,7 +681,7 @@ namespace strom {
         return tindex;
     }
     
-    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   ///begin_defineOperations
+    inline void Likelihood::defineOperations(Tree::SharedPtr t) {   
         assert(_instances.size() > 0);
         assert(t);
         assert(t->isRooted() == _rooted);
@@ -705,7 +715,7 @@ namespace strom {
                 // Internal nodes have partials to be calculated, so define
                 // an operation to compute the partials for this node
                 if (nd->isSelPartial()) {
-                    TreeManip tm(t);   ///!j
+                    TreeManip tm(t);   
                     if (tm.isPolytomy(nd)) {
                         // Internal node is a polytomy
                         unsigned nchildren = tm.countChildren(nd);
@@ -734,18 +744,18 @@ namespace strom {
                         Node * rchild = lchild->_right_sib;
                         assert(rchild);
                         queuePartialsRecalculation(nd, lchild, rchild);
-                    }   ///!k
+                    }   
                 }
             }
         }
-    }   ///end_defineOperations
+    }   
 
-    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {  ///!begin_queuePartialsRecalculation
+    inline void Likelihood::queuePartialsRecalculation(Node * nd, Node * lchild, Node * rchild, Node * polytomy) {  
         for (auto & info : _instances) {
             unsigned instance_specific_subset_index = 0;
             for (unsigned s : info.subsets) {
             
-                if (polytomy) {  ///!da
+                if (polytomy) {  
                     // nd has been pulled out of tree's _unused_nodes vector to break up the polytomy
                     // Note that the parameter "polytomy" is the polytomous node itself
                     
@@ -776,13 +786,13 @@ namespace strom {
                         _polytomy_map[spolytomy].push_back(snd);
                     }
                     
-                }  ///!db
+                }  
                 
                 addOperation(info, nd, lchild, rchild, instance_specific_subset_index);
                 ++instance_specific_subset_index;
             }
         }
-    }   ///end_queuePartialsRecalculation
+    }   
     
     inline void Likelihood::queueTMatrixRecalculation(Node * nd) {
         Model::subset_relrate_vect_t & subset_relrates = _model->getSubsetRelRates();
@@ -882,7 +892,7 @@ namespace strom {
         }
     }
     
-    inline void Likelihood::calculatePartials() {   ///begin_calculatePartials
+    inline void Likelihood::calculatePartials() {   
         assert(_instances.size() > 0);
         if (_operations.size() == 0)
             return;
@@ -900,7 +910,7 @@ namespace strom {
                 if (code != 0)
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
                 
-                if (_underflow_scaling) {   ///!za
+                if (_underflow_scaling) {   
                     // Accumulate scaling factors across polytomy helpers and assign them to their parent node
                     for (auto & m : _polytomy_map) {
                         for (unsigned subset = 0; subset < nsubsets; subset++) {
@@ -910,7 +920,7 @@ namespace strom {
                             }
                         }
                     }
-                }   ///!zb
+                }   
             }
             else {
                 // no partitioning, just one data subset
@@ -922,7 +932,7 @@ namespace strom {
                 if (code != 0) 
                     throw XStrom(boost::format("failed to update partials. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
                 
-                if (_underflow_scaling) { ///!zc
+                if (_underflow_scaling) { 
                     // Accumulate scaling factors across polytomy helpers and assign them to their parent node
                     for (auto & m : _polytomy_map) {
                         code = beagleAccumulateScaleFactors(info.handle, &m.second[0], (int)m.second.size(), m.first);
@@ -930,10 +940,10 @@ namespace strom {
                             throw XStrom(boost::format("failed to transfer scaling factors to polytomous node. BeagleLib error code was %d (%s)") % code % _beagle_error[code]);
                         }
                     }
-                }   ///!zd
+                }   
             }   
         }
-    }   ///end_calculatePartials
+    }   
     
     inline double Likelihood::calcInstanceLogLikelihood(InstanceInfo & info, Tree::SharedPtr t) {
         int code = 0;
@@ -1054,6 +1064,35 @@ namespace strom {
             throw XStrom(boost::str(boost::format("failed to calculate edge log-likelihoods in calcInstanceLogLikelihood. BeagleLib error code was %d (%s)") % code % _beagle_error[code]));
         }
         
+#if defined(POLNEW)
+        if (true) {
+            // Condition on variability for subsets for which condvar was specified
+            std::vector<double> site_log_likelihoods(info.npatterns, 0.0);
+            double * siteLogLs = &site_log_likelihoods[0];
+            beagleGetSiteLogLikelihoods(info.handle, siteLogLs);
+            auto counts = _data->getPatternCounts();
+            auto datatype = _data->getPartition()->getSubsetDataTypes();
+            for (unsigned s : info.subsets) {
+                if (datatype[s].isCondVar()) {
+                    unsigned nsites = 0;
+                    auto interval = _data->getSubsetBeginEnd(s);
+                    std::vector<double> dummy_lnL;
+                    for (unsigned p = interval.first; p < interval.second; p++) {
+                        nsites += counts[p];
+                        if (counts[p] == 0)
+                            dummy_lnL.push_back(site_log_likelihoods[p]);
+                    }
+                    double sum_like = 0.0;
+                    for (unsigned i = 0; i < dummy_lnL.size(); i++) {
+                        sum_like += exp(dummy_lnL[i]);
+                    }
+                    double log_prob_var = log(1.0 - sum_like);
+                    log_likelihood -= (double)nsites*log_prob_var;
+                }
+            }
+        }
+#endif
+        
         if (info.invarmodel) {
             auto monomorphic = _data->getMonomorphic();
             auto counts = _data->getPatternCounts();
@@ -1115,7 +1154,7 @@ namespace strom {
         return log_likelihood;
     }
     
-    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {    ///begin_calcLogLikelihood
+    inline double Likelihood::calcLogLikelihood(Tree::SharedPtr t) {    
         assert(_instances.size() > 0);
         
         if (!_using_data)
@@ -1142,16 +1181,16 @@ namespace strom {
             log_likelihood += calcInstanceLogLikelihood(info, t);
         }
 
-        // We no longer need the internal nodes brought out of storage  ///!t
+        // We no longer need the internal nodes brought out of storage  
         // and used to compute partials for polytomies
         TreeManip tm(t);
         for (Node * h : _polytomy_helpers) {
             tm.putUnusedNode(h);
         }
         _polytomy_helpers.clear();
-        _polytomy_map.clear();  ///!tt
+        _polytomy_map.clear();  
                 
         return log_likelihood;
-    }   ///end_calcLogLikelihood
+    }   
 
 }
