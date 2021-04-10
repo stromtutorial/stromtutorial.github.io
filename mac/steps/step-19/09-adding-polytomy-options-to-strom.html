@@ -233,9 +233,9 @@ namespace strom {
             &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned m = chain.getTreeManip()-&amp;gt;calcResolutionClass();&lt;/strong&gt;&lt;/span&gt;
             if (time_to_report) {
                 if (logPrior == Updater::getLogZero())
-                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12.5f %12s %12.5f") % iteration % logLike % "-infinity" % TL));
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));
                 else
-                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12.5f %12.5f %12.5f") % iteration % logLike % logPrior % TL));
+                    _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12d %12.5f %12.5f %12.5f") % iteration % m % logLike % logPrior % TL));
             }
             if (time_to_sample) {
                 _output_manager-&amp;gt;outputTree(iteration, chain.getTreeManip());

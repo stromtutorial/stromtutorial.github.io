@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Modifying the Chain class for steppingstone</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">20.2 Modifying the Chain class for steppingstone</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/mac/steps/step-20/01-adding-settings.html">&lt;&nbsp;20.1</a> | 20.2 | <a href="/mac/steps/step-20/03-updating-the-updater.html">20.3&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>We need to add some data members and member functions to the <code class="highlighter-rouge">Chain</code> class in order for each chain to do its part in computing the marginal likelihood. In the declaration of the class, add data members <code class="highlighter-rouge">_heat_likelihood_only</code>, <code class="highlighter-rouge">_next_heating_power</code>, and <code class="highlighter-rouge">_ss_loglikes</code>, and member functions <code class="highlighter-rouge">setNextHeatingPower</code>, <code class="highlighter-rouge">storeLogLikelihood</code>, and <code class="highlighter-rouge">calcLogSteppingstoneRatio</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Chain {   
+    
+        friend class Likelihood;
+
+        public:
+        
+            typedef std::vector&amp;lt;Updater::SharedPtr&amp;gt; updater_vect_t;
+            typedef std::shared_ptr&amp;lt;Chain&amp;gt;          SharedPtr;
+
+                                                    Chain();
+                                                    ~Chain();
+
+            void                                    clear();
+
+            void                                    startTuning();
+            void                                    stopTuning();
+
+            void                                    setTreeFromNewick(std::string &amp; newick);
+            unsigned                                createUpdaters(Model::SharedPtr model, Lot::SharedPtr lot, Likelihood::SharedPtr likelihood);
+
+            TreeManip::SharedPtr                    getTreeManip();
+            Model::SharedPtr                        getModel();
+            double                                  getLogLikelihood() const;
+
+
+            void                                    setHeatingPower(double p);
+            double                                  getHeatingPower() const;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    setNextHeatingPower(double p);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    storeLogLikelihood();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  calcLogSteppingstoneRatio() const;&lt;/strong&gt;&lt;/span&gt;
+
+            void                                    setChainIndex(unsigned idx);
+            double                                  getChainIndex() const;
+
+            Updater::SharedPtr                      findUpdaterByName(std::string name);
+            std::vector&amp;lt;std::string&amp;gt;                getUpdaterNames() const;
+            std::vector&amp;lt;double&amp;gt;                     getAcceptPercentages() const;
+            std::vector&amp;lt;unsigned&amp;gt;                   getNumUpdates() const;
+            std::vector&amp;lt;double&amp;gt;                     getLambdas() const;
+            void                                    setLambdas(std::vector&amp;lt;double&amp;gt; &amp; v);
+
+            double                                  calcLogLikelihood() const;
+            double                                  calcLogJointPrior() const;
+
+            void                                    start();
+            void                                    stop();
+            void                                    nextStep(int iteration);
+
+        private:
+
+            Model::SharedPtr                        _model;
+            Lot::SharedPtr                          _lot;
+            TreeManip::SharedPtr                    _tree_manipulator;
+
+            updater_vect_t                          _updaters;
+
+            unsigned                                _chain_index;
+            double                                  _heating_power;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _heat_likelihood_only;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _next_heating_power;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;std::vector&amp;lt;double&amp;gt;                     _ss_loglikes;&lt;/strong&gt;&lt;/span&gt;
+
+            double                                  _log_likelihood;
+    }; 
+
+</code></pre></div></div>
+
+<p>Initialize the new data members in the <code class="highlighter-rouge">clear</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::clear() {    
+        _log_likelihood = 0.0;
+        _updaters.clear();
+        _chain_index = 0;
+        setHeatingPower(1.0);
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_heat_likelihood_only = false;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_next_heating_power = 1.0;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_ss_loglikes.clear();&lt;/strong&gt;&lt;/span&gt;
+        startTuning();
+    }   
+
+</code></pre></div></div>
+
+<h4 id="the-setnextheatingpower-function">The setNextHeatingPower function</h4>
+
+<p>This function sets the <code class="highlighter-rouge">_heat_likelihood_only</code> data member to true and the <code class="highlighter-rouge">_next_heating_power</code> data member to the supplied power <code class="highlighter-rouge">p</code>. It also informs all updaters that only the likelihood should be raised to a power, not the prior. Steppingstone power posteriors differ from Metropolis-coupled Markov chains in that only the likelihood is raised to a power. In MCMCMC, the entire posterior kernel is heated. Because <code class="highlighter-rouge">setNextHeatingPower</code> is only called when doing steppingstone, this function provides a convenient place to make sure all the updaters know that we are doing steppingstone-style heating. I will explain why each chain needs to know not only its own heating power but also the heating power of the next power posterior nested within it when I discuss the <code class="highlighter-rouge">calcLogSteppingstoneRatio</code> function below.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::setNextHeatingPower(double p) {  
+        _heat_likelihood_only = true; // next heating power only set if doing steppingstone
+        for (auto u : _updaters)
+            u-&amp;gt;setHeatLikelihoodOnly(true);
+        _next_heating_power = p;
+    }   
+
+</code></pre></div></div>
+
+<h4 id="the-storeloglikelihood-function">The storeLogLikelihood function</h4>
+
+<p>This is a simple function that simply adds the current log likelihood to the end of the <code class="highlighter-rouge">_ss_loglikes</code> vector.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Chain::storeLogLikelihood() {   
+        double logLike = getLogLikelihood();
+        _ss_loglikes.push_back(logLike);
+    }   
+
+</code></pre></div></div>
+
+<h4 id="the-calclogsteppingstoneratio-function">The calcLogSteppingstoneRatio function</h4>
+
+<p>This function is neither long nor complicated, but I need to provide some explanation if you are to understand how it works. I have described the steppingstone method as basically throwing darts randomly and uniformly within the area defined by one power posterior and then counting how many of those darts fall underneath the next power posterior nested within. That metaphor is very useful for gaining an intuitive understanding, but, in practice, the steppingstone uses a modification that is more efficient. Instead of choosing both an x-coordinate (i.e. a point in parameter space) as well as a y-coordinate for each dart (by choosing a point uniformly between 0 and the outer power posterior density), then looking to see whether the y-coordinate is also beneath the inner power posterior, we will instead just choose a point in parameter space and compute the expected fraction of darts that would fall under the inner power posterior were we to actually throw them! It’s as if we are throwing an infinite number of darts for each parameter value sampled, and effectively gives us an infinitely large sample size for free. First, I’ll show you the function body and then I’ll explain.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Chain::calcLogSteppingstoneRatio() const {    
+        // Find the maximum log likelihood sampled by this chain
+        unsigned sample_size = (unsigned)_ss_loglikes.size();
+        assert(sample_size &amp;gt; 0);
+        double maxLogL = *(std::max_element(_ss_loglikes.begin(), _ss_loglikes.end()));
+        
+        // Compute sum, factoring out maxLnL
+        double sum_of_terms = 0.0;
+        for (auto logL : _ss_loglikes) {
+            sum_of_terms += exp((_next_heating_power - _heating_power)*(logL - maxLogL));
+        }
+        
+        // Compute the log of the steppingstone ratio
+        assert(sum_of_terms &amp;gt; 0.0);
+        double log_ratio = (_next_heating_power - _heating_power)*maxLogL + log(sum_of_terms) - log(sample_size);
+        return log_ratio;
+    }   
+
+</code></pre></div></div>
+
+<p>At the time this function is called (within <code class="highlighter-rouge">Strom::calcMarginalLikelihood</code>), the <code class="highlighter-rouge">_ss_loglikes</code> vector is full of sampled log likelihoods. Each of these values represents the log likelihood of a point sampled from the particular power posterior distribution that the chain has implemented. That log likelihood is associated with a particular point. Here are a couple of power posterior distributions showing some darts thrown at the larger (enclosing) distribution:</p>
+
+<p><img src="/assets/img/steppingstone-slice.png" alt="Na&iuml;ve approach to estimating the area under the posterior kernel" class="center-math-image" /></p>
+
+<p>The x-coordinates of the orange dots represent sampled points from that <em>enclosing</em> power posterior distribution. Thus, we can obtain the x-coordinates of the darts just from recording the points visited by the chain that is exploring that <em>enclosing</em> distribution. The y-coordinate of the sampled orange dot could be obtained by sampling uniformly from the interval represented by the vertical dotted line, which extends from zero up to the height of the enclosing power posterior density at the sampled point. Imagine sampling not just one point along that dotted line, but instead sampling an infinite number of points uniformly along that line. The fraction of points sampled with that same x-coordinate that are underneath the <em>enclosed</em> power posterior density is just the height of the <em>enclosed</em> power posterior density (labeled <em>x</em>) divided by the height of the <em>enclosing</em> power posterior density (labeled <em>y</em>). So, we can simulate throwing an infinite number of darts at the larger power posterior and counting the fraction that lie beneath the smaller, nested power posterior by sampling x-coordinates and, for each, computing the ratio of power posterior densities!</p>
+
+<p>The ratio of power posteriors is the ratio of likelihoods multiplied by the ratio of priors. Because the prior is the same for both (remember, the prior is not heated), the ratio of priors equals 1. So, to compute the ratio of the enclosed to the enclosing power posterior density, we need only compute the likelihood and raise it to a power equal to the difference in heating powers:
+<img src="/assets/img/likelihood-ratio.png" alt="Ratio of power posteriors" class="center-math-image" /></p>
+
+<p>Thus, an estimate of the ratio (“steppingstone’) needed for this particular chain can be obtained by raising each sampled likelihood by the difference in chain heating powers, <code class="highlighter-rouge">_next_heating_power - _heating_power</code> and computing the simple average.</p>
+
+<p>A perusal of the code above for the <code class="highlighter-rouge">calcLogSteppingstoneRatio</code> function shows, however, that something more complicated is being done. The problem is that the average computed the simple way can be numerically unstable. We must avoid leaving the log scale for likelihoods because, for all but the smallest of data sets, underflow will turn these tiny likelihoods into 0. How do you compute a sum when the elements you are summing together must all stay on the log scale?</p>
+
+<p>The way to solve this problem is to factor out the largest term (assume that the largest term is <em>c</em> in the example below):
+<img src="/assets/img/factor-out-term-c.png" alt="Factoring out the largest value in a sum" class="center-math-image" /></p>
+
+<p>That doesn’t solve our problem, however, because <em>a</em>, <em>b</em>, and <em>c</em> are not on the log scale. Here’s how we can fix that:
+<img src="/assets/img/exponentiate-terms-in-sum.png" alt="Factoring out largest term on log scale" class="center-math-image" />
+Now we have the log of the sum on the left, and on the right side <em>a</em>, <em>b</em>, and <em>c</em> are all present only on log scale. Now it doesn’t matter if some of the terms of the sum on the right underflow because those terms represent likelihoods that were so much smaller than the largest value that they would not have made any measurable difference to the sum anyway.</p>
+
+<p>Now you should be in a position to understand the body of the <code class="highlighter-rouge">calcLogSteppingstoneRatio</code> function. The function first finds the largest log likelihood stored in the <code class="highlighter-rouge">_ss_loglikes</code> vector (this is analogous to finding the value <em>c</em> in the example above). The value returned by <code class="highlighter-rouge">std::max_element</code> is an iterator, not a value, so the initial asterisk is necessary to dereference (i.e. obtain the value pointed to by) the iterator).</p>
+
+<p>The next section computes the sum of the exponentiated terms. The only difference between this section and our example is the fact that the ratio of log likelihoods is being raised to the power <code class="highlighter-rouge">_next_heating_power - _heating_power</code>, which is an essential part of the steppingstone method.</p>
+
+<p>The final section finishes the computation of the log ratio by adding the log of the largest term (also raised to the power specified by the steppingstone method and converting the sum to a mean by dividing by the sample size (which is done by subtracting the log of the sample size since we are on the log scale).</p>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/mac/steps/step-20/01-adding-settings.html">&lt;&nbsp;20.1</a> | 20.2 | <a href="/mac/steps/step-20/03-updating-the-updater.html">20.3&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

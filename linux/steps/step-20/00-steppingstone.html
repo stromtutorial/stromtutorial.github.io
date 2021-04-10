@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: The Steppingstone Method</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/linux/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">20.0 The Steppingstone Method</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Linux version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/linux/steps/step-19/00-polytomies.html">&lt;&nbsp;19.0</a> | 20.0 | <a href="/linux/steps/step-20/01-adding-settings.html">20.1&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>The steppingstone method is used to estimate the <em>marginal likelihood</em> of a model. The  measures the average fit of the model to the data, and is a popular way of comparing models in Bayesian analyses. This tutorial implements the simpler version of the steppingstone method described by Xie et al. (2011). Generalized steppingstone (Fan et al. 2011) is much more efficient computationally, so you may want to implement that as a challenge after implementing the Xie et al. (2011) version.</p>
+
+<h3 id="what-is-the-marginal-likelihood">What is the marginal likelihood?</h3>
+
+<p>The marginal likelihood is the denominator in Bayes’ Rule. 
+<img src="/assets/img/bayes-rule.png" alt="The marginal likelihood is the denominator in Bayes' Rule" class="center-math-image" />
+It serves as the normalizing constant that ensures that posterior probabilities sum to 1.0 over all possible parameter combinations, but it can also be interpreted as the weighted average likelihood where the weights are provided by the joint prior distribution. Because the likelihood measures fit of the model to the data, we can think of the marginal likelihood as the <em>average</em> fit of the model to the data. Bayesian model selection based on marginal likelihood is thus concerned with finding the model that fits the data best on average across all of parameter space. Because all parameters of the model are integrated out in computing the marginal likelihood, the marginal likelihood can be used to compare models with differing dimensions on the same data.</p>
+
+<p>The Bayes Factor is the ratio of marginal likelihoods from two competing models. If the Bayes Factor is 1, it means both models fit the data equally well on average. Bayes Factors less than 1 mean that the model in the denominator fits the data better (on average), while a Bayes Factor greater than 1 means that it is the model on top (in the numerator) that is the better fitting model. Take care to distinguish the Bayes Factor, which is a ratio of two marginal likelihoods, from the <em>log</em> Bayes Factor, which is the natural logarithm of the Bayes Factor. The log Bayes Factor is the <em>difference</em> between two <em>log</em> marginal likelihoods and is what is normally reported because marginal likelihoods are usually computed on the log scale. When you are comparing Bayes Factors to commonly-cited rules of thumb to determine how much significance to attribute to them, be sure that your rule of thumb is on the same scale as your Bayes Factor: that is, don’t judge a Bayes Factor by a rule of thumb written for log Bayes Factors, or <em>vice versa</em>!</p>
+
+<h3 id="how-steppingstone-works">How steppingstone works</h3>
+
+<p>In its role as normalizing constant, the marginal likelihood has a graphical interpretation that makes understanding the steppingstone method for estimating the marginal likelihood much easier. Consider the following binomial experiment: you flip a coin 3 times and see 1 head. The likelihood is the binomial probability of seeing 1 head out of 3 flips when the underlying probability of a head on any given flip is <em>p</em>. Let’s assume a Uniform(0,1) distribution for <em>p</em>, which is completely agnostic about the value of <em>p</em>: for example, it says that the chances that our coin is perfectly fair is the same as the chances that it is a trick coin that always comes up heads. While we might argue that such a prior is not very reasonable, this prior has the benefit of being very simple. The prior density is simply 1 for every possible value of <em>p</em>. The figure below shows a plot of both the prior (the straight line at the top) as well as the posterior kernel, which is the unnormalized posterior density. Note that the posterior kernel is entirely beneath the prior density: the area under the posterior kernel is thus smaller than the area under the prior density, which is 1 because the area under the prior is a perfect square with height 1 (because the density is 1 everywhere) and width 1 (because the support of <em>p</em>, i.e. the region of parameter space in which <em>p</em> has non-zero probability density, is the interval [0,1]). This nesting of the posterior kernel within the prior will always be the case if the data are discrete (true for both coin flipping experiments and nucleotide sequences) because, in the case of discrete data, the likelihood is a probability (not a probability density) and thus its value must be less than or equal to 1. Because the posterior kernel is the likelihood multiplied by the prior, that means that the posterior kernel must be less than or equal to the prior density. Our goal is to estimate the area under the posterior kernel: that area equals the marginal likelihood because it is the integral, over the entire parameter space, of the likelihood times the prior, which is exactly what is shown in the equation above.
+<img src="/assets/img/steppingstone-basic-darts.png" alt="Naive approach to estimating the area under the posterior kernel" class="center-math-image" />
+You can see that one way to estimate the area under the posterior kernel would be to (figuratively) throw darts (the orange dots) at the square representing the prior (which has area 1) and determine the fraction of those darts that also fall underneath the posterior kernel. If you understand that, then you already understand the steppingstone method! In this case, the true marginal likelihood is 0.25 and, of the 10,000 darts thrown, 2501 landed beneath the line representing the posterior kernel, so our estimated marginal likelihood is 0.2501. Not bad!</p>
+
+<h3 id="reality-rears-its-ugly-head">Reality rears its ugly head</h3>
+
+<p>In practice, the estimation of the marginal likelihood is complicated by the fact that the posterior kernel normally has a <em>really</em> tiny area compared to the area under the prior density. Remember that the posterior kernel is unnormalized: once we have the marginal likelihood value, we could normalize the posterior kernal by dividing every value by the marginal likelihood (normalizing constant) to yield a proper posterior distribution that, like the prior, integrates to 1.</p>
+
+<p>What if, instead of flipping the coin just 3 times, we instead flipped it 40,000 times and happened to record 20,000 heads. We now have much more data, which makes the area under the posterior kernel much smaller. 
+<img src="/assets/img/steppingstone-series.png" alt="The steppingstone nested series of power posterior distributions" class="center-math-image" />
+In this image, there are 6 lines plotted. The 1st one (straight line) is, again, the flat Uniform(0,1) prior and is hidden because it is coincident with the line across the top of the plot. The 6th line plotted is a very tiny nubbin - you may need to zoom in to even see it. That nubbin is the posterior kernel. Hopefully you can begin to see the problem. If we throw darts at the square prior area, chances are that very few (perhaps zero) of them will land underneath that nubbin, so, unless we throw an very large number of darts, we may estimate the marginal likelihood to be zero, which is clearly the wrong answer. The problem is not with our method, it is with the <em>efficiency</em> of our method. It would be great to have a way to get the area under the nubbin without having to throw an astronomical number of darts.</p>
+
+<p>The steppingstone method, as the name suggest, breaks up the problem into smaller pieces, each of which is easier to estimate, just as steppingstones placed at regular intervals in a stream help you cross the stream without getting your feet wet. We define a series of <em>power posterior distributions</em> that form a series of nested densities, each enclosing the next. Throwing darts at the 1st (the prior) allows us to estimate the area under the 2nd. Throwing darts at the 2nd allows us to estimate the area under the 3rd, and so on. Because the (i+1)st distribution is not that much smaller than the ith distribution, each of these estimates can be done efficiently and with arbitrary accuracy.</p>
+
+<p>The power posterior distribution is defined as the product of the prior density and the likelihood raised to a power β that is in the interval [0,1]. 
+<img src="/assets/img/power-posterior.png" alt="The power posterior used in steppingstone" class="center-math-image" />
+If β equals 0, then the likelihood disappears because any number raised to the power 0 is just 1. Thus, the power posterior kernel when β is set to 0 is just the prior distribution. If β is set to 1, then the power posterior kernel equals the posterior kernel. Any value of β in between 0 and 1, however, yields a distribution intermediate between the prior and the posterior kernel. Xie et al. (2011) found that choosing βs such that most of them were near the prior was better than spacing them evenly between 0 and 1. I’ll show you how to do that when describing the code, but we’ll introduce a setting <code class="highlighter-rouge">ssalpha</code> that determines how much of a prior bias there is to the choice of β values: a smaller value of <code class="highlighter-rouge">ssalpha</code> means more clumping of βs near the prior, and values of <code class="highlighter-rouge">ssalpha</code> near 0.2 or 0.3 work well.</p>
+
+<h3 id="putting-it-all-together">Putting it all together</h3>
+
+<p>Because our program can already run multiple chains with different heating powers, it is very tempting to just assign a different power posterior to each heated chain, and that is in fact how we will implement the steppingstone method. The <code class="highlighter-rouge">_heating_power</code> of each heated chain will equal one of the β values from the series we’ve decided upon. We do not need to assign β = 1 (the power representing the posterior kernel) to any heated chain because (oddly) we do not need samples from the posterior kernel to carry out the steppingstone method. We always (metaphorically) throw darts only at the larger of the two areas we are comparing, so the last power posterior we need to sample is the one that just encloses the posterior kernel. Once we have samples from each power posterior in the series, we can estimate a ratio of areas from each. If we represent the areas under each of the power posteriors as a series of letters, with <em>a</em> being the area under the posterior kernel and <em>f</em> being the area under the prior, note that the product of all these ratios equals the marginal likelihood due to the cancellation of all terms except the marginal likelihood (<em>a</em>) and prior (<em>f</em>). 
+<img src="/assets/img/steppingstone-product.png" alt="Cancellation of almost all terms in the product of ratios" class="center-math-image" />
+Remember that the prior has area one, so <em>f</em> equals 1 and thus this final ratio really just equals the area under the posterior kernel, <em>a</em>. Pretty cool, eh?</p>
+
+<div>
+<table class="table table-striped" style="width:100%">
+<tr class="header">
+<td width="15%"><b>Step</b></td>
+<td width="25%"><b>Title</b></td>
+<td width="50%"><b>Description</b></td>
+</tr>
+
+		<tr class="part" id="20-1">
+		<td>Step 20.1</td>
+		<td><a href="/linux/steps/step-20/01-adding-settings.html">Adding settings for steppingstone</a></td>
+		<td><p>Modifying the Strom class to add settings for steppingstone.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="20-2">
+		<td>Step 20.2</td>
+		<td><a href="/linux/steps/step-20/02-modifying-chain.html">Modifying the Chain class for steppingstone</a></td>
+		<td><p>Modifying the Chain class for steppingstone.</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="20-3">
+		<td>Step 20.3</td>
+		<td><a href="/linux/steps/step-20/03-updating-the-updater.html">Updating the Updater</a></td>
+		<td><p>Here we add a data member and member function to inform Updater that only the likelihood should be heated</p>
+</td>
+		</tr>
+	
+		<tr class="part" id="20-4">
+		<td>Step 20.4</td>
+		<td><a href="/linux/steps/step-20/04-test-steppingstone.html">Test steppingstone</a></td>
+		<td><p>Test the steppingstone method</p>
+</td>
+		</tr>
+	
+</table>
+</div>
+
+<h2 id="literature-cited">Literature Cited</h2>
+
+<p>Xie, W., P. O. Lewis, Y. Fan, L. Kuo, and M.-H. Chen. 2011. Improving marginal likelihood estimation for Bayesian phylogenetic model selection. Systematic Biology 60:150-160.
+<a href="https://doi.org/10.1093/sysbio/syq085">DOI:10.1093/sysbio/syq085</a></p>
+
+<p>Fan, Y., R. Wu, M.-H. Chen, L. Kuo, and P. O. Lewis. 2011. Choosing among partition models in Bayesian phylogenetics. Molecular Biology and Evolution 28:523-532. <a href="https://doi.org/10.1093/molbev/msq224">DOI:10.1093/molbev/msq224</a></p>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/linux/steps/step-19/00-polytomies.html">&lt;&nbsp;19.0</a> | 20.0 | <a href="/linux/steps/step-20/01-adding-settings.html">20.1&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/linux/license/">License</a> | <a href="/linux/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

@@ -1,1 +1,0 @@
-R &= \left( \frac{f(D|p^{\ast})}{f(D|p)} \right) \left( \frac{f(p^{\ast})}{f(p)} \right) \left( \frac{\gamma_{d|a}}{\gamma_a} \right) \left( \frac{\frac{1}{n_e+1}}{\frac{1}{n_p} \left( \frac{1}{2^{s-1} - s - 1}  \right)f(u)} \right) |J|

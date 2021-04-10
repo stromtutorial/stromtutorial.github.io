@@ -141,6 +141,19 @@ namespace strom {
             log_prior -= prior_a*std::log(prior_b);
             log_prior -= std::lgamma(prior_a);
         }
+        else if (curr_point == 0.0) {
+            if (prior_a == 1.0) {
+                assert(prior_b &amp;gt; 0.0);
+                return -std::log(prior_b);
+            }
+            else if (prior_a &amp;gt; 1.0) {
+                log_prior = Updater::_log_zero;
+            }
+            else {
+                // prior_a &amp;lt; 1.0
+                log_prior = -Updater::_log_zero;
+            }
+        }
         else
             log_prior = Updater::_log_zero;
         return log_prior;
@@ -159,18 +172,22 @@ namespace strom {
 
 <h2 id="the-proposenewstate-member-function">The proposeNewState member function</h2>
 
-<p>This is another pure virtual function in the parent class <code class="highlighter-rouge">Updater</code> that we must provide. The proposal algorithm used here generates a new point (<code class="highlighter-rouge">_curr_point</code>) close to the old point (<code class="highlighter-rouge">_prev_point</code>) by multiplying <code class="highlighter-rouge">_prev_point</code> by a factor that is either slightly larger than or slightly smaller than 1.0. What is meant by “slightly” depends on <code class="highlighter-rouge">_lambda</code>, the boldness factor, with larger values of <code class="highlighter-rouge">_lambda</code> yielding bigger distances, on average, between <code class="highlighter-rouge">_prev_point</code> and <code class="highlighter-rouge">_curr_point</code>. This proposal is not symmetric: the probability (density) of proposing <code class="highlighter-rouge">_curr_point</code> from <code class="highlighter-rouge">_prev_point</code> is not the same as the probability of proposing <code class="highlighter-rouge">_prev_point</code> from <code class="highlighter-rouge">_curr_point</code>. This means that we have to put the (log of the) ratio of these two probabilities into the <code class="highlighter-rouge">_log_hastings_ratio</code> data member so that the asymmetry of the move can be countered by a modified acceptance probability. That is, if proposals tend to be to the right twice as often as to the left, we accept half as many to the right to compensate for the proposal bias.</p>
+<p>This is another pure virtual function in the parent class <code class="highlighter-rouge">Updater</code> that we must provide. The proposal algorithm used here centers a proposal window of width <code class="highlighter-rouge">_lambda</code> over <code class="highlighter-rouge">_prev_point</code>, then proposes a new value uniformly from within that proposal window. If the proposed value is less than zero, the proposed value is reflected back into the valid parameter space by simply multiplying the value by -1. While counterintuitive, this proposal is symmetric: the probability density of the proposed point given <code class="highlighter-rouge">_prev_point</code> equals the probability density of <code class="highlighter-rouge">_prev_point</code> given the proposed point. Thus, the Hastings Ratio is 1, and its log is zero.</p>
 <div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void GammaRateVarUpdater::proposeNewState() { 
         // Save copy of _curr_point in case revert is necessary.
         _prev_point = getCurrentPoint();
-        
-        // Propose new value using multiplier with boldness _lambda
-        double m = exp(_lambda*(_lot-&amp;gt;uniform() - 0.5));
-        _asrv-&amp;gt;setRateVar(m*_prev_point);
+
+        // Propose new value using window of width _lambda centered over _prev_point
+        double u = _lot-&amp;gt;uniform();
+        double new_point = (_prev_point - _lambda/2.0) + u*_lambda;
+        assert(new_point != 0.0);
+        if (new_point &amp;lt; 0.0)
+            new_point *= -1.0;
+        _asrv-&amp;gt;setRateVar(new_point);
         
         // Calculate log of Hastings ratio
-        _log_hastings_ratio = log(m);
-
+        _log_hastings_ratio = 0.0;  // symmetric proposal
+        
         // This proposal invalidates all transition matrices and partials
         _tree_manipulator-&amp;gt;selectAllPartials();
         _tree_manipulator-&amp;gt;selectAllTMatrices();

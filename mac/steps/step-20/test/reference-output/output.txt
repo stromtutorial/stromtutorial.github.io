@@ -1,0 +1,388 @@
+Partition subset default comprises sites 1-1314 and has type nucleotide
+Starting...
+Current working directory: "/Users/plewis/Documents/websites/stromtutorial.github.io/steps/step-20/test"
+
+*** Reading and storing the data in the file rbcl10.nex
+storing read block: TAXA
+storing read block: CHARACTERS
+
+*** Reading and storing tree number 1 in the file rbcl10.tre
+
+Warning:  
+ A TAXA block should be read before the TREES block (but no TAXA block was found).  Taxa will be inferred from their usage in the TREES block.
+at line 14, column (approximately) 1 (file position 346)
+storing implied block: TAXA
+storing read block: TREES
+
+Number of taxa: 10
+Number of partition subsets: 1
+  Subset 1 (default)
+    data type: nucleotide
+    sites:     1314
+    patterns:  424
+    ambiguity: treated as missing data (faster)
+
+Partition information:
+
+         data subset           1
+   -----------------------------
+          num. sites        1314
+       num. patterns         424
+         num. states           4
+     rate categories           4
+
+Parameter linkage:
+
+         data subset           1
+   -----------------------------
+         state freqs           1
+   exchangeabilities           1
+               omega           -
+       rate variance           1
+              pinvar           -
+
+Parameter values for each subset:
+
+  relative rate:
+             1: 1
+
+  state freqs:
+             1: (0.25,0.25,0.25,0.25)
+
+  exchangeabilities:
+             1: (0.166667,0.166667,0.166667,0.166667,0.166667,0.166667)
+
+  omega:
+             1: -
+
+  rate variance:
+             1: 2
+
+  pinvar:
+             1: -
+
+Created BeagleLib instance 0 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 1 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 2 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 3 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 4 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 5 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 6 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 7 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 8 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 9 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 10 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 11 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 12 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 13 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 14 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 15 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 16 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 17 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 18 (4 states, 4 rates, 1 subset, not invar. sites model)
+Created BeagleLib instance 19 (4 states, 4 rates, 1 subset, not invar. sites model)
+
+*** BeagleLib 3.1.2 resources:
+Preferred resource: CPU
+Available resources:
+  resource 0: CPU
+Resources used:
+  instance 0: CPU (resource 0)
+
+
+*** MCMC analysis beginning...
+Starting log likelihood = -7121.25725
+Number of chains is 20
+Burning in for 1000 iterations.
+Running after burn-in for 100000 iterations.
+Sampling every 10 iterations.
+Sample size is 10000
+
+   iteration            m      logLike     logPrior           TL
+        1000            8  -6750.88156     14.70378      1.63695
+        2000            8  -6756.74109     14.45413      1.56874
+        3000            8  -6758.88675     14.37483      1.95843
+        4000            8  -6760.97905     14.60561      1.71214
+        5000            8  -6751.04628     14.22941      1.83499
+        6000            8  -6761.39650     14.88984      1.54481
+        7000            8  -6742.98415     14.18204      1.60533
+        8000            8  -6741.38153     13.86835      1.58333
+        9000            8  -6742.52198     14.55290      1.71130
+       10000            8  -6741.79536     14.10347      1.77857
+       11000            8  -6743.80251     14.11640      1.59100
+       12000            8  -6746.85816     14.94018      1.60786
+       13000            8  -6743.91487     14.38115      1.70562
+       14000            8  -6742.51486     14.54513      1.67840
+       15000            8  -6741.51986     14.62462      1.75521
+       16000            8  -6745.38197     13.86985      1.67350
+       17000            8  -6742.92478     14.51773      1.65577
+       18000            8  -6742.86097     15.00932      1.75609
+       19000            8  -6745.29191     14.37463      1.83216
+       20000            8  -6746.73178     15.02469      1.64564
+       21000            8  -6744.19717     14.74505      1.70422
+       22000            8  -6747.78015     14.99869      1.87617
+       23000            8  -6740.12151     14.10940      1.79890
+       24000            8  -6744.97161     14.17927      1.76978
+       25000            8  -6741.60785     14.55540      1.63328
+       26000            8  -6740.57754     14.60154      1.83751
+       27000            8  -6746.97621     14.07330      1.76575
+       28000            8  -6741.92636     14.85427      1.70365
+       29000            8  -6750.15719     14.19568      1.62506
+       30000            8  -6746.90894     14.71203      1.72605
+       31000            8  -6743.12042     14.46654      1.81459
+       32000            8  -6743.20073     14.34488      1.68229
+       33000            8  -6741.93601     14.52370      1.73674
+       34000            8  -6745.04090     14.78040      1.49244
+       35000            8  -6748.50944     14.83819      1.64592
+       36000            8  -6741.84117     14.60593      1.66258
+       37000            8  -6736.76498     14.25505      1.68659
+       38000            8  -6745.12669     14.86629      1.53746
+       39000            8  -6754.68099     14.44874      1.56656
+       40000            8  -6751.73670     14.51896      1.54430
+       41000            8  -6740.26336     14.77769      1.79070
+       42000            8  -6745.25477     14.54134      1.70077
+       43000            8  -6740.53571     14.34733      1.70836
+       44000            8  -6743.78557     14.56615      1.72286
+       45000            8  -6750.52963     14.36524      1.65733
+       46000            8  -6740.22727     14.61317      1.81097
+       47000            8  -6739.69235     14.20139      1.72204
+       48000            8  -6742.73974     14.76433      1.71551
+       49000            8  -6747.62682     14.37070      1.88392
+       50000            8  -6743.46118     14.16393      1.88725
+       51000            8  -6746.30345     14.33047      1.85812
+       52000            8  -6747.84849     14.68577      1.70509
+       53000            8  -6752.96858     14.27247      1.63087
+       54000            8  -6751.99242     14.51985      1.53374
+       55000            8  -6744.65593     14.62911      1.79530
+       56000            8  -6748.22374     14.28685      1.78419
+       57000            8  -6746.74964     14.23269      1.56958
+       58000            8  -6746.37019     14.28879      1.59915
+       59000            8  -6745.26438     14.22913      1.68793
+       60000            8  -6744.29010     14.43925      1.63472
+       61000            8  -6749.84850     14.66726      1.84599
+       62000            8  -6741.74994     14.24988      1.99775
+       63000            8  -6737.90599     14.38844      1.78236
+       64000            8  -6744.35880     14.23328      1.85463
+       65000            8  -6741.37364     14.21733      1.61839
+       66000            8  -6739.35543     14.39019      1.77268
+       67000            8  -6743.38378     14.74628      1.80809
+       68000            8  -6743.88015     14.66441      1.71897
+       69000            8  -6744.94314     14.57054      1.61083
+       70000            8  -6740.52375     14.46707      1.79687
+       71000            8  -6739.84113     14.01533      1.66398
+       72000            8  -6746.95564     14.88135      1.68489
+       73000            8  -6743.02377     14.62648      1.63133
+       74000            8  -6741.31936     13.79696      1.56716
+       75000            8  -6743.04406     14.34590      1.74976
+       76000            8  -6743.41610     14.22297      1.69393
+       77000            8  -6750.12367     14.18149      1.56716
+       78000            8  -6745.28860     13.82871      1.47928
+       79000            8  -6742.37510     14.47414      1.69847
+       80000            8  -6746.73717     14.50518      1.58532
+       81000            8  -6734.93142     14.05862      1.70614
+       82000            8  -6739.96231     14.56141      1.96090
+       83000            8  -6741.53516     14.48749      1.67799
+       84000            8  -6735.86369     14.38476      1.61063
+       85000            8  -6738.68330     14.53179      1.71739
+       86000            8  -6744.57138     14.38977      1.77760
+       87000            8  -6741.98139     14.73647      1.78504
+       88000            8  -6737.89724     14.46045      1.60262
+       89000            8  -6736.14961     14.29457      1.59774
+       90000            8  -6735.75608     14.52866      1.68693
+       91000            8  -6737.69261     14.63833      1.59383
+       92000            8  -6738.84384     14.11031      1.83720
+       93000            8  -6747.63110     13.66744      1.77085
+       94000            8  -6736.34499     14.08629      1.68607
+       95000            8  -6733.19694     14.18921      1.91605
+       96000            8  -6743.12355     14.24502      1.72254
+       97000            8  -6734.43592     14.65982      1.80656
+       98000            8  -6747.81652     13.63005      1.69191
+       99000            8  -6740.82769     14.37845      1.71064
+      100000            8  -6742.13116     14.55001      2.01781
+
+Chain 0 (power 0.00000)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies          32.816            99.8            4443
+                  Exchangeabilities          22.185            99.6            4206
+                Gamma Rate Variance           5.201            55.1            4422
+         Tree Topol. and Edge Prop.        1000.000           100.0           82589
+                        Tree Length           5.455            56.0            4340
+
+Chain 1 (power 0.00001)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies          38.396            99.6            4374
+                  Exchangeabilities          48.738            99.7            4371
+                Gamma Rate Variance           6.758            49.3            4440
+         Tree Topol. and Edge Prop.        1000.000           100.0           82557
+                        Tree Length           4.645            61.1            4258
+
+Chain 2 (power 0.00010)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies          30.642            92.2            4429
+                  Exchangeabilities          16.709            96.7            4289
+                Gamma Rate Variance           7.201            51.6            4418
+         Tree Topol. and Edge Prop.        1000.000            99.8           82582
+                        Tree Length           6.799            47.5            4282
+
+Chain 3 (power 0.00051)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies          30.757            74.8            4395
+                  Exchangeabilities          24.935            88.2            4392
+                Gamma Rate Variance          11.408            41.8            4319
+         Tree Topol. and Edge Prop.        1000.000            98.9           82578
+                        Tree Length           4.405            59.7            4316
+
+Chain 4 (power 0.00160)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           3.487            53.5            4341
+                  Exchangeabilities           7.590            72.0            4363
+                Gamma Rate Variance           9.454            51.5            4406
+         Tree Topol. and Edge Prop.        1000.000            96.7           82513
+                        Tree Length           4.839            51.6            4377
+
+Chain 5 (power 0.00391)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           1.213            31.2            4269
+                  Exchangeabilities           3.332            48.8            4293
+                Gamma Rate Variance          11.395            49.2            4347
+         Tree Topol. and Edge Prop.        1000.000            93.0           82810
+                        Tree Length           2.639            69.0            4281
+
+Chain 6 (power 0.00810)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.346            25.3            4435
+                  Exchangeabilities           0.891            27.2            4289
+                Gamma Rate Variance           9.986            49.0            4401
+         Tree Topol. and Edge Prop.        1000.000            86.9           82460
+                        Tree Length           3.243            53.0            4415
+
+Chain 7 (power 0.01501)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.352            12.8            4367
+                  Exchangeabilities           0.606            14.6            4321
+                Gamma Rate Variance           9.156            43.6            4364
+         Tree Topol. and Edge Prop.         989.328            79.6           82647
+                        Tree Length           2.140            58.8            4301
+
+Chain 8 (power 0.02560)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.223            10.5            4409
+                  Exchangeabilities           0.448             9.0            4361
+                Gamma Rate Variance           8.435            39.5            4405
+         Tree Topol. and Edge Prop.        1000.000            71.5           82473
+                        Tree Length           1.825            52.7            4352
+
+Chain 9 (power 0.04101)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.244             5.4            4381
+                  Exchangeabilities           0.188             9.5            4274
+                Gamma Rate Variance           5.701            46.3            4419
+         Tree Topol. and Edge Prop.        1000.000            63.4           82569
+                        Tree Length           1.772            46.4            4357
+
+Chain 10 (power 0.06250)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.142             4.2            4320
+                  Exchangeabilities           0.302             3.4            4483
+                Gamma Rate Variance           5.304            45.1            4318
+         Tree Topol. and Edge Prop.        1000.000            56.1           82475
+                        Tree Length           1.558            42.5            4404
+
+Chain 11 (power 0.09151)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.348             0.8            4253
+                  Exchangeabilities           0.215             3.0            4364
+                Gamma Rate Variance           5.246            39.0            4403
+         Tree Topol. and Edge Prop.         133.406            49.5           82616
+                        Tree Length           1.585            36.5            4364
+
+Chain 12 (power 0.12960)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.164             1.4            4316
+                  Exchangeabilities           0.219             1.5            4345
+                Gamma Rate Variance           4.824            40.0            4522
+         Tree Topol. and Edge Prop.          20.159            44.0           82446
+                        Tree Length           0.972            47.3            4371
+
+Chain 13 (power 0.17851)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.108             1.2            4235
+                  Exchangeabilities           0.274             0.4            4235
+                Gamma Rate Variance           2.838            52.9            4400
+         Tree Topol. and Edge Prop.           1.085            38.5           82825
+                        Tree Length           0.927            43.3            4305
+
+Chain 14 (power 0.24010)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.215             0.4            4325
+                  Exchangeabilities           0.213             0.4            4463
+                Gamma Rate Variance           4.792            29.9            4410
+         Tree Topol. and Edge Prop.           2.571            34.4           82517
+                        Tree Length           0.635            52.9            4285
+
+Chain 15 (power 0.31641)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.194             0.3            4351
+                  Exchangeabilities           0.342             0.3            4376
+                Gamma Rate Variance           3.577            36.9            4281
+         Tree Topol. and Edge Prop.           0.105            30.1           82661
+                        Tree Length           0.616            47.1            4331
+
+Chain 16 (power 0.40960)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.205             0.2            4351
+                  Exchangeabilities           0.162             0.3            4464
+                Gamma Rate Variance           4.466            27.5            4420
+         Tree Topol. and Edge Prop.           0.100            27.4           82337
+                        Tree Length           0.451            54.5            4428
+
+Chain 17 (power 0.52201)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.236             0.1            4279
+                  Exchangeabilities           0.376             0.1            4349
+                Gamma Rate Variance           2.723            39.8            4294
+         Tree Topol. and Edge Prop.           0.084            24.4           82675
+                        Tree Length           0.600            40.3            4403
+
+Chain 18 (power 0.65610)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.164             0.2            4297
+                  Exchangeabilities           0.337             0.0            4358
+                Gamma Rate Variance           2.545            36.7            4379
+         Tree Topol. and Edge Prop.           0.004            22.0           82616
+                        Tree Length           0.669            33.0            4350
+
+Chain 19 (power 0.81451)
+                            Updater   Tuning Param.        Accept %     No. Updates
+                  State Frequencies           0.282             0.1            4342
+                  Exchangeabilities           0.334             0.1            4288
+                Gamma Rate Variance           2.760            30.7            4378
+         Tree Topol. and Edge Prop.           0.006            19.6           82563
+                        Tree Length           0.446            43.1            4429
+
+Steppingstone results:
+                beta           log(ratio)           cumulative
+             0.00000             -0.07351             -0.07351
+             0.00001             -1.06624             -1.13975
+             0.00010             -4.21186             -5.35161
+             0.00051            -10.22775            -15.57936
+             0.00160            -19.80615            -35.38551
+             0.00391            -33.54959            -68.93510
+             0.00810            -52.55078           -121.48588
+             0.01501            -77.73425           -199.22013
+             0.02560           -110.00358           -309.22371
+             0.04101           -150.45533           -459.67904
+             0.06250           -200.36782           -660.04685
+             0.09151           -260.88874           -920.93559
+             0.12960           -333.12037          -1254.05596
+             0.17851           -418.00529          -1672.06126
+             0.24010           -516.77810          -2188.83936
+             0.31641           -630.12583          -2818.96519
+             0.40960           -758.68514          -3577.65034
+             0.52201           -905.13135          -4482.78169
+             0.65610          -1068.07429          -5550.85598
+             0.81451          -1250.66531          -6801.52128
+
+log(marginal likelihood) = -6801.52128
+
+Finished!

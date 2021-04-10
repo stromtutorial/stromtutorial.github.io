@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Adding settings for steppingstone</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/win/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">20.1 Adding settings for steppingstone</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Win version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/win/steps/step-20/00-steppingstone.html">&lt;&nbsp;20.0</a> | 20.1 | <a href="/win/steps/step-20/02-modifying-chain.html">20.2&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>We will need to add a function (<code class="highlighter-rouge">calcMarginalLikelihood</code>) and a couple of variables (<code class="highlighter-rouge">_steppingstone</code> and <code class="highlighter-rouge">_ss_alpha</code>) to <em>strom.hpp</em> to hold settings that allow users to specify that they would like to carry out a steppingstone analysis rather than an ordinary MCMC analysis.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Strom {  
+        public:
+                                                    Strom();
+                                                    ~Strom();
+
+            void                                    clear();
+            void                                    processCommandLineOptions(int argc, const char * argv[]);
+            void                                    run();
+                    
+        private:
+            bool                                    processAssignmentString(Model::SharedPtr m, const std::string &amp; which, const std::string &amp; definition);
+            void                                    handleAssignmentStrings(Model::SharedPtr m, const boost::program_options::variables_map &amp; vm, std::string label, const std::vector&amp;lt;std::string&amp;gt; &amp; definitions, std::string default_definition); 
+            bool                                    splitAssignmentString(const std::string &amp; definition, std::vector&amp;lt;std::string&amp;gt; &amp; vector_of_subset_names, std::vector&amp;lt;double&amp;gt;  &amp; vector_of_values);
+            void                                    sample(unsigned iter, Chain &amp; chain);
+
+            void                                    readData();
+            void                                    readTrees();
+            void                                    showPartitionInfo();
+            void                                    showBeagleInfo();
+            void                                    showMCMCInfo();
+            void                                    calcHeatingPowers();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    calcMarginalLikelihood() const;&lt;/strong&gt;&lt;/span&gt;
+            void                                    initChains();
+            void                                    startTuningChains();
+            void                                    stopTuningChains();
+            void                                    stepChains(unsigned iteration, bool sampling);
+            void                                    swapChains();
+            void                                    stopChains();
+            void                                    swapSummary() const;
+            void                                    showChainTuningInfo() const;
+
+            double                                  _expected_log_likelihood;
+            
+            double                                  _topo_prior_C;
+            bool                                    _allow_polytomies;
+            bool                                    _resolution_class_prior;
+
+            std::string                             _data_file_name;
+            std::string                             _tree_file_name;
+            Partition::SharedPtr                    _partition;
+
+            Data::SharedPtr                         _data;
+            std::vector&amp;lt;Likelihood::SharedPtr&amp;gt;      _likelihoods;
+            TreeSummary::SharedPtr                  _tree_summary;
+            Lot::SharedPtr                          _lot;
+
+            unsigned                                _random_seed;
+            unsigned                                _num_iter;
+            unsigned                                _print_freq;
+            unsigned                                _sample_freq;
+
+            unsigned                                _num_burnin_iter; 
+            bool                                    _using_stored_data;
+            bool                                    _use_gpu;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _steppingstone;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double                                  _ss_alpha;&lt;/strong&gt;&lt;/span&gt;
+
+            bool                                    _ambig_missing;
+            unsigned                                _num_chains;
+            double                                  _heating_lambda;
+            std::vector&amp;lt;Chain&amp;gt;                      _chains;
+            std::vector&amp;lt;double&amp;gt;                     _heating_powers;
+            std::vector&amp;lt;unsigned&amp;gt;                   _swaps;
+
+            bool                                    _use_underflow_scaling;
+
+            static std::string                      _program_name;
+            static unsigned                         _major_version;
+            static unsigned                         _minor_version;
+            
+            OutputManager::SharedPtr                _output_manager;
+
+    };  
+
+</code></pre></div></div>
+
+<p>Initialize the new variables in the <code class="highlighter-rouge">clear</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::clear() {    
+        _data_file_name             = "";
+        _tree_file_name             = "";
+        _tree_summary               = nullptr;
+        _partition.reset(new Partition());
+        _use_gpu                    = true;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_steppingstone              = false;&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_ss_alpha                   = 0.25;&lt;/strong&gt;&lt;/span&gt;
+        _ambig_missing              = true;
+        _expected_log_likelihood    = 0.0;
+        _data                       = nullptr;
+        _use_underflow_scaling      = false;
+        _lot                        = nullptr;
+        _random_seed                = 1;
+        _num_iter                   = 1000;
+        _print_freq                 = 1;
+        _sample_freq                = 1;
+        _output_manager             = nullptr;
+        
+        _topo_prior_C               = 1.0;
+        _allow_polytomies           = true;
+        _resolution_class_prior     = true;
+
+        _using_stored_data          = true;
+        _likelihoods.clear();
+        _num_burnin_iter            = 1000;
+        _heating_lambda             = 0.5;
+        _num_chains                 = 1;
+        _chains.resize(0);
+        _heating_powers.resize(0);
+        _swaps.resize(0);
+    }   
+
+</code></pre></div></div>
+
+<h4 id="adding-program-options">Adding program options</h4>
+
+<p>Create program options that the user can access in the <code class="highlighter-rouge">processCommandLineOptions</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::processCommandLineOptions(int argc, const char * argv[]) {   
+        std::vector&amp;lt;std::string&amp;gt; partition_statefreq;
+        std::vector&amp;lt;std::string&amp;gt; partition_rmatrix;
+        std::vector&amp;lt;std::string&amp;gt; partition_omega;
+        std::vector&amp;lt;std::string&amp;gt; partition_ratevar;
+        std::vector&amp;lt;std::string&amp;gt; partition_pinvar;
+        std::vector&amp;lt;std::string&amp;gt; partition_ncateg;
+        std::vector&amp;lt;std::string&amp;gt; partition_subsets;
+        std::vector&amp;lt;std::string&amp;gt; partition_relrates;
+        std::vector&amp;lt;std::string&amp;gt; partition_tree;
+        boost::program_options::variables_map vm;
+        boost::program_options::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "produce help message")
+            ("version,v", "show program version")
+            ("seed,z",        boost::program_options::value(&amp;_random_seed)-&amp;gt;default_value(1),   "pseudorandom number seed")
+            ("niter,n",       boost::program_options::value(&amp;_num_iter)-&amp;gt;default_value(1000),   "number of MCMC iterations")
+            ("printfreq",  boost::program_options::value(&amp;_print_freq)-&amp;gt;default_value(1),   "skip this many iterations before reporting progress")
+            ("samplefreq",  boost::program_options::value(&amp;_sample_freq)-&amp;gt;default_value(1),   "skip this many iterations before sampling next")
+            ("datafile,d",  boost::program_options::value(&amp;_data_file_name)-&amp;gt;required(), "name of a data file in NEXUS format")
+            ("treefile,t",  boost::program_options::value(&amp;_tree_file_name)-&amp;gt;required(), "name of a tree file in NEXUS format")
+            ("subset",  boost::program_options::value(&amp;partition_subsets), "a string defining a partition subset, e.g. 'first:1-1234\3' or 'default[codon:standard]:1-3702'")
+            ("ncateg,c", boost::program_options::value(&amp;partition_ncateg), "number of categories in the discrete Gamma rate heterogeneity model")
+            ("statefreq", boost::program_options::value(&amp;partition_statefreq), "a string defining state frequencies for one or more data subsets, e.g. 'first,second:0.1,0.2,0.3,0.4'")
+            ("omega", boost::program_options::value(&amp;partition_omega), "a string defining the nonsynonymous/synonymous rate ratio omega for one or more data subsets, e.g. 'first,second:0.1'")
+            ("rmatrix", boost::program_options::value(&amp;partition_rmatrix), "a string defining the rmatrix for one or more data subsets, e.g. 'first,second:1,2,1,1,2,1'")
+            ("ratevar", boost::program_options::value(&amp;partition_ratevar), "a string defining the among-site rate variance for one or more data subsets, e.g. 'first,second:2.5'")
+            ("pinvar", boost::program_options::value(&amp;partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
+            ("relrate", boost::program_options::value(&amp;partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
+            ("tree", boost::program_options::value(&amp;partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
+            ("topopriorC", boost::program_options::value(&amp;_topo_prior_C)-&amp;gt;default_value(1.0), "topology prior C: tree (or resolution class) with m internal nodes has probability C time greater than tree (or resolution class) with m+1 internal nodes.")
+            ("allowpolytomies", boost::program_options::value(&amp;_allow_polytomies)-&amp;gt;default_value(true), "yes or no; if yes, then topopriorC and polytomyprior are used, otherwise topopriorC and polytomyprior are ignored")
+            ("resclassprior", boost::program_options::value(&amp;_resolution_class_prior)-&amp;gt;default_value(true), "if yes, topologypriorC will apply to resolution classes; if no, topologypriorC will apply to individual tree topologies")
+            ("expectedLnL", boost::program_options::value(&amp;_expected_log_likelihood)-&amp;gt;default_value(0.0), "log likelihood expected")
+            ("nchains",       boost::program_options::value(&amp;_num_chains)-&amp;gt;default_value(1),                "number of chains")
+            ("heatfactor",    boost::program_options::value(&amp;_heating_lambda)-&amp;gt;default_value(0.5),          "determines how hot the heated chains are")
+            ("burnin",        boost::program_options::value(&amp;_num_burnin_iter)-&amp;gt;default_value(100),         "number of iterations used to burn in chains")
+            ("usedata",       boost::program_options::value(&amp;_using_stored_data)-&amp;gt;default_value(true),      "use the stored data in calculating likelihoods (specify no to explore the prior)")
+            ("gpu",           boost::program_options::value(&amp;_use_gpu)-&amp;gt;default_value(true),                "use GPU if available")
+            ("ambigmissing",  boost::program_options::value(&amp;_ambig_missing)-&amp;gt;default_value(true),          "treat all ambiguities as missing data")
+            ("underflowscaling",  boost::program_options::value(&amp;_use_underflow_scaling)-&amp;gt;default_value(true),          "scale site-likelihoods to prevent underflow (slower but safer)")
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("steppingstone", boost::program_options::value(&amp;_steppingstone)-&amp;gt;default_value(false),                "use heated chains to compute marginal likelihood with the steppingstone method")&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;("ssalpha", boost::program_options::value(&amp;_ss_alpha)-&amp;gt;default_value(0.25),                "determines how bunched steppingstone chain powers are toward the prior: chain k of K total chains has power (k/K)^{1/ssalpha}")&lt;/strong&gt;&lt;/span&gt;
+        ;   
+
+</code></pre></div></div>
+
+<h4 id="modifying-the-sample-function">Modifying the sample function</h4>
+
+<p>Add a conditional to the sample function to account for the fact that the chains are doing something quite differently under steppingstone than under normal MCMC sampling:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::sample(unsigned iteration, Chain &amp; chain) {  
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_steppingstone) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool time_to_sample = (bool)(iteration % _sample_freq == 0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (time_to_sample &amp;&amp; iteration &amp;gt; 0) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;chain.storeLogLikelihood();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;assert(_heating_powers.size() &amp;gt; 0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double largest_power = *(_heating_powers.rbegin());&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (chain.getHeatingPower() != largest_power)&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;return;&lt;/strong&gt;&lt;/span&gt;
+                
+&lt;span style="color:#0000ff"&gt;&lt;strong&gt;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool time_to_report = (bool)(iteration % _print_freq == 0);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (time_to_report) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double logLike = chain.getLogLikelihood();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double logPrior = chain.calcLogJointPrior();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double TL = chain.getTreeManip()-&amp;gt;calcTreeLength();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;unsigned m = chain.getTreeManip()-&amp;gt;calcResolutionClass();&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (time_to_report) {&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (logPrior == Updater::getLogZero())&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+                        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12d %12.5f %12.5f %12.5f") % iteration % m % logLike % logPrior % TL));&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+            if (chain.getHeatingPower() &amp;lt; 1.0)
+                return;
+                
+            bool time_to_sample = (bool)(iteration % _sample_freq == 0);
+            bool time_to_report = (bool)(iteration % _print_freq == 0);
+            if (time_to_sample || time_to_report) {
+                double logLike = chain.getLogLikelihood();
+                double logPrior = chain.calcLogJointPrior();
+                double TL = chain.getTreeManip()-&amp;gt;calcTreeLength();
+                unsigned m = chain.getTreeManip()-&amp;gt;calcResolutionClass();
+                if (time_to_report) {
+                    if (logPrior == Updater::getLogZero())
+                        _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));
+                    else
+                        _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%12d %12d %12.5f %12.5f %12.5f") % iteration % m % logLike % logPrior % TL));
+                }
+                if (time_to_sample) {
+                    _output_manager-&amp;gt;outputTree(iteration, chain.getTreeManip());
+                    _output_manager-&amp;gt;outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());
+                }
+            }
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+    }   
+
+</code></pre></div></div>
+<p>You will note that the steppingstone section is almost the same as the non-steppingstone section, but there are some key differences. Ordinarily (i.e. when we are not doing steppingstone), we only produce a progress report for the cold chain. That explains why we return from the function early if the heating power is less than 1. Under steppingstone, it is arbitrary which chain we use when reporting progress, so I’ve chosen here to report progress for the chain with the largest power, which is the final entry in the <code class="highlighter-rouge">_heating_powers</code> vector.</p>
+
+<p>You’ll notice that, in the steppingstone section, I’ve also left out code to save parameter values to the sampled parameters and sampled trees files. Samples from these chains have no use except to estimate the marginal likelihood.</p>
+
+<p>Finally, at the beginning of the steppingstone section, a new function storeLogLikelihood is called for each chain if it is time to sample. This function, as you’ll see when you create it, just stores the current log-likelihood in a vector named <code class="highlighter-rouge">_ss_loglikes</code>, which is a data member of the <code class="highlighter-rouge">Chain</code> class.</p>
+
+<h4 id="modifying-the-calcheatingpowers-function">Modifying the calcHeatingPowers function</h4>
+
+<p>In the <code class="highlighter-rouge">calcHeatingPowers</code> function, we need to setup the chain powers differently for steppingstone than for ordinary Metropolis-coupled MCMC. In MCMCMC, it is not wise to let the chain powers get too small. For example, if the chain power were set to zero, the chain would explore the prior and would almost never serve as a useful scout for the cold chain. On the other hand, the chain powers used in steppingstone are concentrated toward the prior end of the spectrum. The reason for this is best explained graphically. Returning to our coin-flipping example, compare the power posterior distributions for evenly-spaced powers (left) to the power posterior distributions for powers concentrated toward the prior end of the spectrum (right).
+<img src="/assets/img/steppingstone-spacing.png" alt="Comparison of even versus bunched steppingstone heating powers" class="center-math-image" />
+As you can see, evenly-spaced powers do not result in homogeneous ratios between adjacent distributions. It is as if the steppingstones placed to help cross a stream involved a really big first jump and then really tiny jumps thereafter. Bunching powers close to the prior results in ratios that are more even and thus more easily and accurately estimated.</p>
+
+<p>The degree to which the heating powers are pushed towards 0.0 is determined by the <code class="highlighter-rouge">_ss_alpha</code> setting. The code highlighted below allocates heating powers for steppingstone based on the number of chains specified and the value of <code class="highlighter-rouge">_ss_alpha</code>. Note that if <code class="highlighter-rouge">_ss_alpha</code> equals 1, then the powers will be evenly spaced between 0 and 1 (but note that power equal to 1 is never used). If <code class="highlighter-rouge">_ss_alpha</code> is less than 1, then the nominal (equally spaced) power is raised to the value 1/<code class="highlighter-rouge">_ss_alpha</code>. An example is provided in the comments for <code class="highlighter-rouge">K=5</code> chains and <code class="highlighter-rouge">_ss_alpha = 0.25</code>.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::calcHeatingPowers() { 
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_steppingstone) {&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Specify chain heating power for steppingstone&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// For K = 5 chains and alpha = 0.25 (1/alpha = 4):&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   k   chain power&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// ---------------------&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   0   (0/5)^4 = 0.0000 &amp;lt;-- prior&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   1   (1/5)^4 = 0.0016&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   2   (2/5)^4 = 0.0256&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   3   (3/5)^4 = 0.1296&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   4   (4/5)^4 = 0.4096&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//   5   (5/5)^4 = 1.0000 &amp;lt;-- posterior not used&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double inv_alpha = 1.0/_ss_alpha;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double k = 0.0;&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;double K = (double)_heating_powers.size();&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;for (auto &amp; h : _heating_powers) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;h = pow(k++/K, inv_alpha);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else {&lt;/strong&gt;&lt;/span&gt;
+            // Specify chain heating power (e.g. _heating_lambda = 0.2)
+            // chain_index  power
+            //      0       1.000 = 1/(1 + 0.2*0)
+            //      1       0.833 = 1/(1 + 0.2*1)
+            //      2       0.714 = 1/(1 + 0.2*2)
+            //      3       0.625 = 1/(1 + 0.2*3)
+            unsigned i = 0;
+            for (auto &amp; h : _heating_powers) {
+                h = 1.0/(1.0 + _heating_lambda*i++);
+            }
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+    } 
+
+</code></pre></div></div>
+
+<h4 id="adding-the-calcmarginallikelihood-function">Adding the calcMarginalLikelihood function</h4>
+
+<p>Once all heated chains have finished, the <code class="highlighter-rouge">calcMarginalLikelihood</code> function can be called to do the final computation.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::calcMarginalLikelihood() const { 
+        if (_steppingstone) {
+            // Calculate the log ratio for each steppingstone
+            std::vector&amp;lt;std::pair&amp;lt;double, double&amp;gt; &amp;gt; log_ratio;
+            for (auto &amp; c : _chains) {
+                log_ratio.push_back(std::make_pair(c.getHeatingPower(), c.calcLogSteppingstoneRatio()));
+            }
+            
+            // Sort log_ratio vector from lowest to highest power
+            std::sort(log_ratio.begin(), log_ratio.end());
+            
+            _output_manager-&amp;gt;outputConsole("\nSteppingstone results:");
+            _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%20s %20s %20s") % "beta" % "log(ratio)" % "cumulative"));
+            double log_marginal_likelihood = 0.0;
+            for (auto p : log_ratio) {
+                double beta = p.first;
+                double logratio = p.second;
+                log_marginal_likelihood += logratio;
+                _output_manager-&amp;gt;outputConsole(boost::str(boost::format("%20.5f %20.5f %20.5f") % beta % logratio % log_marginal_likelihood));
+            }
+            _output_manager-&amp;gt;outputConsole(boost::str(boost::format("\nlog(marginal likelihood) = %.5f") % log_marginal_likelihood));
+        }
+    }
+
+</code></pre></div></div>
+<p>This function first creates a vector of pairs in which the first element is the heating power of the chain and the second element is the steppingstone ratio calculated for that chain. The next step is to sort this vector so that elements are in order of heating power. This sorting is purely cosmetic: sorting causes the output to have increasing chain powers and not a random ordering.</p>
+
+<p>I mentioned in the introduction that the estimated marginal likelihood is simply the product of the ratios calculated from each steppingstone power posterior distribution. On the log scale, this amounts to adding up the log ratios computed by each chain. This simple summation is performed in the last section of this function while outputting the heating powers and the estimated log ratios from each chain.</p>
+
+<h4 id="miscellany">Miscellany</h4>
+
+<p>Before moving on to making necessary modifications and additions to the <code class="highlighter-rouge">Chain</code> class, I want to finish up work on the <code class="highlighter-rouge">Strom</code> class.</p>
+
+<p>Because it makes no sense to swap chains during steppingstone, we need to be sure to turn off chain swapping if steppingstone is being performed. In the swapChains function, this is as simple as changing <code class="highlighter-rouge">if (_num_chains == 1) return;</code> to  <code class="highlighter-rouge">if (_num_chains == 1 || _steppingstone) return;</code> in the first statement inside the function body:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::swapChains() {   
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//if (_num_chains == 1)&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_num_chains == 1 || _steppingstone)&lt;/strong&gt;&lt;/span&gt;
+            return;
+            
+        // Select two chains at random to swap
+        // If _num_chains = 3...
+        //  i  j  = (i + 1 + randint(0,1)) % _num_chains
+        // ---------------------------------------------
+        //  0  1  = (0 + 1 +      0      ) %     3
+        //     2  = (0 + 1 +      1      ) %     3
+        // ---------------------------------------------
+        //  1  2  = (1 + 1 +      0      ) %     3
+        //     0  = (1 + 1 +      1      ) %     3
+        // ---------------------------------------------
+        //  2  0  = (2 + 1 +      0      ) %     3
+        //     1  = (2 + 1 +      1      ) %     3
+        // ---------------------------------------------
+        unsigned i = (unsigned)_lot-&amp;gt;randint(0, _num_chains-1);
+        unsigned j = i + 1 + (unsigned)_lot-&amp;gt;randint(0, _num_chains-2);
+        j %= _num_chains;
+
+        assert(i != j &amp;&amp; i &amp;gt;=0 &amp;&amp; i &amp;lt; _num_chains &amp;&amp; j &amp;gt;= 0 &amp;&amp; j &amp;lt; _num_chains);
+
+        // Determine upper and lower triangle cells in _swaps vector
+        unsigned smaller = _num_chains;
+        unsigned larger  = _num_chains;
+        double index_i   = _chains[i].getChainIndex();
+        double index_j   = _chains[j].getChainIndex();
+        if (index_i &amp;lt; index_j) {
+            smaller = index_i;
+            larger  = index_j;
+        }
+        else {
+            smaller = index_j;
+            larger  = index_i;
+        }
+        unsigned upper = smaller*_num_chains + larger;
+        unsigned lower = larger*_num_chains  + smaller;
+        _swaps[upper]++;
+
+        // Propose swap of chains i and j
+        // Proposed state swap will be successful if a uniform random deviate is less than R, where
+        //    R = Ri * Rj = (Pi(j) / Pi(i)) * (Pj(i) / Pj(j))
+        // Chain i: power = a, kernel = pi
+        // Chain j: power = b, kernel = pj
+        //      pj^a         pi^b
+        // Ri = ----    Rj = ----
+        //      pi^a         pj^b
+        // log R = (a-b) [log(pj) - log(pi)]
+
+        double heat_i       = _chains[i].getHeatingPower();
+        double log_kernel_i = _chains[i].calcLogLikelihood() + _chains[i].calcLogJointPrior();
+
+        double heat_j       = _chains[j].getHeatingPower();
+        double log_kernel_j = _chains[j].calcLogLikelihood() + _chains[j].calcLogJointPrior();
+
+        double logR = (heat_i - heat_j)*(log_kernel_j - log_kernel_i);
+
+        double logu = _lot-&amp;gt;logUniform();
+        if (logu &amp;lt; logR) {
+            // accept swap
+            _swaps[lower]++;
+            _chains[j].setHeatingPower(heat_i);
+            _chains[i].setHeatingPower(heat_j);
+            _chains[j].setChainIndex(index_i);
+            _chains[i].setChainIndex(index_j);
+            std::vector&amp;lt;double&amp;gt; lambdas_i = _chains[i].getLambdas();
+            std::vector&amp;lt;double&amp;gt; lambdas_j = _chains[j].getLambdas();
+            _chains[i].setLambdas(lambdas_j);
+            _chains[j].setLambdas(lambdas_i);
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>Make the same kind of modification to the <code class="highlighter-rouge">swapSummary</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::swapSummary() const { 
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//if (_num_chains &amp;gt; 1) {&lt;/strong&gt;&lt;/span&gt;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_num_chains &amp;gt; 1 &amp;&amp; !_steppingstone) {&lt;/strong&gt;&lt;/span&gt;
+            unsigned i, j;
+            std::cout &amp;lt;&amp;lt; "\nSwap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):" &amp;lt;&amp;lt; std::endl;
+
+            // column headers
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12s") % " ");
+            for (i = 0; i &amp;lt; _num_chains; ++i)
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format(" %12d") % i);
+            std::cout &amp;lt;&amp;lt; std::endl;
+
+            // top line
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12s") % "------------");
+            for (i = 0; i &amp;lt; _num_chains; ++i)
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("-%12s") % "------------");
+            std::cout &amp;lt;&amp;lt; std::endl;
+
+            // table proper
+            for (i = 0; i &amp;lt; _num_chains; ++i) {
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12d") % i);
+                for (j = 0; j &amp;lt; _num_chains; ++j) {
+                    if (i == j)
+                        std::cout &amp;lt;&amp;lt; boost::str(boost::format(" %12s") % "---");
+                    else
+                        std::cout &amp;lt;&amp;lt; boost::str(boost::format(" %12.5f") % _swaps[i*_num_chains + j]);
+                }
+                std::cout &amp;lt;&amp;lt; std::endl;
+            }
+
+            // bottom line
+            std::cout &amp;lt;&amp;lt; boost::str(boost::format("%12s") % "------------");
+            for (i = 0; i &amp;lt; _num_chains; ++i)
+                std::cout &amp;lt;&amp;lt; boost::str(boost::format("-%12s") % "------------");
+            std::cout &amp;lt;&amp;lt; std::endl;
+        }
+    }  
+
+</code></pre></div></div>
+
+<p>In order to calculate their particular steppingstone ratio, each chain must know not only the heating power that it is using but also the heating power of the power posterior distribution that is nested just inside it. The chains are told not only their heating power but this “next heating power” in the <code class="highlighter-rouge">initChains</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::initChains() {   
+        //...  
+        // Create _num_chains chains
+        _chains.resize(_num_chains);
+        
+        // Create _num_chains by _num_chains swap matrix
+        _swaps.assign(_num_chains*_num_chains, 0);
+
+        // Create heating power vector
+        _heating_powers.assign(_num_chains, 1.0);
+        calcHeatingPowers();
+        
+        // Initialize chains
+        for (unsigned chain_index = 0; chain_index &amp;lt; _num_chains; ++chain_index) {
+            auto &amp; c        = _chains[chain_index];
+            auto likelihood = _likelihoods[chain_index];
+            auto m          = likelihood-&amp;gt;getModel();
+            
+            // Finish setting up models
+            m-&amp;gt;setTopologyPriorOptions(_allow_polytomies, _resolution_class_prior, _topo_prior_C);
+            m-&amp;gt;setSubsetNumPatterns(_data-&amp;gt;calcNumPatternsVect());
+            m-&amp;gt;setSubsetSizes(_partition-&amp;gt;calcSubsetSizes());
+            m-&amp;gt;activate();
+            if (chain_index == 0)
+                std::cout &amp;lt;&amp;lt; "\n" &amp;lt;&amp;lt; m-&amp;gt;describeModel() &amp;lt;&amp;lt; std::endl;
+            else
+                m-&amp;gt;describeModel();
+                
+            // Finish setting up likelihoods
+            likelihood-&amp;gt;setData(_data);
+            likelihood-&amp;gt;useUnderflowScaling(_use_underflow_scaling);
+            likelihood-&amp;gt;initBeagleLib();
+            likelihood-&amp;gt;useStoredData(_using_stored_data);
+            
+            // Build list of updaters, one for each free parameter in the model
+            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);
+            if (num_free_parameters == 0)
+                throw XStrom("MCMC skipped because there are no free parameters in the model");
+
+            // Tell the chain that it should adapt its updators (at least initially)
+            c.startTuning();
+
+            // Set heating power to precalculated value
+            c.setChainIndex(chain_index);
+            c.setHeatingPower(_heating_powers[chain_index]);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (_steppingstone) {&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (chain_index == _num_chains - 1)&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;c.setNextHeatingPower(1.0);&lt;/strong&gt;&lt;/span&gt;
+                &lt;span style="color:#0000ff"&gt;&lt;strong&gt;else&lt;/strong&gt;&lt;/span&gt;
+                    &lt;span style="color:#0000ff"&gt;&lt;strong&gt;c.setNextHeatingPower(_heating_powers[chain_index + 1]);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+                        
+            // Give the chain a starting tree
+            std::string newick = _tree_summary-&amp;gt;getNewick(m-&amp;gt;getTreeIndex());
+            c.setTreeFromNewick(newick);
+
+            // Print headers in output files and make sure each updator has its starting value
+            c.start();
+        }
+    }   
+
+</code></pre></div></div>
+
+<p>The last modifications we need to make in the <code class="highlighter-rouge">Strom</code> class are to the <code class="highlighter-rouge">run</code> function: (1) add the <code class="highlighter-rouge">calcMarginalLikelihood</code> call and (2) avoid opening the parameter or tree output files if steppingstone is in progress. Note that <code class="highlighter-rouge">calcMarginalLikelihood</code> is a no-op (i.e. no-operation, nothing done) if we are not currently carrying out steppingstone.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Strom::run() {  
+        std::cout &amp;lt;&amp;lt; "Starting..." &amp;lt;&amp;lt; std::endl;
+        std::cout &amp;lt;&amp;lt; "Current working directory: " &amp;lt;&amp;lt; boost::filesystem::current_path() &amp;lt;&amp;lt; std::endl;
+        
+        try {
+            readData();
+            readTrees();
+            showPartitionInfo();
+
+            // Create a Lot object that generates (pseudo)random numbers
+            _lot = Lot::SharedPtr(new Lot);
+            _lot-&amp;gt;setSeed(_random_seed);
+
+            // Create  Chain objects
+            initChains();
+            
+            showBeagleInfo();
+            showMCMCInfo();
+
+            // Create an output manager and open output files
+            _output_manager.reset(new OutputManager);
+            _output_manager-&amp;gt;outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s %12s") % "iteration" % "m" % "logLike" % "logPrior" % "TL"));
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_steppingstone) {&lt;/strong&gt;&lt;/span&gt;
+                _output_manager-&amp;gt;openTreeFile("trees.tre", _data);
+                _output_manager-&amp;gt;openParameterFile("params.txt", _chains[0].getModel());
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+            sample(0, _chains[0]);
+            
+            // Burn-in the chains
+            startTuningChains();
+            for (unsigned iteration = 1; iteration &amp;lt;= _num_burnin_iter; ++iteration) {
+                stepChains(iteration, false);
+                swapChains();
+            }
+            stopTuningChains();
+
+            // Sample the chains
+            for (unsigned iteration = 1; iteration &amp;lt;= _num_iter; ++iteration) {
+                stepChains(iteration, true);
+                swapChains();
+            }
+            showChainTuningInfo();
+            stopChains();
+            
+            // Create swap summary
+            swapSummary();
+            
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;// Estimate the marginal likelihood if doing steppingstone&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;calcMarginalLikelihood();&lt;/strong&gt;&lt;/span&gt;
+            
+            // Close output files
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;if (!_steppingstone) {&lt;/strong&gt;&lt;/span&gt;
+                _output_manager-&amp;gt;closeTreeFile();
+                _output_manager-&amp;gt;closeParameterFile();
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;}&lt;/strong&gt;&lt;/span&gt;
+        }
+        catch (XStrom &amp; x) {
+            std::cerr &amp;lt;&amp;lt; "Strom encountered a problem:\n  " &amp;lt;&amp;lt; x.what() &amp;lt;&amp;lt; std::endl;
+        }
+
+        std::cout &amp;lt;&amp;lt; "\nFinished!" &amp;lt;&amp;lt; std::endl;
+    } 
+
+</code></pre></div></div>
+
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/win/steps/step-20/00-steppingstone.html">&lt;&nbsp;20.0</a> | 20.1 | <a href="/win/steps/step-20/02-modifying-chain.html">20.2&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/win/license/">License</a> | <a href="/win/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>

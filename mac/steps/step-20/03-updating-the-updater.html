@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" type="image/png" href="/assets/img/favicon.png" >
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="search-domain" value="/">
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <title>Strom Phylogenetics C++ Tutorial: Updating the Updater</title>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+      <a class="navbar-brand" href="/index.html">
+        <img class="navbar-logo" src="/assets/img/strom-logo.png" alt="Strom Tutorial Home" />
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">   <!-- navbar-nav mr-auto -->
+          <li class="nav-item"> 
+            <a href="/">Home</a>
+          </li>
+          
+          <li class="nav-item">
+            <a href="/mac/steps/">Step-by-step instructions</a>
+          </li>
+          
+          
+        </ul>
+      </div>
+  </div>
+</nav>
+
+      <div class="titlebar">
+	<h1 class="maintitle">20.3 Updating the Updater</h1>
+	<h3 class="subtitle"></h3>
+    <h3 class="subtitle">(Mac version)</h3>
+</div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/mac/steps/step-20/02-modifying-chain.html">&lt;&nbsp;20.2</a> | 20.3 | <a href="/mac/steps/step-20/04-test-steppingstone.html">20.4&nbsp;&gt;</a></h3>
+</div>
+
+
+<p>To finish up, we need to add some functionality to the <code class="highlighter-rouge">Updater</code> class. First, add a data member and a member function to the class declaration to inform an <code class="highlighter-rouge">Updater</code> object that the heating power should only be applied to the likelihood, not both prior and likelihood.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    class Updater { 
+    
+        friend class Chain;
+
+        public:
+            typedef std::shared_ptr&amp;lt;Updater&amp;gt;        SharedPtr;
+        
+            TreeManip::SharedPtr                    getTreeManip() const;
+
+                                                    Updater();
+            virtual                                 ~Updater();
+
+            void                                    setLikelihood(Likelihood::SharedPtr likelihood);
+            void                                    setTreeManip(TreeManip::SharedPtr treemanip);
+            void                                    setLot(Lot::SharedPtr lot);
+            void                                    setLambda(double lambda);
+            void                                    setHeatingPower(double p);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;void                                    setHeatLikelihoodOnly(bool yes);&lt;/strong&gt;&lt;/span&gt;
+            void                                    setTuning(bool on);
+            void                                    setTargetAcceptanceRate(double target);
+            void                                    setPriorParameters(const std::vector&amp;lt;double&amp;gt; &amp; c);
+            void                                    setTopologyPriorOptions(bool resclass, double C);
+            void                                    setWeight(double w);
+            void                                    calcProb(double wsum);
+
+            double                                  getLambda() const;
+            double                                  getWeight() const;
+            double                                  getProb() const;
+            double                                  getAcceptPct() const;
+            double                                  getNumUpdates() const;
+            std::string                             getUpdaterName() const;
+
+            virtual void                            clear();
+
+            virtual double                          calcLogPrior() = 0;
+            double                                  calcLogTopologyPrior() const;
+            double                                  calcLogEdgeLengthPrior() const; 
+            double                                  calcLogLikelihood() const;
+            virtual double                          update(double prev_lnL);
+
+            static double                           getLogZero();
+            
+        protected:
+
+            virtual void                            reset();
+            virtual void                            tune(bool accepted);
+
+            virtual void                            revert() = 0;
+            virtual void                            proposeNewState() = 0;
+
+            Lot::SharedPtr                          _lot;
+            Likelihood::SharedPtr                   _likelihood;
+            TreeManip::SharedPtr                    _tree_manipulator;
+            std::string                             _name;
+            double                                  _weight;
+            double                                  _prob;
+            double                                  _lambda;
+            double                                  _log_hastings_ratio;
+            double                                  _log_jacobian;
+            double                                  _target_acceptance;
+            unsigned                                _naccepts;
+            unsigned                                _nattempts;
+            bool                                    _tuning;
+            std::vector&amp;lt;double&amp;gt;                     _prior_parameters;
+
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;bool                                    _heat_likelihood_only;&lt;/strong&gt;&lt;/span&gt;
+            double                                  _heating_power;
+            mutable PolytomyTopoPriorCalculator     _topo_prior_calculator;
+            
+            static const double                     _log_zero;
+    }; 
+
+</code></pre></div></div>
+
+<p>Next, initialize the data member in the <code class="highlighter-rouge">clear</code> function.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Updater::clear() { 
+        _name                   = "updater";
+        _tuning                 = true;
+        _lambda                 = 0.0001;
+        _weight                 = 1.0;
+        _prob                   = 0.0;
+        _target_acceptance      = 0.3;
+        _naccepts               = 0;
+        _nattempts              = 0;
+        _heating_power          = 1.0;
+        &lt;span style="color:#0000ff"&gt;&lt;strong&gt;_heat_likelihood_only   = false;&lt;/strong&gt;&lt;/span&gt;
+        _prior_parameters.clear();
+        reset();
+    } 
+
+</code></pre></div></div>
+
+<p>We use the value stored in the <code class="highlighter-rouge">_heat_likelihood_only</code> data member inside the <code class="highlighter-rouge">update</code> function:</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline double Updater::update(double prev_lnL) { 
+        double prev_log_prior = calcLogPrior();
+        
+        // Clear any nodes previously selected so that we can detect those nodes
+        // whose partials and/or transition probabilities need to be recalculated
+        _tree_manipulator-&amp;gt;deselectAllPartials();
+        _tree_manipulator-&amp;gt;deselectAllTMatrices();
+        
+        // Set model to proposed state and calculate _log_hastings_ratio
+        proposeNewState();
+        
+        // Use alternative partials and transition probability buffer for any selected nodes
+        // This allows us to easily revert to the previous values if the move is rejected
+        _tree_manipulator-&amp;gt;flipPartialsAndTMatrices();
+
+        // Calculate the log-likelihood and log-prior for the proposed state
+        double log_likelihood = calcLogLikelihood();
+        double log_prior = calcLogPrior();
+        
+        // Decide whether to accept or reject the proposed state
+        bool accept = true;
+        if (log_prior &amp;gt; _log_zero) {
+            double log_R = 0.0;
+            log_R += _heating_power*(log_likelihood - prev_lnL);
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;//log_R += _heating_power*(log_prior - prev_log_prior);&lt;/strong&gt;&lt;/span&gt;
+            &lt;span style="color:#0000ff"&gt;&lt;strong&gt;log_R += (_heat_likelihood_only ? 1.0 : _heating_power)*(log_prior - prev_log_prior);&lt;/strong&gt;&lt;/span&gt;
+            log_R += _log_hastings_ratio;
+            log_R += _log_jacobian;
+            
+            double logu = _lot-&amp;gt;logUniform();
+            if (logu &amp;gt; log_R)
+                accept = false;
+        }
+        else
+            accept = false;
+
+        if (accept) {
+            _naccepts++;
+        }
+        else {
+            revert();
+            _tree_manipulator-&amp;gt;flipPartialsAndTMatrices();
+            log_likelihood = prev_lnL;
+        }
+
+        tune(accept);
+        reset();
+
+        return log_likelihood;
+    } 
+
+</code></pre></div></div>
+
+<p>Finally, add a setting function for the <code class="highlighter-rouge">_heat_likelihood_only</code> data member.</p>
+<div class="cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    inline void Updater::setHeatLikelihoodOnly(bool yes) {  
+        _heat_likelihood_only = yes;
+    } 
+
+</code></pre></div></div>
+
+<div class="titlebar">
+	<h3 class="subsection"><a href="/mac/steps/step-20/02-modifying-chain.html">&lt;&nbsp;20.2</a> | 20.3 | <a href="/mac/steps/step-20/04-test-steppingstone.html">20.4&nbsp;&gt;</a></h3>
+</div>
+
+
+      <br>
+<footer>
+  <div class="container">
+  <div class="row">
+    <div class="col-sm-12" align="center">
+      <a href="https://github.com/stromtutorial">GitHub</a> |  <a href="/mac/license/">License</a> | <a href="/mac/citation/">Citation</a>
+    </div>
+  </div>
+  <br>
+  </div>
+</footer>
+
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/highlight.js"></script>
+    <script src="/assets/js/bootstrap.bundle.js"></script>
+  </body>
+</html>
