@@ -36,6 +36,6 @@ If there is anything in this tutorial that is well-designed, it is due to the pa
 #### Licence
 The software that you will create falls under the permissive open-source [MIT License](license.html).
 
-#### Updates
+#### Version history
 
-* 2021-03-31: replaced body of GammaRateVarUpdater::proposeNewState function to employ a window-based proposal rather than a multiplicative proposal, which fails if the gamma rate variance parameter is zero. Also fixed a bug in the GammaRateVarUpdater::calcLogPrior function, which now handles the case of curr_point equal to zero.
+For the version history, see the [README file in the source branch of the GitHub repository](https://github.com/stromtutorial/stromtutorial.github.io/tree/source).

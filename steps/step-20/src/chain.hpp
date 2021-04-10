@@ -1,7 +1,5 @@
 #pragma once    ///start
 
-#define POLSTONES
-
 #include <memory>
 #include <boost/format.hpp>
 #include "lot.hpp"
@@ -24,7 +22,7 @@
 
 namespace strom {
 
-    class Chain {
+    class Chain {   ///begin_chain_class_declaration
     
         friend class Likelihood;
 
@@ -52,11 +50,10 @@ namespace strom {
             void                                    setHeatingPower(double p);
             double                                  getHeatingPower() const;
 
-#if defined(POLSTONES)
-            void                                    setNextHeatingPower(double p);
+            void                                    setNextHeatingPower(double p);  ///!chain_funcs_start
             void                                    storeLogLikelihood();
-            double                                  calcLogSteppingstoneRatio() const;
-#endif
+            double                                  calcLogSteppingstoneRatio() const;  ///!chain_funcs_stop
+
             void                                    setChainIndex(unsigned idx);
             double                                  getChainIndex() const;
 
@@ -84,13 +81,13 @@ namespace strom {
 
             unsigned                                _chain_index;
             double                                  _heating_power;
-#if defined(POLSTONES)
-            bool                                    _heat_likelihood_only;
+
+            bool                                    _heat_likelihood_only;  ///!chain_data_start
             double                                  _next_heating_power;
-            std::vector<double>                     _ss_loglikes;
-#endif
+            std::vector<double>                     _ss_loglikes;           ///!chain_data_stop
+
             double                                  _log_likelihood;
-    };
+    }; ///end_chain_class_declaration
     
     inline Chain::Chain() {
         //std::cout << "Chain being created" << std::endl;
@@ -101,18 +98,16 @@ namespace strom {
         //std::cout << "Chain being destroyed" << std::endl;
     } 
 
-    inline void Chain::clear() {
+    inline void Chain::clear() {    ///begin_clear
         _log_likelihood = 0.0;
         _updaters.clear();
         _chain_index = 0;
         setHeatingPower(1.0);
-#if defined(POLSTONES)
-        _heat_likelihood_only = false;
+        _heat_likelihood_only = false;  ///!clear_start
         _next_heating_power = 1.0;
-        _ss_loglikes.clear();
-#endif
+        _ss_loglikes.clear();           ///!clear_stop
         startTuning();
-    }
+    }   ///end_clear
 
     inline void Chain::startTuning() {
         for (auto u : _updaters)
@@ -295,20 +290,19 @@ namespace strom {
             u->setHeatingPower(p);
     }
 
-#if defined(POLSTONES)
-    inline void Chain::setNextHeatingPower(double p) {
+    inline void Chain::setNextHeatingPower(double p) {  ///begin_setNextHeatingPower
         _heat_likelihood_only = true; // next heating power only set if doing steppingstone
         for (auto u : _updaters)
             u->setHeatLikelihoodOnly(true);
         _next_heating_power = p;
-    }
+    }   ///end_setNextHeatingPower
     
-    inline void Chain::storeLogLikelihood() {
+    inline void Chain::storeLogLikelihood() {   ///begin_storeLogLikelihood
         double logLike = getLogLikelihood();
         _ss_loglikes.push_back(logLike);
-    }
+    }   ///end_storeLogLikelihood
     
-    inline double Chain::calcLogSteppingstoneRatio() const {
+    inline double Chain::calcLogSteppingstoneRatio() const {    ///begin_calcLogSteppingstoneRatio
         // Find the maximum log likelihood sampled by this chain
         unsigned sample_size = (unsigned)_ss_loglikes.size();
         assert(sample_size > 0);
@@ -319,13 +313,12 @@ namespace strom {
         for (auto logL : _ss_loglikes) {
             sum_of_terms += exp((_next_heating_power - _heating_power)*(logL - maxLogL));
         }
-        double mean_of_terms = sum_of_terms/sample_size;
-        assert(mean_of_terms > 0.0);
-        double log_ratio = (_next_heating_power - _heating_power)*maxLogL + log(mean_of_terms);
+        
+        // Compute the log of the steppingstone ratio
+        assert(sum_of_terms > 0.0);
+        double log_ratio = (_next_heating_power - _heating_power)*maxLogL + log(sum_of_terms) - log(sample_size);
         return log_ratio;
-    }
-    
-#endif
+    }   ///end_calcLogSteppingstoneRatio
 
     inline double Chain::getChainIndex() const {
         return _chain_index;

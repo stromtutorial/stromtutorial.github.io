@@ -1,18 +1,16 @@
-#pragma once    ///start
-
-#define POLNEW
+#pragma once
 
 #include "tree.hpp"
 #include "tree_manip.hpp"
 #include "lot.hpp"
 #include "xstrom.hpp"
 #include "likelihood.hpp"
-#include "topo_prior_calculator.hpp"    ///!a
+#include "topo_prior_calculator.hpp"
 
 namespace strom {
     class Chain;
 
-    class Updater {
+    class Updater { ///begin_updater_class_declaration
     
         friend class Chain;
 
@@ -29,13 +27,11 @@ namespace strom {
             void                                    setLot(Lot::SharedPtr lot);
             void                                    setLambda(double lambda);
             void                                    setHeatingPower(double p);
-#if defined(POLNEW)
-            void                                    setHeatLikelihoodOnly(bool yes);
-#endif
+            void                                    setHeatLikelihoodOnly(bool yes);    ///!declare_setHeatLikelihood
             void                                    setTuning(bool on);
             void                                    setTargetAcceptanceRate(double target);
             void                                    setPriorParameters(const std::vector<double> & c);
-            void                                    setTopologyPriorOptions(bool resclass, double C);    ///!b
+            void                                    setTopologyPriorOptions(bool resclass, double C);
             void                                    setWeight(double w);
             void                                    calcProb(double wsum);
 
@@ -79,14 +75,12 @@ namespace strom {
             bool                                    _tuning;
             std::vector<double>                     _prior_parameters;
 
-#if defined(POLNEW)
-            bool                                    _heat_likelihood_only;
-#endif
+            bool                                    _heat_likelihood_only;  ///!declare_heat_likelihood_only_data
             double                                  _heating_power;
-            mutable PolytomyTopoPriorCalculator     _topo_prior_calculator; ///!f
+            mutable PolytomyTopoPriorCalculator     _topo_prior_calculator;
             
             static const double                     _log_zero;
-    };
+    }; ///end_updater_class_declaration
  
     // member function bodies go here
     ///end_class_declaration
@@ -109,16 +103,14 @@ namespace strom {
         _naccepts               = 0;
         _nattempts              = 0;
         _heating_power          = 1.0;
-#if defined(POLNEW)
-        _heat_likelihood_only   = false;
-#endif
+        _heat_likelihood_only   = false;    ///!clear_heat_likelihood_only
         _prior_parameters.clear();
         reset();
     } ///end_clear
 
     inline void Updater::reset() { ///begin_reset
         _log_hastings_ratio = 0.0;
-        _log_jacobian       = 0.0;  ///!h
+        _log_jacobian       = 0.0;
     } ///end_reset
 
     inline void Updater::setLikelihood(Likelihood::SharedPtr likelihood) { ///begin_setLikelihood
@@ -236,7 +228,8 @@ namespace strom {
         if (log_prior > _log_zero) {
             double log_R = 0.0;
             log_R += _heating_power*(log_likelihood - prev_lnL);
-            log_R += (_heat_likelihood_only ? 1.0 : _heating_power)*(log_prior - prev_log_prior);
+            //log_R += _heating_power*(log_prior - prev_log_prior); ///!use_heating_power_only_start
+            log_R += (_heat_likelihood_only ? 1.0 : _heating_power)*(log_prior - prev_log_prior); ///!use_heating_power_only_stop
             log_R += _log_hastings_ratio;
             log_R += _log_jacobian;
             
@@ -262,11 +255,9 @@ namespace strom {
         return log_likelihood;
     } ///end_update
     
-#if defined(POLNEW)
-    inline void Updater::setHeatLikelihoodOnly(bool yes) {
+    inline void Updater::setHeatLikelihoodOnly(bool yes) {  ///begin_setHeatLikelihoodOnly
         _heat_likelihood_only = yes;
-    }
-#endif
+    } ///end_setHeatLikelihoodOnly
     
     inline void Updater::setTopologyPriorOptions(bool resclass, double C) { ///begin_setTopologyPriorOptions
         _topo_prior_calculator.setC(C);
@@ -277,7 +268,7 @@ namespace strom {
     }   ///end_setTopologyPriorOptions
     
     inline double Updater::calcLogTopologyPrior() const {   ///begin_calcLogTopologyPrior
-        Tree::SharedPtr tree = _tree_manipulator->getTree();    ///!za
+        Tree::SharedPtr tree = _tree_manipulator->getTree();
         assert(tree);
         if (tree->isRooted())
             _topo_prior_calculator.chooseRooted();
@@ -288,7 +279,7 @@ namespace strom {
                 
         double log_topology_prior = _topo_prior_calculator.getLogNormalizedTopologyPrior(m);
 
-        return log_topology_prior;  ///!zb
+        return log_topology_prior;
     }   ///end_calcLogTopologyPrior
 
     inline double Updater::calcLogEdgeLengthPrior() const { ///begin_calcLogEdgeLengthPrior
@@ -297,8 +288,8 @@ namespace strom {
         assert(tree);
 
         double TL = _tree_manipulator->calcTreeLength();
-        //double n = tree->numLeaves();                     ///!m
-        double num_edges = _tree_manipulator->countEdges(); ///!n
+        //double n = tree->numLeaves();
+        double num_edges = _tree_manipulator->countEdges();
 
         double a = _prior_parameters[0];    // shape of Gamma prior on TL
         double b = _prior_parameters[1];    // scale of Gamma prior on TL
@@ -335,4 +326,4 @@ namespace strom {
         return _log_zero;
     }
     
-} ///end
+}

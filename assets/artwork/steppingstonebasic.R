@@ -27,11 +27,12 @@ scale <- function(x, desired_min = 0, desired_max = 1, desired_frac = 1)
 
 y <- 1
 n <- 3
-beta1 <- 1
-beta2 <- 1
+beta1 <- 2  # original value 1
+beta2 <- 2  # original value 1
 a <- .2
 bigK <- 1
-sn <- 10000
+sn <- 100   # original value 10000
+cex_points <- 2 # original value 0.5
 line_width <- 2
 cex_axis <- 1.5
 ncolors <- bigK+1
@@ -86,18 +87,18 @@ sprintf("estimated fraction = %g", tally2)
 x <- seq(0.001, 0.999, 0.001)
 
 #pdf("../img/steppingstone-basic-kernelonly.pdf")
-#plot(x, f(x, 1), type='l', lwd=3, bty="n", xaxt="n", yaxt="n", cex.axis=1.5, xlab='', ylab='', xlim=c(0,1), ylim=c(0,max(f(x,0))))
+#plot(x, f(x, 1), type='l', lwd=3, bty="n", xaxt="n", yaxt="n", cex.axis=cex_axis, xlab='', ylab='', xlim=c(0,1), ylim=c(0,max(f(x,0))))
 #dev.off()
 
 #pdf("../img/steppingstone-basic-nodarts.pdf")
-#plot(x, f(x, 0), type='l', lwd=3, bty="n", xaxt="n", yaxt="n", cex.axis=1.5, xlab='', ylab='', xlim=c(0,1), ylim=c(0,max(f(x,0))))
+#plot(x, f(x, 0), type='l', lwd=3, bty="n", xaxt="n", yaxt="n", cex.axis=cex_axis, xlab='', ylab='', xlim=c(0,1), ylim=c(0,max(f(x,0))))
 #lines(x, f(x,0), lwd=3)
 #lines(x, f(x,1), lwd=3)
 #dev.off()
 
 pdf("../img/steppingstone-basic-darts.pdf")
-plot(x, f(x, 0), type='l', lwd=3, bty="n", xaxt="n", yaxt="n", cex.axis=1.5, xlab='', ylab='', xlim=c(0,1), ylim=c(0,max(f(x,0))))
-points(sx, sy, pch=20, cex=.5, col="orange")
+plot(x, f(x, 0), type='l', lwd=3, bty="n", xaxt="n", yaxt="n", cex.axis=cex_axis, xlab='', ylab='', xlim=c(0,1), ylim=c(0,max(f(x,0))))
+points(sx, sy, pch=20, cex=cex_points, col="orange")
 lines(x, f(x,0), lwd=3)
 lines(x, f(x,1), lwd=3)
 dev.off()

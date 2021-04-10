@@ -1,7 +1,5 @@
 #pragma once    ///start
 
-#define POLSTONES
-
 #include <iostream>
 #include "data.hpp"
 #include "likelihood.hpp"
@@ -17,7 +15,7 @@
 
 namespace strom {
 
-    class Strom {
+    class Strom {  ///begin_class_declaration
         public:
                                                     Strom();
                                                     ~Strom();
@@ -38,9 +36,7 @@ namespace strom {
             void                                    showBeagleInfo();
             void                                    showMCMCInfo();
             void                                    calcHeatingPowers();
-#if defined(POLSTONES)
-            void                                    calcMarginalLikelihood() const;
-#endif
+            void                                    calcMarginalLikelihood() const;  ///!a
             void                                    initChains();
             void                                    startTuningChains();
             void                                    stopTuningChains();
@@ -52,9 +48,9 @@ namespace strom {
 
             double                                  _expected_log_likelihood;
             
-            double                                  _topo_prior_C;  ///!a
+            double                                  _topo_prior_C;
             bool                                    _allow_polytomies;
-            bool                                    _resolution_class_prior;  ///!b
+            bool                                    _resolution_class_prior;
 
             std::string                             _data_file_name;
             std::string                             _tree_file_name;
@@ -73,11 +69,9 @@ namespace strom {
             unsigned                                _num_burnin_iter; 
             bool                                    _using_stored_data;
             bool                                    _use_gpu;
-#if defined(POLSTONES)
-            bool                                    _steppingstone;
-            double                                  _ss_alpha;
+            bool                                    _steppingstone;  ///!b
+            double                                  _ss_alpha;       ///!c
 
-#endif
             bool                                    _ambig_missing;
             unsigned                                _num_chains;
             double                                  _heating_lambda;
@@ -93,7 +87,7 @@ namespace strom {
             
             OutputManager::SharedPtr                _output_manager;
 
-    };
+    };  ///end_class_declaration
     ///end_class_declaration
 
     inline Strom::Strom() {
@@ -111,10 +105,8 @@ namespace strom {
         _tree_summary               = nullptr;
         _partition.reset(new Partition());
         _use_gpu                    = true;
-#if defined(POLSTONES)
-        _steppingstone              = false;
-        _ss_alpha                   = 0.25;
-#endif
+        _steppingstone              = false;    ///!clear_steppingstone
+        _ss_alpha                   = 0.25;     ///!clear_ss_alpha
         _ambig_missing              = true;
         _expected_log_likelihood    = 0.0;
         _data                       = nullptr;
@@ -126,9 +118,9 @@ namespace strom {
         _sample_freq                = 1;
         _output_manager             = nullptr;
         
-        _topo_prior_C               = 1.0;  ///!c
+        _topo_prior_C               = 1.0;
         _allow_polytomies           = true;
-        _resolution_class_prior     = true;  ///!d
+        _resolution_class_prior     = true;
 
         _using_stored_data          = true;
         _likelihoods.clear();
@@ -170,9 +162,9 @@ namespace strom {
             ("pinvar", boost::program_options::value(&partition_pinvar), "a string defining the proportion of invariable sites for one or more data subsets, e.g. 'first,second:0.2'")
             ("relrate", boost::program_options::value(&partition_relrates), "a string defining the (unnormalized) relative rates for all data subsets (e.g. 'default:3,1,6').")
             ("tree", boost::program_options::value(&partition_tree), "the index of the tree in the tree file (first tree has index = 1)")
-            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(1.0), "topology prior C: tree (or resolution class) with m internal nodes has probability C time greater than tree (or resolution class) with m+1 internal nodes.") ///!e
+            ("topopriorC", boost::program_options::value(&_topo_prior_C)->default_value(1.0), "topology prior C: tree (or resolution class) with m internal nodes has probability C time greater than tree (or resolution class) with m+1 internal nodes.")
             ("allowpolytomies", boost::program_options::value(&_allow_polytomies)->default_value(true), "yes or no; if yes, then topopriorC and polytomyprior are used, otherwise topopriorC and polytomyprior are ignored")
-            ("resclassprior", boost::program_options::value(&_resolution_class_prior)->default_value(true), "if yes, topologypriorC will apply to resolution classes; if no, topologypriorC will apply to individual tree topologies") ///!f
+            ("resclassprior", boost::program_options::value(&_resolution_class_prior)->default_value(true), "if yes, topologypriorC will apply to resolution classes; if no, topologypriorC will apply to individual tree topologies")
             ("expectedLnL", boost::program_options::value(&_expected_log_likelihood)->default_value(0.0), "log likelihood expected")
             ("nchains",       boost::program_options::value(&_num_chains)->default_value(1),                "number of chains")
             ("heatfactor",    boost::program_options::value(&_heating_lambda)->default_value(0.5),          "determines how hot the heated chains are")
@@ -181,10 +173,8 @@ namespace strom {
             ("gpu",           boost::program_options::value(&_use_gpu)->default_value(true),                "use GPU if available")
             ("ambigmissing",  boost::program_options::value(&_ambig_missing)->default_value(true),          "treat all ambiguities as missing data")
             ("underflowscaling",  boost::program_options::value(&_use_underflow_scaling)->default_value(true),          "scale site-likelihoods to prevent underflow (slower but safer)")
-#if defined(POLSTONES)
-            ("steppingstone", boost::program_options::value(&_steppingstone)->default_value(false),                "use heated chains to compute marginal likelihood with the steppingstone method")
-            ("ssalpha", boost::program_options::value(&_ss_alpha)->default_value(0.25),                "determines how bunched steppingstone chain powers are toward the prior: chain k of K total chains has power (k/K)^{1/ssalpha}")
-#endif
+            ("steppingstone", boost::program_options::value(&_steppingstone)->default_value(false),                "use heated chains to compute marginal likelihood with the steppingstone method") ///!processCommandLineOptions_steppingstone
+            ("ssalpha", boost::program_options::value(&_ss_alpha)->default_value(0.25),                "determines how bunched steppingstone chain powers are toward the prior: chain k of K total chains has power (k/K)^{1/ssalpha}")///!processCommandLineOptions_ss_alpha
         ;   ///end_add_options
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         try {
@@ -451,14 +441,15 @@ namespace strom {
     }
 
     inline void Strom::sample(unsigned iteration, Chain & chain) {  ///begin_sample
-#if defined(POLSTONES)
-        if (_steppingstone) {
+        if (_steppingstone) {   ///!sample_start
             bool time_to_sample = (bool)(iteration % _sample_freq == 0);
             if (time_to_sample && iteration > 0) {
                 chain.storeLogLikelihood();
             }
 
-            if (chain.getHeatingPower() > 0.0)
+            assert(_heating_powers.size() > 0);
+            double largest_power = *(_heating_powers.rbegin());
+            if (chain.getHeatingPower() != largest_power)
                 return;
                 
             bool time_to_report = (bool)(iteration % _print_freq == 0);
@@ -466,22 +457,16 @@ namespace strom {
                 double logLike = chain.getLogLikelihood();
                 double logPrior = chain.calcLogJointPrior();
                 double TL = chain.getTreeManip()->calcTreeLength();
-                unsigned m = chain.getTreeManip()->calcResolutionClass();   ///!g
+                unsigned m = chain.getTreeManip()->calcResolutionClass();
                 if (time_to_report) {
                     if (logPrior == Updater::getLogZero())
                         _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));
                     else
                         _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12.5f %12.5f") % iteration % m % logLike % logPrior % TL));
                 }
-                
-                //temporary!
-                if (time_to_sample) {
-                    _output_manager->outputTree(iteration, chain.getTreeManip());
-                    _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel()); 
-                }
             }
         }
-        else {
+        else {  ///!sample_end
             if (chain.getHeatingPower() < 1.0)
                 return;
                 
@@ -491,7 +476,7 @@ namespace strom {
                 double logLike = chain.getLogLikelihood();
                 double logPrior = chain.calcLogJointPrior();
                 double TL = chain.getTreeManip()->calcTreeLength();
-                unsigned m = chain.getTreeManip()->calcResolutionClass();   ///!g
+                unsigned m = chain.getTreeManip()->calcResolutionClass();
                 if (time_to_report) {
                     if (logPrior == Updater::getLogZero())
                         _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));
@@ -500,38 +485,14 @@ namespace strom {
                 }
                 if (time_to_sample) {
                     _output_manager->outputTree(iteration, chain.getTreeManip());
-                    _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());   ///!h
+                    _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());
                 }
             }
-        }
-#else
-        if (chain.getHeatingPower() < 1.0)
-            return;
-            
-        bool time_to_sample = (bool)(iteration % _sample_freq == 0);
-        bool time_to_report = (bool)(iteration % _print_freq == 0);
-        if (time_to_sample || time_to_report) {
-            double logLike = chain.getLogLikelihood();
-            double logPrior = chain.calcLogJointPrior();
-            double TL = chain.getTreeManip()->calcTreeLength();
-            unsigned m = chain.getTreeManip()->calcResolutionClass();   ///!g
-            if (time_to_report) {
-                if (logPrior == Updater::getLogZero())
-                    _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12s %12.5f") % iteration % m % logLike % "-infinity" % TL));
-                else
-                    _output_manager->outputConsole(boost::str(boost::format("%12d %12d %12.5f %12.5f %12.5f") % iteration % m % logLike % logPrior % TL));
-            }
-            if (time_to_sample) {
-                _output_manager->outputTree(iteration, chain.getTreeManip());
-                _output_manager->outputParameters(iteration, logLike, logPrior, TL, m, chain.getModel());   ///!h
-            }
-        }
-#endif
+        }  ///!sample_trailer
     }   ///end_sample
 
-    inline void Strom::calcHeatingPowers() {
-#if defined(POLSTONES)
-        if (_steppingstone) {
+    inline void Strom::calcHeatingPowers() { ///begin_calcheatingpowers
+        if (_steppingstone) { ///!calcheatingpowers_start
             // Specify chain heating power for steppingstone
             // For K = 5 chains and alpha = 0.25 (1/alpha = 4):
             //   k   chain power
@@ -549,7 +510,7 @@ namespace strom {
                 h = pow(k++/K, inv_alpha);
             }
         }
-        else {
+        else { ///!calcheatingpowers_end
             // Specify chain heating power (e.g. _heating_lambda = 0.2)
             // chain_index  power
             //      0       1.000 = 1/(1 + 0.2*0)
@@ -560,20 +521,8 @@ namespace strom {
             for (auto & h : _heating_powers) {
                 h = 1.0/(1.0 + _heating_lambda*i++);
             }
-        }
-#else
-        // Specify chain heating power (e.g. _heating_lambda = 0.2)
-        // chain_index  power
-        //      0       1.000 = 1/(1 + 0.2*0)
-        //      1       0.833 = 1/(1 + 0.2*1)
-        //      2       0.714 = 1/(1 + 0.2*2)
-        //      3       0.625 = 1/(1 + 0.2*3)
-        unsigned i = 0;
-        for (auto & h : _heating_powers) {
-            h = 1.0/(1.0 + _heating_lambda*i++);
-        }
-#endif
-    }
+        } ///!calcheatingpowers_trailer
+    } ///end_calcheatingpowers
 
     inline void Strom::showChainTuningInfo() const {
         for (unsigned idx = 0; idx < _num_chains; ++idx) {
@@ -594,8 +543,7 @@ namespace strom {
         }
     }
 
-#if defined(POLSTONES)
-    inline void Strom::calcMarginalLikelihood() const {
+    inline void Strom::calcMarginalLikelihood() const { ///begin_calcMarginalLikelihood
         if (_steppingstone) {
             // Calculate the log ratio for each steppingstone
             std::vector<std::pair<double, double> > log_ratio;
@@ -617,8 +565,7 @@ namespace strom {
             }
             _output_manager->outputConsole(boost::str(boost::format("\nlog(marginal likelihood) = %.5f") % log_marginal_likelihood));
         }
-    }
-#endif
+    }///end_calcMarginalLikelihood
     
     inline void Strom::startTuningChains() {
         _swaps.assign(_num_chains*_num_chains, 0);
@@ -642,15 +589,11 @@ namespace strom {
         }
     }
 
-    inline void Strom::swapChains() {
-#if defined(POLSTONES)
-        if (_num_chains == 1 || _steppingstone)
+    inline void Strom::swapChains() {   ///begin_swapChains
+        //if (_num_chains == 1) ///!swapChains_start
+        if (_num_chains == 1 || _steppingstone) ///!swapChains_stop
             return;
-#else
-        if (_num_chains == 1)
-            return;
-#endif
-
+            
         // Select two chains at random to swap
         // If _num_chains = 3...
         //  i  j  = (i + 1 + randint(0,1)) % _num_chains
@@ -718,19 +661,16 @@ namespace strom {
             _chains[i].setLambdas(lambdas_j);
             _chains[j].setLambdas(lambdas_i);
         }
-    }
+    }   ///end_swapChains
 
     inline void Strom::stopChains() {
         for (auto & c : _chains)
             c.stop();
     }
 
-    inline void Strom::swapSummary() const {
-#if defined(POLSTONES)
-        if (_num_chains > 1 && !_steppingstone) {
-#else
-        if (_num_chains > 1) {
-#endif
+    inline void Strom::swapSummary() const { ///begin_swapSummary
+        //if (_num_chains > 1) {   ///!swapSummary_start
+        if (_num_chains > 1 && !_steppingstone) {   ///!swapSummary_stop
             unsigned i, j;
             std::cout << "\nSwap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):" << std::endl;
 
@@ -764,9 +704,10 @@ namespace strom {
                 std::cout << boost::str(boost::format("-%12s") % "------------");
             std::cout << std::endl;
         }
-    } 
+    }  ///end_swapSummary
 
     inline void Strom::initChains() {   ///begin_initChains
+        //...  ///ellipses_initChains
         // Create _num_chains chains
         _chains.resize(_num_chains);
         
@@ -784,7 +725,7 @@ namespace strom {
             auto m          = likelihood->getModel();
             
             // Finish setting up models
-            m->setTopologyPriorOptions(_allow_polytomies, _resolution_class_prior, _topo_prior_C);   ///!i
+            m->setTopologyPriorOptions(_allow_polytomies, _resolution_class_prior, _topo_prior_C);
             m->setSubsetNumPatterns(_data->calcNumPatternsVect());
             m->setSubsetSizes(_partition->calcSubsetSizes());
             m->activate();
@@ -800,7 +741,7 @@ namespace strom {
             likelihood->useStoredData(_using_stored_data);
             
             // Build list of updaters, one for each free parameter in the model
-            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);   ///!xxx
+            unsigned num_free_parameters = c.createUpdaters(m, _lot, likelihood);
             if (num_free_parameters == 0)
                 throw XStrom("MCMC skipped because there are no free parameters in the model");
 
@@ -810,14 +751,12 @@ namespace strom {
             // Set heating power to precalculated value
             c.setChainIndex(chain_index);
             c.setHeatingPower(_heating_powers[chain_index]);
-#if defined(POLSTONES)
-            if (_steppingstone) {
+            if (_steppingstone) {   ///!initChains_start
                 if (chain_index == _num_chains - 1)
                     c.setNextHeatingPower(1.0);
                 else
                     c.setNextHeatingPower(_heating_powers[chain_index + 1]);
-            }
-#endif
+            }   ///!initChains_stop
                         
             // Give the chain a starting tree
             std::string newick = _tree_summary->getNewick(m->getTreeIndex());
@@ -897,7 +836,7 @@ namespace strom {
                 
     }
     
-    inline void Strom::run() {
+    inline void Strom::run() {  ///begin_run
         std::cout << "Starting..." << std::endl;
         std::cout << "Current working directory: " << boost::filesystem::current_path() << std::endl;
         
@@ -919,8 +858,10 @@ namespace strom {
             // Create an output manager and open output files
             _output_manager.reset(new OutputManager);
             _output_manager->outputConsole(boost::str(boost::format("\n%12s %12s %12s %12s %12s") % "iteration" % "m" % "logLike" % "logPrior" % "TL"));
-            _output_manager->openTreeFile("trees.tre", _data);
-            _output_manager->openParameterFile("params.txt", _chains[0].getModel());
+            if (!_steppingstone) { ///!open_param_tree_files_start
+                _output_manager->openTreeFile("trees.tre", _data);
+                _output_manager->openParameterFile("params.txt", _chains[0].getModel());
+            } ///!open_param_tree_files_stop
             sample(0, _chains[0]);
             
             // Burn-in the chains
@@ -942,18 +883,20 @@ namespace strom {
             // Create swap summary
             swapSummary();
             
-#if defined(POLSTONES)
-            calcMarginalLikelihood();
-#endif
+            // Estimate the marginal likelihood if doing steppingstone ///!run_calcmarglike_start
+            calcMarginalLikelihood(); ///!run_calcmarglike_stop
+            
             // Close output files
-            _output_manager->closeTreeFile();
-            _output_manager->closeParameterFile();
+            if (!_steppingstone) { ///!close_param_tree_files_start
+                _output_manager->closeTreeFile();
+                _output_manager->closeParameterFile();
+            } ///!close_param_tree_files_stop
         }
         catch (XStrom & x) {
             std::cerr << "Strom encountered a problem:\n  " << x.what() << std::endl;
         }
 
         std::cout << "\nFinished!" << std::endl;
-    }
+    } ///end_run
 
 }

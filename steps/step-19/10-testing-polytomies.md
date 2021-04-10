@@ -46,21 +46,9 @@ You can also think about modifying your `TreeSummary` class to summarize the tre
 
 Once you get the basic `TreeSummary::showSummary()` working, consider adding a `showResolutionClassSummary` function to `TreeSummary` that tallies up the number of sampled trees in each resolution class.
 
-## The end!
+## Up next
 
-This is the current end of the tutorial. I continue to add to it, however, so more steps will be added in future editions. I hope you have found this tutorial to be helpful, and please feel free to contact me (`paul.lewis@uconn.edu`) if you find errors or have difficulty understanding something.
-
-If I fix errors, I will increment the minor version number and describe (as best I can) what changed in the Version History section of the source branch README file.
-
-Also, remember that the source code is available separately for each step of the tutorial on the GitHub repository. Visit [https://github.com/stromtutorial/stromtutorial.github.io](https://github.com/stromtutorial/stromtutorial.github.io) and select the `source` branch, then look for the source for the step in question in the `src` directory for that step. You can also checkout the entire repository and switch to the source branch as follows:
-
-~~~~~~
-git clone https://github.com/stromtutorial/stromtutorial.github.io.git
-cd stromtutorial
-git checkout source
-~~~~~~
-{:.bash}
-
+In the next step, we'll add an option that will allow estimation of the log marginal likelihood of a model. Marginal likelihoods are used in Bayesian model selection to compare models, and the current program is preadapted for carrying out the steppingstone method for marginal likelihood estimation due to the fact that it can run multiple chains with different heating powers.
 
 
 

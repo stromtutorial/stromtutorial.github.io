@@ -225,7 +225,7 @@ namespace strom {
         if (log_prior > _log_zero) {
             double log_R = 0.0;
             log_R += _heating_power*(log_likelihood - prev_lnL);
-            log_R += (_heat_likelihood_only ? 1.0 : _heating_power)*(log_prior - prev_log_prior);
+            log_R += _heating_power*(log_prior - prev_log_prior);
             log_R += _log_hastings_ratio;
             log_R += _log_jacobian;
             

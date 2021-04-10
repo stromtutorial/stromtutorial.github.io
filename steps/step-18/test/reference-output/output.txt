@@ -2,7 +2,7 @@
 *** Not using stored data (posterior = prior) ***
 
 Starting...
-Current working directory: "/home/pol02003/stromtutorial.github.io/steps/step-18/test"
+Current working directory: "/Users/plewis/Documents/websites/stromtutorial.github.io/steps/step-18/test"
 
 *** Reading and storing the data in the file rbcl10.nex
 storing read block: TAXA
@@ -86,60 +86,60 @@ Sample size is 10000
 
    iteration      logLike     logPrior           TL
            0      0.00000     19.25143      1.75014
-       10000      0.00000     19.50101      4.29338
-       20000      0.00000     14.88919     52.48962
-       30000      0.00000     14.16803     51.69152
-       40000      0.00000     18.53524     14.97504
-       50000      0.00000     19.90976      3.29504
-       60000      0.00000     17.95064     14.56036
-       70000      0.00000     16.74371     31.89961
-       80000      0.00000     16.79557      5.65630
-       90000      0.00000     19.22727      4.49961
-      100000      0.00000     19.96426      2.70476
+       10000      0.00000     18.33662     17.31013
+       20000      0.00000     19.57327      4.13654
+       30000      0.00000     16.88524      9.83791
+       40000      0.00000     19.76044      4.13743
+       50000      0.00000     17.22016      6.77849
+       60000      0.00000     17.93532      5.41960
+       70000      0.00000     16.63290     29.15265
+       80000      0.00000     16.41246     33.05470
+       90000      0.00000     18.10933     19.21250
+      100000      0.00000     17.71209     20.87124
 
 Chain 0 (power 1.00000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4203
-                  Exchangeabilities        1000.000           100.0            4255
-                Gamma Rate Variance          10.568            29.6            4250
-     Proportion of Invariable Sites           1.000           100.0            4209
-         Tree Topol. and Edge Prop.        1000.000           100.0           78939
-                        Tree Length          13.137            29.7            4144
+                  State Frequencies        1000.000           100.0            4202
+                  Exchangeabilities        1000.000           100.0            4257
+                Gamma Rate Variance          13.298            28.0            4250
+     Proportion of Invariable Sites           1.000           100.0            4206
+         Tree Topol. and Edge Prop.        1000.000           100.0           78942
+                        Tree Length          14.793            30.1            4143
 
 Chain 1 (power 0.66667)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4173
-                  Exchangeabilities        1000.000           100.0            4222
-                Gamma Rate Variance          13.741            30.3            4229
-     Proportion of Invariable Sites           1.000           100.0            4122
-         Tree Topol. and Edge Prop.        1000.000           100.0           79047
-                        Tree Length          13.716            28.1            4207
+                  State Frequencies        1000.000           100.0            4167
+                  Exchangeabilities        1000.000           100.0            4155
+                Gamma Rate Variance          19.941            31.2            4161
+     Proportion of Invariable Sites           1.000           100.0            4279
+         Tree Topol. and Edge Prop.        1000.000           100.0           79036
+                        Tree Length          13.338            30.7            4202
 
 Chain 2 (power 0.50000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4165
-                  Exchangeabilities        1000.000           100.0            4154
-                Gamma Rate Variance          10.863            30.6            4159
-     Proportion of Invariable Sites           1.000           100.0            4279
-         Tree Topol. and Edge Prop.        1000.000           100.0           79040
-                        Tree Length          11.490            29.4            4203
+                  State Frequencies        1000.000           100.0            4203
+                  Exchangeabilities        1000.000           100.0            4218
+                Gamma Rate Variance          27.187            29.3            4223
+     Proportion of Invariable Sites           1.000           100.0            4203
+         Tree Topol. and Edge Prop.        1000.000           100.0           79096
+                        Tree Length          11.074            29.2            4057
 
 Chain 3 (power 0.40000)
                             Updater   Tuning Param.        Accept %     No. Updates
-                  State Frequencies        1000.000           100.0            4204
-                  Exchangeabilities        1000.000           100.0            4217
-                Gamma Rate Variance          13.100            30.6            4224
-     Proportion of Invariable Sites           1.000           100.0            4204
-         Tree Topol. and Edge Prop.        1000.000           100.0           79095
-                        Tree Length          12.140            29.4            4056
+                  State Frequencies        1000.000           100.0            4171
+                  Exchangeabilities        1000.000           100.0            4223
+                Gamma Rate Variance          34.460            29.7            4229
+     Proportion of Invariable Sites           1.000           100.0            4122
+         Tree Topol. and Edge Prop.        1000.000           100.0           79049
+                        Tree Length          10.846            29.0            4206
 
 Swap summary (upper triangle = no. attempted swaps; lower triangle = no. successful swaps):
                         0            1            2            3
 ----------------------------------------------------------------
-           0          ---        16520        16589        16824
-           1        11719          ---        16561        16908
-           2         8699        13130          ---        16598
-           3         6898        10922        13951          ---
+           0          ---        16514        16694        16609
+           1        11604          ---        16661        16841
+           2         8622        13018          ---        16681
+           3         6482        10782        14110          ---
 ----------------------------------------------------------------
 
 Finished!

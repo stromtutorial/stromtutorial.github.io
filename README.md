@@ -33,3 +33,10 @@ Finally, I have added a 19th step to the tutorial showing how to modify strom to
 #### 3.2
 
 This (major) update fixes numerous bugs relating to the calculation of the likelihood and the new polytomy-aware MCMC code (step 19). If you have begun the tutorial already, please obtain the source code for the particular step you are currently working on to ensure that you have the fixes implemented in this update. You can download the source code for any step by visiting [the GitHub repository](https://github.com/stromtutorial/stromtutorial.github.io) and clone the tutorial in its entirety (be sure to switch to the _source_ branch to get access to the source code). If you wish to view/download the source files for just step 10, for example, you could visit [the src directory](https://github.com/stromtutorial/stromtutorial.github.io/tree/source/steps/step-10/src) for step 10 directly.
+
+#### 3.3
+
+31-March-2021. Replaced body of GammaRateVarUpdater::proposeNewState function to employ a window-based proposal rather than a multiplicative proposal, which fails if the gamma rate variance parameter is zero. Also fixed a bug in the GammaRateVarUpdater::calcLogPrior function, which now handles the case of curr_point equal to zero. 
+
+5-April-2021. Added step 20 on the steppingstone method for estinating marginal likelihood.
+

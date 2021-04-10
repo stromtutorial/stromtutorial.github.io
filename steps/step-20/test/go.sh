@@ -6,7 +6,7 @@
 
 export LD_LIBRARY_PATH="$HOME/lib:$LD_LIBRARY_PATH"
 
-STROM=~/bin/step19
+STROM=~/bin/step20
 if [ ! -f "$STROM" ]; then
     echo "$STROM not found, aborting."
     exit 0
@@ -22,7 +22,7 @@ cp ../../../assets/data/rbcl10.tre .
 
 echo
 echo "Running $STROM..."
-$STROM &>output.txt
+time $STROM &>output.txt
 
 echo
 echo "Comparing output files with reference..."
@@ -34,22 +34,6 @@ else
      echo "  output.txt is identical to reference"
 fi
 
-diff params.txt reference-output/params.txt > diff-params.txt
-if [ -s diff-params.txt ]
-then
-     echo "  params.txt differs from reference (see diff-params.txt for details)"
-else
-     echo "  params.txt is identical to reference"
-fi
-
-diff trees.tre reference-output/trees.tre > diff-trees.txt
-if [ -s diff-trees.txt ]
-then
-     echo "  trees.tre differs from reference (see diff-trees.txt for details)"
-else
-     echo "  trees.tre is identical to reference"
-fi
-
 if [[ "$#" -ne 1 || "$1" != "keep" ]]
 then
     echo
@@ -57,8 +41,5 @@ then
     rm -f rbcl10.nex
     rm -f rbcl10.tre
     rm -f output.txt
-    rm -f params.txt
-    rm -f trees.tre
-    rm -f diff-trees.txt
-    rm -f diff-params.txt
+    rm -f diff-output.txt
 fi
