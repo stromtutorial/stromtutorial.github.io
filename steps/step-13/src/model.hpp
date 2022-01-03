@@ -85,7 +85,7 @@ namespace strom {
             qmat_vect_t                 _qmatrix;
             asrv_vect_t                 _asrv;
         
-            bool                        _tree_index;
+            unsigned                    _tree_index;
             bool                        _tree_fixed;
         
             bool                        _subset_relrates_fixed;
